@@ -8,7 +8,7 @@ export interface ITaskListItem {
     Responsible?: {
       Url: string,
       Description: string
-    }
+    };
     Start?: Date;
     Finish?: Date;
     Barriers?: string;
@@ -19,5 +19,10 @@ export interface ITaskListItem {
     EvidenceOfCompletion?: {
       Url: string,
       Description: string
-    }
+    };
+    Checklist?:{
+      isChecked: boolean,
+      title: string,
+      orderHint: string
+    };
   }

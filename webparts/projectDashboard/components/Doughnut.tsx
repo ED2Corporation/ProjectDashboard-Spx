@@ -31,22 +31,44 @@ const DoughnutChart: React.FC<ChartProps> = ({ gates, complete }) => {
     if (delay > 7) return "#FF6384CC"; //red
     return "#CCCCFF80"; // Default Class
   };
+  
+  const values = gates.length > 0
+  ? gates.map(() => 100 / gates.length)
+  : [];
+
   const data = {
-    labels: gates.map((gate, index) => gate.Title.substring(0, 1)),
+    labels: gates.map(g => g.Title.substring(0, 1)),
     datasets: [
       {
-        data: [20, 20, 20, 20, 20], // Valores
-        backgroundColor: gates.map((gate, index) =>
-          getCardColor(gate.Delay, gate.Complete)
-        ), // Colores para cada segmento
-        hoverBackgroundColor: gates.map((gate, index) =>
-          getCardBackground(gate.Delay, gate.Complete)
-        ), // Colores al hacer hover
-        borderColor: "#F5F5F5", // Color del borde (Whitesmoke)
-        borderWidth: 2, // Grosor del borde
+        data: values,
+        backgroundColor: gates.map(g =>
+          getCardColor(g.Delay, g.Complete)
+        ),
+        hoverBackgroundColor: gates.map(g =>
+          getCardBackground(g.Delay, g.Complete)
+        ),
+        borderColor: "#F5F5F5",
+        borderWidth: 2,
       },
     ],
   };
+
+  // const data = {
+  //   labels: gates.map((gate, index) => gate.Title.substring(0, 1)),
+  //   datasets: [
+  //     {
+  //       data: [20, 20, 20, 20, 20], // Valores
+  //       backgroundColor: gates.map((gate, index) =>
+  //         getCardColor(gate.Delay, gate.Complete)
+  //       ), // Colores para cada segmento
+  //       hoverBackgroundColor: gates.map((gate, index) =>
+  //         getCardBackground(gate.Delay, gate.Complete)
+  //       ), // Colores al hacer hover
+  //       borderColor: "#F5F5F5", // Color del borde (Whitesmoke)
+  //       borderWidth: 2, // Grosor del borde
+  //     },
+  //   ],
+  // };
 
 
   const centerTextPlugin = {
