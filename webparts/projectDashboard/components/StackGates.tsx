@@ -14,7 +14,7 @@ const StackGates = ({ gates, onSelectItem }: GateCardProps) => {
   };
 
   const sortedItems = [...gates].sort((a, b) => b.Title.localeCompare(a.Title));
-  let compareGate: string;
+  let compareGate: string = "0";
 
   const getCardDelay = (delay: number, complete: number) => {
     if (complete === 100) return styles.whiteFont;

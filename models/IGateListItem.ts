@@ -6,7 +6,7 @@ export interface IGateListItem {
     Delay: number;
     Count: number;
     Effort: number ;
-    Start: Date;
-    Finish: Date;
-    ActualFinish: Date;
+    Start: Date | null;
+    Finish: Date | null;
+    ActualFinish: Date | null;
   }

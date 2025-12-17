@@ -7,6 +7,7 @@
   padding: 1em;
   color: "[theme:bodyText, default: #323130]";
   color: var(--bodyText);
+
   &.teams {
     font-family: $ms-font-family-fallbacks;
   }
@@ -42,7 +43,8 @@ h2 {
 
 .buttons {
   padding-top: 10px;
-  > button {
+
+  >button {
     margin-right: 10px;
   }
 }
@@ -51,9 +53,12 @@ h2 {
   width: 100%;
   height: 300px;
   //background-image: url('/ruta/a/la/imagen.jpg');
-  background-size: cover; /* Escala la imagen para que cubra todo el área */
-  background-repeat: no-repeat; /* Evita que se repita */
-  background-position: center; /* Centra la imagen */
+  background-size: cover;
+  /* Escala la imagen para que cubra todo el área */
+  background-repeat: no-repeat;
+  /* Evita que se repita */
+  background-position: center;
+  /* Centra la imagen */
 }
 
 .iconButton {
@@ -67,6 +72,7 @@ h2 {
   width: 100%;
   max-width: 25px;
 }
+
 .iconArrow {
   width: 80px;
   height: 80px;
@@ -89,7 +95,7 @@ h2 {
   //background-size: "cover";
   //background-image: '../assets/ArrowGreen.jpg';
   border-radius: 0px;
-  border-color:#333;
+  border-color: #333;
   box-shadow: 0 4px 6px rgba(8, 8, 8, 0.89);
   width: 100px;
   height: 100px;
@@ -113,13 +119,16 @@ h2 {
   justify-content: space-between;
   transition: transform 0.2s, box-shadow 0.2s;
 }
+
 .gateCard:hover {
   transform: translateY(-5px);
   box-shadow: 0 6px 10px rgba(0, 0, 0, 0.2);
 }
+
 .gateCard h3 {
   margin: 2px;
 }
+
 .gateCard p {
   font-size: 10px;
 }
@@ -127,7 +136,7 @@ h2 {
 .pilaCard {
   background-color: whitesmoke;
   border-radius: 0px;
-  border-color:#333;
+  border-color: #333;
   box-shadow: 0 4px 6px rgba(8, 8, 8, 0.89);
   width: 80px;
   height: 50px;
@@ -136,16 +145,20 @@ h2 {
   justify-content: space-between;
   transition: transform 0.2s, box-shadow 0.2s;
 }
+
 .pilaCard:hover {
   transform: translateY(-5px);
   box-shadow: 0 6px 10px rgba(0, 0, 0, 0.2);
 }
+
 .pilaCard h3 {
   margin: 2px;
 }
+
 .pilaCard p {
   font-size: 10px;
 }
+
 .progressContainer {
   display: flex;
   flex-direction: row;
@@ -164,7 +177,7 @@ h2 {
 .progressCard {
   background-color: whitesmoke;
   border-radius: 0px;
-  border-color:#333;
+  border-color: #333;
   box-shadow: 0 4px 6px rgba(8, 8, 8, 0.89);
   width: 15px;
   height: 30px;
@@ -173,6 +186,7 @@ h2 {
   justify-content: space-between;
   transition: transform 0.2s, box-shadow 0.2s;
 }
+
 .progressCard:hover {
   transform: translateY(-5px);
   box-shadow: 0 6px 10px rgba(0, 0, 0, 0.2);
@@ -201,20 +215,25 @@ h2 {
   justify-content: "center";
   box-shadow: "0 4px 6px rgba(0,0,0,0.1)";
   background-image: 'https://ed2corp.sharepoint.com/Shared%20Documents/imagenes/ArrowGreen.jpg';
-};
+}
+
+;
 
 .arrowCardRed {
   background-size: "cover";
   background-image: 'https://ed2corp.sharepoint.com/sites/SiteAssets/imagenes/ArrowRed.jpg';
 }
+
 .arrowCardYellow {
   background-size: "cover";
   background-image: 'https://ed2corp.sharepoint.com/Shared%20Documents/imagenes/ArrowGreen.jpg';
 }
+
 .arrowCardGreen {
   background-size: "cover";
   background-image: '../assets/ArrowGreen.jpg';
 }
+
 .arrowCardWhite {
   background-size: "cover";
   background-image: 'https://ed2corp.sharepoint.com/sites/SiteAssets/imagenes/ArrowWhite.jpg';
@@ -225,12 +244,12 @@ h2 {
 .ed2Card {
   background-color: #ffffff;
   border-radius: 2px;
-  border-color:#333;
+  border-color: #333;
   box-shadow: 0 4px 6px rgba(8, 8, 8, 0.89);
   padding: 15px;
   width: 50px;
   height: 50px;
-  padding: 10px 2px 2px 2px ;
+  padding: 10px 2px 2px 2px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -241,16 +260,19 @@ h2 {
   transform: translateY(-5px);
   box-shadow: 0 6px 10px rgba(0, 0, 0, 0.2);
 }
+
 .ed2Card h3 {
   margin: 2px;
 }
+
 .ed2Card p {
   font-size: 10px;
 }
 
 
 .cardHeader {
-  background-color: #56b3fa; /* Estilo destacado */
+  background-color: #56b3fa;
+  /* Estilo destacado */
   color: #ffffff;
   padding: 5px;
   height: 40px;
@@ -275,6 +297,7 @@ h2 {
   margin: 0;
   font-size: 10px;
 }
+
 .cardContent h5 {
   margin: 5px 10px 2px 5px;
   color: darkblue;
@@ -298,6 +321,9 @@ h2 {
   background-color: white;
 }
 
+.grey {
+  background-color: lightgray;
+}
 
 .greenFont {
   color: darkgreen;
@@ -309,6 +335,10 @@ h2 {
 
 .redFont {
   color: darkred;
+}
+
+.greyFont {
+  color: darkgray;
 }
 
 .whiteFont {
@@ -356,41 +386,63 @@ h2 {
 
 .ed2Table {
   width: 100%;
-  border-collapse: collapse; 
+  border-collapse: collapse;
 }
 
-.ed2Table thead, .ed2Table tbody  {
-  border: 1px solid whitesmoke; /* Añade el borde */
+.ed2Table thead,
+.ed2Table tbody {
+  border: 1px solid whitesmoke;
+  /* Añade el borde */
   background-color: white;
-  text-align: center;       /* Alinea el contenido a la izquierda */
+  text-align: center;
+  /* Alinea el contenido a la izquierda */
 }
 
-.ed2Table th  {
-  border: 1px solid whitesmoke; /* Añade el borde */
-  padding: 4px;           /* Da un espacio interno a las celdas */
-  text-align: center;       /* Alinea el contenido a la izquierda */
+.ed2Table th {
+  border: 1px solid whitesmoke;
+  /* Añade el borde */
+  padding: 4px;
+  /* Da un espacio interno a las celdas */
+  text-align: center;
+  /* Alinea el contenido a la izquierda */
   size: 12px;
   background-color: whitesmoke;
   font-weight: bold;
 }
+
 .ed2Table td {
-  border: 1px solid whitesmoke; /* Añade el borde */
-  padding: 2px;           /* Da un espacio interno a las celdas */
-  text-align: left;       /* Alinea el contenido a la izquierda */
+  border: 1px solid whitesmoke;
+  /* Añade el borde */
+  padding: 2px;
+  /* Da un espacio interno a las celdas */
+  text-align: left;
+  /* Alinea el contenido a la izquierda */
   size: 10px;
 }
 
 .ed2Table tr:hover {
-  background-color: #f1f1f1; /* Efecto hover */
+  background-color: #f1f1f1;
+  /* Efecto hover */
 }
 
 .table-active {
-  background-color: #cce5ff; /* Fondo para filas activas */
+  background-color: #cce5ff;
+  /* Fondo para filas activas */
 }
 
 .table-bordered {
-  background-color: #cce5ff; /* Fondo para filas activas */
-  border: 1px solid #ddd; /* Añade el borde */
+  background-color: #cce5ff;
+  /* Fondo para filas activas */
+  border: 1px solid #ddd;
+  /* Añade el borde */
+}
+
+.task-alert {
+  display: flex;
+  width: 200px;
+  height: 20px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .task-card {
@@ -399,9 +451,13 @@ h2 {
   border-radius: 8px;
   padding: 16px;
   max-width: 500px;
+  max-height: 420px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
   font-family: Arial, sans-serif;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
 }
 
 .task-card:hover {
@@ -409,19 +465,63 @@ h2 {
   box-shadow: 0 6px 10px rgba(0, 0, 0, 0.2);
 }
 
+.task-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
 .task-title {
   margin: 0;
   color: darkblue;
   font-size: 18px;
   font-weight: bold;
+  flex: 1;
+  word-break: break-word;
+}
+
+.task-card-body {
+  flex: 1;
+  overflow-y: auto;   /* evita desborde vertical del contenido */
 }
 
 .task-card p {
   margin: 8px 0;
-  font-size: 18px;
+  font-size: 14px;
   color: #4a4a4a;
 }
 
+/* tabla dentro del card */
+.task-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.task-table td {
+  padding: 4px 6px;
+  vertical-align: top;
+  word-break: break-word;
+}
+
+/* botón de cierre en la esquina del header */
+.task-card-close {
+  border: none;
+  background: transparent;
+  color: #999;
+  font-size: 1.4rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 4px;
+  align-self: flex-start;
+
+  &:hover {
+    color: #333;
+  }
+}
+
+/* si quieres seguir usando este estilo para otros botones */
 .task-button {
   display: inline-block;
   padding: 8px 16px;

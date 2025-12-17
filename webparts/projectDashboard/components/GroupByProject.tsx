@@ -2,50 +2,52 @@ import { IGateListItem } from "../../../models";
 
 // Función para agrupar
 export function GroupByProject(gates: IGateListItem[]) {
-  // const summary = data.reduce(
-  //   (acc, item) => {
-  //     acc.Complete += item.Complete ? item.Complete : 0; // Acumular "Complete"
-  //     acc.Count += 1; // Contar los elementos
-  //     acc.Delay = Math.max(acc.Delay, item.Delay ? item.Delay : 0); // Máximo de "Delay"
-  //     return acc;
-  //   },
-  //   { Complete: 0, Count: 0, Delay: 0 } // Inicialización
-  // );
-
-  // // Calcular promedio de "Complete" si hay datos
-  // summary.Complete = summary.Count > 0 ? Math.round(summary.Complete / summary.Count) : 0;
-
+ 
   let complete: number = 0;
   let delay: number = 0;
   let effort: number = 0;
   let count: number = 0;
-  let start = new Date();
-  let end = new Date();
-  let actualEnd = new Date();
+
+  let start: Date | null = null;
+  let end: Date | null = null;
+  let actualEnd: Date | null = null;
+
+
   const data = [...gates].sort((a, b) => b.Title.localeCompare(a.Title));
 
   if (data.length > 0) {
     for (count = 0; count < data.length; count++) {
-      complete += data[count].Complete ? data[count].Complete : 0; // Acumular "Complete"
-      effort += data[count].Effort ? data[count].Effort : 0; // Acumular "Complete"
-      delay = data[count].Delay > delay ? data[count].Delay : delay; // Máximo de "Delay"
-      start =
-        data[count].Start.getTime() < start.getTime()
-          ? data[count].Start
+      const gate = data[count];
+
+      complete += gate.Complete ?? 0;
+      effort   += gate.Effort   ?? 0;
+      delay = gate.Delay > delay ? gate.Delay : delay;
+
+      if (gate.Start) {
+        start = !start || gate.Start.getTime() < start.getTime()
+          ? gate.Start
           : start;
-      end =
-        data[count].Finish.getTime() < end.getTime() ? data[count].Finish : end;
-      actualEnd =
-        data[count].ActualFinish.getTime() < actualEnd.getTime()
-          ? data[count].ActualFinish
+      }
+
+      if (gate.Finish) {
+        end = !end || gate.Finish.getTime() < end.getTime()
+          ? gate.Finish
+          : end;
+      }
+
+      if (gate.ActualFinish) {
+        actualEnd = !actualEnd || gate.ActualFinish.getTime() < actualEnd.getTime()
+          ? gate.ActualFinish
           : actualEnd;
+      }
     }
+
   }
 
-  const summary: IGateListItem = {
+ const summary: IGateListItem = {
     Id: "0",
     Title: "Project",
-    Complete: Math.trunc(complete / count),
+    Complete: count > 0 ? Math.trunc(complete / count) : 0,
     Delay: Math.trunc(delay),
     Count: count,
     Effort: Math.trunc(effort),
@@ -53,6 +55,7 @@ export function GroupByProject(gates: IGateListItem[]) {
     Finish: end,
     ActualFinish: actualEnd,
   };
+
   //console.log("[GetProjectSummary] Complete:", data.length+"-"+summary.Complete, "Count:", summary.Count, "Delay:", summary.Delay);
   return summary;
 }

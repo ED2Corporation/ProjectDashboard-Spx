@@ -3,6 +3,7 @@ import styles from "./ProjectDashboard.module.scss";
 import type { IProjectDashboardProps } from "./IProjectDashboardProps";
 //import { escape } from "@microsoft/sp-lodash-subset";
 //import { useState } from "react";
+import { ITaskListItem } from "../../../models";
 import { Switch } from "@fluentui/react-components";
 import ProgressTasks from "./ProgressTasks";
 import ProgressGates from "./ProgressGates";
@@ -15,10 +16,10 @@ import { GroupByProject } from "./GroupByProject";
 //import type { SwitchProps } from "@fluentui/react-components";
 
 interface IProjectDashboardState {
-  // showProjects: boolean;
   allTasks: boolean;
   showTasks: boolean;
   showDetails: boolean;
+  selectedTask: ITaskListItem | null;
 }
 export default class ProjectDashboard extends React.Component<
   IProjectDashboardProps,
@@ -28,10 +29,10 @@ export default class ProjectDashboard extends React.Component<
   constructor(props) {
     super(props);
     this.state = {
-      // showProjects: false,
       allTasks: false,
       showTasks: true,
       showDetails: false,
+      selectedTask: null,
     };
   }
 
@@ -51,8 +52,9 @@ export default class ProjectDashboard extends React.Component<
       project,
     } = this.props;
 
-    const { showDetails, allTasks, showTasks } = this.state;
-
+    const { showDetails, allTasks, showTasks, selectedTask } = this.state;
+    //const [selectedTask, setSelectedTask] = useState<ITaskListItem | null>(null);
+    
     return (
       <>
         <div id="progress-header" className={styles["rowContainer"]}>
@@ -90,7 +92,7 @@ export default class ProjectDashboard extends React.Component<
                 }}
               >
                 <div>
-                  <DoughnutChart gates={spGateListItems} complete={GroupByProject(spGateListItems).Complete} />
+                  <DoughnutChart gates={spGateListItems} tasks={spTaskListItems} complete={GroupByProject(spGateListItems).Complete} />
                 </div>
               </a>
             )}
@@ -131,6 +133,7 @@ export default class ProjectDashboard extends React.Component<
                   <>
                     <ProgressGates
                       gates={spGateListItems}
+                      tasks={spTaskListItems} 
                       onSelectItem={(item, group) => {
                         this.props.onSelectItem(item, group);
                         //this._showDetails = true;
@@ -144,6 +147,12 @@ export default class ProjectDashboard extends React.Component<
                     tasks={allTasks ? spTaskListItems : spFilteredTaskItems}
                     showDetails={false}
                     onSelectItem={(item, group) => {
+                      console.log("ProgressTasks onSelectItem -> item, group:", item, group);
+                      const task = spTaskListItems.find(t => t.Task === item);
+                      console.log("ProgressTasks found task:", task);
+                      if (task) {
+                        this.setState({ selectedTask: task });
+                      }
                       this.props.onSelectItem(item, group);
                     }}
                   />
@@ -151,16 +160,12 @@ export default class ProjectDashboard extends React.Component<
               </div>
             </div>
 
-            {this.props.selectedTask &&
-              this.props.selectedTask.Title.length > 0 && (
-                <>
-                  {
-                    <TaskCard
-                      task={this.props.selectedTask}
-                      showDetails={false}
-                    />
-                  }
-                </>
+            {selectedTask  && (
+                <TaskCard
+                  task={selectedTask}
+                  showDetails={true}
+                  onClose={() => this.setState({ selectedTask: null })}
+                />
               )}
             {showTasks && spTaskListItems.length > 0 && (
               <ListTasks
@@ -174,6 +179,10 @@ export default class ProjectDashboard extends React.Component<
                 }
                 showDetails={showDetails}
                 onSelectItem={(item, group) => {
+                  const task = spTaskListItems.find(t => t.Task === item); // ajusta el criterio
+                  if (task) {
+                    this.setState({ selectedTask: task });
+                  }
                   this.props.onSelectItem(item, group);
                 }}
               />

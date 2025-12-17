@@ -3,34 +3,40 @@
   "id": "a38104e7-d8e7-44e2-9145-4416bbdd3a34",
   "alias": "ProjectDashboardWebPart",
   "componentType": "WebPart",
-
-  // The "*" signifies that the version should be taken from the package.json
   "version": "*",
   "manifestVersion": 2,
-
-  // If true, the component can only be installed on sites where Custom Script is allowed.
-  // Components that allow authors to embed arbitrary script code should set this to true.
-  // https://support.office.com/en-us/article/Turn-scripting-capabilities-on-or-off-1f2c515f-5d7e-448a-9fd7-835da935584f
   "requiresCustomScript": false,
-  "supportedHosts": ["SharePointWebPart", "TeamsPersonalApp", "TeamsTab", "SharePointFullPage"],
+  "supportedHosts": [
+    "SharePointWebPart",
+    "TeamsPersonalApp",
+    "TeamsTab",
+    "SharePointFullPage"
+  ],
   "supportsThemeVariants": true,
-
-  "preconfiguredEntries": [{
-    "groupId": "5c03119e-3074-46fd-976b-c60198311f70", // Advanced
-    "group": { "default": "Advanced" },
-    "title": { "default": "ProjectDashboard" },
-    "description": { "default": "ProjectDashboard description" },
-    "officeFabricIconFontName": "Page",
-    "properties": {
-      "description": "Create a plan in planner and register their Id as Source Name... ",
-      "refreshInterval": "5000",
-      "projectName": "Plan Template",
-      "sourceName": "v-GYUc-0Jkqnqzs9WcCCjmUADgfe",
-      "projectURL": "https://ed2corp.sharepoint.com/sites/home",
-      "isPlanner": true,
-      "isDashboard": true,
-      "showButtons": true,
-      "showLog": true
+  "preconfiguredEntries": [
+    {
+      "groupId": "5c03119e-3074-46fd-976b-c60198311f70",
+      "group": {
+        "default": "Advanced"
+      },
+      "title": {
+        "default": "ProjectDashboard"
+      },
+      "description": {
+        "default": "ProjectDashboard description"
+      },
+      "officeFabricIconFontName": "Page",
+      "properties": {
+        "description": "Create a plan in planner and register their Id as Source Name... ",
+        "refreshInterval": "5000",
+        "projectName": "Plan Template",
+        "sourceName": "v-GYUc-0Jkqnqzs9WcCCjmUADgfe",
+        "projectURL": "https://ed2corp.sharepoint.com/sites/home",
+        "isPlanner": true,
+        "isDashboard": true,
+        "showButtons": true,
+        "showLog": true
+      }
     }
-  }]
+  ]
 }

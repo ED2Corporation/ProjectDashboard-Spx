@@ -1,37 +1,22 @@
 import React from "react";
 import { Doughnut } from "react-chartjs-2";
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, Title } from "chart.js";
+import { ITaskListItem } from "../../../models";
 import { IGateListItem } from "../../../models";
 import ChartDataLabels from "chartjs-plugin-datalabels";
+import { GetBucketStatusFromTasks, StatusToColor } from "./GetGateStatus";
 //import { GroupByProject } from "./GroupByProject";
 
 ChartJS.register(ArcElement, Tooltip, Legend, Title, ChartDataLabels);
 
 interface ChartProps {
   gates: IGateListItem[];
+  tasks: ITaskListItem[] | null;
   complete: number;
 }
 
-const DoughnutChart: React.FC<ChartProps> = ({ gates, complete }) => {
+const DoughnutChart: React.FC<ChartProps> = ({ gates, tasks, complete }) => {
 
-  //const project: IGateListItem = GroupByProject(gates);
-  //console.log("[DoughnutChart] gates: " + gates.length + "-" + project.Complete);
-
-  const getCardColor = (delay: number, complete: number) => {
-    //console.log("Styles:" + delay + "-" + complete);
-    if (complete === 100) return "#4CAF50";
-    if (delay > 0 && delay <= 7) return "#FFCE56";
-    if (delay > 7) return "#FF3B4E";
-    return "#FFFFFF "; // Default Class
-  };
-  const getCardBackground = (delay: number, complete: number) => {
-    //console.log("BackStyles:" + delay + "-" + complete);
-    if (complete === 100) return "#4CAF50CC"; //green
-    if (delay > 0 && delay <= 7) return "#FFCE56CC"; //yellow
-    if (delay > 7) return "#FF6384CC"; //red
-    return "#CCCCFF80"; // Default Class
-  };
-  
   const values = gates.length > 0
   ? gates.map(() => 100 / gates.length)
   : [];
@@ -41,35 +26,26 @@ const DoughnutChart: React.FC<ChartProps> = ({ gates, complete }) => {
     datasets: [
       {
         data: values,
-        backgroundColor: gates.map(g =>
-          getCardColor(g.Delay, g.Complete)
-        ),
-        hoverBackgroundColor: gates.map(g =>
-          getCardBackground(g.Delay, g.Complete)
-        ),
+        backgroundColor: gates.map(g => {
+          const gateTasks = (tasks || []).filter(
+            t => t.Title === g.Title   // o t.GateId === g.Id
+          );
+          const status = GetBucketStatusFromTasks(gateTasks);
+          return StatusToColor(status, true);
+        }),
+        hoverBackgroundColor: gates.map(g => {
+          const gateTasks = (tasks || []).filter(
+            t => t.Title === g.Title   // mismo criterio
+          );
+          const status = GetBucketStatusFromTasks(gateTasks);
+          return StatusToColor(status, false);
+        }),
         borderColor: "#F5F5F5",
         borderWidth: 2,
       },
     ],
+
   };
-
-  // const data = {
-  //   labels: gates.map((gate, index) => gate.Title.substring(0, 1)),
-  //   datasets: [
-  //     {
-  //       data: [20, 20, 20, 20, 20], // Valores
-  //       backgroundColor: gates.map((gate, index) =>
-  //         getCardColor(gate.Delay, gate.Complete)
-  //       ), // Colores para cada segmento
-  //       hoverBackgroundColor: gates.map((gate, index) =>
-  //         getCardBackground(gate.Delay, gate.Complete)
-  //       ), // Colores al hacer hover
-  //       borderColor: "#F5F5F5", // Color del borde (Whitesmoke)
-  //       borderWidth: 2, // Grosor del borde
-  //     },
-  //   ],
-  // };
-
 
   const centerTextPlugin = {
     id: "centerText",

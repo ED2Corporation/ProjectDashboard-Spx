@@ -46,7 +46,7 @@ const Dashboard: React.FC<DashboardProps> = ({ gates, project, baseURL }) => {
         {console.log("project.link: " + project.Link.Url)}
         {gates && (
           <div>
-            <DoughnutChart gates={gates} complete={GroupByProject(gates).Complete}/>
+            <DoughnutChart gates={gates} tasks={null} complete={GroupByProject(gates).Complete}/>
             {false && (
               <div className="task-card">
                 <svg
