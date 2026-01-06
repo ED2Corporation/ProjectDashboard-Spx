@@ -19,6 +19,13 @@ const ListTasks = ({
 }: ListGroupProps) => {
   //Hook
   const [selectedIndex, setSelectedIndex] = useState(-1);
+  const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
+
+  const [editEffort, setEditEffort] = useState<string>("");
+  const [editActualFinish, setEditActualFinish] = useState<string>("");
+  const [editEvidenceUrl, setEditEvidenceUrl] = useState<string>("");
+  const [editEvidenceDesc, setEditEvidenceDesc] = useState<string>("");
+
 
   return (
     <>
@@ -55,19 +62,147 @@ const ListTasks = ({
                   className={selectedIndex === index ? "table-active" : ""}
                   onClick={() => {
                     setSelectedIndex(index);
-                    onSelectItem(item.Task, "task");
                   }}
                 >
-                  <td>{item.Task}</td>
-                  <td>{Math.floor(item.Complete)}% </td>
-                  <td>{item.Effort}</td>
-                  <td>{GetFormatDate(item.Finish)}</td>
-                  <td>{GetFormatDate(item.ActualFinish)}</td>
-                  <td>
-                    <a href={item.EvidenceOfCompletion?.Url} target="_blank">
-                      {item.EvidenceOfCompletion?.Description}
-                    </a>
+                  {/* ...td Task name... */}
+                  <td >
+                      <button
+                      type="button"
+                      className={styles["icon-button"]}
+                      onClick={e => {
+                        e.stopPropagation(); // que no dispare el onClick del <tr>
+                        onSelectItem(item.Task, "task");
+                      }}
+                      title="View detail..."
+                    >
+                      <img
+                        src={require("../assets/View.png")}
+                        alt="View"
+                        className={styles["icon-small"]}
+                      />
+                    </button>
+                  
+                    <span>{item.Task}</span>
                   </td>
+
+                  {/* ...td de Completed con iconos... */}
+                  <td className={styles["cell-complete"]}>                    
+                   {/* Icono SEND solo en modo edición */}
+                    {editingTaskId === item.Id ? (
+                      <button
+                        type="button"
+                        className={styles["icon-button"]}
+                        onClick={() => {
+                          // aquí notificas al padre para actualizar en la nube
+                          onSelectItem(item.Task, "update-task");
+
+                          // opcional: pasar los datos editados hacia arriba
+                          // onUpdateTask?.({
+                          //   id: item.Id,
+                          //   effort: editEffort,
+                          //   actualFinish: editActualFinish,
+                          //   evidenceUrl: editEvidenceUrl,
+                          //   evidenceDesc: editEvidenceDesc,
+                          // });
+
+                          setEditingTaskId(null);
+                        }}
+                        title="Accept / Update DB"
+                      >
+                        <img
+                          src={require("../assets/Accept.png")}
+                          alt="send"
+                          className={styles["icon-small"]}
+                        />
+                      </button>
+                      ) : (
+                      <button
+                        type="button"
+                        className={styles["icon-button"]}
+                        onClick={() => {
+                          setEditingTaskId(item.Id);
+                          setEditEffort(item.Effort?.toString() ?? "");
+                          setEditActualFinish(
+                            item.ActualFinish
+                              ? new Date(item.ActualFinish).toISOString().slice(0, 10)
+                              : new Date().toISOString().slice(0, 10) // sugiere hoy
+                          );
+                          setEditEvidenceUrl(item.EvidenceOfCompletion?.Url ?? "");
+                          setEditEvidenceDesc(item.EvidenceOfCompletion?.Description ?? "");
+                        }}
+                        title="Complete / Set complete params"
+                      >
+                        <img
+                          src={require("../assets/EditRow.png")}
+                          alt="accept"
+                          className={styles["icon-small"]}
+                        />
+                      </button>
+                      )
+                    }
+
+                    <span>{Math.floor(item.Complete)}%</span>
+
+                  </td>
+
+                  {/* Columna Effort */}
+                  <td>
+                    {editingTaskId === item.Id ? (
+                      <input
+                        type="number"
+                        value={editEffort}
+                        onChange={e => setEditEffort(e.target.value)}
+                        className={styles["input-small"]}
+                        placeholder="Effort"
+                      />
+                    ) : (
+                      item.Effort
+                    )}
+                  </td>
+
+                  {/* Columna Finish (solo lectura) */}
+                  <td>{GetFormatDate(item.Finish)}</td>
+
+                  {/* Columna Actual Finish */}
+                  <td>
+                    {editingTaskId === item.Id ? (
+                      <input
+                        type="date"
+                        value={editActualFinish}
+                        onChange={e => setEditActualFinish(e.target.value)}
+                        className={styles["input-small"]}
+                      />
+                    ) : (
+                      GetFormatDate(item.ActualFinish)
+                    )}
+                  </td>
+                  
+                 {/* Columna Evidence of Completion */}
+                  <td>
+                    {editingTaskId === item.Id ? (
+                      <div className={styles["evidence-edit"]}>
+                        <input
+                          type="text"
+                          value={editEvidenceUrl}
+                          onChange={e => setEditEvidenceUrl(e.target.value)}
+                          placeholder="URL evidence"
+                          className={styles["input-small"]}
+                        />
+                        <input
+                          type="text"
+                          value={editEvidenceDesc}
+                          onChange={e => setEditEvidenceDesc(e.target.value)}
+                          placeholder="Description"
+                          className={styles["input-small"]}
+                        />
+                      </div>
+                    ) : (
+                      <a href={item.EvidenceOfCompletion?.Url} target="_blank">
+                        {item.EvidenceOfCompletion?.Description}
+                      </a>
+                    )}
+                  </td>
+
                 </tr>
               ))}
             </tbody>

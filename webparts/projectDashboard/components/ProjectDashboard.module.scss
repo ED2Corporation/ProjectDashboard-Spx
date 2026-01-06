@@ -484,7 +484,8 @@ h2 {
 
 .task-card-body {
   flex: 1;
-  overflow-y: auto;   /* evita desborde vertical del contenido */
+  overflow-y: auto;
+  /* evita desborde vertical del contenido */
 }
 
 .task-card p {
@@ -539,3 +540,43 @@ h2 {
   background-color: #005a9e;
 }
 
+.cell-task {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  /* evita que el botón empuje demasiado */
+  justify-content: flex-start;
+}
+
+.cell-complete {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  justify-content: flex-start;
+}
+
+.icon-button {
+  border: none;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+}
+
+.icon-small {
+  width: 20px;
+  height: 18px;
+}
+
+.input-small {
+  width: 100%;
+  max-width: 140px;
+  font-size: 12px;
+  padding: 2px 4px;
+  box-sizing: border-box;
+}
+
+.evidence-edit {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
