@@ -165,6 +165,11 @@ export default class ProjectDashboard extends React.Component<
                   task={selectedTask}
                   showDetails={true}
                   onClose={() => this.setState({ selectedTask: null })}
+                  onSave={(updatedTask) => {
+                    // Aquí actualizas Planner/SharePoint
+                    // por ejemplo: this.props.onUpdateTask(updatedTask);
+                    console.log("Guardar en BD:", updatedTask);
+                  }}
                 />
               )}
             {showTasks && spTaskListItems.length > 0 && (
@@ -178,11 +183,19 @@ export default class ProjectDashboard extends React.Component<
                     : "No tasks defined..."
                 }
                 showDetails={showDetails}
-                onSelectItem={(item, group) => {
+                onSelectItem={(item, group, mode, payload) => {
+                  console.log("ListTasks onSelectItem -> item, group, mode:", item, group, mode);
                   const task = spTaskListItems.find(t => t.Task === item); // ajusta el criterio
-                  if (task) {
+                  if (task && mode === "details") {
                     this.setState({ selectedTask: task });
                   }
+                  if (mode === "quick-complete" && payload) {
+                    const data = JSON.parse(payload);
+                    console.log("Quick complete payload:", data);
+                    // aquí llamas a tu controlador Planner usando data
+                    return;
+                  }
+
                   this.props.onSelectItem(item, group);
                 }}
               />

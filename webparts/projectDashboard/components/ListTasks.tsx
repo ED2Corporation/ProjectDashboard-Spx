@@ -9,7 +9,12 @@ interface ListGroupProps {
   items: ITaskListItem[];
   heading: string;
   showDetails: boolean;
-  onSelectItem: (item: string, group: string) => void;
+  onSelectItem: (
+    item: string,                 // Task (como hoy)
+    group: string,                // Bucket / gate (como hoy)
+    mode?: "details" | "list" |"quick-complete",  // nuevo parámetro opcional
+    payload?: string
+  ) => void;
 }
 const ListTasks = ({
   items,
@@ -71,7 +76,7 @@ const ListTasks = ({
                       className={styles["icon-button"]}
                       onClick={e => {
                         e.stopPropagation(); // que no dispare el onClick del <tr>
-                        onSelectItem(item.Task, "task");
+                        onSelectItem(item.Task, "task", "details");
                       }}
                       title="View detail..."
                     >
@@ -93,22 +98,25 @@ const ListTasks = ({
                         type="button"
                         className={styles["icon-button"]}
                         onClick={() => {
-                          // aquí notificas al padre para actualizar en la nube
-                          onSelectItem(item.Task, "update-task");
+                          const payload = JSON.stringify({
+                            taskId: item.Id,
+                            effort: editEffort,
+                            actualFinish: editActualFinish,
+                            evidenceUrl: editEvidenceUrl,
+                            evidenceDesc: editEvidenceDesc,
+                          });
 
-                          // opcional: pasar los datos editados hacia arriba
-                          // onUpdateTask?.({
-                          //   id: item.Id,
-                          //   effort: editEffort,
-                          //   actualFinish: editActualFinish,
-                          //   evidenceUrl: editEvidenceUrl,
-                          //   evidenceDesc: editEvidenceDesc,
-                          // });
+                          onSelectItem(
+                            item.Task,      // item
+                            item.Title,     // group (bucket/gate)
+                            "quick-complete", // mode
+                            payload         // json
+                          );
 
                           setEditingTaskId(null);
                         }}
                         title="Accept / Update DB"
-                      >
+                        >
                         <img
                           src={require("../assets/Accept.png")}
                           alt="send"
@@ -130,7 +138,7 @@ const ListTasks = ({
                           setEditEvidenceUrl(item.EvidenceOfCompletion?.Url ?? "");
                           setEditEvidenceDesc(item.EvidenceOfCompletion?.Description ?? "");
                         }}
-                        title="Complete / Set complete params"
+                        title="Complete task..."
                       >
                         <img
                           src={require("../assets/EditRow.png")}
