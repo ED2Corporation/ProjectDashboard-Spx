@@ -165,29 +165,70 @@ export class PlannerService {
     }
   }
 
+
   public async updateTaskQuickComplete(payload: {
     taskId: string;
     evidenceUrl?: string;
     evidenceDesc?: string;
   }): Promise<void> {
     const { taskId, evidenceUrl, evidenceDesc } = payload;
-    console.log("[updateTaskQuickComplete] References:", taskId, evidenceUrl, evidenceDesc);
 
-    const task = await this.graphClient
-      .api(`/planner/tasks/${taskId}`)
-      .get();
-
-    console.log("[updateTaskQuickComplete] before:", task.percentComplete, task.completedDateTime);
+    // 1) Completar la tarea al 100%
+    const task = await this.graphClient.api(`/planner/tasks/${taskId}`).get();
 
     await this.graphClient
       .api(`/planner/tasks/${taskId}`)
       .header("If-Match", task["@odata.etag"])
       .patch({ percentComplete: 100 });
 
-    // NO intentes leer updated.percentComplete aquí; el PATCH no devuelve la tarea
-    console.log("[updateTaskQuickComplete] PATCH sent for task:", taskId);
+    // 2) Agregar referencia (si aplica)
+    if (!evidenceUrl) return;
+
+    const details = await this.graphClient
+      .api(`/planner/tasks/${taskId}/details`)
+      .get();
+
+    const currentRefs = details.references || {};
+
+    // Codificación correcta para la KEY (no usar encodeURIComponent)
+    const encodedKey = this.encodePlannerReferenceKey(evidenceUrl);
+
+    // Evitamos duplicar
+    if (currentRefs[encodedKey]) {
+      console.log(`Reference ya existe: ${encodedKey}`);
+      return;
+    }
+
+    const newReferences: any = { ...currentRefs };
+    newReferences[encodedKey] = {
+      "@odata.type": "#microsoft.graph.plannerExternalReference", // con '#'
+      alias: evidenceDesc || "Evidence of completion",
+      previewPriority: " !",
+      type: "Other" // capitalizado
+    };
+
+    console.log(
+      "[updateTaskQuickComplete] PATCH body:",
+      JSON.stringify({ references: newReferences }, null, 2)
+    );
+
+    await this.graphClient
+      .api(`/planner/tasks/${taskId}/details`)
+      .header("If-Match", details["@odata.etag"])
+      .patch({ references: newReferences }); // puedes añadir Prefer: return=representation si quieres devolver el objeto actualizado
+
+    console.log(`Reference agregada OK: ${taskId}`);
   }
 
+  public encodePlannerReferenceKey(url: string): string {
+    return url
+      .replace(/%/g, "%25")
+      .replace(/\./g, "%2E")
+      .replace(/:/g, "%3A")
+      .replace(/@/g, "%40")
+      .replace(/#/g, "%23");
+    // OJO: no tocamos las barras "/"
+  }
 
   public async updateTaskFull(payload: {
     taskId: string;

@@ -31,7 +31,6 @@ const ListTasks = ({
   const [editEvidenceUrl, setEditEvidenceUrl] = useState<string>("");
   const [editEvidenceDesc, setEditEvidenceDesc] = useState<string>("");
 
-
   return (
     <>
       {(showDetails
@@ -47,12 +46,11 @@ const ListTasks = ({
               <tr>
                 <th className={styles.colText}>Task</th>
                 <th className={styles.colNumber}>Completed</th>
-                <th>Finish</th>
-                <th>Actual Finish</th>
+                <th className={styles.colNumber}>Finish</th>
                 <th className={styles.colURL}>Evidence of Completion</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody> 
               {(showDetails
                 ? items
                 : items.filter(
@@ -153,21 +151,7 @@ const ListTasks = ({
                   </td>                  
 
                   {/* Columna Finish (solo lectura) */}
-                  <td>{GetFormatDate(item.Finish)}</td>
-
-                  {/* Columna Actual Finish */}
-                  <td>
-                    {editingTaskId === item.Id ? (
-                      <input
-                        type="date"
-                        value={editActualFinish}
-                        onChange={e => setEditActualFinish(e.target.value)}
-                        className={styles["input-small"]}
-                      />
-                    ) : (
-                      GetFormatDate(item.ActualFinish)
-                    )}
-                  </td>
+                  <td>{GetFormatDate(item.Finish)}</td>                  
                   
                  {/* Columna Evidence of Completion */}
                   <td >
