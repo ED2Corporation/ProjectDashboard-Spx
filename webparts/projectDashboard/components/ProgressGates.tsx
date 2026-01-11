@@ -16,14 +16,6 @@ interface GateCardProps {
 
 const ProgressGates = ({ gates, tasks, onSelectItem, showDetails }: GateCardProps) => {
   
-  const getCardDelay = (delay: number, complete: number) => {
-    if (complete === 100) return styles.whiteFont;
-    if (delay === 0) return styles.greenFont;
-    if (delay > 0 && delay <= 7) return styles.redFont;
-    if (delay > 7) return styles.whiteFont;
-    return styles.whiteFont; // Default Class
-  };
-
   return (
     <>
       {showDetails ? (
@@ -51,10 +43,7 @@ const ProgressGates = ({ gates, tasks, onSelectItem, showDetails }: GateCardProp
                     top: "10%",
                     left: "20%",
                   }}
-                  className={`${styles["cardContent"]} ${getCardDelay(
-                    gate.Delay,
-                    gate.Complete
-                  )}`}
+                  className={`${styles["cardContent"]} `}
                   onClick={() => {
                     onSelectItem(gate.Title, "gate");
                   }}
@@ -69,11 +58,7 @@ const ProgressGates = ({ gates, tasks, onSelectItem, showDetails }: GateCardProp
                   <p>
                     <strong>{Math.floor(gate.Complete)}% </strong>
                   </p>
-                  {gate.Delay > 0 && (
-                    <p>
-                      <strong>(- {gate.Delay} days) </strong>
-                    </p>
-                  )}
+                  
                 </div>
               </div>
             );
@@ -105,10 +90,7 @@ const ProgressGates = ({ gates, tasks, onSelectItem, showDetails }: GateCardProp
                     top: "10%",
                     left: "20%",
                   }}
-                  className={`${styles["cardContent"]} ${getCardDelay(
-                    gate.Delay,
-                    gate.Complete
-                  )}`}
+                  className={`${styles["cardContent"]} `}
                   onClick={() => {
                     onSelectItem(gate.Title, "gate");
                   }}
@@ -123,11 +105,7 @@ const ProgressGates = ({ gates, tasks, onSelectItem, showDetails }: GateCardProp
                   <p>
                     <strong>{Math.floor(gate.Complete)}% </strong>
                   </p>
-                  {gate.Delay > 0 && (
-                    <p>
-                      <strong>(- {gate.Delay} days) </strong>
-                    </p>
-                  )}
+                  
                 </div>
               </div>
             );

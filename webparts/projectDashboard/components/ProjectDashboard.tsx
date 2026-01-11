@@ -25,7 +25,7 @@ export default class ProjectDashboard extends React.Component<
   IProjectDashboardProps,
   IProjectDashboardState
 > {
-  
+
   constructor(props) {
     super(props);
     this.state = {
@@ -34,6 +34,7 @@ export default class ProjectDashboard extends React.Component<
       showDetails: false,
       selectedTask: null,
     };
+
   }
 
   handleSwitchDetailsChange = (event) => {
@@ -141,7 +142,7 @@ export default class ProjectDashboard extends React.Component<
                       showDetails={false}
                     />
                   </>
-                )}
+                )} 
                 {spTaskListItems.length > 0 && (
                   <ProgressTasks
                     tasks={allTasks ? spTaskListItems : spFilteredTaskItems}
@@ -188,11 +189,10 @@ export default class ProjectDashboard extends React.Component<
                   const task = spTaskListItems.find(t => t.Task === item); // ajusta el criterio
                   if (task && mode === "details") {
                     this.setState({ selectedTask: task });
+                    return;
                   }
                   if (mode === "quick-complete" && payload) {
-                    const data = JSON.parse(payload);
-                    console.log("Quick complete payload:", data);
-                    // aquí llamas a tu controlador Planner usando data
+                    this.props.onUpdateTask?.(item, "quick-complete", payload);
                     return;
                   }
 

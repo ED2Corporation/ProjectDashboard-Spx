@@ -5,7 +5,7 @@ import {
   type IPropertyPaneConfiguration,
   PropertyPaneTextField,
   PropertyPaneCheckbox,
-//  PropertyPaneDropdown,
+  //  PropertyPaneDropdown,
   PropertyPaneToggle
 } from '@microsoft/sp-property-pane';
 import { BaseClientSideWebPart } from '@microsoft/sp-webpart-base';
@@ -21,7 +21,7 @@ import { MessageLog } from './components/MessageLog';
 
 import { GroupByGate, FilterTasks, IProjectDashboardProps } from './components';
 import { SPHttpClient } from '@microsoft/sp-http';
-import { IProjectListItem, ITaskListItem, IGateListItem,IProjectDashboardWebPartProps  } from '../../models';
+import { IProjectListItem, ITaskListItem, IGateListItem, IProjectDashboardWebPartProps } from '../../models';
 
 import { IDynamicDataPropertyDefinition } from '@microsoft/sp-dynamic-data';
 
@@ -36,7 +36,7 @@ export interface ISPList {
 }
 
 interface ErrorPageProps {
-  project : string;
+  project: string;
   errorMsg: string;
 }
 
@@ -48,21 +48,21 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
   private _selectedTask: ITaskListItem;
   private _gates: IGateListItem[] = [];
   private _environmentMessage: string = '';
-  private _projectSelected: IProjectListItem ;
+  private _projectSelected: IProjectListItem;
   private _sysError: boolean = false;
   private _siteUrl: string = "https://ed2corp.sharepoint.com/sites/ed2team";
   private MsgInfo = 0;
   private MsgError = 2;
-  
-  protected async onInit(): Promise<void> { 
+
+  protected async onInit(): Promise<void> {
     this._sysError = false;
 
     this.context.dynamicDataSourceManager.initializeSource(this);
     //this._projects = await this._getProjectListItems();
     this._projectSelected = this._getProjectInfo(this.properties.projectName);
 
-    await this._onReset(); 
-     
+    await this._onReset();
+
     return super.onInit();
     //await super.onInit();    
   }
@@ -72,7 +72,7 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
   }
 
   public render(): void {
-    
+
     const progressBar: React.ReactElement<IProjectDashboardProps> = React.createElement(
       ProjectDashboard,
       {
@@ -88,6 +88,7 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
         //spPlannerListItems: this._plans,
         //onGetPlannerListItems: this._onGetPlannerListItems,
         onSelectItem: this._onSelectedItem,
+        onUpdateTask: this._onUpdateTask,
 
         description: this.properties.description,
         refreshInterval: this.properties.refreshInterval,
@@ -107,21 +108,21 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
 
     const errorPage: React.ReactElement<ErrorPageProps> = React.createElement(
       ErrorPage,
-      {  
+      {
         project: this.properties.projectName,
         errorMsg: this._environmentMessage
       }
     );
 
-    if(this._sysError) {
+    if (this._sysError) {
       ReactDom.render(errorPage, this.domElement);
     }
     else {
-        ReactDom.render(progressBar, this.domElement);     
-  
-      }
+      ReactDom.render(progressBar, this.domElement);
 
-    
+    }
+
+
   }
 
   protected get dataVersion(): Version {
@@ -139,32 +140,32 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
           groups: [
             {
               groupName: "Setup Project",
-              groupFields: [              
-                
-                PropertyPaneToggle('isDashboard', {
-                    label: 'Is Dashboard',
-                    onText: 'On',
-                    offText: 'Off'
-                  }),
-                  PropertyPaneTextField('projectName', {
-                    label: "Project Name:",
-                    description: "Define the name to be shown in the header..."
-                  }),
-                  PropertyPaneTextField('sourceName', {
-                    label: "Source Name:",
-                    description: "Register the Plan or List name linked to the project..."
-                  }),
-                  PropertyPaneTextField('projectURL', {
-                    label: "Project URL:",
-                    description: "Register the URL to be opened clicking on project name..."
+              groupFields: [
 
-                  }),
-                  PropertyPaneToggle('isPlanner', {
-                    label: 'Is Planner?',
-                    onText: 'On',
-                    offText: 'Off'
-                  }),
-                    PropertyPaneToggle('showButtons', {
+                PropertyPaneToggle('isDashboard', {
+                  label: 'Is Dashboard',
+                  onText: 'On',
+                  offText: 'Off'
+                }),
+                PropertyPaneTextField('projectName', {
+                  label: "Project Name:",
+                  description: "Define the name to be shown in the header..."
+                }),
+                PropertyPaneTextField('sourceName', {
+                  label: "Source Name:",
+                  description: "Register the Plan or List name linked to the project..."
+                }),
+                PropertyPaneTextField('projectURL', {
+                  label: "Project URL:",
+                  description: "Register the URL to be opened clicking on project name..."
+
+                }),
+                PropertyPaneToggle('isPlanner', {
+                  label: 'Is Planner?',
+                  onText: 'On',
+                  offText: 'Off'
+                }),
+                PropertyPaneToggle('showButtons', {
                   label: 'Show Controls',
                   onText: 'On',
                   offText: 'Off'
@@ -172,13 +173,13 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
                 PropertyPaneTextField('description', {
                   label: "Description",
                   description: "Project Description to be shared with user..."
-                }),             
+                }),
                 PropertyPaneTextField('refreshInterval', {
                   label: 'Refresh Interval'
                 }),
                 PropertyPaneCheckbox('showLog', {
-                 text: 'Write Log on browser Console...'
-               })
+                  text: 'Write Log on browser Console...'
+                })
               ]
             }
           ]
@@ -187,7 +188,7 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
     };
   }
 
-/** Dynamic data: to connect with external webpart */
+  /** Dynamic data: to connect with external webpart */
   public getPropertyDefinitions(): ReadonlyArray<IDynamicDataPropertyDefinition> {
     return [
       {
@@ -213,34 +214,32 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
     }
     if (propertyPath === 'sourceName' && newValue !== oldValue) {
       //if(this.properties.showLog) console.log(`Selected Project Changed: ${newValue}`); // Maneja el evento
-      MessageLog(`Selected Project Changed: ${newValue}`,"",this.MsgInfo,this.properties.showLog);
+      MessageLog(`Selected Project Changed: ${newValue}`, "", this.MsgInfo, this.properties.showLog);
       this.properties.sourceName = newValue; // Actualiza el valor
       await this._onProjectChange(newValue); // Dispara tu función personalizada
       super.onPropertyPaneFieldChanged(propertyPath, oldValue, newValue);
     }
     if (propertyPath === 'projectName' && newValue !== oldValue) {
       //if(this.properties.showLog) console.log(`Selected Project Changed: ${newValue}`); // Maneja el evento
-      MessageLog(`Project Name Changed: ${newValue}`,"",this.MsgInfo,this.properties.showLog);
+      MessageLog(`Project Name Changed: ${newValue}`, "", this.MsgInfo, this.properties.showLog);
       this.properties.projectName = newValue; // Actualiza el valor
       super.onPropertyPaneFieldChanged(propertyPath, oldValue, newValue);
     }
   }
-  
-
 
   /** */
   private _onReset = async (): Promise<void> => {
     this._sysError = false;
 
-    if(this._projectSelected.isPlanner){
+    if (this._projectSelected.isPlanner) {
       await this._onGetPlannerListItems();
-    }else{
+    } else {
       await this._onGetTaskListItems();
-    } 
+    }
 
-    if(this._tasks.length > 0){
-      await this._onGetGateListItems(); 
-      this._filteredTasks = FilterTasks(this._tasks, "gate", "actual");  
+    if (this._tasks.length > 0) {
+      await this._onGetGateListItems();
+      this._filteredTasks = FilterTasks(this._tasks, "gate", "actual");
     }
 
     this._selectedTask = this.newTask();
@@ -251,7 +250,7 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
 
   private _onGetPlannerListItems = async (): Promise<void> => {
 
-      // Obtener el cliente de Microsoft Graph (versión V3)
+    // Obtener el cliente de Microsoft Graph (versión V3)
     const graphClient: MSGraphClientV3 = await this.context.msGraphClientFactory.getClient("3");
 
     // Crear una instancia del servicio de Planner
@@ -262,36 +261,36 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
       //const groupId = await this.getGroupId(); // Obtener el ID del grupo
       //const planName = "PlanCascade";
       //const planId = await plannerService.getPlanId(groupId, planName);
-      if(this._projectSelected.ListName.length > 0){
+      if (this._projectSelected.ListName.length > 0) {
         const planId = this._projectSelected.ListName;
         const planDetails = await plannerService.getPlanDetails(planId);
-        this._tasks = planDetails ? planDetails : [] ;
-  
-        MessageLog(" Plan: " + planId + " Bucket. " + planDetails[0].Title + " task. " + planDetails[0].Task,"_onGetPlannerListItems",this.MsgInfo,this.properties.showLog);  
-      }else{
-        MessageLog(" Plan : " + this._projectSelected.ListName + " was not found... " ,"_onGetPlannerListItems",this.MsgError,this.properties.showLog);  
+        this._tasks = planDetails ? planDetails : [];
+
+        //MessageLog(" Plan: " + planId + " Bucket. " + planDetails[0].Title + " task. " + planDetails[0].Task, "_onGetPlannerListItems", this.MsgInfo, this.properties.showLog);
+      } else {
+        MessageLog("[_onGetPlannerListItems] Plan : " + this._projectSelected.ListName + " was not found... ", "_onGetPlannerListItems", this.MsgError, this.properties.showLog);
         this._projectSelected = this._getProjectInfo(this.properties.projectName);
       }
-  
+
     } catch (error) {
       console.error("Error loading plan details:", error);
     }
 
     //this.render();
-   }
+  }
 
 
   // Método personalizado para manejar el cambio
   private async _onProjectChange(projectName: string): Promise<void> {
     // Aquí puedes agregar la lógica personalizada que necesites ejecutar.
     //if(this.properties.showLog) console.log(`Handling project change: ${projectName}`);
-    MessageLog(`Handling project change: ${projectName}`,"_onProjectChange",this.MsgInfo,this.properties.showLog);
+    MessageLog(`Handling project change: ${projectName}`, "_onProjectChange", this.MsgInfo, this.properties.showLog);
 
     this._projectSelected = this._getProjectInfo(this.properties.projectName);
 
-    if(this._projectSelected.isPlanner){
+    if (this._projectSelected.isPlanner) {
       await this._onGetPlannerListItems();
-    }else{
+    } else {
       await this._onGetTaskListItems();
     }
 
@@ -299,86 +298,133 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
     await this._onReset();
   }
 
-  private _getProjectInfo (planName: string): IProjectListItem { 
-    
-    let projectInfo : IProjectListItem = {
+  private _getProjectInfo(planName: string): IProjectListItem {
+
+    let projectInfo: IProjectListItem = {
       Id: this.properties.sourceName,
-      Title: this.properties.projectName, 
-      isPlanner: this.properties.isPlanner, 
-      ListName: this.properties.sourceName, 
-      Link: {Url:this.properties.projectURL, Description:this.properties.projectName}
+      Title: this.properties.projectName,
+      isPlanner: this.properties.isPlanner,
+      ListName: this.properties.sourceName,
+      Link: { Url: this.properties.projectURL, Description: this.properties.projectName }
     };
     this._projectSelected = projectInfo;
-    MessageLog(this._projectSelected.Id+" - "+this._projectSelected.Link.Description+" - "+this._projectSelected.Link.Url+" - "+this._projectSelected.ListName+" - "+this._projectSelected.Title+" - "+this._projectSelected.isPlanner,"_getProjectInfo",this.MsgInfo,this.properties.showLog);
+    MessageLog(this._projectSelected.Id + " - " + this._projectSelected.Link.Description + " - " + this._projectSelected.Link.Url + " - " + this._projectSelected.ListName + " - " + this._projectSelected.Title + " - " + this._projectSelected.isPlanner, "_getProjectInfo", this.MsgInfo, this.properties.showLog);
     return projectInfo;
 
   }
 
   private _onSelectedItem = async (item: string, group: string): Promise<void> => {
-    
-    if(this._tasks.length===0){
-      this._tasks = await this._getTaskListItems();   
+
+    if (this._tasks.length === 0) {
+      this._tasks = await this._getTaskListItems();
     }
 
-    if(group === "task"){
+    if (group === "task") {
       this._selectedTask = this.findTaskByName(
         this._tasks,
         item
-      );  
-      MessageLog("Received: Value: " + item + " Group: " + group+ " Total: "+ this._tasks.length + " Filtered: " + this._selectedTask.Task,"_onSelectedItem",this.MsgInfo,this.properties.showLog);
-    }else {      
+      );
+      MessageLog("[_onSelectedItem] Received: Value: " + item + " Group: " + group + " Total: " + this._tasks.length + " Filtered: " + this._selectedTask.Task, "_onSelectedItem", this.MsgInfo, this.properties.showLog);
+    } else {
       this._filteredTasks = FilterTasks(this._tasks, group, item);
-      MessageLog("Received: Value: " + item + " Group: " + group+ " Total: "+ this._tasks.length + " Filtered: " + this._filteredTasks.length,"_onSelectedItem",this.MsgInfo,this.properties.showLog);
+      MessageLog("[_onSelectedItem] Received: Value: " + item + " Group: " + group + " Total: " + this._tasks.length + " Filtered: " + this._filteredTasks.length, "_onSelectedItem", this.MsgInfo, this.properties.showLog);
     }
     //if(this.properties.showLog) console.log("Received: Value: " + item + " Group: " + group+ " Total: "+ response.length + " Filtered: " + this._tasks.length );
     this.render();
-    
+
   }
+
+  private _onUpdateTask = async (
+    taskName: string,
+    action: "quick-complete" | "full-update",
+    payloadJson?: string
+  ): Promise<void> => {
+
+    MessageLog("[_onUpdateTask] Received: taskName: " + taskName + " action: " + action + " payloadJson: " + payloadJson);
+
+    if (!payloadJson) return;
+
+    const data = JSON.parse(payloadJson) as {
+      taskId: string;
+      effort?: string;
+      actualFinish?: string;
+      evidenceUrl?: string;
+      evidenceDesc?: string;
+      // aquí puedes añadir más campos si los usas en full-update
+    };
+
+    // Cliente Graph y servicio Planner
+    const graphClient: MSGraphClientV3 =
+      await this.context.msGraphClientFactory.getClient("3");
+    const plannerService = new PlannerService(graphClient);
+
+    if (action === "quick-complete") {
+      await plannerService.updateTaskQuickComplete({
+        taskId: data.taskId,
+        evidenceUrl: data.evidenceUrl,
+        evidenceDesc: data.evidenceDesc,
+      });
+    }
+
+    if (action === "full-update") {
+      await plannerService.updateTaskFull({
+        taskId: data.taskId,
+        // mapea aquí todos los campos que quieras permitir
+        percentComplete: data.effort ? 100 : undefined,
+        actualFinish: data.actualFinish,
+        evidenceUrl: data.evidenceUrl,
+        evidenceDesc: data.evidenceDesc,
+        // más campos...
+      });
+    }
+
+    await this._onReset(); // refresca UI
+  };
 
   private _onGetTaskListItems = async (): Promise<void> => {
     const response: ITaskListItem[] = await this._getTaskListItems();
     this._tasks = response;
-    
+
     //this.render();
-   }
+  }
 
   private async _getTaskListItems(): Promise<ITaskListItem[]> {
 
     //if(this.properties.showLog) console.log("ProjectName : "+ this.properties.projectName);
-    MessageLog("ProjectName : "+ this.properties.projectName,"_getTaskListItems",this.MsgInfo,this.properties.showLog);
-    
+    MessageLog("ProjectName : " + this.properties.projectName, "_getTaskListItems", this.MsgInfo, this.properties.showLog);
+
     //this._projectSelected = this._getProjectInfo(this.properties.projectName);
-    if(this._projectSelected.ListName.length > 0){
+    if (this._projectSelected.ListName.length > 0) {
       try {
         const response = await this.context.spHttpClient.get(
           //this.context.pageContext.web.absoluteUrl + `/_api/web/lists/getbytitle('PlanCascade')/items?$select=Id,Title,Complete,Status,Delay,Deliverable,Tasks,WBS`,
           //this.context.pageContext.web.absoluteUrl + `/_api/web/lists/getbytitle('`+this._projectSelected.ListName+`')/items?$select=Id,Title,Complete,Delay,Deliverable,Task,WBS,Description,Responsible,Start,Finish,Barriers, ActualFinish, Effort, ActionableStatus, EvidenceOfCompletion`,
-          this._siteUrl + `/_api/web/lists/getbytitle('`+this._projectSelected.ListName+`')/items?$select=Id,Title,Complete,Deliverable,Task,WBS,Description,Responsible,Start,Finish,Barriers, ActualFinish, Effort, ActionableStatus, EvidenceOfCompletion`,
+          this._siteUrl + `/_api/web/lists/getbytitle('` + this._projectSelected.ListName + `')/items?$select=Id,Title,Complete,Deliverable,Task,WBS,Description,Responsible,Start,Finish,Barriers, ActualFinish, Effort, ActionableStatus, EvidenceOfCompletion`,
           SPHttpClient.configurations.v1);
-      
-          const responseJson = await response.json();
-          const tasks : ITaskListItem[] = responseJson.value as ITaskListItem[];
-          //console.log("Project: " + project + " Grouper: "+grouper+" Filter: "+filter);
-          if(tasks.length > 0){            
-            for(let i=0; i < tasks.length ; i++){
-              tasks[i].Complete = Math.trunc(tasks[i].Complete * 100); 
-            }
-          }          
-          const sortedItems = [...tasks].sort((a, b) => b.Title.localeCompare(a.Title));
- 
-          return sortedItems;
-            //console.log(groupedArray);  
+
+        const responseJson = await response.json();
+        const tasks: ITaskListItem[] = responseJson.value as ITaskListItem[];
+        //console.log("Project: " + project + " Grouper: "+grouper+" Filter: "+filter);
+        if (tasks.length > 0) {
+          for (let i = 0; i < tasks.length; i++) {
+            tasks[i].Complete = Math.trunc(tasks[i].Complete * 100);
+          }
+        }
+        const sortedItems = [...tasks].sort((a, b) => b.Title.localeCompare(a.Title));
+
+        return sortedItems;
+        //console.log(groupedArray);  
       } catch (error) {
-        if(this.properties.showLog) console.error("[_getTaskListItems] Error fetching gate list items:", error);
+        if (this.properties.showLog) console.error("[_getTaskListItems] Error fetching gate list items:", error);
         //MessageLog("ProjectName : "+ this.properties.projectName,"_getTaskListItems",this.MsgInfo,this.properties.showLog);
 
         this._sysError = true;
         this._environmentMessage = error;
         return [];
       }
-    }else{
+    } else {
       //if(this.properties.showLog) console.error("List not found for:", this.properties.projectName);
-      MessageLog("List not found for: "+ this.properties.projectName,"_getTaskListItems",this.MsgError,this.properties.showLog);
+      MessageLog("List not found for: " + this.properties.projectName, "_getTaskListItems", this.MsgError, this.properties.showLog);
       this._sysError = true;
       return [];
     }
@@ -401,29 +447,29 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
   private async _getGateListItems(): Promise<IGateListItem[]> {
     //const baseUrl = this.getBaseUrl();
     //this._projectSelected = this._getProjectInfo(this.properties.projectName);
-    if(this._projectSelected.ListName.length > 0){
+    if (this._projectSelected.ListName.length > 0) {
       try {
-        if(this._tasks.length === 0){
+        if (this._tasks.length === 0) {
           const response: ITaskListItem[] = await this._getTaskListItems();
           this._tasks = response;
-        }else{
-          if(this._tasks.length > 0){
-            return GroupByGate(this._tasks);     
+        } else {
+          if (this._tasks.length > 0) {
+            return GroupByGate(this._tasks);
           }
         }
-        MessageLog("Gate- List not found for: "+ this.properties.projectName,"_getGateListItems",this.MsgError,this.properties.showLog);
+        MessageLog("Gate- List not found for: " + this.properties.projectName, "_getGateListItems", this.MsgError, this.properties.showLog);
         return []; //Error State      
         //console.log(groupedArray);  
       } catch (error) {
-        if(this.properties.showLog) console.error("Error fetching gate list items:", error);
+        if (this.properties.showLog) console.error("Error fetching gate list items:", error);
         this._sysError = true;
         this._environmentMessage = error;
         //this.render();  
         return [];
       }
-    }else{
+    } else {
       //if(this.properties.showLog) console.error("Gate- List not found for: ", this.properties.projectName);
-      MessageLog("Gate- List not found for: "+ this.properties.projectName,"_getGateListItems",this.MsgError,this.properties.showLog);
+      MessageLog("Gate- List not found for: " + this.properties.projectName, "_getGateListItems", this.MsgError, this.properties.showLog);
       this._sysError = true;
       //this.render();  
       return [];
@@ -434,29 +480,29 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
   private findTaskByName(
     taskList: ITaskListItem[],
     taskName: string
-  ): ITaskListItem  {
+  ): ITaskListItem {
 
-    const task =  taskList.find((task) => task.Task === taskName);
+    const task = taskList.find((task) => task.Task === taskName);
     //if(this.properties.showLog) console.log("findTaskByName  taskName: " + taskName+ " lenght: "+ taskList.length + " filter: "+  task?.Task);
-      
-    if(task !== undefined){
-      MessageLog("Found: " + taskName+ " lenght: "+ taskList.length + " filter: "+  task?.Task,"findTaskByName",this.MsgInfo,this.properties.showLog);
+
+    if (task !== undefined) {
+      MessageLog("Found: " + taskName + " lenght: " + taskList.length + " filter: " + task?.Task, "findTaskByName", this.MsgInfo, this.properties.showLog);
       return task;
-    }else{
-      MessageLog("Item not found: " + taskName+ " Array Count: "+ taskList.length ,"findTaskByName", this.MsgError , this.properties.showLog);
+    } else {
+      MessageLog("Item not found: " + taskName + " Array Count: " + taskList.length, "findTaskByName", this.MsgError, this.properties.showLog);
     }
 
-   return this.newTask();
+    return this.newTask();
   }
 
-  private newTask( ): ITaskListItem  {
-    
-   return {
-      Id: "", 
-      Title: "", 
-      Complete:0 , 
-      Deliverable: "", 
+  private newTask(): ITaskListItem {
+
+    return {
+      Id: "",
+      Title: "",
+      Complete: 0,
+      Deliverable: "",
       Task: "No Task Found..."
-      };
+    };
   }
 }

@@ -45,12 +45,11 @@ const ListTasks = ({
           <table className={styles["ed2Table"]}>
             <thead>
               <tr>
-                <th>Task</th>
-                <th>Completed</th>
-                <th>Delay</th>
+                <th className={styles.colText}>Task</th>
+                <th className={styles.colNumber}>Completed</th>
                 <th>Finish</th>
                 <th>Actual Finish</th>
-                <th>Evidence of Completion</th>
+                <th className={styles.colURL}>Evidence of Completion</th>
               </tr>
             </thead>
             <tbody>
@@ -151,22 +150,7 @@ const ListTasks = ({
 
                     <span>{Math.floor(item.Complete)}%</span>
 
-                  </td>
-
-                  {/* Columna Effort */}
-                  <td>
-                    {editingTaskId === item.Id ? (
-                      <input
-                        type="number"
-                        value={editEffort}
-                        onChange={e => setEditEffort(e.target.value)}
-                        className={styles["input-small"]}
-                        placeholder="Effort"
-                      />
-                    ) : (
-                      item.Effort
-                    )}
-                  </td>
+                  </td>                  
 
                   {/* Columna Finish (solo lectura) */}
                   <td>{GetFormatDate(item.Finish)}</td>
@@ -186,7 +170,7 @@ const ListTasks = ({
                   </td>
                   
                  {/* Columna Evidence of Completion */}
-                  <td>
+                  <td >
                     {editingTaskId === item.Id ? (
                       <div className={styles["evidence-edit"]}>
                         <input

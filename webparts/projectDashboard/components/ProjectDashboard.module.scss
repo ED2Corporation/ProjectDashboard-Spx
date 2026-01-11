@@ -305,6 +305,28 @@ h2 {
   margin: 0;
 }
 
+.cardContent p {
+  margin: 5px 10px 2px 5px;
+  color: darkblue;
+  font-size: 10px;
+  margin: 0;
+}
+
+.colText {
+  min-width: 200px;
+}
+
+.colNumber {
+  min-width: 150px;
+}
+
+.colURL {
+  max-width: 300px; // ajusta al ancho que quieras
+  word-wrap: break-word; // soporte antiguo
+  overflow-wrap: anywhere; // moderno, rompe palabras largas (URLs)
+  white-space: normal; // permite varias líneas
+}
+
 .green {
   background-color: green;
 }
