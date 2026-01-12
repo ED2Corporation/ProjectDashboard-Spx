@@ -25,7 +25,6 @@ const ListTasks = ({
   //Hook
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
-  const [editActualFinish, setEditActualFinish] = useState<string>("");
   const [editEvidenceUrl, setEditEvidenceUrl] = useState<string>("");
   const [editEvidenceDesc, setEditEvidenceDesc] = useState<string>("");
   const [editPercentComplete, setEditPercentComplete] = useState<number>(0);
@@ -106,11 +105,12 @@ const ListTasks = ({
                           className={styles["icon-button"]}
                           onClick={() => {
                             const payload = JSON.stringify({
-                              taskId: item.Id,
-                              percentComplete: editPercentComplete, 
-                              actualFinish: editActualFinish,
-                              evidenceUrl: editEvidenceUrl,
-                              evidenceDesc: editEvidenceDesc,
+                              Id: item.Id,  // ← Cambio: usar Id en lugar de taskId
+                              Complete: editPercentComplete,
+                              EvidenceOfCompletion: {
+                                Url: editEvidenceUrl,
+                                Description: editEvidenceDesc,
+                              }
                             });
 
                             onSelectItem(
@@ -138,12 +138,7 @@ const ListTasks = ({
                           className={styles["icon-button"]}
                           onClick={() => {
                             setEditingTaskId(item.Id);
-                            setEditPercentComplete(item.Complete); 
-                            setEditActualFinish(
-                              item.ActualFinish
-                                ? new Date(item.ActualFinish).toISOString().slice(0, 10)
-                                : new Date().toISOString().slice(0, 10)
-                            );
+                            setEditPercentComplete(item.Complete);                            
                             setEditEvidenceUrl(item.EvidenceOfCompletion?.Url ?? "");
                             setEditEvidenceDesc(item.EvidenceOfCompletion?.Description ?? "");
                           }}

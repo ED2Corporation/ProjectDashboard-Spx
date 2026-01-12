@@ -166,10 +166,9 @@ export default class ProjectDashboard extends React.Component<
                   task={selectedTask}
                   showDetails={true}
                   onClose={() => this.setState({ selectedTask: null })}
-                  onSave={(updatedTask) => {
-                    // Aquí actualizas Planner/SharePoint
-                    // por ejemplo: this.props.onUpdateTask(updatedTask);
-                    console.log("Guardar en BD:", updatedTask);
+                  onSave={(taskId, payloadJson) => {
+                    this.props.onUpdateTask?.(taskId, "full-update", payloadJson);
+                    console.log("Update DB:", taskId, payloadJson);
                   }}
                 />
               )}

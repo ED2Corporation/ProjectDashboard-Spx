@@ -339,48 +339,44 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
     action: "quick-complete" | "full-update",
     payloadJson?: string
   ): Promise<void> => {
-
-    MessageLog("[_onUpdateTask] Received: taskName: " + taskName + " action: " + action + " payloadJson: " + payloadJson);
+    MessageLog(`[_onUpdateTask] action: ${action}`);
 
     if (!payloadJson) return;
 
-    const data = JSON.parse(payloadJson) as {
-      taskId: string;
-      percentComplete?: number;
-      actualFinish?: string;
-      evidenceUrl?: string;
-      evidenceDesc?: string;
-      // aquí puedes añadir más campos si los usas en full-update
-    };
+    try {
+      const data = JSON.parse(payloadJson) as any;
 
-    // Cliente Graph y servicio Planner
-    const graphClient: MSGraphClientV3 =
-      await this.context.msGraphClientFactory.getClient("3");
-    const plannerService = new PlannerService(graphClient);
+      const graphClient: MSGraphClientV3 =
+        await this.context.msGraphClientFactory.getClient("3");
+      const plannerService = new PlannerService(graphClient);
 
-    if (action === "quick-complete") {
-      await plannerService.updateTaskQuickComplete({
-        taskId: data.taskId,
-        percentComplete: data.percentComplete,
-        evidenceUrl: data.evidenceUrl,
-        evidenceDesc: data.evidenceDesc,
-      });
+      if (action === "quick-complete") {
+        await plannerService.updateTaskQuickComplete({
+          taskId: data.Id,  // ← Espera data.Id
+          percentComplete: data.Complete,
+          evidenceUrl: data.EvidenceOfCompletion?.Url,
+          evidenceDesc: data.EvidenceOfCompletion?.Description,
+        });
+      } else if (action === "full-update") {
+        await plannerService.updateTaskFull({
+          Id: data.Id,
+          Complete: data.Complete,
+          Deliverable: data.Deliverable,
+          Start: data.Start,
+          Finish: data.Finish,
+        });
+      }
+
+      await this._onGetPlannerListItems();
+      this._onReset();
+
+    } catch (error) {
+      console.error("[_onUpdateTask] Error:", error);
+      MessageLog(`[_onUpdateTask] Error: ${error.message}`, "error");
     }
-
-    if (action === "full-update") {
-      await plannerService.updateTaskFull({
-        taskId: data.taskId,
-        // mapea aquí todos los campos que quieras permitir
-        percentComplete: data.percentComplete ? 100 : undefined,
-        actualFinish: data.actualFinish,
-        evidenceUrl: data.evidenceUrl,
-        evidenceDesc: data.evidenceDesc,
-        // más campos...
-      });
-    }
-
-    await this._onReset(); // refresca UI
   };
+
+
 
   private _onGetTaskListItems = async (): Promise<void> => {
     const response: ITaskListItem[] = await this._getTaskListItems();

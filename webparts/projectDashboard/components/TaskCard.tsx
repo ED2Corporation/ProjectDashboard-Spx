@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from "react";
 import { ITaskListItem } from "../../../models";
-import { GetDelay } from "./GetDelay";
 import styles from "./ProjectDashboard.module.scss";
 
 interface TaskCardProps {
   task: ITaskListItem;
   showDetails: boolean;
   onClose?: () => void;
-  onSave?: (updated: Partial<ITaskListItem> & { Id: string }) => void;
+  onSave: (
+    item: string,                 
+    payload?: string
+  ) => void;
 }
 
 const TaskCard: React.FC<TaskCardProps> = ({ task, showDetails, onClose, onSave }) => {
@@ -49,20 +51,10 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, showDetails, onClose, onSave 
     setEvidenceDesc(task.EvidenceOfCompletion?.Description ?? "");
   }, [task]);
 
-  const getCardDelay = (delay: number, completeValue: number) => {
-    if (completeValue === 100) return styles.blackFont;
-    if (delay === 0) return styles.greenFont;
-    if (delay > 0 && delay <= 7) return styles.yellowFont;
-    if (delay > 7) return styles.redFont;
-    return styles.blackFont;
-  };
-
-  const delay = GetDelay(task.Finish, task.ActualFinish);
-
   const handleSave = () => {
-    if (!onSave) return;
 
-    const payload: Partial<ITaskListItem> & { Id: string } = {
+    // Crear el objeto de datos (sin JSON.stringify aquí)
+    const data = {
       Id: task.Id,
       Deliverable: deliverable,
       Complete: complete,
@@ -82,15 +74,24 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, showDetails, onClose, onSave 
           : undefined,
     };
 
-    onSave(payload);
+    // Convertir a JSON string
+    const payload = JSON.stringify(data);
+
+    // Llamar el callback con taskId y payload JSON
+    onSave(task.Id, payload);
+
+    if (onClose) {
+      onClose();
+    }
   };
+
 
   return (
     <div className={styles["task-card"]}>
       <div className={styles["task-card-header"]}>
         <h1 className={styles["task-title"]}>{task.Task}</h1>
         <div>
-          {onSave && (
+          {
             <button
               type="button"
               className={styles["task-button"]}
@@ -103,7 +104,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, showDetails, onClose, onSave 
                 className={styles["icon-small"]}
               />
             </button>
-          )}
+          }
           {onClose && (
             <button
               type="button"
@@ -118,189 +119,116 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, showDetails, onClose, onSave 
       </div>
 
       <div className={styles["task-card-body"]}>
-        <table className={styles["task-table"]}>
-          <tbody>
-            <tr>
-              <td>
-                <strong>Deliverable:</strong>
-              </td>
-              <td>
-                <input
-                  type="text"
-                  value={deliverable}
-                  onChange={e => setDeliverable(e.target.value)}
-                  className={styles["input-small"]}
-                />
-              </td>
-            </tr>
+      <table className={styles["task-table"]}>
+        <tbody>
+          <tr>
+            <td>
+              <strong>Task:</strong>
+            </td>
+            <td>
+              <input
+                type="text"
+                value={deliverable}
+                onChange={e => setDeliverable(e.target.value)}
+                className={styles["input-small"]}
+              />
+            </td>
+          </tr>
 
-            <tr
-              className={`${styles["task-alert"]} ${getCardDelay(delay, complete)}`}
-            >
-              <td>
-                <strong>Completion:</strong>
-              </td>
-              <td>
-                <input
-                  type="number"
-                  min={0}
-                  max={100}
-                  value={complete}
-                  onChange={e => setComplete(Number(e.target.value) || 0)}
-                  className={styles["input-small"]}
-                />{" "}
-                %
-              </td>
-            </tr>
+          <tr>
+            <td>
+              <strong>Completion:</strong>
+            </td>
+            <td >
+              <select
+                value={complete}
+                onChange={e => setComplete(Number(e.target.value) || 0)}
+                className={styles["select-complete"]}
+              >
+                <option value={0}>0%</option>
+                <option value={50}>50%</option>
+                <option value={100}>100%</option>
+              </select>
+              %
+            </td>
+          </tr>
 
-            <tr
-              className={`${styles["task-alert"]} ${getCardDelay(delay, complete)}`}
-            >
-              <td>
-                <strong>Delay:</strong>
-              </td>
-              <td>{delay} days</td>
-            </tr>
+          <tr>
+            <td>
+              <strong>Start:</strong>
+            </td>
+            <td>
+              <input
+                type="date"
+                value={start}
+                onChange={e => setStart(e.target.value)}
+                className={styles["input-small"]}
+              />
+            </td>
+          </tr>
 
-            <tr>
-              <td>
-                <strong>Start:</strong>
-              </td>
-              <td>
-                <input
-                  type="date"
-                  value={start}
-                  onChange={e => setStart(e.target.value)}
-                  className={styles["input-small"]}
-                />
-              </td>
-            </tr>
+          <tr>
+            <td>
+              <strong>Finish:</strong>
+            </td>
+            <td>
+              <input
+                type="date"
+                value={finish}
+                onChange={e => setFinish(e.target.value)}
+                className={styles["input-small"]}
+              />
+            </td>
+          </tr>
 
-            <tr>
-              <td>
-                <strong>Finish:</strong>
-              </td>
-              <td>
-                <input
-                  type="date"
-                  value={finish}
-                  onChange={e => setFinish(e.target.value)}
-                  className={styles["input-small"]}
-                />
-              </td>
-            </tr>
-
-            <tr>
-              <td>
-                <strong>ActualFinish:</strong>
-              </td>
-              <td>
-                <input
-                  type="date"
-                  value={actualFinish}
-                  onChange={e => setActualFinish(e.target.value)}
-                  className={styles["input-small"]}
-                />
-              </td>
-            </tr>
-
-            <tr>
-              <td>
-                <strong>Effort:</strong>
-              </td>
-              <td>
-                <input
-                  type="number"
-                  value={effort}
-                  onChange={e => setEffort(e.target.value)}
-                  className={styles["input-small"]}
-                />
-              </td>
-            </tr>
-
-            {showDetails && (
-              <>
-                <tr>
-                  <td>
-                    <strong>Barriers:</strong>
-                  </td>
-                  <td>
-                    <textarea
-                      value={barriers}
-                      onChange={e => setBarriers(e.target.value)}
-                      className={styles["textarea-small"]}
-                    />
-                  </td>
-                </tr>
-                <tr>
-                  <td>
-                    <strong>ActionableStatus:</strong>
-                  </td>
-                  <td>
-                    <textarea
-                      value={actionableStatus}
-                      onChange={e => setActionableStatus(e.target.value)}
-                      className={styles["textarea-small"]}
-                    />
-                  </td>
-                </tr>
-                <tr>
-                  <td>
-                    <strong>Gate:</strong>
-                  </td>
-                  <td>{task.Title}</td>
-                </tr>
-                <tr>
-                  <td>
-                    <strong>Description:</strong>
-                  </td>
-                  <td>
-                    <textarea
-                      value={description}
-                      onChange={e => setDescription(e.target.value)}
-                      className={styles["textarea-small"]}
-                    />
-                  </td>
-                </tr>
-              </>
-            )}
-
-            <>
-              <tr>
-                <td>
-                  <strong>Responsible:</strong>
-                </td>
-                <td>
-                  <a href={task.Responsible?.Url} target="_blank">
-                    {task.Responsible?.Description}
-                  </a>
-                </td>
-              </tr>
-              <tr>
-                <td>
-                  <strong>EvidenceOfCompletion:</strong>
-                </td>
-                <td>
+          {/* EVIDENCE OF COMPLETION */}
+          <tr>
+            <td>              
+              <strong>Evidence of Completion:</strong>
+            </td>
+            <td>
+              <div className={styles["evidence-edit"]}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                   <input
                     type="text"
                     value={evidenceUrl}
                     onChange={e => setEvidenceUrl(e.target.value)}
                     placeholder="Evidence URL"
                     className={styles["input-small"]}
+                    style={{ flex: 1 }}
                   />
-                  <input
-                    type="text"
-                    value={evidenceDesc}
-                    onChange={e => setEvidenceDesc(e.target.value)}
-                    placeholder="Evidence description"
-                    className={styles["input-small"]}
-                    style={{ marginTop: 4 }}
-                  />
-                </td>
-              </tr>
-            </>
-          </tbody>
-        </table>
+                  {evidenceUrl && (
+                    <button
+                      type="button"
+                      onClick={() => window.open(evidenceUrl, "_blank")}
+                      title="Open evidence link"
+                      className={styles["icon-button"]}
+                      style={{ padding: 4 }}
+                    >
+                      <img
+                        src={require("../assets/Document.png")}
+                        alt="open"
+                        className={styles["icon-small"]}
+                      />
+                    </button>
+                  )}
+                </div>
+                <input
+                  type="text"
+                  value={evidenceDesc}
+                  onChange={e => setEvidenceDesc(e.target.value)}
+                  placeholder="Evidence description"
+                  className={styles["input-small"]}
+                  style={{ marginTop: 4, width: "100%" }}
+                />
+              </div>
+            </td>
+          </tr>
+
+        </tbody>
+      </table>
+
+
       </div>
     </div>
   );
