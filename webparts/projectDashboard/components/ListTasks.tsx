@@ -25,11 +25,10 @@ const ListTasks = ({
   //Hook
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
-
-  const [editEffort, setEditEffort] = useState<string>("");
   const [editActualFinish, setEditActualFinish] = useState<string>("");
   const [editEvidenceUrl, setEditEvidenceUrl] = useState<string>("");
   const [editEvidenceDesc, setEditEvidenceDesc] = useState<string>("");
+  const [editPercentComplete, setEditPercentComplete] = useState<number>(0);
 
   return (
     <>
@@ -91,62 +90,74 @@ const ListTasks = ({
                   <td className={styles["cell-complete"]}>                    
                    {/* Icono SEND solo en modo edición */}
                     {editingTaskId === item.Id ? (
-                      <button
-                        type="button"
-                        className={styles["icon-button"]}
-                        onClick={() => {
-                          const payload = JSON.stringify({
-                            taskId: item.Id,
-                            effort: editEffort,
-                            actualFinish: editActualFinish,
-                            evidenceUrl: editEvidenceUrl,
-                            evidenceDesc: editEvidenceDesc,
-                          });
-
-                          onSelectItem(
-                            item.Task,      // item
-                            item.Title,     // group (bucket/gate)
-                            "quick-complete", // mode
-                            payload         // json
-                          );
-
-                          setEditingTaskId(null);
-                        }}
-                        title="Accept / Update DB"
+                      <>
+                        <select
+                          value={editPercentComplete}
+                          onChange={(e) => setEditPercentComplete(parseInt(e.target.value, 10))}
+                          className={styles["select-complete"]}
                         >
-                        <img
-                          src={require("../assets/Accept.png")}
-                          alt="send"
-                          className={styles["icon-small"]}
-                        />
-                      </button>
-                      ) : (
-                      <button
-                        type="button"
-                        className={styles["icon-button"]}
-                        onClick={() => {
-                          setEditingTaskId(item.Id);
-                          setEditEffort(item.Effort?.toString() ?? "");
-                          setEditActualFinish(
-                            item.ActualFinish
-                              ? new Date(item.ActualFinish).toISOString().slice(0, 10)
-                              : new Date().toISOString().slice(0, 10) // sugiere hoy
-                          );
-                          setEditEvidenceUrl(item.EvidenceOfCompletion?.Url ?? "");
-                          setEditEvidenceDesc(item.EvidenceOfCompletion?.Description ?? "");
-                        }}
-                        title="Complete task..."
-                      >
-                        <img
-                          src={require("../assets/EditRow.png")}
-                          alt="accept"
-                          className={styles["icon-small"]}
-                        />
-                      </button>
-                      )
-                    }
+                          <option value={0}>0%</option>
+                          <option value={50}>50%</option>
+                          <option value={100}>100%</option>
+                        </select>
 
-                    <span>{Math.floor(item.Complete)}%</span>
+                        <button
+                          type="button"
+                          className={styles["icon-button"]}
+                          onClick={() => {
+                            const payload = JSON.stringify({
+                              taskId: item.Id,
+                              percentComplete: editPercentComplete, 
+                              actualFinish: editActualFinish,
+                              evidenceUrl: editEvidenceUrl,
+                              evidenceDesc: editEvidenceDesc,
+                            });
+
+                            onSelectItem(
+                              item.Task,
+                              item.Title,
+                              "quick-complete",
+                              payload
+                            );
+
+                            setEditingTaskId(null);
+                          }}
+                          title="Accept / Update DB"
+                        >
+                          <img
+                            src={require("../assets/Accept.png")}
+                            alt="send"
+                            className={styles["icon-small"]}
+                          />
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <button
+                          type="button"
+                          className={styles["icon-button"]}
+                          onClick={() => {
+                            setEditingTaskId(item.Id);
+                            setEditPercentComplete(item.Complete); 
+                            setEditActualFinish(
+                              item.ActualFinish
+                                ? new Date(item.ActualFinish).toISOString().slice(0, 10)
+                                : new Date().toISOString().slice(0, 10)
+                            );
+                            setEditEvidenceUrl(item.EvidenceOfCompletion?.Url ?? "");
+                            setEditEvidenceDesc(item.EvidenceOfCompletion?.Description ?? "");
+                          }}
+                          title="Complete task..."
+                        >
+                          <img
+                            src={require("../assets/EditRow.png")}
+                            alt="accept"
+                            className={styles["icon-small"]}
+                          />
+                        </button>
+                        <span>{Math.floor(item.Complete)}%</span>
+                      </>
+                    )}
 
                   </td>                  
 

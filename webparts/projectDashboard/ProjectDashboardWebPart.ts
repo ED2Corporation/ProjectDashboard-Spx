@@ -346,7 +346,7 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
 
     const data = JSON.parse(payloadJson) as {
       taskId: string;
-      effort?: string;
+      percentComplete?: number;
       actualFinish?: string;
       evidenceUrl?: string;
       evidenceDesc?: string;
@@ -361,6 +361,7 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
     if (action === "quick-complete") {
       await plannerService.updateTaskQuickComplete({
         taskId: data.taskId,
+        percentComplete: data.percentComplete,
         evidenceUrl: data.evidenceUrl,
         evidenceDesc: data.evidenceDesc,
       });
@@ -370,7 +371,7 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
       await plannerService.updateTaskFull({
         taskId: data.taskId,
         // mapea aquí todos los campos que quieras permitir
-        percentComplete: data.effort ? 100 : undefined,
+        percentComplete: data.percentComplete ? 100 : undefined,
         actualFinish: data.actualFinish,
         evidenceUrl: data.evidenceUrl,
         evidenceDesc: data.evidenceDesc,

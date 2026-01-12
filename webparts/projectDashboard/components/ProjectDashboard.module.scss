@@ -321,7 +321,7 @@ h2 {
 }
 
 .colURL {
-  max-width: 300px; // ajusta al ancho que quieras
+  min-width: 300px; // ajusta al ancho que quieras
   word-wrap: break-word; // soporte antiguo
   overflow-wrap: anywhere; // moderno, rompe palabras largas (URLs)
   white-space: normal; // permite varias líneas
@@ -609,4 +609,18 @@ h2 {
   padding: 2px 4px;
   box-sizing: border-box;
   resize: vertical;
+}
+
+.select-complete {
+  padding: 4px 8px;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+  font-size: 14px;
+  margin-right: 8px;
+
+  &:focus {
+    outline: none;
+    border-color: #0078d4;
+    box-shadow: 0 0 0 2px rgba(0, 120, 212, 0.1);
+  }
 }
