@@ -186,24 +186,35 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, showDetails, onClose, onSave 
             <td>              
               <strong>Evidence of Completion:</strong>
             </td>
-            <td>
+            <td>              
               <div className={styles["evidence-edit"]}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                   <input
                     type="text"
                     value={evidenceUrl}
-                    onChange={e => setEvidenceUrl(e.target.value)}
+                    onChange={e => {
+                      // Sanitiza: quita espacios invisibles y recorta
+                      const cleanValue = e.target.value.trim().replace(/[\u200B-\u200D\uFEFF\u00A0]/g, "");
+                      setEvidenceUrl(cleanValue);
+                    }}
                     placeholder="Evidence URL"
                     className={styles["input-small"]}
                     style={{ flex: 1 }}
                   />
+
+                  {/* Botón abrir solo si la URL es válida */}
                   {evidenceUrl && (
                     <button
                       type="button"
-                      onClick={() => window.open(evidenceUrl, "_blank")}
+                      onClick={() => {
+                        if (/^https?:\/\/\S+/i.test(evidenceUrl)) {
+                          window.open(evidenceUrl, "_blank");
+                        }
+                      }}
                       title="Open evidence link"
                       className={styles["icon-button"]}
                       style={{ padding: 4 }}
+                      disabled={!/^https?:\/\/\S+/i.test(evidenceUrl)}
                     >
                       <img
                         src={require("../assets/Document.png")}
@@ -213,6 +224,13 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, showDetails, onClose, onSave 
                     </button>
                   )}
                 </div>
+
+                {/* Hint visual si la URL no es válida */}
+                {evidenceUrl && !/^https?:\/\/\S+/i.test(evidenceUrl) && (
+                  <div style={{ color: "red", fontSize: "12px", marginTop: 4 }}>
+                    La URL debe iniciar con <strong>http(s)://</strong>
+                  </div>
+                )}
                 <input
                   type="text"
                   value={evidenceDesc}

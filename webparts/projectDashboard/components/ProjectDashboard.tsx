@@ -168,7 +168,7 @@ export default class ProjectDashboard extends React.Component<
                   onClose={() => this.setState({ selectedTask: null })}
                   onSave={(taskId, payloadJson) => {
                     this.props.onUpdateTask?.(taskId, "full-update", payloadJson);
-                    console.log("Update DB:", taskId, payloadJson);
+                    console.log("Update DB TaskCard:", taskId);
                   }}
                 />
               )}

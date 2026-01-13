@@ -339,29 +339,37 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
     action: "quick-complete" | "full-update",
     payloadJson?: string
   ): Promise<void> => {
-    MessageLog(`[_onUpdateTask] action: ${action}`);
-
     if (!payloadJson) return;
 
     try {
+
       const data = JSON.parse(payloadJson) as any;
 
       const graphClient: MSGraphClientV3 =
         await this.context.msGraphClientFactory.getClient("3");
       const plannerService = new PlannerService(graphClient);
 
+      const completeSafe =
+        typeof data.Complete === "number"
+          ? data.Complete
+          : Number.isFinite(Number(data.Complete)) ? Number(data.Complete) : undefined;
+
       if (action === "quick-complete") {
         await plannerService.updateTaskQuickComplete({
-          taskId: data.Id,  // ← Espera data.Id
-          percentComplete: data.Complete,
+          taskId: data.Id,
+          percentComplete: completeSafe,
           evidenceUrl: data.EvidenceOfCompletion?.Url,
           evidenceDesc: data.EvidenceOfCompletion?.Description,
         });
       } else if (action === "full-update") {
         await plannerService.updateTaskFull({
           Id: data.Id,
-          Complete: data.Complete,
           Deliverable: data.Deliverable,
+          Complete: completeSafe,
+          EvidenceOfCompletion: {
+            Url: data.EvidenceOfCompletion?.Url,
+            Description: data.EvidenceOfCompletion?.Description,
+          },
           Start: data.Start,
           Finish: data.Finish,
         });
@@ -375,8 +383,6 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
       MessageLog(`[_onUpdateTask] Error: ${error.message}`, "error");
     }
   };
-
-
 
   private _onGetTaskListItems = async (): Promise<void> => {
     const response: ITaskListItem[] = await this._getTaskListItems();

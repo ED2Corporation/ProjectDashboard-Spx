@@ -105,7 +105,7 @@ const ListTasks = ({
                           className={styles["icon-button"]}
                           onClick={() => {
                             const payload = JSON.stringify({
-                              Id: item.Id,  // ← Cambio: usar Id en lugar de taskId
+                              Id: item.Id,  
                               Complete: editPercentComplete,
                               EvidenceOfCompletion: {
                                 Url: editEvidenceUrl,
