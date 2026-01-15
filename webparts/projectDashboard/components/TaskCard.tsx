@@ -4,7 +4,7 @@ import styles from "./ProjectDashboard.module.scss";
 
 interface TaskCardProps {
   task: ITaskListItem;
-  showDetails: boolean;
+  showDetails?: boolean | true;
   onClose?: () => void;
   onSave: (
     item: string,                 

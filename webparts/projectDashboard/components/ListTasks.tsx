@@ -8,7 +8,7 @@ import styles from "./ProjectDashboard.module.scss";
 interface ListGroupProps {
   items: ITaskListItem[];
   heading: string;
-  showDetails: boolean;
+  showDetails?: boolean | true;
   onSelectItem: (
     item: string,                 // Task (como hoy)
     group: string,                // Bucket / gate (como hoy)

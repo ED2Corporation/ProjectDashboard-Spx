@@ -5,7 +5,7 @@ import { getCardClass, getCardDelay } from "./GetGateStatus";
 
 interface GateCardProps {
   tasks: ITaskListItem[];
-  showDetails: boolean;
+  showDetails?: boolean | true;
   onSelectItem: (item: string, group: string) => void;
 }
 const ProgressTasks = ({ onSelectItem, showDetails, tasks }: GateCardProps) => {

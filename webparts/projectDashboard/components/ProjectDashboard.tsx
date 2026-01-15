@@ -85,17 +85,37 @@ export default class ProjectDashboard extends React.Component<
 
         {this.props.isDashboard && (
           <div className="task-card">
-            {spGateListItems.length > 0 && (
-              <a
-                onClick={() => {
-                  this.setState({ showDetails: !showDetails });   
-                  //if (showDetails) this.populateAttachements();
-                }}
-              >
+            {spGateListItems.length > 0 && (              
                 <div>
-                  <DoughnutChart gates={spGateListItems} tasks={spTaskListItems} complete={GroupByProject(spGateListItems).Complete} />
-                </div>
-              </a>
+                  <DoughnutChart 
+                    gates={spGateListItems} 
+                    tasks={spTaskListItems} 
+                    complete={GroupByProject(spGateListItems).Complete} 
+                    showLegend={showDetails}
+                    onSelectItem={(item, group) => {
+                      this.props.onSelectItem(item, group);
+                      
+                      if (item === "all") {
+                        // Click en el CENTRO: toggle allTasks
+                        console.log("[DoughnutChart] Show all tasks");
+                        this.setState({ 
+                          allTasks: true,
+                          showTasks: true,  // ⭐ También toggle showTasks
+                          showDetails: !showDetails  // ⭐ Ocultar detalles al ver todo
+                        });
+                      } else {
+                        // Click en SECCIÓN: mostrar filtradas
+                        console.log("[DoughnutChart] Filter by section:", item);
+                        this.setState({ 
+                          allTasks: false,
+                          showTasks: true,  // ⭐ SIEMPRE true cuando hay filtro
+                          showDetails: true  // ⭐ Mostrar detalles al filtrar
+                        });
+                      }
+                    }}
+         
+                />
+                </div>              
             )}
             {spGateListItems.length === 0 && (
               <h1>Review your plan setup (unable to reach the info)... </h1>
@@ -137,9 +157,8 @@ export default class ProjectDashboard extends React.Component<
                       tasks={spTaskListItems} 
                       onSelectItem={(item, group) => {
                         this.props.onSelectItem(item, group);
-                        //this._showDetails = true;
                       }}
-                      showDetails={false}
+                      showDetails={showDetails}                      
                     />
                   </>
                 )} 

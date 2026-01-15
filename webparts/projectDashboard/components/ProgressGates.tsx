@@ -10,7 +10,7 @@ import {
 interface GateCardProps {
   gates: IGateListItem[];
   tasks?: ITaskListItem[] | null;
-  showDetails: boolean;
+  showDetails?: boolean | true;
   onSelectItem: (item: string, group: string) => void;
 }
 
