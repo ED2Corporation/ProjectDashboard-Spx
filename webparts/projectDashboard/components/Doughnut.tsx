@@ -77,7 +77,7 @@ const DoughnutChart: React.FC<DoughnutChartProps> = ({
     responsive: true,
     maintainAspectRatio: false,
     cutout: "70%",
-    plugins: {
+    plugins: {      
       legend: { 
         display: false,
         position: "right",
@@ -85,24 +85,37 @@ const DoughnutChart: React.FC<DoughnutChartProps> = ({
       datalabels: {
         color: "darkblue",
         font: { weight: "bold", size: 14 },
-       formatter: (_value, ctx) => {
-        const index = ctx.dataIndex;
-        return data.labels?.[index]?.[0] ?? "";  // ⭐ Solo primer carácter
-      },
+        formatter: (_value, ctx) => {
+          const index = ctx.dataIndex;
+          return data.labels?.[index]?.[0] ?? "";  // ⭐ First Character
+        },
         anchor: "center",
         align: "center",
       },
       tooltip: {
-        enabled: false,
+        enabled: true,
+        titleAlign: "left",
+        bodyAlign: "left",  
+        padding: 5,
+        caretPadding: 20,
+        callbacks: {
+          label: (context) => {
+            const index = context.dataIndex;
+            const gate = gates[index];           
+            return [
+                `${gate?.Complete?.toFixed(0)}%`
+              ];
+          },
+        }
       },
     },
     hover: { mode: "nearest", intersect: true },
     
-    // ⭐ EXCLUYENTES: sección XOR centro
+    // Section XOR Center
     onClick: (_event, elements: ActiveElement[]) => {
       console.log("[DoughnutChart] Click detected, elements:", elements.length);
       
-      // CASO 1: Click en una SECCIÓN
+      // CASO 1: Click a Section
       if (elements && elements.length > 0) {
         const index = elements[0].index;
         const gate = gates[index];
@@ -115,7 +128,7 @@ const DoughnutChart: React.FC<DoughnutChartProps> = ({
         return; // ⭐ IMPORTANTE: retornar aquí para NO ejecutar el centro
       }
       
-      // CASO 2: Click en el CENTRO (área vacía)
+      // CASO 2: Click Center (área vacía)
       console.log("[DoughnutChart] → Centro (mostrar todo)");
       
       if (onSelectItem) {
@@ -127,7 +140,7 @@ const DoughnutChart: React.FC<DoughnutChartProps> = ({
 
   return (
     <div style={{ display: "flex", gap: "16px", alignItems: "flex-start" }}>
-      <div style={{ width: "120px", height: "120px" }}>
+      <div style={{ width: "150px", height: "120px" }}>
         <Doughnut data={data} options={options} plugins={[centerTextPlugin]} />
       </div>
 
@@ -135,12 +148,10 @@ const DoughnutChart: React.FC<DoughnutChartProps> = ({
       {showLegend && (
         <div
           style={{
-            width: "150px",
-            maxHeight: "500px",
+            width: "300px",
+            maxHeight: "700px",
             overflowY: "auto",
-            overflowX: "hidden",
-            border: "1px solid #ddd",
-            borderRadius: "4px",
+            overflowX: "hidden",            
             padding: "8px",
             fontSize: "12px",
           }}
@@ -160,11 +171,12 @@ const DoughnutChart: React.FC<DoughnutChartProps> = ({
                 style={{
                   width: "12px",
                   height: "12px",
+                  border: "2px solid #a09f9f",
                   borderRadius: "2px",
                   backgroundColor: data.datasets[0].backgroundColor?.[idx],
                 }}
               />
-              <span>{gate.Title}</span>
+              <span>{gate.Complete?.toFixed(0)}{"% | "}{gate.Title}</span>
             </div>
           ))}
         </div>

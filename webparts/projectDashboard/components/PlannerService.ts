@@ -3,6 +3,7 @@
 import { MSGraphClientV3 } from "@microsoft/sp-http";
 import { IPlannerListItem, ITaskListItem } from "../../../models";
 import { GetDelay } from "./GetDelay";
+import { toUtcIso } from "./DateUtils"
 
 export interface IPlanItem {
   id: string;
@@ -326,9 +327,10 @@ export class PlannerService {
   }
 
   // ===== Servicio =====
-  public async updateTaskQuickComplete(payload: {
+  public async updateTaskStatus(payload: {
     taskId: string;
     percentComplete?: number;
+    finish: string;
     evidenceUrl?: string;         // Valor de la GUI (puede venir vacío)
     evidenceDesc?: string;
     setPreviewAsReference?: boolean;
@@ -336,18 +338,35 @@ export class PlannerService {
     const {
       taskId,
       percentComplete = 100,
+      finish,
       evidenceUrl,
       evidenceDesc
     } = payload;
 
     // 1) Actualizar percentComplete (0–100) en /planner/tasks/{id}
     const task = await this.graphClient.api(`/planner/tasks/${taskId}`).get();
-    const safePercent = Math.max(0, Math.min(100, percentComplete));
+    const taskPatch: any = {};
 
-    await this.graphClient
-      .api(`/planner/tasks/${taskId}`)
-      .header("If-Match", task["@odata.etag"])
-      .patch({ percentComplete: safePercent });
+    if (percentComplete !== undefined) {
+      taskPatch.percentComplete = Math.max(0, Math.min(100, percentComplete));
+    }
+    if (finish) {
+      const dueIso = toUtcIso(finish);
+      if (dueIso) {
+        taskPatch.dueDateTime = dueIso;
+      }
+      taskPatch.dueDateTime = new Date(finish).toISOString();
+    }
+
+    if (Object.keys(taskPatch).length > 0) {
+      await this.graphClient
+        .api(`/planner/tasks/${taskId}`)
+        .header("If-Match", task["@odata.etag"])
+        .patch(taskPatch);
+      console.log(`[updateTaskStatus] Task updated: ${taskId}`);
+    } else {
+      console.log(`[updateTaskStatus] No changes for /tasks: ${taskId}`);
+    }
 
     // 2) Determinar acción de referencias según los 4 casos
     const guiUrl = (evidenceUrl || "").trim();
@@ -434,7 +453,6 @@ export class PlannerService {
     }
   }
 
-
   public async updateTaskFull(
     payload: Partial<ITaskListItem> & {
       Id: string;
@@ -471,10 +489,16 @@ export class PlannerService {
         taskPatch.title = Deliverable;
       }
       if (Start) {
-        taskPatch.startDateTime = new Date(Start).toISOString();
+        const dueIso = toUtcIso(Start);
+        if (dueIso) {
+          taskPatch.startDateTime = dueIso;
+        }
       }
       if (Finish) {
-        taskPatch.dueDateTime = new Date(Finish).toISOString();
+        const dueIso = toUtcIso(Finish);
+        if (dueIso) {
+          taskPatch.dueDateTime = dueIso;
+        }
       }
 
       if (Object.keys(taskPatch).length > 0) {

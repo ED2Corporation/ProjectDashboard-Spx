@@ -355,9 +355,10 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
           : Number.isFinite(Number(data.Complete)) ? Number(data.Complete) : undefined;
 
       if (action === "quick-complete") {
-        await plannerService.updateTaskQuickComplete({
+        await plannerService.updateTaskStatus({
           taskId: data.Id,
           percentComplete: completeSafe,
+          finish: data.Finish,
           evidenceUrl: data.EvidenceOfCompletion?.Url,
           evidenceDesc: data.EvidenceOfCompletion?.Description,
         });

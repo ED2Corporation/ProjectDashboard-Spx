@@ -1,31 +1,26 @@
 import * as React from "react";
 import styles from "./ProjectDashboard.module.scss";
 import type { IProjectDashboardProps } from "./IProjectDashboardProps";
-//import { escape } from "@microsoft/sp-lodash-subset";
-//import { useState } from "react";
 import { ITaskListItem } from "../../../models";
-import { Switch } from "@fluentui/react-components";
 import ProgressTasks from "./ProgressTasks";
-import ProgressGates from "./ProgressGates";
 import TaskCard from "./TaskCard";
 import ListTasks from "./ListTasks";
 import { MessageLog } from "./MessageLog";
 import DoughnutChart from "./Doughnut";
 import { GroupByProject } from "./GroupByProject";
 
-//import type { SwitchProps } from "@fluentui/react-components";
-
 interface IProjectDashboardState {
   allTasks: boolean;
   showTasks: boolean;
   showDetails: boolean;
   selectedTask: ITaskListItem | null;
+  showBuckets: boolean; // ← NUEVO
 }
+
 export default class ProjectDashboard extends React.Component<
   IProjectDashboardProps,
   IProjectDashboardState
 > {
-
   constructor(props) {
     super(props);
     this.state = {
@@ -33,8 +28,8 @@ export default class ProjectDashboard extends React.Component<
       showTasks: true,
       showDetails: false,
       selectedTask: null,
+      showBuckets: false // ← NUEVO
     };
-
   }
 
   handleSwitchDetailsChange = (event) => {
@@ -53,9 +48,8 @@ export default class ProjectDashboard extends React.Component<
       project,
     } = this.props;
 
-    const { showDetails, allTasks, showTasks, selectedTask } = this.state;
-    //const [selectedTask, setSelectedTask] = useState<ITaskListItem | null>(null);
-    
+    const { showDetails, allTasks, showTasks, selectedTask, showBuckets } = this.state;
+
     return (
       <>
         <div id="progress-header" className={styles["rowContainer"]}>
@@ -72,56 +66,66 @@ export default class ProjectDashboard extends React.Component<
               className={styles["iconImage"]}
             />
           </button>
+
           <div>
+            {/* ====== TÍTULO con toggle showBuckets ====== */}
             <a
-              //          href="https://ed2corp.sharepoint.com/sites/ED2Team/SitePages/SW_RFCascade.aspx"
               href={project.Link.Url}
+              onClick={(e) => {
+                const isModifier = e.metaKey || e.ctrlKey; // Cmd(mac) / Ctrl(win/linux)
+                if (!isModifier) {
+                  e.preventDefault(); // no navegues con click normal
+                  this.setState((prev) => ({ showBuckets: !prev.showBuckets }));
+                }
+              }}
               target="_blank"
+              rel="noopener noreferrer"
+              title={showBuckets ? "Hide buckets" : "Show buckets"}
             >
-              <h2> {project.Title} </h2>
+              <h2 style={{ margin: 0 }}>{project.Title}</h2>
             </a>
           </div>
         </div>
 
         {this.props.isDashboard && (
           <div className="task-card">
-            {spGateListItems.length > 0 && (              
-                <div>
-                  <DoughnutChart 
-                    gates={spGateListItems} 
-                    tasks={spTaskListItems} 
-                    complete={GroupByProject(spGateListItems).Complete} 
-                    showLegend={showDetails}
-                    onSelectItem={(item, group) => {
-                      this.props.onSelectItem(item, group);
-                      
-                      if (item === "all") {
-                        // Click en el CENTRO: toggle allTasks
-                        console.log("[DoughnutChart] Show all tasks");
-                        this.setState({ 
-                          allTasks: true,
-                          showTasks: true,  // ⭐ También toggle showTasks
-                          showDetails: !showDetails  // ⭐ Ocultar detalles al ver todo
-                        });
-                      } else {
-                        // Click en SECCIÓN: mostrar filtradas
-                        console.log("[DoughnutChart] Filter by section:", item);
-                        this.setState({ 
-                          allTasks: false,
-                          showTasks: true,  // ⭐ SIEMPRE true cuando hay filtro
-                          showDetails: true  // ⭐ Mostrar detalles al filtrar
-                        });
-                      }
-                    }}
-         
-                />
-                </div>              
+            {spGateListItems.length > 0 && (
+              <div>
+                <DoughnutChart
+                  gates={spGateListItems}
+                  tasks={spTaskListItems}
+                  complete={GroupByProject(spGateListItems).Complete}
+                  showLegend={showBuckets}
+                  onSelectItem={(item, group) => {
+                    this.props.onSelectItem(item, group);
+
+                    if (item === "all") {
+                      // Click en el CENTRO: toggle allTasks
+                      console.log("[DoughnutChart] Show all tasks");
+                      this.setState({
+                        allTasks: true,
+                        showTasks: true,
+                        showDetails: !showDetails
+                      });
+                    } else {
+                      // Click en SECCIÓN: mostrar filtradas
+                      console.log("[DoughnutChart] Filter by section:", item);
+                      this.setState({
+                        allTasks: false,
+                        showTasks: true,
+                        showDetails: true
+                      });
+                    }
+                  }}
+                />              
+              </div>
             )}
             {spGateListItems.length === 0 && (
               <h1>Review your plan setup (unable to reach the info)... </h1>
             )}
           </div>
         )}
+
         {(!this.props.isDashboard ||
           (this.props.isDashboard && showDetails)) && (
           <section
@@ -129,39 +133,8 @@ export default class ProjectDashboard extends React.Component<
               hasTeamsContext ? styles.teams : ""
             }`}
           >
-            {this.props.showButtons && (
-              <div className={styles.buttons}>
-                <Switch
-                  label="List Tasks"
-                  checked={showTasks}
-                  onChange={(ev) => {
-                    this.setState({ showTasks: ev.currentTarget.checked }); 
-                                      
-                  }}
-                />
-                <Switch
-                  label="All Tasks"
-                  checked={allTasks}
-                  onChange={(ev) => {
-                    this.setState({ allTasks: ev.currentTarget.checked });
-                  }}
-                />
-              </div>
-            )}
             <div className={styles["columnContainer"]}>
               <div id="progress-body">
-                {spGateListItems && (
-                  <>
-                    <ProgressGates
-                      gates={spGateListItems}
-                      tasks={spTaskListItems} 
-                      onSelectItem={(item, group) => {
-                        this.props.onSelectItem(item, group);
-                      }}
-                      showDetails={showDetails}                      
-                    />
-                  </>
-                )} 
                 {spTaskListItems.length > 0 && (
                   <ProgressTasks
                     tasks={allTasks ? spTaskListItems : spFilteredTaskItems}
@@ -180,31 +153,32 @@ export default class ProjectDashboard extends React.Component<
               </div>
             </div>
 
-            {selectedTask  && (
-                <TaskCard
-                  task={selectedTask}
-                  showDetails={true}
-                  onClose={() => this.setState({ selectedTask: null })}
-                  onSave={(taskId, payloadJson) => {
-                    this.props.onUpdateTask?.(taskId, "full-update", payloadJson);
-                    console.log("Update DB TaskCard:", taskId);
-                  }}
-                />
-              )}
+            {selectedTask && (
+              <TaskCard
+                task={selectedTask}
+                showDetails={true}
+                onClose={() => this.setState({ selectedTask: null })}
+                onSave={(taskId, payloadJson) => {
+                  this.props.onUpdateTask?.(taskId, "full-update", payloadJson);
+                  console.log("Update DB TaskCard:", taskId);
+                }}
+              />
+            )}
+
             {showTasks && spTaskListItems.length > 0 && (
               <ListTasks
                 items={allTasks ? spTaskListItems : spFilteredTaskItems}
                 heading={
                   allTasks
-                    ? "All Tasks: "
+                    ? "All Tasks"
                     : spFilteredTaskItems.length > 0
-                    ? "Pending Tasks: " + spFilteredTaskItems[0].Title
+                    ? spFilteredTaskItems[0].Title
                     : "No tasks defined..."
                 }
                 showDetails={showDetails}
                 onSelectItem={(item, group, mode, payload) => {
                   console.log("ListTasks onSelectItem -> item, group, mode:", item, group, mode);
-                  const task = spTaskListItems.find(t => t.Task === item); // ajusta el criterio
+                  const task = spTaskListItems.find(t => t.Task === item);
                   if (task && mode === "details") {
                     this.setState({ selectedTask: task });
                     return;
@@ -213,11 +187,11 @@ export default class ProjectDashboard extends React.Component<
                     this.props.onUpdateTask?.(item, "quick-complete", payload);
                     return;
                   }
-
                   this.props.onSelectItem(item, group);
                 }}
               />
             )}
+
             {this.props.showLog && this.props.environmentMessage.length > 0 && (
               <>
                 <p>
@@ -232,35 +206,19 @@ export default class ProjectDashboard extends React.Component<
   }
 
   private onReset(): void {
-    //showDetails = false;
     if (this.props.onReset) this.props.onReset();
     this.setState({ allTasks: false });
     this.setState({ showTasks: true });
     MessageLog("ProjectDashboar/onReset...");
   }
 
-  //  private populateAttachements = (): void => {
-  //   if (this.props.onPopulateAttachements) this.props.onPopulateAttachements();
-  // };
-
-  // private onGetTaskListItemsChanged = (): void => {
-  //   if (this.props.onGetTaskListItems) this.props.onGetTaskListItems();
-  // };
-
   componentDidMount(): void {
-    // Cargar datos al iniciar
     if (this.props.onGetGateListItems) this.props.onGetGateListItems();
-
-    // Configurar temporizador para actualizar cada 5 minutos (300,000 ms)
-    // this.context.refreshInterval = setInterval(() => {
-    //   if (this.props.onGetGateListItems) this.props.onGetGateListItems();
-    // }, this.props.refreshInterval);
   }
 
   componentWillUnmount(): void {
-    // Limpiar el temporizador cuando el componente se desmonte
-    if (this.context.refreshInterval) {
-      clearInterval(this.context.refreshInterval);
+    if ((this.context as any).refreshInterval) {
+      clearInterval((this.context as any).refreshInterval);
     }
   }
 }

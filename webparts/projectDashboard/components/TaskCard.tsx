@@ -161,7 +161,23 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, showDetails, onClose, onSave 
               <input
                 type="date"
                 value={start}
-                onChange={e => setStart(e.target.value)}
+                onChange={(e) => {
+                  const newStart = e.target.value;
+                  // No validamos si start no tiene valor aún
+                  if (newStart && finish) {
+                    // Convertimos ambas a fechas UTC para comparar correctamente
+                    const [sy, sm, sd] = newStart.split("-").map(Number);
+                    const [fy, fm, fd] = finish.split("-").map(Number);
+                    const startUTC = Date.UTC(sy, sm - 1, sd);
+                    const finishUTC = Date.UTC(fy, fm - 1, fd);
+
+                    if (finishUTC < startUTC) {
+                      alert("Finish date cannot be earlier than Start date.");
+                      return; // No actualizamos el estado
+                    }
+                  }
+                  setStart(newStart);
+                }}
                 className={styles["input-small"]}
               />
             </td>
@@ -175,7 +191,23 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, showDetails, onClose, onSave 
               <input
                 type="date"
                 value={finish}
-                onChange={e => setFinish(e.target.value)}
+                onChange={(e) => {
+                  const newFinish = e.target.value;
+                  // No validamos si start no tiene valor aún
+                  if (start && newFinish) {
+                    // Convertimos ambas a fechas UTC para comparar correctamente
+                    const [sy, sm, sd] = start.split("-").map(Number);
+                    const [fy, fm, fd] = newFinish.split("-").map(Number);
+                    const startUTC = Date.UTC(sy, sm - 1, sd);
+                    const finishUTC = Date.UTC(fy, fm - 1, fd);
+
+                    if (finishUTC < startUTC) {
+                      alert("Finish date cannot be earlier than Start date.");
+                      return; // No actualizamos el estado
+                    }
+                  }
+                  setFinish(newFinish);
+                }}
                 className={styles["input-small"]}
               />
             </td>

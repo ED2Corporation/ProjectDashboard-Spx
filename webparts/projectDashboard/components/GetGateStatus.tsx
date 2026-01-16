@@ -13,17 +13,15 @@ export function GetGateStatus(
   ): GateStatus 
 {
   const today = new Date();
-  const startDate = start ? new Date(start) : null;
   const finishDate = finish ? new Date(finish) : null;
   const actualFinishDate = actualFinish ? new Date(actualFinish) : null;
 
   const isClosed = !!actualFinishDate || complete === 100;
   if (isClosed) return "green";
 
-  const hasStarted = !!startDate && startDate <= today;
   const isPastDue = !!finishDate && finishDate < today;
 
-  if (!hasStarted) return "white";
+  if (!isPastDue) return "white";
 
   if (isPastDue && finishDate) {
     const delayDays = Math.ceil(
@@ -34,7 +32,7 @@ export function GetGateStatus(
     if (delayDays >= 1) return "yellow";   // entre 1 y 15 días de retraso
   }
 
-  return "green";
+  return "white";
 }
 
 export function GetBucketStatus(gates: IGateListItem[]): GateStatus {
@@ -51,11 +49,9 @@ export function GetBucketStatus(gates: IGateListItem[]): GateStatus {
 
   if (statuses.includes("red")) return "red";
   if (statuses.includes("yellow")) return "yellow";
-  if (statuses.includes("green")) return "green";
 
-  const allGrey = statuses.every(s => s === "grey");
-  if (allGrey) return "green";
-/*  if (allGrey) return "grey";*/
+  const allGreen = statuses.every(s => s === "green");
+  if (allGreen) return "green";
 
   return "white";
 }
@@ -75,10 +71,9 @@ export function GetBucketStatusFromTasks(tasks: ITaskListItem[]): GateStatus {
 
   if (statuses.includes("red")) return "red";
   if (statuses.includes("yellow")) return "yellow";
-  if (statuses.includes("green")) return "green";
 
-  const allGrey = statuses.every(s => s === "grey");
-  if (allGrey) return "green";
+  const allGreen = statuses.every(s => s === "green");
+  if (allGreen) return "green";
 
   return "white";
 }
@@ -118,50 +113,31 @@ export const getBackgroundImageByStatus = (status: GateStatus) => {
   }
 };
 
-  export const getCardClass = (
-  complete: number,
-  start: string | Date | null,
-  finish: string | Date | null,
-  actualFinish: string | Date | null
-) => {
-  const today = new Date();
-  const startDate = start ? new Date(start) : null;
-  const finishDate = finish ? new Date(finish) : null;
-  const actualFinishDate = actualFinish ? new Date(actualFinish) : null;
+export const getCardClass = (
+    complete: number,
+    start: string | Date | null,
+    finish: string | Date | null,
+    actualFinish: string | Date | null
+  ) => {
 
-  const isClosed = !!actualFinishDate && complete === 100;
+  const status = GetGateStatus(complete, start ?? null, finish ?? null, actualFinish ?? null);
 
-  // Cerrada
-  if (isClosed) return styles.green; // o styles.grey
-
-  const hasStarted = !!startDate && startDate <= today;
-
-  // Blanco: aún no inicia
-  if (!hasStarted) return styles.white;
-
-  if (finishDate) {
-    const daysDiff = Math.ceil(
-      (today.getTime() - finishDate.getTime()) / (1000 * 60 * 60 * 24)
-    );
-
-    // daysDiff > 0 => ya venció (retraso)
-    if (daysDiff > 15) return styles.red;      // más de 15 días de retraso
-    if (daysDiff >= 1) return styles.yellow;   // entre 1 y 15 días de retraso
-  }
-
-  // En tiempo (no vencida o sin finish)
-  return styles.green;
+  switch (status) {
+      case "grey":
+        return styles.grey;
+      case "white":
+        return styles.white;
+      case "yellow":
+        return styles.yellow;
+      case "red":
+        return styles.red;
+      case "green":
+        return styles.green;
+      default:
+        return styles.white;
+    }
 };
 
-/*
-export const getCardDelay = (delay: number, complete: number) => {
-    if (complete === 100) return styles.whiteFont;
-    if (delay === 0) return styles.greenFont;
-    if (delay > 0 && delay <= 15) return styles.blackFont;
-    if (delay > 15) return styles.blackFont;
-    return styles.whiteFont; // Default Class
-  };
-*/
 export const getCardDelay = (
   complete: number,
   start: string | Date | null,
@@ -169,31 +145,20 @@ export const getCardDelay = (
   actualFinish: string | Date | null
 ) => {
   
-  const today = new Date();
-  const startDate = start ? new Date(start) : null;
-  const finishDate = finish ? new Date(finish) : null;
-  const actualFinishDate = actualFinish ? new Date(actualFinish) : null;
+  const status = GetGateStatus(complete, start ?? null, finish ?? null, actualFinish ?? null);
 
-  const isClosed = !!actualFinishDate && complete === 100;
-
-  // Cerrada → texto blanco
-  if (isClosed) return styles.whiteFont;
-
-  const hasStarted = !!startDate && startDate <= today;
-
-  // Aún no inicia → texto verde
-  if (!hasStarted) return styles.greenFont;
-
-  if (finishDate) {
-    const daysDiff = Math.ceil(
-      (today.getTime() - finishDate.getTime()) / (1000 * 60 * 60 * 24)
-    );
-
-    // Vencida
-    if (daysDiff > 15) return styles.whiteFont; // rojo de fondo, texto blanco
-    if (daysDiff >= 1) return styles.redFont;   // amarillo de fondo, texto rojo
-  }
-
-  // En tiempo
-  return styles.whiteFont;
+  switch (status) {
+      case "grey":
+        return styles.greyFont;
+      case "white":
+        return styles.whiteFont;
+      case "yellow":
+        return styles.yellowFont;
+      case "red":
+        return styles.redFont;
+      case "green":
+        return styles.greenFont;
+      default:
+        return styles.whiteFont;
+    }
 };
