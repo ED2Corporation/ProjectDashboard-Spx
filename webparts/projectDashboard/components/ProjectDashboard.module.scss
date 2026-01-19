@@ -504,6 +504,16 @@ h2 {
   word-break: break-word;
 }
 
+.task-card-row {
+  display: flex;
+  flex-direction: row;
+}
+
+.task-card-column {
+  display: flex;
+  flex-direction: column;
+}
+
 .task-card-body {
   flex: 1;
   overflow-y: auto;

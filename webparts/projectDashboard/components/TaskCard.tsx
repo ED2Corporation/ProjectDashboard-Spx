@@ -117,125 +117,108 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, showDetails, onClose, onSave 
           )}
         </div>
       </div>
-
-      <div className={styles["task-card-body"]}>
-      <table className={styles["task-table"]}>
-        <tbody>
-          <tr>
-            <td>
-              <strong>Task:</strong>
-            </td>
-            <td>
-              <input
-                type="text"
-                value={deliverable}
-                onChange={e => setDeliverable(e.target.value)}
-                className={styles["input-small"]}
-              />
-            </td>
-          </tr>
-
-          <tr>
-            <td>
-              <strong>Completion:</strong>
-            </td>
-            <td >
-              <select
-                value={complete}
-                onChange={e => setComplete(Number(e.target.value) || 0)}
-                className={styles["select-complete"]}
-              >
-                <option value={0}>0%</option>
-                <option value={50}>50%</option>
-                <option value={100}>100%</option>
-              </select>
-              %
-            </td>
-          </tr>
-
-          <tr>
-            <td>
-              <strong>Start:</strong>
-            </td>
-            <td>
-              <input
-                type="date"
-                value={start}
-                onChange={(e) => {
-                  const newStart = e.target.value;
-                  // No validamos si start no tiene valor aún
-                  if (newStart && finish) {
-                    // Convertimos ambas a fechas UTC para comparar correctamente
-                    const [sy, sm, sd] = newStart.split("-").map(Number);
-                    const [fy, fm, fd] = finish.split("-").map(Number);
-                    const startUTC = Date.UTC(sy, sm - 1, sd);
-                    const finishUTC = Date.UTC(fy, fm - 1, fd);
-
-                    if (finishUTC < startUTC) {
-                      alert("Finish date cannot be earlier than Start date.");
-                      return; // No actualizamos el estado
-                    }
-                  }
-                  setStart(newStart);
-                }}
-                className={styles["input-small"]}
-              />
-            </td>
-          </tr>
-
-          <tr>
-            <td>
-              <strong>Finish:</strong>
-            </td>
-            <td>
-              <input
-                type="date"
-                value={finish}
-                onChange={(e) => {
-                  const newFinish = e.target.value;
-                  // No validamos si start no tiene valor aún
-                  if (start && newFinish) {
-                    // Convertimos ambas a fechas UTC para comparar correctamente
-                    const [sy, sm, sd] = start.split("-").map(Number);
-                    const [fy, fm, fd] = newFinish.split("-").map(Number);
-                    const startUTC = Date.UTC(sy, sm - 1, sd);
-                    const finishUTC = Date.UTC(fy, fm - 1, fd);
-
-                    if (finishUTC < startUTC) {
-                      alert("Finish date cannot be earlier than Start date.");
-                      return; // No actualizamos el estado
-                    }
-                  }
-                  setFinish(newFinish);
-                }}
-                className={styles["input-small"]}
-              />
-            </td>
-          </tr>
-
-          {/* EVIDENCE OF COMPLETION */}
-          <tr>
-            <td>              
-              <strong>Evidence of Completion:</strong>
-            </td>
-            <td>              
-              <div className={styles["evidence-edit"]}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+      <div className={styles["task-card-row"]}>
+        <div className={styles["task-card-body"]}>
+          <table className={styles["task-table"]}>
+            <tbody>
+              <tr>
+                <td>
+                  <strong>Task:</strong>
+                </td>
+                <td>
                   <input
                     type="text"
-                    value={evidenceUrl}
-                    onChange={e => {
-                      // Sanitiza: quita espacios invisibles y recorta
-                      const cleanValue = e.target.value.trim().replace(/[\u200B-\u200D\uFEFF\u00A0]/g, "");
-                      setEvidenceUrl(cleanValue);
-                    }}
-                    placeholder="Evidence URL"
+                    value={deliverable}
+                    onChange={e => setDeliverable(e.target.value)}
                     className={styles["input-small"]}
-                    style={{ flex: 1 }}
                   />
+                </td>
+              </tr>
 
+              <tr>
+                <td>
+                  <strong>Completion:</strong>
+                </td>
+                <td >
+                  <select
+                    value={complete}
+                    onChange={e => setComplete(Number(e.target.value) || 0)}
+                    className={styles["select-complete"]}
+                  >
+                    <option value={0}>0%</option>
+                    <option value={50}>50%</option>
+                    <option value={100}>100%</option>
+                  </select>
+                  %
+                </td>
+              </tr>
+
+              <tr>
+                <td>
+                  <strong>Start:</strong>
+                </td>
+                <td>
+                  <input
+                    type="date"
+                    value={start}
+                    onChange={(e) => {
+                      const newStart = e.target.value;
+                      // No validamos si start no tiene valor aún
+                      if (newStart && finish) {
+                        // Convertimos ambas a fechas UTC para comparar correctamente
+                        const [sy, sm, sd] = newStart.split("-").map(Number);
+                        const [fy, fm, fd] = finish.split("-").map(Number);
+                        const startUTC = Date.UTC(sy, sm - 1, sd);
+                        const finishUTC = Date.UTC(fy, fm - 1, fd);
+
+                        if (finishUTC < startUTC) {
+                          alert("Finish date cannot be earlier than Start date.");
+                          return; // No actualizamos el estado
+                        }
+                      }
+                      setStart(newStart);
+                    }}
+                    className={styles["input-small"]}
+                  />
+                </td>
+              </tr>
+
+              <tr>
+                <td>
+                  <strong>Finish:</strong>
+                </td>
+                <td>
+                  <input
+                    type="date"
+                    value={finish}
+                    onChange={(e) => {
+                      const newFinish = e.target.value;
+                      // No validamos si start no tiene valor aún
+                      if (start && newFinish) {
+                        // Convertimos ambas a fechas UTC para comparar correctamente
+                        const [sy, sm, sd] = start.split("-").map(Number);
+                        const [fy, fm, fd] = newFinish.split("-").map(Number);
+                        const startUTC = Date.UTC(sy, sm - 1, sd);
+                        const finishUTC = Date.UTC(fy, fm - 1, fd);
+
+                        if (finishUTC < startUTC) {
+                          alert("Finish date cannot be earlier than Start date.");
+                          return; // No actualizamos el estado
+                        }
+                      }
+                      setFinish(newFinish);
+                    }}
+                    className={styles["input-small"]}
+                  />
+                </td>
+              </tr>
+
+              {/* EVIDENCE OF COMPLETION */}
+              <tr>
+                <td>    
+                  <strong>Evidence of Completion:</strong>              
                   {/* Botón abrir solo si la URL es válida */}
-                  {evidenceUrl && (
+                    {evidenceUrl && (
                     <button
                       type="button"
                       onClick={() => {
@@ -254,31 +237,58 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, showDetails, onClose, onSave 
                         className={styles["icon-small"]}
                       />
                     </button>
-                  )}
-                </div>
+                  )}          
+                </td>
+                <td>              
+                  <div className={styles["evidence-edit"]}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <input
+                        type="text"
+                        value={evidenceUrl}
+                        onChange={e => {
+                          // Sanitiza: quita espacios invisibles y recorta
+                          const cleanValue = e.target.value.trim().replace(/[\u200B-\u200D\uFEFF\u00A0]/g, "");
+                          setEvidenceUrl(cleanValue);
+                        }}
+                        placeholder="Evidence URL"
+                        className={styles["input-small"]}
+                        style={{ flex: 1 }}
+                      />            
+                    </div>
 
-                {/* Hint visual si la URL no es válida */}
-                {evidenceUrl && !/^https?:\/\/\S+/i.test(evidenceUrl) && (
-                  <div style={{ color: "red", fontSize: "12px", marginTop: 4 }}>
-                    La URL debe iniciar con <strong>http(s)://</strong>
+                    {/* Hint visual si la URL no es válida */}
+                    {evidenceUrl && !/^https?:\/\/\S+/i.test(evidenceUrl) && (
+                      <div style={{ color: "red", fontSize: "12px", marginTop: 4 }}>
+                        La URL debe iniciar con <strong>http(s)://</strong>
+                      </div>
+                    )}
+                    <input
+                      type="text"
+                      value={evidenceDesc}
+                      onChange={e => setEvidenceDesc(e.target.value)}
+                      placeholder="Evidence description"
+                      className={styles["input-small"]}
+                      style={{ marginTop: 4, width: "100%" }}
+                    />
                   </div>
-                )}
-                <input
-                  type="text"
-                  value={evidenceDesc}
-                  onChange={e => setEvidenceDesc(e.target.value)}
-                  placeholder="Evidence description"
-                  className={styles["input-small"]}
-                  style={{ marginTop: 4, width: "100%" }}
-                />
-              </div>
-            </td>
-          </tr>
-
-        </tbody>
-      </table>
-
-
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div className={styles["task-card-column"]}>
+            {/* NOTES / DESCRIPTION */}
+            <strong>Status:</strong>
+            <textarea
+              value={description}
+              onChange={e => setDescription(e.target.value)}
+              className={styles["input-small"]}
+              rows={3}
+              style={{ width: "100%", resize: "vertical" }}
+              placeholder="Add notes or description for this task..."
+            />
+          
+        </div>
       </div>
     </div>
   );

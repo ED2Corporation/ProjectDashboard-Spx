@@ -120,7 +120,7 @@ const DoughnutChart: React.FC<DoughnutChartProps> = ({
         const index = elements[0].index;
         const gate = gates[index];
         
-        console.log("[DoughnutChart] → Sección:", gate.Title);
+        console.log("[DoughnutChart] → Section:", gate.Title);
         
         if (gate && onSelectItem) {
           onSelectItem(gate.Title, "gate");  // Filtrar por sección
@@ -129,7 +129,7 @@ const DoughnutChart: React.FC<DoughnutChartProps> = ({
       }
       
       // CASO 2: Click Center (área vacía)
-      console.log("[DoughnutChart] → Centro (mostrar todo)");
+      console.log("[DoughnutChart] → Center (Show all)");
       
       if (onSelectItem) {
         onSelectItem("all", "gate");  // Ver todas las secciones

@@ -40,66 +40,32 @@ export class PlannerService {
   public async getPlanDetails(planId: string): Promise<ITaskListItem[]> {
     try {
       console.log("[getPlanDetails] planId : " + planId);
+      if (!planId) throw new Error("Plan not defined");
 
-      if (!planId) {
-        throw new Error("Plan not defined");
-      }
-
-      // Obtener las tareas del plan
       const bucketsResponse = await this.graphClient
         .api(`/planner/plans/${planId}/buckets`)
         .get();
+      const buckets: IBucketItem[] = bucketsResponse.value;
 
-      const buckets: IBucketItem[] = bucketsResponse.value; // Accede a `value`
-      //console.log("[getPlanDetails] buckets:", buckets);
-
-      // Obtener las tareas del plan
       const tasksResponse = await this.graphClient
         .api(`/planner/plans/${planId}/tasks`)
         .get();
+      const tasks: IPlannerListItem[] = tasksResponse.value;
 
-      const tasks: IPlannerListItem[] = tasksResponse.value; // Accede a `value`
-
-      /**** */
-
-      /**** */
-      // Mapear los datos a la interfaz IPlanListItem
-      return Object.values(tasks)
-        .map((task: IPlannerListItem) => {
-          // Extraer la primera referencia si existe
-          let evidenceUrl = "";
-          let evidenceDesc = "";
-
-          if (task.references && Object.keys(task.references).length > 0) {
-            const firstRefUrl = Object.keys(task.references)[0];
-            const firstRef = task.references[firstRefUrl];
-            evidenceUrl = firstRefUrl;
-            evidenceDesc = firstRef.alias || "";
+      // Fetch /details for each task in parallel (be mindful of throttling for very large plans)
+      const list: ITaskListItem[] = await Promise.all(
+        tasks.map(async (t) => {
+          let details: any = undefined;
+          try {
+            details = await this.graphClient.api(`/planner/tasks/${t.id}/details`).get();
+          } catch (err) {
+            console.warn(`[getPlanDetails] Could not fetch details for ${t.id}`, err);
           }
-
-          return {
-            Id: task.id,
-            Title: this.getBucketNameById(task.bucketId, buckets),
-            Complete: task.percentComplete || 0,
-            Task: task.title || "",
-            Deliverable: task.title || "",
-            Description: task.title || "",
-            Start: task.startDateTime ? new Date(task.startDateTime) : undefined,
-            Finish: task.dueDateTime ? new Date(task.dueDateTime) : undefined,
-            ActualFinish: task.completedDateTime ? new Date(task.completedDateTime) : undefined,
-            EvidenceOfCompletion: {
-              Url: evidenceUrl,
-              Description: evidenceDesc
-            },
-            Effort: GetDelay(
-              task.dueDateTime ? new Date(task.dueDateTime) : new Date(),
-              task.completedDateTime ? new Date(task.completedDateTime) : new Date()
-            ),
-          };
+          return this.mapPlannerToTaskItem(t, buckets, details);
         })
-        .sort((a, b) => a.Task.localeCompare(b.Task));
+      );
 
-
+      return list.sort((a, b) => a.Task.localeCompare(b.Task));
     } catch (error) {
       console.error("Error fetching plan details:", error);
       throw error;
@@ -326,295 +292,227 @@ export class PlannerService {
     return /^https?:\/\//i.test(u);
   }
 
-  // ===== Servicio =====
   public async updateTaskStatus(payload: {
     taskId: string;
     percentComplete?: number;
-    finish: string;
-    evidenceUrl?: string;         // Valor de la GUI (puede venir vacío)
+    finish?: string;                 // make it optional for flexibility
+    evidenceUrl?: string;
     evidenceDesc?: string;
     setPreviewAsReference?: boolean;
   }): Promise<void> {
     const {
       taskId,
-      percentComplete = 100,
+      percentComplete,
       finish,
       evidenceUrl,
-      evidenceDesc
+      evidenceDesc,
+      setPreviewAsReference = true,
     } = payload;
 
-    // 1) Actualizar percentComplete (0–100) en /planner/tasks/{id}
-    const task = await this.graphClient.api(`/planner/tasks/${taskId}`).get();
-    const taskPatch: any = {};
-
-    if (percentComplete !== undefined) {
-      taskPatch.percentComplete = Math.max(0, Math.min(100, percentComplete));
-    }
-    if (finish) {
-      const dueIso = toUtcIso(finish);
-      if (dueIso) {
-        taskPatch.dueDateTime = dueIso;
+    await this.updateFromTaskItem(
+      {
+        Id: taskId,
+        Complete: percentComplete,
+        Finish: finish,
+        EvidenceOfCompletion: (evidenceUrl || evidenceDesc)
+          ? { Url: evidenceUrl || "", Description: evidenceDesc || "" }
+          : undefined,
+      },
+      {
+        evidenceMode: evidenceUrl ? "replace" : "ignore",
+        setPreviewAsReference,
       }
-      taskPatch.dueDateTime = new Date(finish).toISOString();
-    }
-
-    if (Object.keys(taskPatch).length > 0) {
-      await this.graphClient
-        .api(`/planner/tasks/${taskId}`)
-        .header("If-Match", task["@odata.etag"])
-        .patch(taskPatch);
-      console.log(`[updateTaskStatus] Task updated: ${taskId}`);
-    } else {
-      console.log(`[updateTaskStatus] No changes for /tasks: ${taskId}`);
-    }
-
-    // 2) Determinar acción de referencias según los 4 casos
-    const guiUrl = (evidenceUrl || "").trim();
-    const hasGui = this.isValidHttpUrl(guiUrl); // GUI lleno si es http/https válido
-
-    // Leer /details para ETag y refs
-    let details = await this.graphClient.api(`/planner/tasks/${taskId}/details`).get();
-    const currentRefs: Record<string, any> = details.references || {};
-    const plannerKeys = Object.keys(currentRefs);
-    const plannerIsEmpty = plannerKeys.length === 0;
-
-    // Caso 1: Planner vacío & GUI vacío → No hacer nada
-    if (plannerIsEmpty && !hasGui) {
-      console.log(`[updateTaskQuickComplete] Caso #1: no hay nada que insertar o borrar.`);
-      return;
-    }
-
-    // Preparar PATCH a /details
-    const patchReferences: Record<string, any> = {};
-    let patchBody: any = undefined;
-
-    if (plannerIsEmpty && hasGui) {
-      // Caso 2: insertar nueva URL
-      const encodedKey = this.encodePlannerReferenceKey(guiUrl);
-      patchReferences[encodedKey] = {
-        "@odata.type": "#microsoft.graph.plannerExternalReference",
-        alias: evidenceDesc?.trim() || "Evidence of completion",
-        previewPriority: " !", // promueve el preview del nuevo enlace
-        type: "Other"
-      };
-      patchBody = { references: patchReferences };
-
-    } else if (!plannerIsEmpty && !hasGui) {
-      // Caso 3: eliminar todas las referencias existentes
-      for (const key of plannerKeys) patchReferences[key] = null;
-      patchBody = { references: patchReferences, previewType: "noPreview" };
-
-    } else if (!plannerIsEmpty && hasGui) {
-      // Caso 4: eliminar existentes y sustituir por la nueva
-      for (const key of plannerKeys) patchReferences[key] = null;
-      const encodedKey = this.encodePlannerReferenceKey(guiUrl);
-      patchReferences[encodedKey] = {
-        "@odata.type": "#microsoft.graph.plannerExternalReference",
-        alias: evidenceDesc?.trim() || "Evidence of completion",
-        previewPriority: " !",
-        type: "Other"
-      };
-      patchBody = {
-        references: patchReferences,
-        previewType: "reference"
-      };
-    }
-
-    if (!patchBody) {
-      // Nada que hacer (defensivo)
-      return;
-    }
-
-    // 3) Aplicar PATCH a /planner/tasks/{id}/details con manejo de 412
-    try {
-      await this.graphClient
-        .api(`/planner/tasks/${taskId}/details`)
-        .header("If-Match", details["@odata.etag"])
-        .header("Prefer", "return=representation")
-        .patch(patchBody);
-
-      console.log(`[updateTaskQuickComplete] PATCH referencias OK [caso resuelto].`);
-    } catch (err: any) {
-      // Reintentar si ETag desfasado
-      if (err?.statusCode === 412 || err?.status === 412) {
-        console.warn(`[updateTaskQuickComplete] 412 Precondition Failed: reintentando con nuevo ETag...`);
-        details = await this.graphClient.api(`/planner/tasks/${taskId}/details`).get();
-
-        await this.graphClient
-          .api(`/planner/tasks/${taskId}/details`)
-          .header("If-Match", details["@odata.etag"])
-          .header("Prefer", "return=representation")
-          .patch(patchBody);
-
-        console.log(`[updateTaskQuickComplete] Reintento OK.`);
-      } else {
-        throw err;
-      }
-    }
+    );
   }
 
   public async updateTaskFull(
     payload: Partial<ITaskListItem> & {
       Id: string;
-      Deliverable: string;
-      Complete: number;
-      Start: string;
-      Finish: string;
+      Deliverable?: string;
+      Description?: string;
+      Complete?: number;
+      Start?: string | Date;
+      Finish?: string | Date;
+      ActualFinish?: string | Date;
       EvidenceOfCompletion?: { Url?: string; Description?: string };
       setPreviewAsReference?: boolean;
     }
   ): Promise<void> {
     const {
-      Id: taskId,
-      Complete,
+      Id,
       Deliverable,
+      Complete,
       Start,
       Finish,
+      ActualFinish,
       EvidenceOfCompletion,
-      setPreviewAsReference = true
+      setPreviewAsReference = true,
+      Description,
     } = payload;
 
-    try {
-      // ===========================
-      // A) PATCH /planner/tasks/{id}
-      // ===========================
-      const task = await this.graphClient.api(`/planner/tasks/${taskId}`).get();
-      const taskPatch: any = {};
+    await this.updateFromTaskItem(
+      {
+        Id,
+        Deliverable,
+        Complete,
+        Start,
+        Finish,
+        ActualFinish,
+        EvidenceOfCompletion,
+        Description,
+      },
+      {
+        evidenceMode: EvidenceOfCompletion?.Url ? "replace" : "ignore",
+        setPreviewAsReference,
+      }
+    );
+  }
 
-      if (Complete !== undefined) {
-        // clamp 0–100
-        taskPatch.percentComplete = Math.max(0, Math.min(100, Complete));
+  // Helper local y seguro
+  private hasKeys = (o: any): boolean => !!o && typeof o === "object" && Object.keys(o).length > 0;
+
+  /**
+   * Single entry point to update a Planner task (task + details).
+   * Accepts generic task fields. Start/Finish/ActualFinish can be string (YYYY-MM-DD or ISO) or Date.
+   */
+  public async updateFromTaskItem(
+    item: {
+      Id: string;
+      Deliverable?: string;
+      Complete?: number;
+      Start?: string | Date;
+      Finish?: string | Date;
+      ActualFinish?: string | Date;
+      Description?: string; // Notes
+      EvidenceOfCompletion?: { Url?: string; Description?: string };
+    },
+    options?: {
+      evidenceMode?: "ignore" | "merge" | "replace" | "clear";
+      setPreviewAsReference?: boolean;
+    }
+  ): Promise<void> {
+    const evidenceMode = options?.evidenceMode ?? "merge";
+    const setPreviewAsReference = options?.setPreviewAsReference ?? true;
+
+    // 1) Read current task & details (ETags)
+    const task = await this.graphClient.api(`/planner/tasks/${item.Id}`).get();
+    let details = await this.graphClient.api(`/planner/tasks/${item.Id}/details`).get();
+
+    // 2) Build task patch
+    const taskPatch: any = {};
+
+    if (typeof item.Complete === "number") {
+      taskPatch.percentComplete = Math.max(0, Math.min(100, item.Complete));
+    }
+    if (item.Deliverable) {
+      taskPatch.title = item.Deliverable;
+    }
+
+    // Dates → normalize using toUtcIso (timezone-safe)
+    const normalize = (v?: string | Date) =>
+      v ? toUtcIso(v instanceof Date ? v.toISOString() : v) : null;
+
+    const startIso = normalize(item.Start);
+    const dueIso = normalize(item.Finish);
+    const completedIso = normalize(item.ActualFinish);
+
+    if (startIso) taskPatch.startDateTime = startIso;
+    if (dueIso) taskPatch.dueDateTime = dueIso;
+    if (completedIso) taskPatch.completedDateTime = completedIso;
+
+    if (this.hasKeys(taskPatch)) {
+      await this.graphClient
+        .api(`/planner/tasks/${item.Id}`)
+        .header("If-Match", task["@odata.etag"])
+        .patch(taskPatch);
+      console.log(`[updateFromTaskItem] /tasks updated: ${item.Id}`);
+    } else {
+      console.log(`[updateFromTaskItem] No changes for /tasks: ${item.Id}`);
+    }
+
+    // 3) Build details patch (description + references)
+    const detailsPatch: any = {};
+
+    if (typeof item.Description === "string") {
+      detailsPatch.description = item.Description;
+    }
+
+    // references (Evidence of completion)
+    const currentRefs: Record<string, any> = details.references || {};
+    const currentKeys = Object.keys(currentRefs);
+
+    const urlRaw = item.EvidenceOfCompletion?.Url ?? "";
+    const url = (urlRaw || "").trim();
+    const hasGui = this.isValidHttpUrl(url);
+
+    if (evidenceMode === "ignore") {
+      // do nothing
+    } else if (evidenceMode === "clear") {
+      if (currentKeys.length > 0) {
+        const refs: Record<string, any> = {};
+        for (const k of currentKeys) refs[k] = null;
+        detailsPatch.references = refs;
+        detailsPatch.previewType = "noPreview";
       }
-      if (Deliverable) {
-        taskPatch.title = Deliverable;
-      }
-      if (Start) {
-        const dueIso = toUtcIso(Start);
-        if (dueIso) {
-          taskPatch.startDateTime = dueIso;
+    } else if (evidenceMode === "merge") {
+      if (hasGui) {
+        const encoded = this.encodePlannerReferenceKey(url);
+        const clean = this.stripReadOnlyPlannerRefProps(currentRefs);
+        if (!clean[encoded]) {
+          clean[encoded] = {
+            "@odata.type": "#microsoft.graph.plannerExternalReference",
+            alias: (item.EvidenceOfCompletion?.Description || "Evidence of completion").trim(),
+            previewPriority: " !",
+            type: "Other"
+          };
+          detailsPatch.references = clean;
+          if (setPreviewAsReference) detailsPatch.previewType = "reference";
         }
       }
-      if (Finish) {
-        const dueIso = toUtcIso(Finish);
-        if (dueIso) {
-          taskPatch.dueDateTime = dueIso;
-        }
-      }
+    } else if (evidenceMode === "replace") {
+      const refs: Record<string, any> = {};
+      for (const k of currentKeys) refs[k] = null;
 
-      if (Object.keys(taskPatch).length > 0) {
-        await this.graphClient
-          .api(`/planner/tasks/${taskId}`)
-          .header("If-Match", task["@odata.etag"])
-          .patch(taskPatch);
-        console.log(`[updateTaskFull] Task updated: ${taskId}`);
+      if (hasGui) {
+        const encoded = this.encodePlannerReferenceKey(url);
+        refs[encoded] = {
+          "@odata.type": "#microsoft.graph.plannerExternalReference",
+          alias: (item.EvidenceOfCompletion?.Description || "Evidence of completion").trim(),
+          previewPriority: " !",
+          type: "Other"
+        };
+        detailsPatch.references = refs;
+        detailsPatch.previewType = setPreviewAsReference ? "reference" : "automatic";
       } else {
-        console.log(`[updateTaskFull] No changes for /tasks: ${taskId}`);
+        detailsPatch.references = refs;
+        detailsPatch.previewType = "noPreview";
       }
+    }
 
-      // =========================================================
-      // B) PATCH /planner/tasks/{id}/details -> 4 casos (Evidence)
-      // =========================================================
-      // 1) Leer details (ETag + referencias actuales)
-      let details = await this.graphClient.api(`/planner/tasks/${taskId}/details`).get();
-      const currentRefs: Record<string, any> = details.references || {};
-      const plannerKeys = Object.keys(currentRefs);
-      const plannerIsEmpty = plannerKeys.length === 0;
-
-      // 2) Valor GUI (puede venir vacío)
-      const guiUrlRaw = EvidenceOfCompletion?.Url ?? "";
-      const guiUrl = guiUrlRaw.trim();
-      const hasGui = this.isValidHttpUrl(guiUrl);
-
-      // 3) Evaluar casos:
-      //    1) Planner vacío & GUI vacío -> no hacer nada
-      //    2) Planner vacío & GUI lleno -> insertar nueva URL
-      //    3) Planner lleno & GUI vacío -> eliminar todas
-      //    4) Planner lleno & GUI lleno -> eliminar todas y añadir nueva
-      let patchBody: any | undefined;
-
-      if (plannerIsEmpty && !hasGui) {
-        console.log(`[updateTaskFull] Evidence: Case #1 (no changes).`);
-        // No hacer nada con /details
-        return;
-      }
-
-      // Construir references para PATCH
-      const patchReferences: Record<string, any> = {};
-
-      if (plannerIsEmpty && hasGui) {
-        // Caso 2: insertar
-        const encodedKey = this.encodePlannerReferenceKey(guiUrl);
-        patchReferences[encodedKey] = {
-          "@odata.type": "#microsoft.graph.plannerExternalReference",
-          alias: (EvidenceOfCompletion?.Description || "Evidence of completion").trim(),
-          // Order hint válido para PATCH (o elimina esta línea para que lo calcule el servicio):
-          previewPriority: " !",
-          type: "Other"
-        };
-        patchBody = {
-          references: patchReferences,
-          previewType: setPreviewAsReference ? "reference" : "automatic"
-        };
-        console.log(`[updateTaskFull] Evidence: Case #2 (new).`);
-
-      } else if (!plannerIsEmpty && !hasGui) {
-        // Caso 3: eliminar todas
-        for (const key of plannerKeys) patchReferences[key] = null;
-        patchBody = {
-          references: patchReferences,
-          previewType: "noPreview"
-        };
-        console.log(`[updateTaskFull] Evidence: Case #3 (delete).`);
-
-      } else if (!plannerIsEmpty && hasGui) {
-        // Caso 4: reemplazar (eliminar todas y añadir nueva)
-        for (const key of plannerKeys) patchReferences[key] = null;
-        const encodedKey = this.encodePlannerReferenceKey(guiUrl);
-        patchReferences[encodedKey] = {
-          "@odata.type": "#microsoft.graph.plannerExternalReference",
-          alias: (EvidenceOfCompletion?.Description || "Evidence of completion").trim(),
-          previewPriority: " !",
-          type: "Other"
-        };
-        patchBody = {
-          references: patchReferences,
-          previewType: setPreviewAsReference ? "reference" : "automatic"
-        };
-        console.log(`[updateTaskFull] Evidence: Case #4 (replace).`);
-      }
-
-      if (!patchBody) {
-        // Defensivo
-        return;
-      }
-
-      //console.log("[updateTaskFull] PATCH /details body:", JSON.stringify(patchBody, null, 2));
-
+    if (this.hasKeys(detailsPatch)) {
       try {
         await this.graphClient
-          .api(`/planner/tasks/${taskId}/details`)
+          .api(`/planner/tasks/${item.Id}/details`)
           .header("If-Match", details["@odata.etag"])
           .header("Prefer", "return=representation")
-          .patch(patchBody);
-        console.log(`[updateTaskFull] Details updated: ${taskId}`);
+          .patch(detailsPatch);
+        console.log(`[updateFromTaskItem] /details updated: ${item.Id}`);
       } catch (err: any) {
-        // Si hay 412 (ETag desfasado), reintenta una vez
         if (err?.statusCode === 412 || err?.status === 412) {
-          console.warn("[updateTaskFull] 412 on /details. Retrying with fresh ETag…");
-          details = await this.graphClient.api(`/planner/tasks/${taskId}/details`).get();
+          console.warn("[updateFromTaskItem] 412 on /details. Retrying with fresh ETag…");
+          details = await this.graphClient.api(`/planner/tasks/${item.Id}/details`).get();
           await this.graphClient
-            .api(`/planner/tasks/${taskId}/details`)
+            .api(`/planner/tasks/${item.Id}/details`)
             .header("If-Match", details["@odata.etag"])
             .header("Prefer", "return=representation")
-            .patch(patchBody);
-          console.log(`[updateTaskFull] Details retry OK: ${taskId}`);
+            .patch(detailsPatch);
+          console.log(`[updateFromTaskItem] /details retry OK: ${item.Id}`);
         } else {
           throw err;
         }
       }
-    } catch (error) {
-      console.error(`[updateTaskFull] Error: ${error}`);
-      throw error;
+    } else {
+      console.log(`[updateFromTaskItem] No changes for /details: ${item.Id}`);
     }
   }
 
@@ -701,4 +599,47 @@ export class PlannerService {
     }
     return "";
   }
+
+  /**
+   * Build ITaskListItem from Planner task + details.
+   * Keeps UI decoupled from Graph shape.
+   */
+  private mapPlannerToTaskItem(
+    task: IPlannerListItem,
+    buckets: IBucketItem[],
+    details?: any
+  ): ITaskListItem {
+    // Evidence (first reference, if any)
+    let evidenceUrl = "";
+    let evidenceDesc = "";
+    const refs = details?.references || task.references || {};
+    const refKeys = Object.keys(refs);
+    if (refKeys.length > 0) {
+      const firstKey = refKeys[0];
+      evidenceUrl = decodeURI(decodeURIComponent(firstKey));
+      evidenceDesc = refs[firstKey]?.alias || "";
+    }
+
+    return {
+      Id: task.id,
+      Title: this.getBucketNameById(task.bucketId, buckets),
+      Task: task.title || "",
+      Deliverable: task.title || "",
+      Complete: task.percentComplete || 0,
+      Description: details?.description || task.description || "", // Notes map here
+      Start: task.startDateTime ? new Date(task.startDateTime) : undefined,
+      Finish: task.dueDateTime ? new Date(task.dueDateTime) : undefined,
+      ActualFinish: task.completedDateTime ? new Date(task.completedDateTime) : undefined,
+      EvidenceOfCompletion: {
+        Url: evidenceUrl,
+        Description: evidenceDesc
+      },
+      // Example: keep your existing delay Effort calculation
+      Effort: GetDelay(
+        task.dueDateTime ? new Date(task.dueDateTime) : new Date(),
+        task.completedDateTime ? new Date(task.completedDateTime) : new Date()
+      ),
+    };
+  }
+
 }

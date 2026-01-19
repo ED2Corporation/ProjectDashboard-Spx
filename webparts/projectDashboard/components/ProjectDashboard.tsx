@@ -80,7 +80,7 @@ export default class ProjectDashboard extends React.Component<
               }}
               target="_blank"
               rel="noopener noreferrer"
-              title={showBuckets ? "Hide buckets" : "Show buckets"}
+              title={showBuckets ? "Hide buckets ¦ Cmd+Click-> Open Plan" : "Show buckets ¦ Cmd+Click-> Open Plan"}
             >
               <h2 style={{ margin: 0 }}>{project.Title}</h2>
             </a>

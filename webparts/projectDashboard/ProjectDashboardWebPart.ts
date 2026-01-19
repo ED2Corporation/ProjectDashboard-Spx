@@ -366,6 +366,7 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
         await plannerService.updateTaskFull({
           Id: data.Id,
           Deliverable: data.Deliverable,
+          Description: data.Description,
           Complete: completeSafe,
           EvidenceOfCompletion: {
             Url: data.EvidenceOfCompletion?.Url,
