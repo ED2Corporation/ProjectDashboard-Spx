@@ -14,4 +14,5 @@ export interface IProjectDashboardWebPartProps {
   selectedTask: ITaskListItem;
   filterValue: string;
 
+  repositoryURL: string;
 }

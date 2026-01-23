@@ -21,9 +21,11 @@ export interface IProjectDashboardProps {
     action: "quick-complete" | "full-update",
     payloadJson?: string
   ) => void;
+  onUploadFile?: (file: File, taskTitle: string) => void;
 
   description: string;
   project: IProjectListItem;
+  repositoryURL: string;
 
   showLog: boolean;
   showButtons: boolean;

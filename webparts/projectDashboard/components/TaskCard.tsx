@@ -85,7 +85,6 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, showDetails, onClose, onSave 
     }
   };
 
-
   return (
     <div className={styles["task-card"]}>
       <div className={styles["task-card-header"]}>

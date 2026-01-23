@@ -14,7 +14,7 @@ interface IProjectDashboardState {
   showTasks: boolean;
   showDetails: boolean;
   selectedTask: ITaskListItem | null;
-  showBuckets: boolean; // ← NUEVO
+  showBuckets: boolean; 
 }
 
 export default class ProjectDashboard extends React.Component<
@@ -28,7 +28,7 @@ export default class ProjectDashboard extends React.Component<
       showTasks: true,
       showDetails: false,
       selectedTask: null,
-      showBuckets: false // ← NUEVO
+      showBuckets: false 
     };
   }
 
@@ -142,7 +142,7 @@ export default class ProjectDashboard extends React.Component<
                     onSelectItem={(item, group) => {
                       console.log("ProgressTasks onSelectItem -> item, group:", item, group);
                       const task = spTaskListItems.find(t => t.Task === item);
-                      console.log("ProgressTasks found task:", task);
+                      //console.log("ProgressTasks found task:", task);
                       if (task) {
                         this.setState({ selectedTask: task });
                       }
@@ -165,31 +165,28 @@ export default class ProjectDashboard extends React.Component<
               />
             )}
 
-            {showTasks && spTaskListItems.length > 0 && (
+            {showTasks && spTaskListItems.length > 0 && (              
+              
               <ListTasks
                 items={allTasks ? spTaskListItems : spFilteredTaskItems}
-                heading={
-                  allTasks
-                    ? "All Tasks"
-                    : spFilteredTaskItems.length > 0
-                    ? spFilteredTaskItems[0].Title
-                    : "No tasks defined..."
-                }
+                heading={allTasks ? "All Tasks" : spFilteredTaskItems[0]?.Title || "No tasks defined..."}
                 showDetails={showDetails}
                 onSelectItem={(item, group, mode, payload) => {
-                  console.log("ListTasks onSelectItem -> item, group, mode:", item, group, mode);
-                  const task = spTaskListItems.find(t => t.Task === item);
-                  if (task && mode === "details") {
-                    this.setState({ selectedTask: task });
-                    return;
-                  }
+                  console.log("ListTasks:", item, group, mode);
                   if (mode === "quick-complete" && payload) {
-                    this.props.onUpdateTask?.(item, "quick-complete", payload);
+                    this.props.onUpdateTask?.(item.Task, "quick-complete", payload);
                     return;
                   }
-                  this.props.onSelectItem(item, group);
+                  if (item && item.Task) {
+                    this.setState({ selectedTask: item });
+                  }
+                  this.props.onSelectItem(item.Task, group);
+                }}
+                onUploadEvidenceFile={async (file, taskTitle) => {
+                  this.props.onUploadFile?.(file, taskTitle); // NUEVO
                 }}
               />
+
             )}
 
             {this.props.showLog && this.props.environmentMessage.length > 0 && (

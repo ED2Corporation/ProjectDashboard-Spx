@@ -25,7 +25,6 @@ import { IProjectListItem, ITaskListItem, IGateListItem, IProjectDashboardWebPar
 
 import { IDynamicDataPropertyDefinition } from '@microsoft/sp-dynamic-data';
 
-
 export interface ISPLists {
   value: ISPList[];
 }
@@ -50,7 +49,8 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
   private _environmentMessage: string = '';
   private _projectSelected: IProjectListItem;
   private _sysError: boolean = false;
-  private _siteUrl: string = "https://ed2corp.sharepoint.com/sites/ed2team";
+  private _siteUrl: string = "https://ed2corp.sharepoint.com";
+  private _repositoryUrl: string = "/Shared Documents/ProjectsEvidence";
   private MsgInfo = 0;
   private MsgError = 2;
 
@@ -62,9 +62,8 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
     this._projectSelected = this._getProjectInfo(this.properties.projectName);
 
     await this._onReset();
-
     return super.onInit();
-    //await super.onInit();    
+
   }
 
   protected onDispose(): void {
@@ -90,9 +89,32 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
         onSelectItem: this._onSelectedItem,
         onUpdateTask: this._onUpdateTask,
 
+        onUploadFile: async (file: File, taskTitle: string) => {
+          try {
+            const { uploadEvidenceFile } = await import("./components/UploadService");
+            const project = this._projectSelected;
+            const siteRelativePath = this.context.pageContext.web.serverRelativeUrl
+            const siteUrl = this._siteUrl + siteRelativePath;
+            var folderPath = siteRelativePath + this._repositoryUrl + "/" + project.Title;
+
+            const { fileUrl, fileName } = await uploadEvidenceFile(
+              this.context.spHttpClient,
+              this.context,
+              siteUrl,
+              folderPath,
+              file
+            );
+
+            console.log(`File uploaded: ${fileName} -> ${fileUrl}`);
+          } catch (error) {
+            console.error("Upload failed:", error);
+          }
+        },
+
         description: this.properties.description,
         refreshInterval: this.properties.refreshInterval,
         project: this._projectSelected,
+        repositoryURL: this.properties.repositoryURL,
 
         showLog: this.properties.showLog,
         showButtons: this.properties.showButtons,
@@ -130,7 +152,6 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
   }
 
   protected getPropertyPaneConfiguration(): IPropertyPaneConfiguration {
-
     return {
       pages: [
         {
@@ -159,6 +180,10 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
                   label: "Project URL:",
                   description: "Register the URL to be opened clicking on project name..."
 
+                }),
+                PropertyPaneTextField("repositoryURL", {
+                  label: "Repository URL",
+                  description: "SharePoint folder where evidence files will be uploaded."
                 }),
                 PropertyPaneToggle('isPlanner', {
                   label: 'Is Planner?',
@@ -280,7 +305,7 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
   }
 
 
-  // Método personalizado para manejar el cambio
+  // Updating planner details when project changes
   private async _onProjectChange(projectName: string): Promise<void> {
     // Aquí puedes agregar la lógica personalizada que necesites ejecutar.
     //if(this.properties.showLog) console.log(`Handling project change: ${projectName}`);
@@ -401,10 +426,11 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
     //this._projectSelected = this._getProjectInfo(this.properties.projectName);
     if (this._projectSelected.ListName.length > 0) {
       try {
+        const siteRelativePath = this.context.pageContext.web.serverRelativeUrl;
         const response = await this.context.spHttpClient.get(
           //this.context.pageContext.web.absoluteUrl + `/_api/web/lists/getbytitle('PlanCascade')/items?$select=Id,Title,Complete,Status,Delay,Deliverable,Tasks,WBS`,
           //this.context.pageContext.web.absoluteUrl + `/_api/web/lists/getbytitle('`+this._projectSelected.ListName+`')/items?$select=Id,Title,Complete,Delay,Deliverable,Task,WBS,Description,Responsible,Start,Finish,Barriers, ActualFinish, Effort, ActionableStatus, EvidenceOfCompletion`,
-          this._siteUrl + `/_api/web/lists/getbytitle('` + this._projectSelected.ListName + `')/items?$select=Id,Title,Complete,Deliverable,Task,WBS,Description,Responsible,Start,Finish,Barriers, ActualFinish, Effort, ActionableStatus, EvidenceOfCompletion`,
+          this._siteUrl + siteRelativePath + `/_api/web/lists/getbytitle('` + this._projectSelected.ListName + `')/items?$select=Id,Title,Complete,Deliverable,Task,WBS,Description,Responsible,Start,Finish,Barriers, ActualFinish, Effort, ActionableStatus, EvidenceOfCompletion`,
           SPHttpClient.configurations.v1);
 
         const responseJson = await response.json();
@@ -434,7 +460,9 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
       return [];
     }
   }
+  // Uploading files to SharePoint document library
 
+  // Retrieving information about attachments for tasks
   private _onPopulateAttachements = async (): Promise<void> => {
     // Obtener el cliente de Microsoft Graph (versión V3)
     const graphClient: MSGraphClientV3 = await this.context.msGraphClientFactory.getClient("3");
@@ -510,4 +538,7 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
       Task: "No Task Found..."
     };
   }
+
+
+
 }

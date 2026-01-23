@@ -9,13 +9,15 @@ import styles from "./ProjectDashboard.module.scss";
 interface ListGroupProps {
   items: ITaskListItem[];
   heading: string;
+  projectSiteURL?: string;
   showDetails?: boolean | true;
   onSelectItem: (
-    item: string,                 // Task (as today)
+    item: ITaskListItem,                 // Task selected
     group: string,                // Bucket / gate (as today)
     mode?: "details" | "list" | "quick-complete",  // new optional parameter
     payload?: string
   ) => void;
+  onUploadEvidenceFile?: (file: File, taskTitle: string) => void; 
 }
 
 const ListTasks = ({
@@ -23,6 +25,7 @@ const ListTasks = ({
   heading,
   onSelectItem,
   showDetails,
+  onUploadEvidenceFile,
 }: ListGroupProps) => {
   // UI state
   const [selectedIndex, setSelectedIndex] = useState(-1);
@@ -31,6 +34,7 @@ const ListTasks = ({
   const [editEvidenceDesc, setEditEvidenceDesc] = useState<string>("");
   const [editPercentComplete, setEditPercentComplete] = useState<number>(0);
   const [editFinish, setEditFinish] = useState<string>("");
+  const [isUploading, setIsUploading] = useState(false);
 
   // Helper: convert Date/ISO/string -> YYYY-MM-DD (local time) for the date input
   const toDateInputValue = (value: any): string => {
@@ -85,7 +89,7 @@ const ListTasks = ({
                       className={styles["icon-button"]}
                       onClick={(e) => {
                         e.stopPropagation(); // prevent row onClick
-                        onSelectItem(item.Task, "task", "details");
+                        onSelectItem(item, "task", "details");
                       }}
                       title="View details"
                     >
@@ -134,7 +138,7 @@ const ListTasks = ({
                             });
 
                             onSelectItem(
-                              item.Task,
+                              item,
                               item.Title,
                               "quick-complete",
                               payload
@@ -208,26 +212,69 @@ const ListTasks = ({
                     )}
                   </td>
 
+                  
                   {/* Evidence of Completion column */}
                   <td>
                     {editingTaskId === item.Id ? (
                       <div className={styles["evidence-edit"]}>
-                        <input
-                          type="text"
-                          value={editEvidenceUrl}
-                          onChange={(e) => setEditEvidenceUrl(e.target.value)}
-                          placeholder="Evidence URL"
-                          className={styles["input-small"]}
-                          onClick={(e) => e.stopPropagation()}
-                        />
-                        <input
-                          type="text"
-                          value={editEvidenceDesc}
-                          onChange={(e) => setEditEvidenceDesc(e.target.value)}
-                          placeholder="Description"
-                          className={styles["input-small"]}
-                          onClick={(e) => e.stopPropagation()}
-                        />
+                        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                          {/* Existing text inputs */}
+                          <input
+                            type="text"
+                            value={editEvidenceUrl}
+                            onChange={(e) => setEditEvidenceUrl(e.target.value)}
+                            placeholder="Evidence URL"
+                            className={styles["input-small"]}
+                            onClick={(e) => e.stopPropagation()}
+                            style={{ flex: "1 1 240px" }}
+                          />
+                          <input
+                            type="text"
+                            value={editEvidenceDesc}
+                            onChange={(e) => setEditEvidenceDesc(e.target.value)}
+                            placeholder="Description"
+                            className={styles["input-small"]}
+                            onClick={(e) => e.stopPropagation()}
+                            style={{ flex: "1 1 200px" }}
+                          />
+
+                          {/* NEW: Upload file control */}
+                          <label className={styles["icon-button"]} title="Upload file">
+                            <input
+                              type="file"
+                              style={{ display: "none" }}                              
+                              
+                              onChange={async (ev) => {
+                                ev.stopPropagation();
+                                const file = ev.target.files?.[0];
+                                if (!file) return;
+
+                                try {
+                                  setIsUploading(true);
+                                  if (onUploadEvidenceFile) {
+                                    await onUploadEvidenceFile(file, item.Title || "General");
+                                  }
+                                } catch (err) {
+                                  console.error("Upload failed:", err);
+                                  alert("File upload failed. Please try again.");
+                                } finally {
+                                  setIsUploading(false);
+                                  (ev.target as HTMLInputElement).value = "";
+                                }
+                              }}
+
+                            />
+                            {/* button face */}
+                            <img
+                              src={require("../assets/Upload.png")}
+                              alt="upload"
+                              className={styles["icon-small"]}
+                            />
+                          </label>
+
+                          {/* optional: simple spinner / progress text */}
+                          {isUploading && <span style={{ fontSize: 12 }}>Uploading…</span>}
+                        </div>
                       </div>
                     ) : item.EvidenceOfCompletion?.Url ? (
                       <a
@@ -236,13 +283,13 @@ const ListTasks = ({
                         rel="noreferrer"
                         onClick={(e) => e.stopPropagation()}
                       >
-                        {item.EvidenceOfCompletion.Description ||
-                          item.EvidenceOfCompletion.Url}
+                        {item.EvidenceOfCompletion.Description || item.EvidenceOfCompletion.Url}
                       </a>
                     ) : (
                       <span>-</span>
                     )}
                   </td>
+
                 </tr>
               ))}
             </tbody>
