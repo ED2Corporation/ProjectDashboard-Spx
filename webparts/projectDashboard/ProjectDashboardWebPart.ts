@@ -51,6 +51,7 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
   private _sysError: boolean = false;
   private _siteUrl: string = "https://ed2corp.sharepoint.com";
   private _repositoryUrl: string = "/Shared Documents/ProjectsEvidence";
+  private _repositoryName: string = "EvidenceRepository";
   private MsgInfo = 0;
   private MsgError = 2;
 
@@ -92,10 +93,11 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
         onUploadFile: async (file: File, taskTitle: string) => {
           try {
             const { uploadEvidenceFile } = await import("./components/UploadService");
-            const project = this._projectSelected;
             const siteRelativePath = this.context.pageContext.web.serverRelativeUrl
             const siteUrl = this._siteUrl + siteRelativePath;
-            var folderPath = siteRelativePath + this._repositoryUrl + "/" + project.Title;
+            const repoName = this.properties.repositoryName || this._repositoryName;
+            console.log(`Uploading file to repository: ${repoName} for task: ${taskTitle} : ${this.properties.projectURL} : ${this._repositoryName}`);
+            var folderPath = siteRelativePath + this._repositoryUrl + "/" + repoName;
 
             const { fileUrl, fileName } = await uploadEvidenceFile(
               this.context.spHttpClient,
@@ -116,7 +118,7 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
         description: this.properties.description,
         refreshInterval: this.properties.refreshInterval,
         project: this._projectSelected,
-        repositoryURL: this.properties.repositoryURL,
+        repositoryName: this.properties.repositoryName,
 
         showLog: this.properties.showLog,
         showButtons: this.properties.showButtons,
@@ -145,8 +147,6 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
       ReactDom.render(projectDashboard, this.domElement);
 
     }
-
-
   }
 
   protected get dataVersion(): Version {
@@ -183,8 +183,8 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
                   description: "Register the URL to be opened clicking on project name..."
 
                 }),
-                PropertyPaneTextField("repositoryURL", {
-                  label: "Repository URL",
+                PropertyPaneTextField("repositoryName", {
+                  label: "Repository Name",
                   description: "SharePoint folder where evidence files will be uploaded."
                 }),
                 PropertyPaneToggle('isPlanner', {
@@ -240,16 +240,19 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
       }
     }
     if (propertyPath === 'sourceName' && newValue !== oldValue) {
-      //if(this.properties.showLog) console.log(`Selected Project Changed: ${newValue}`); // Maneja el evento
       MessageLog(`Selected Project Changed: ${newValue}`, "", this.MsgInfo, this.properties.showLog);
       this.properties.sourceName = newValue; // Actualiza el valor
       await this._onProjectChange(newValue); // Dispara tu función personalizada
       super.onPropertyPaneFieldChanged(propertyPath, oldValue, newValue);
     }
     if (propertyPath === 'projectName' && newValue !== oldValue) {
-      //if(this.properties.showLog) console.log(`Selected Project Changed: ${newValue}`); // Maneja el evento
       MessageLog(`Project Name Changed: ${newValue}`, "", this.MsgInfo, this.properties.showLog);
       this.properties.projectName = newValue; // Actualiza el valor
+      super.onPropertyPaneFieldChanged(propertyPath, oldValue, newValue);
+    }
+    if (propertyPath === 'repositoryName' && newValue !== oldValue) {
+      MessageLog(`Repository Name Changed: ${newValue}`, "", this.MsgInfo, this.properties.showLog);
+      this.properties.repositoryName = newValue; // Actualiza el valor
       super.onPropertyPaneFieldChanged(propertyPath, oldValue, newValue);
     }
   }
