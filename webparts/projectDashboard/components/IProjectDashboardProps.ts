@@ -21,7 +21,7 @@ export interface IProjectDashboardProps {
     action: "quick-complete" | "full-update",
     payloadJson?: string
   ) => void;
-  onUploadFile?: (file: File, taskTitle: string) => void;
+  onUploadFile?: UploadEvidenceHandler;
 
   description: string;
   project: IProjectListItem;
@@ -37,3 +37,8 @@ export interface IProjectDashboardProps {
   hasTeamsContext: boolean;
   userDisplayName: string;
 }
+
+export type UploadEvidenceHandler = (
+  file: File,
+  taskTitle: string
+) => Promise<{ fileUrl: string; fileName: string }>;

@@ -162,6 +162,12 @@ export default class ProjectDashboard extends React.Component<
                   this.props.onUpdateTask?.(taskId, "full-update", payloadJson);
                   console.log("Update DB TaskCard:", taskId);
                 }}
+                onUploadEvidenceFile={async (file, taskTitle) => {
+                  if (!this.props.onUploadFile) {
+                    throw new Error("onUploadFile not provided");
+                  }
+                  return this.props.onUploadFile(file, taskTitle);
+                }}
               />
             )}
 
@@ -183,7 +189,10 @@ export default class ProjectDashboard extends React.Component<
                   this.props.onSelectItem(item.Task, group);
                 }}
                 onUploadEvidenceFile={async (file, taskTitle) => {
-                  this.props.onUploadFile?.(file, taskTitle); // NUEVO
+                  if (!this.props.onUploadFile) {
+                    throw new Error("onUploadFile not provided");
+                  }                  
+                  return this.props.onUploadFile(file, taskTitle);
                 }}
               />
 

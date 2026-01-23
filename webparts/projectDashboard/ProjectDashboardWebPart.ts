@@ -72,7 +72,7 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
 
   public render(): void {
 
-    const progressBar: React.ReactElement<IProjectDashboardProps> = React.createElement(
+    const projectDashboard: React.ReactElement<IProjectDashboardProps> = React.createElement(
       ProjectDashboard,
       {
         spGateListItems: this._gates,
@@ -106,8 +106,10 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
             );
 
             console.log(`File uploaded: ${fileName} -> ${fileUrl}`);
+            return { fileUrl, fileName };
           } catch (error) {
             console.error("Upload failed:", error);
+            throw error;
           }
         },
 
@@ -140,7 +142,7 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
       ReactDom.render(errorPage, this.domElement);
     }
     else {
-      ReactDom.render(progressBar, this.domElement);
+      ReactDom.render(projectDashboard, this.domElement);
 
     }
 

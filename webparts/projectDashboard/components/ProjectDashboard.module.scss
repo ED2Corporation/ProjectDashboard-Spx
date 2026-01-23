@@ -195,11 +195,13 @@ h2 {
 .rowContainer {
   display: flex;
   flex-direction: row;
+  gap: 2px;
 }
 
 .columnContainer {
   display: flex;
   flex-direction: column;
+  gap: 2px;
 }
 
 .arrowCard {
@@ -313,18 +315,46 @@ h2 {
 }
 
 .colText {
-  min-width: 250px;
+  min-width: 200px;
+  max-width: 250px;
+  text-align: left;
+  vertical-align: top;
+  white-space: normal;
+  /* permite varias líneas */
+  word-wrap: break-word;
+  overflow-wrap: anywhere;
 }
 
 .colNumber {
+  width: 100px;
+  min-width: 100px;
+  max-width: 100px;
+  text-align: center;
+  vertical-align: top;
+}
+
+.colDate {
+  width: 120px;
   min-width: 120px;
+  max-width: 120px;
+  text-align: center;
+  vertical-align: top;
 }
 
 .colURL {
-  min-width: 300px; // ajusta al ancho que quieras
-  word-wrap: break-word; // soporte antiguo
-  overflow-wrap: anywhere; // moderno, rompe palabras largas (URLs)
-  white-space: normal; // permite varias líneas
+  min-width: 200px;
+  max-width: 300px;
+  text-align: left;
+  vertical-align: top;
+  white-space: normal;
+  /* wrap de URLs */
+  word-wrap: break-word;
+  overflow-wrap: anywhere;
+}
+
+.tableRoot th,
+.tableRoot td {
+  vertical-align: middle;
 }
 
 .green {
@@ -425,6 +455,7 @@ h2 {
   /* Añade el borde */
   padding: 4px;
   /* Da un espacio interno a las celdas */
+  vertical-align: middle;
   text-align: center;
   /* Alinea el contenido a la izquierda */
   size: 12px;
@@ -437,9 +468,11 @@ h2 {
   /* Añade el borde */
   padding: 2px;
   /* Da un espacio interno a las celdas */
+  vertical-align: middle;
   text-align: left;
   /* Alinea el contenido a la izquierda */
   size: 10px;
+
 }
 
 .ed2Table tr:hover {

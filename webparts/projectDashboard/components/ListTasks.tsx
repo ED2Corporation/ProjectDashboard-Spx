@@ -17,7 +17,7 @@ interface ListGroupProps {
     mode?: "details" | "list" | "quick-complete",  // new optional parameter
     payload?: string
   ) => void;
-  onUploadEvidenceFile?: (file: File, taskTitle: string) => void; 
+  onUploadEvidenceFile?: (file: File, taskTitle: string) => Promise<{fileUrl: string; fileName: string;}>;
 }
 
 const ListTasks = ({
@@ -61,8 +61,8 @@ const ListTasks = ({
             <thead>
               <tr>
                 <th className={styles.colText}>Task</th>
-                <th className={styles.colNumber}>Completed</th>
-                <th className={styles.colNumber}>Finish</th>
+                <th className={styles.colDate}>Completed</th>
+                <th className={styles.colDate}>Finish</th>
                 <th className={styles.colURL}>Evidence of Completion</th>
               </tr>
             </thead>
@@ -83,7 +83,7 @@ const ListTasks = ({
                   }}
                 >
                   {/* Task column */}
-                  <td>
+                  <td className={styles.colText}>
                     <button
                       type="button"
                       className={styles["icon-button"]}
@@ -183,7 +183,7 @@ const ListTasks = ({
                   </td>
 
                   {/* Finish column: editable in edit mode, otherwise read-only */}
-                  <td>
+                  <td className={styles.colDate}>
                     {editingTaskId === item.Id ? (
                       <input
                         type="date"
@@ -214,66 +214,113 @@ const ListTasks = ({
 
                   
                   {/* Evidence of Completion column */}
-                  <td>
+                  <td className={styles.colURL}>
                     {editingTaskId === item.Id ? (
                       <div className={styles["evidence-edit"]}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                          {/* Existing text inputs */}
-                          <input
-                            type="text"
-                            value={editEvidenceUrl}
-                            onChange={(e) => setEditEvidenceUrl(e.target.value)}
-                            placeholder="Evidence URL"
-                            className={styles["input-small"]}
-                            onClick={(e) => e.stopPropagation()}
-                            style={{ flex: "1 1 240px" }}
-                          />
-                          <input
-                            type="text"
-                            value={editEvidenceDesc}
-                            onChange={(e) => setEditEvidenceDesc(e.target.value)}
-                            placeholder="Description"
-                            className={styles["input-small"]}
-                            onClick={(e) => e.stopPropagation()}
-                            style={{ flex: "1 1 200px" }}
-                          />
+                        <div style={{
+                              display: "flex",
+                              flexDirection: "column",
+                              gap: 4,
+                              width: "100%",
+                            }}>
+                            <div className={styles.columnContainer}>
+                              <div className={styles.rowContainer}>
+                                {/* Name */}
+                                <label style={{ fontSize: 10, marginLeft: 4, marginRight: 4, width: 30 }}>Name:</label>
+                                <input
+                                  type="text"
+                                  title="Enter file name"
+                                  value={editEvidenceDesc}
+                                  onChange={(e) => setEditEvidenceDesc(e.target.value)}
+                                  placeholder="File name"
+                                  className={styles["input-small"]}
+                                  onClick={(e) => e.stopPropagation()}
+                                  style={{ flex: "1 1 250px" }}
+                                />        
+                                {/* Upload file control */}
+                                <label className={styles["icon-button"]} title="Upload file">
+                                  <input
+                                    type="file"
+                                    style={{ display: "none" }}                              
+                                    
+                                    onChange={async (ev) => {
+                                      ev.stopPropagation();
+                                      const file = ev.target.files?.[0];
+                                      if (!file) return;
 
-                          {/* NEW: Upload file control */}
-                          <label className={styles["icon-button"]} title="Upload file">
-                            <input
-                              type="file"
-                              style={{ display: "none" }}                              
-                              
-                              onChange={async (ev) => {
-                                ev.stopPropagation();
-                                const file = ev.target.files?.[0];
-                                if (!file) return;
+                                      try {
+                                        setIsUploading(true);
+                                        if (onUploadEvidenceFile) {
+                                          // 1) Subir archivo y obtener URL/Nombre
+                                          const result = await onUploadEvidenceFile(file, item.Title || "CompletionEvidence");
+                                          if (!result) return;
 
-                                try {
-                                  setIsUploading(true);
-                                  if (onUploadEvidenceFile) {
-                                    await onUploadEvidenceFile(file, item.Title || "General");
-                                  }
-                                } catch (err) {
-                                  console.error("Upload failed:", err);
-                                  alert("File upload failed. Please try again.");
-                                } finally {
-                                  setIsUploading(false);
-                                  (ev.target as HTMLInputElement).value = "";
-                                }
-                              }}
+                                          const { fileUrl, fileName } = result;
 
-                            />
-                            {/* button face */}
-                            <img
-                              src={require("../assets/Upload.png")}
-                              alt="upload"
-                              className={styles["icon-small"]}
-                            />
-                          </label>
+                                          // 2) Actualizar campos locales de edición
+                                          const newUrl = fileUrl;
+                                          const newDesc = fileName || "Evidence file";
 
-                          {/* optional: simple spinner / progress text */}
-                          {isUploading && <span style={{ fontSize: 12 }}>Uploading…</span>}
+                                          setEditEvidenceUrl(newUrl);
+                                          setEditEvidenceDesc(newDesc);
+
+                                          // 3) Construir payload igual que el botón "Accept / Update DB"
+                                          const payload = JSON.stringify({
+                                            Id: item.Id,
+                                            Complete: editPercentComplete,
+                                            Finish: editFinish || null,
+                                            EvidenceOfCompletion: {
+                                              Url: newUrl,
+                                              Description: newDesc,
+                                            },
+                                          });
+
+                                          // 4) Disparar onSelectItem en modo "quick-complete"
+                                          onSelectItem(
+                                            item,
+                                            item.Title,
+                                            "quick-complete",
+                                            payload
+                                          );
+
+                                          // 5) Cerrar modo edición si quieres mismo comportamiento que botón
+                                          setEditingTaskId(null);
+                                        }
+                                      } catch (err) {
+                                        console.error("Upload failed:", err);
+                                        alert("File upload failed. Please try again.");
+                                      } finally {
+                                        setIsUploading(false);
+                                        (ev.target as HTMLInputElement).value = "";
+                                      }
+                                    }}
+
+                                  />
+                                  {/* button face */}
+                                  <img
+                                    src={require("../assets/Upload.png")}
+                                    alt="upload"
+                                    className={styles["icon-small"]}
+                                  />
+                                </label>
+                                {/* optional: simple spinner / progress text */}
+                                {isUploading && <span style={{ fontSize: 10 }}>Uploading…</span>}
+                              </div>
+                              <div className={styles.rowContainer}>
+                                {/* URL */}
+                                  <label style={{ fontSize: 10, marginLeft:4, marginRight: 4, width: 30 }}>URL:</label>
+                                  <input
+                                    type="text"
+                                    title="Enter URL"
+                                    value={editEvidenceUrl}
+                                    onChange={(e) => setEditEvidenceUrl(e.target.value)}
+                                    placeholder="Evidence URL"
+                                    className={styles["input-small"]}
+                                    onClick={(e) => e.stopPropagation()}
+                                    style={{ flex: "1 1 300px" }}
+                                  />                                                                   
+                              </div>
+                            </div>
                         </div>
                       </div>
                     ) : item.EvidenceOfCompletion?.Url ? (
