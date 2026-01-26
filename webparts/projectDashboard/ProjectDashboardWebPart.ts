@@ -97,12 +97,14 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
             const siteUrl = this._siteUrl + siteRelativePath;
             const repoName = this.properties.repositoryName || this._repositoryName;
             console.log(`Uploading file to repository: ${repoName} for task: ${taskTitle} : ${this.properties.projectURL} : ${this._repositoryName}`);
-            var folderPath = siteRelativePath + this._repositoryUrl + "/" + repoName;
+            //var folderPath = siteRelativePath + this._repositoryUrl + "/" + repoName;
+            var folderPath = this._repositoryUrl + "/" + repoName;
 
             const { fileUrl, fileName } = await uploadEvidenceFile(
               this.context.spHttpClient,
               this.context,
               siteUrl,
+              siteRelativePath,
               folderPath,
               file
             );
@@ -240,18 +242,18 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
       }
     }
     if (propertyPath === 'sourceName' && newValue !== oldValue) {
-      MessageLog(`Selected Project Changed: ${newValue}`, "", this.MsgInfo, this.properties.showLog);
+      //MessageLog(`Selected Project Changed: ${newValue}`, "", this.MsgInfo, this.properties.showLog);
       this.properties.sourceName = newValue; // Actualiza el valor
       await this._onProjectChange(newValue); // Dispara tu función personalizada
       super.onPropertyPaneFieldChanged(propertyPath, oldValue, newValue);
     }
     if (propertyPath === 'projectName' && newValue !== oldValue) {
-      MessageLog(`Project Name Changed: ${newValue}`, "", this.MsgInfo, this.properties.showLog);
+      //MessageLog(`Project Name Changed: ${newValue}`, "", this.MsgInfo, this.properties.showLog);
       this.properties.projectName = newValue; // Actualiza el valor
       super.onPropertyPaneFieldChanged(propertyPath, oldValue, newValue);
     }
     if (propertyPath === 'repositoryName' && newValue !== oldValue) {
-      MessageLog(`Repository Name Changed: ${newValue}`, "", this.MsgInfo, this.properties.showLog);
+      //MessageLog(`Repository Name Changed: ${newValue}`, "", this.MsgInfo, this.properties.showLog);
       this.properties.repositoryName = newValue; // Actualiza el valor
       super.onPropertyPaneFieldChanged(propertyPath, oldValue, newValue);
     }

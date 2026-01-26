@@ -298,7 +298,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, showDetails, onClose, onSave,
                             }
                           } catch (err) {
                             console.error("Upload failed:", err);
-                            alert("File upload failed. Please try again.");
+                            alert("[TaskCard] File upload failed. Please try again.");
                           } finally {
                             setIsUploading(false);
                             (ev.target as HTMLInputElement).value = "";
