@@ -139,7 +139,7 @@ const ListTasks = ({
 
                             onSelectItem(
                               item,
-                              item.Title,
+                              item.Gate,
                               "quick-complete",
                               payload
                             );
@@ -252,7 +252,7 @@ const ListTasks = ({
                                         setIsUploading(true);
                                         if (onUploadEvidenceFile) {
                                           // 1) Subir archivo y obtener URL/Nombre
-                                          const result = await onUploadEvidenceFile(file, item.Title || "CompletionEvidence");
+                                          const result = await onUploadEvidenceFile(file, item.Gate || "CompletionEvidence");
                                           if (!result) return;
 
                                           const { fileUrl, fileName } = result;
@@ -278,7 +278,7 @@ const ListTasks = ({
                                           // 4) Disparar onSelectItem en modo "quick-complete"
                                           onSelectItem(
                                             item,
-                                            item.Title,
+                                            item.Gate,
                                             "quick-complete",
                                             payload
                                           );

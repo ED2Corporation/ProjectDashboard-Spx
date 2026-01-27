@@ -22,7 +22,7 @@ const ProgressGates = ({ gates, tasks, onSelectItem, showDetails }: GateCardProp
         <div className={styles["cardContainer"]}>
           {gates.map((gate) => {
             const gateTasks = (tasks || []).filter(
-              t => t.Title === gate.Title // o t.GateId === gate.Id
+              t => t.Gate === gate.Gate // o t.GateId === gate.Id
             );
             const status = GetBucketStatusFromTasks(gateTasks);
             const arrowSrc = getBackgroundImageByStatus(status);
@@ -45,14 +45,14 @@ const ProgressGates = ({ gates, tasks, onSelectItem, showDetails }: GateCardProp
                   }}
                   className={`${styles["cardContent"]} `}
                   onClick={() => {
-                    onSelectItem(gate.Title, "gate");
+                    onSelectItem(gate.Gate, "gate");
                   }}
                 >
                   <h5>
                     <strong>
-                      {gate.Title.length > 7
-                        ? gate.Title.substring(0, 7)
-                        : gate.Title}{" "}
+                      {gate.Gate.length > 7
+                        ? gate.Gate.substring(0, 7)
+                        : gate.Gate}{" "}
                     </strong>
                   </h5>
                   <p>
@@ -69,7 +69,7 @@ const ProgressGates = ({ gates, tasks, onSelectItem, showDetails }: GateCardProp
         <div className={styles["cardContainer"]}>
           {gates.map((gate) => {
             const gateTasks = (tasks || []).filter(
-              t => t.Title === gate.Title // o t.GateId === gate.Id
+              t => t.Gate === gate.Gate // o t.GateId === gate.Id
             );
             const status = GetBucketStatusFromTasks(gateTasks);
             const arrowSrc = getBackgroundImageByStatus(status);
@@ -92,14 +92,14 @@ const ProgressGates = ({ gates, tasks, onSelectItem, showDetails }: GateCardProp
                   }}
                   className={`${styles["cardContent"]} `}
                   onClick={() => {
-                    onSelectItem(gate.Title, "gate");
+                    onSelectItem(gate.Gate, "gate");
                   }}
                 >
                   <h5>
                     <strong>
-                      {gate.Title.length > 7
-                        ? gate.Title.substring(0, 7)
-                        : gate.Title}{" "}
+                      {gate.Gate.length > 7
+                        ? gate.Gate.substring(0, 7)
+                        : gate.Gate}{" "}
                     </strong>
                   </h5>
                   <p>

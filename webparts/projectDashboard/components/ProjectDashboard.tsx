@@ -175,7 +175,7 @@ export default class ProjectDashboard extends React.Component<
               
               <ListTasks
                 items={allTasks ? spTaskListItems : spFilteredTaskItems}
-                heading={allTasks ? "All Tasks" : spFilteredTaskItems[0]?.Title || "No tasks defined..."}
+                heading={allTasks ? "All Tasks" : spFilteredTaskItems[0]?.Gate || "No tasks defined..."}
                 showDetails={showDetails}
                 onSelectItem={(item, group, mode, payload) => {
                   console.log("ListTasks:", item, group, mode);

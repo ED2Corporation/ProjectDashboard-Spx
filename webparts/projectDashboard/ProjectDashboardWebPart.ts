@@ -448,7 +448,7 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
             tasks[i].Complete = Math.trunc(tasks[i].Complete * 100);
           }
         }
-        const sortedItems = [...tasks].sort((a, b) => b.Title.localeCompare(a.Title));
+        const sortedItems = [...tasks].sort((a, b) => b.Gate.localeCompare(a.Gate));
 
         return sortedItems;
         //console.log(groupedArray);  
@@ -539,7 +539,7 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
 
     return {
       Id: "",
-      Title: "",
+      Gate: "",
       Complete: 0,
       Deliverable: "",
       Task: "No Task Found..."

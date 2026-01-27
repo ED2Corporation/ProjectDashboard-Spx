@@ -4,21 +4,21 @@ import { GetDelay } from "./GetDelay";
 // Función para agrupar
 export function GroupByGate(tasks: ITaskListItem[]): IGateListItem[] {
   const sortedItems = [...tasks].sort((b, a) =>
-    b.Title.substring(0, 1).localeCompare(a.Title.substring(0, 1))
+    b.Gate.substring(0, 1).localeCompare(a.Gate.substring(0, 1))
   );
 
   const groups = sortedItems.reduce<Record<string, IGateListItem>>(
     (gate, item) => {
-      const { Title, Complete, Start, Finish, ActualFinish, Effort } = item;
+      const { Gate, Complete, Start, Finish, ActualFinish, Effort } = item;
 
       const startDate = Start ? new Date(Start) : null;
       const finishDate = Finish ? new Date(Finish) : null;
       const actualFinishDate = ActualFinish ? new Date(ActualFinish) : null;
 
       // Si el grupo no existe, inicialízalo SIN fechas por defecto
-      if (!gate[Title]) {
-        gate[Title] = {
-          Gate: Title,
+      if (!gate[Gate]) {
+        gate[Gate] = {
+          Gate: Gate,
           Complete: 0,
           Delay: 0,
           Count: 0,
@@ -26,13 +26,13 @@ export function GroupByGate(tasks: ITaskListItem[]): IGateListItem[] {
           Start: null,
           Finish: null,
           ActualFinish: null,
-          Id: Title.substring(0, 1),
+          Id: Gate.substring(0, 1),
         };
       }
 
-      const group = gate[Title];
+      const group = gate[Gate];
       // Actualizar métricas del grupo
-      group.Id = Title.substring(0, 1);
+      group.Id = Gate.substring(0, 1);
       group.Complete += Complete ?? 0;
       group.Count += 1;
       group.Effort += Effort ?? 0;

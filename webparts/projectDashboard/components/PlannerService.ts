@@ -622,7 +622,7 @@ export class PlannerService {
 
     return {
       Id: task.id,
-      Title: this.getBucketNameById(task.bucketId, buckets),
+      Gate: this.getBucketNameById(task.bucketId, buckets),
       Task: task.title || "",
       Deliverable: task.title || "",
       Complete: task.percentComplete || 0,

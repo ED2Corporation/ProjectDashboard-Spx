@@ -39,12 +39,12 @@ const DoughnutChart: React.FC<DoughnutChartProps> = ({
         {
           data: values,
           backgroundColor: gates.map(g => {
-            const gateTasks = (tasks || []).filter(t => t.Title === g.Gate);
+            const gateTasks = (tasks || []).filter(t => t.Gate === g.Gate);
             const status = GetBucketStatusFromTasks(gateTasks);
             return StatusToColor(status, true);
           }),
           hoverBackgroundColor: gates.map(g => {
-            const gateTasks = (tasks || []).filter(t => t.Title === g.Gate);
+            const gateTasks = (tasks || []).filter(t => t.Gate  === g.Gate);
             const status = GetBucketStatusFromTasks(gateTasks);
             return StatusToColor(status, false);
           }),

@@ -8,7 +8,7 @@ export function FilterTasks(
   filter: string
 ): ITaskListItem[] {
   //default
-  let filteredArray = data.filter((row) => row.Title === filter);
+  let filteredArray = data.filter((row) => row.Gate === filter);
 
   if (grouper === "gate" && filter === "actual" && data.length > 0) {
     //const gate = data[0].Title;
