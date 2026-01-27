@@ -276,6 +276,7 @@ export class PlannerService {
 
     console.log(`Reference agregada OK: ${taskId}`);
   }
+
   /******** */
   private encodePlannerReferenceKey(url: string): string {
     return url

@@ -24,6 +24,8 @@ import { SPHttpClient } from '@microsoft/sp-http';
 import { IProjectListItem, ITaskListItem, IGateListItem, IProjectDashboardWebPartProps } from '../../models';
 
 import { IDynamicDataPropertyDefinition } from '@microsoft/sp-dynamic-data';
+import { SPFI, spfi } from "@pnp/sp";
+import { SPFx } from "@pnp/sp/presets/all";
 
 export interface ISPLists {
   value: ISPList[];
@@ -54,6 +56,7 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
   private _repositoryName: string = "EvidenceRepository";
   private MsgInfo = 0;
   private MsgError = 2;
+  private _sp: SPFI;
 
   protected async onInit(): Promise<void> {
     this._sysError = false;
@@ -63,8 +66,9 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
     this._projectSelected = this._getProjectInfo(this.properties.projectName);
 
     await this._onReset();
-    return super.onInit();
+    this._sp = spfi().using(SPFx(this.context));
 
+    return super.onInit();
   }
 
   protected onDispose(): void {
@@ -81,6 +85,7 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
         refreshInterval: this.properties.refreshInterval,
         project: this._projectSelected,
         repositoryName: this.properties.repositoryName,
+        projectName: this.properties.projectName,
 
         showLog: this.properties.showLog,
         showButtons: this.properties.showButtons,
@@ -212,36 +217,32 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
   }
 
   protected async onPropertyPaneFieldChanged(propertyPath: string, oldValue: string, newValue: string): Promise<void> {
-    if (propertyPath === 'projectUrl') {
-      if (!newValue.startsWith("https://")) {
+    if (propertyPath === 'projectUrl' && newValue !== oldValue) {
+      if (!newValue || !newValue.startsWith("https://")) {
         alert("Please, register a valid URL to the SharePoint or Planner.");
         this.properties.projectURL = oldValue; // Restaurar el valor anterior
       }
     }
     if (propertyPath === 'sourceName' && newValue !== oldValue) {
       //MessageLog(`Selected Project Changed: ${newValue}`, "", this.MsgInfo, this.properties.showLog);
-      this.properties.sourceName = newValue; // Actualiza el valor
-      await this._onProjectChange(newValue); // Dispara tu función personalizada
       super.onPropertyPaneFieldChanged(propertyPath, oldValue, newValue);
+      await this._onProjectChange(this.properties.projectName); // Dispara tu función personalizada
     }
     if (propertyPath === 'projectName' && newValue !== oldValue) {
       //MessageLog(`Project Name Changed: ${newValue}`, "", this.MsgInfo, this.properties.showLog);
-      this.properties.projectName = newValue; // Actualiza el valor
       super.onPropertyPaneFieldChanged(propertyPath, oldValue, newValue);
+      await this._onProjectChange(newValue);
     }
     if (propertyPath === 'repositoryName' && newValue !== oldValue) {
       //MessageLog(`Repository Name Changed: ${newValue}`, "", this.MsgInfo, this.properties.showLog);
-      this.properties.repositoryName = newValue; // Actualiza el valor
       super.onPropertyPaneFieldChanged(propertyPath, oldValue, newValue);
     }
     if (propertyPath === 'isPlanner' && newValue !== oldValue) {
       //MessageLog(`Repository Name Changed: ${newValue}`, "", this.MsgInfo, this.properties.showLog);
-      this.properties.repositoryName = newValue; // Actualiza el valor
       super.onPropertyPaneFieldChanged(propertyPath, oldValue, newValue);
     }
     if (propertyPath === 'isDashboard' && newValue !== oldValue) {
       //MessageLog(`Repository Name Changed: ${newValue}`, "", this.MsgInfo, this.properties.showLog);
-      this.properties.repositoryName = newValue; // Actualiza el valor
       super.onPropertyPaneFieldChanged(propertyPath, oldValue, newValue);
     }
   }
@@ -298,7 +299,6 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
     //this.render();
   }
 
-
   // Updating planner details when project changes
   private async _onProjectChange(projectName: string): Promise<void> {
     // Aquí puedes agregar la lógica personalizada que necesites ejecutar.
@@ -314,7 +314,7 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
     // }
 
     // Ejemplo: Recargar datos específicos según el proyecto
-    await this._onReset();
+    //await this._onReset();
   }
 
   private _getProjectInfo(planName: string): IProjectListItem {
@@ -388,47 +388,98 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
     if (!payloadJson) return;
 
     try {
-
       const data = JSON.parse(payloadJson) as any;
-
-      const graphClient: MSGraphClientV3 =
-        await this.context.msGraphClientFactory.getClient("3");
-      const plannerService = new PlannerService(graphClient);
 
       const completeSafe =
         typeof data.Complete === "number"
           ? data.Complete
-          : Number.isFinite(Number(data.Complete)) ? Number(data.Complete) : undefined;
+          : Number.isFinite(Number(data.Complete))
+            ? Number(data.Complete)
+            : undefined;
 
-      if (action === "quick-complete") {
-        await plannerService.updateTaskStatus({
-          taskId: data.Id,
-          percentComplete: completeSafe,
-          finish: data.Finish,
-          evidenceUrl: data.EvidenceOfCompletion?.Url,
-          evidenceDesc: data.EvidenceOfCompletion?.Description,
-        });
-      } else if (action === "full-update") {
-        await plannerService.updateTaskFull({
-          Id: data.Id,
-          Deliverable: data.Deliverable,
-          Description: data.Description,
-          Complete: completeSafe,
-          EvidenceOfCompletion: {
-            Url: data.EvidenceOfCompletion?.Url,
-            Description: data.EvidenceOfCompletion?.Description,
-          },
-          Start: data.Start,
-          Finish: data.Finish,
-        });
+      if (this.properties.isPlanner) {
+        await this._updatePlannerTask(data, action, completeSafe);
+        await this._onGetPlannerListItems();
+      } else {
+        await this._updateListTask(data, action, completeSafe);
+        await this._onGetTaskListItems(); // tu método actual para recargar desde List
       }
 
-      await this._onGetPlannerListItems();
       this._onReset();
-
-    } catch (error) {
+    } catch (error: any) {
       console.error("[_onUpdateTask] Error:", error);
       MessageLog(`[_onUpdateTask] Error: ${error.message}`, "error");
+    }
+  };
+
+  private _updateListTask = async (
+    data: any,
+    action: "quick-complete" | "full-update",
+    completeSafe?: number
+  ): Promise<void> => {
+    const listTitle = this.properties.sourceName;
+    const curr = completeSafe ?? data.Complete;
+
+    const actualFinishValue =
+      curr === 100
+        ? new Date()   // hoy
+        : null;        // limpiar cuando no es 100
+
+    if (action === "quick-complete") {
+      await this._sp.web.lists
+        .getByTitle(listTitle)
+        .items.getById(Number(data.Id))
+        .update({
+          Complete: curr,
+          Finish: data.Finish,
+          ActualFinish: actualFinishValue  // usa el InternalName real
+        });
+    } else {
+      await this._sp.web.lists
+        .getByTitle(listTitle)
+        .items.getById(Number(data.Id))
+        .update({
+          Deliverable: data.Deliverable,
+          Description: data.Description,
+          Complete: curr,
+          Start: data.Start,
+          Finish: data.Finish,
+          EvidenceOfCompletion: data.EvidenceOfCompletion?.Url,
+          ActualFinish: actualFinishValue
+        });
+    }
+  };
+
+  private _updatePlannerTask = async (
+    data: any,
+    action: "quick-complete" | "full-update",
+    completeSafe?: number
+  ): Promise<void> => {
+    const graphClient: MSGraphClientV3 =
+      await this.context.msGraphClientFactory.getClient("3");
+    const plannerService = new PlannerService(graphClient);
+
+    if (action === "quick-complete") {
+      await plannerService.updateTaskStatus({
+        taskId: data.Id,
+        percentComplete: completeSafe,
+        finish: data.Finish,
+        evidenceUrl: data.EvidenceOfCompletion?.Url,
+        evidenceDesc: data.EvidenceOfCompletion?.Description,
+      });
+    } else {
+      await plannerService.updateTaskFull({
+        Id: data.Id,
+        Deliverable: data.Deliverable,
+        Description: data.Description,
+        Complete: completeSafe,
+        EvidenceOfCompletion: {
+          Url: data.EvidenceOfCompletion?.Url,
+          Description: data.EvidenceOfCompletion?.Description,
+        },
+        Start: data.Start,
+        Finish: data.Finish,
+      });
     }
   };
 
@@ -560,7 +611,5 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
       Task: "No Task Found..."
     };
   }
-
-
 
 }
