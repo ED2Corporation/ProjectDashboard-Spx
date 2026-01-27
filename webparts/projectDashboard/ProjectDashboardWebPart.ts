@@ -76,46 +76,6 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
     const projectDashboard: React.ReactElement<IProjectDashboardProps> = React.createElement(
       ProjectDashboard,
       {
-        spGateListItems: this._gates,
-        onReset: this._onReset,
-        spTaskListItems: this._tasks,
-        spFilteredTaskItems: this._filteredTasks,
-        onGetTaskListItems: this._onGetTaskListItems,
-        onPopulateAttachements: this._onPopulateAttachements,
-        selectedTask: this._selectedTask,
-        //spProjectListItems: this._projects,
-        //onGetProjectListItems: this._onGetProjectListItems,
-        //spPlannerListItems: this._plans,
-        //onGetPlannerListItems: this._onGetPlannerListItems,
-        onSelectItem: this._onSelectedItem,
-        onUpdateTask: this._onUpdateTask,
-
-        onUploadFile: async (file: File, taskTitle: string) => {
-          try {
-            const { uploadEvidenceFile } = await import("./components/UploadService");
-            const siteRelativePath = this.context.pageContext.web.serverRelativeUrl
-            const siteUrl = this._siteUrl + siteRelativePath;
-            const repoName = this.properties.repositoryName || this._repositoryName;
-            console.log(`Uploading file to repository: ${repoName} for task: ${taskTitle} : ${this.properties.projectURL} : ${this._repositoryName}`);
-            //var folderPath = siteRelativePath + this._repositoryUrl + "/" + repoName;
-            var folderPath = this._repositoryUrl + "/" + repoName;
-
-            const { fileUrl, fileName } = await uploadEvidenceFile(
-              this.context.spHttpClient,
-              this.context,
-              siteUrl,
-              siteRelativePath,
-              folderPath,
-              file
-            );
-
-            console.log(`File uploaded: ${fileName} -> ${fileUrl}`);
-            return { fileUrl, fileName };
-          } catch (error) {
-            console.error("Upload failed:", error);
-            throw error;
-          }
-        },
 
         description: this.properties.description,
         refreshInterval: this.properties.refreshInterval,
@@ -128,9 +88,26 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
         filterValue: this.properties.filterValue,
 
         isDashboard: this.properties.isDashboard,
+        isPlanner: this.properties.isPlanner,
         environmentMessage: this._environmentMessage,
         hasTeamsContext: !!this.context.sdks.microsoftTeams,
-        userDisplayName: this.context.pageContext.user.displayName
+        userDisplayName: this.context.pageContext.user.displayName,
+
+        spGateListItems: this._gates,
+        onReset: this._onReset,
+        spTaskListItems: this._tasks,
+        spFilteredTaskItems: this._filteredTasks,
+        //onGetTaskListItems: this._onGetTaskListItems,
+        onPopulateAttachements: this._onPopulateAttachements,
+        selectedTask: this._selectedTask,
+        //spProjectListItems: this._projects,
+        //onGetProjectListItems: this._onGetProjectListItems,
+        //spPlannerListItems: this._plans,
+        //onGetPlannerListItems: this._onGetPlannerListItems,
+        onSelectItem: this._onSelectedItem,
+        onUpdateTask: this._onUpdateTask,
+
+        onUploadFile: this._onUploadFile
       }
     );
 
@@ -257,14 +234,26 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
       this.properties.repositoryName = newValue; // Actualiza el valor
       super.onPropertyPaneFieldChanged(propertyPath, oldValue, newValue);
     }
+    if (propertyPath === 'isPlanner' && newValue !== oldValue) {
+      //MessageLog(`Repository Name Changed: ${newValue}`, "", this.MsgInfo, this.properties.showLog);
+      this.properties.repositoryName = newValue; // Actualiza el valor
+      super.onPropertyPaneFieldChanged(propertyPath, oldValue, newValue);
+    }
+    if (propertyPath === 'isDashboard' && newValue !== oldValue) {
+      //MessageLog(`Repository Name Changed: ${newValue}`, "", this.MsgInfo, this.properties.showLog);
+      this.properties.repositoryName = newValue; // Actualiza el valor
+      super.onPropertyPaneFieldChanged(propertyPath, oldValue, newValue);
+    }
   }
 
   /** */
   private _onReset = async (): Promise<void> => {
     this._sysError = false;
 
+    console.log("[_onReset] Resetting data... IsPlanner: " + this._projectSelected.isPlanner);
     if (this._projectSelected.isPlanner) {
       await this._onGetPlannerListItems();
+      await this._onPopulateAttachements();
     } else {
       await this._onGetTaskListItems();
     }
@@ -276,8 +265,6 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
 
     this._selectedTask = this.newTask();
     this.render();
-    await this._onPopulateAttachements();
-
   }
 
   private _onGetPlannerListItems = async (): Promise<void> => {
@@ -320,11 +307,11 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
 
     this._projectSelected = this._getProjectInfo(this.properties.projectName);
 
-    if (this._projectSelected.isPlanner) {
-      await this._onGetPlannerListItems();
-    } else {
-      await this._onGetTaskListItems();
-    }
+    // if (this._projectSelected.isPlanner) {
+    //   await this._onGetPlannerListItems();
+    // } else {
+    //   await this._onGetTaskListItems();
+    // }
 
     // Ejemplo: Recargar datos específicos según el proyecto
     await this._onReset();
@@ -340,7 +327,7 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
       Link: { Url: this.properties.projectURL, Description: this.properties.projectName }
     };
     this._projectSelected = projectInfo;
-    MessageLog(this._projectSelected.Id + " - " + this._projectSelected.Link.Description + " - " + this._projectSelected.Link.Url + " - " + this._projectSelected.ListName + " - " + this._projectSelected.Title + " - " + this._projectSelected.isPlanner, "_getProjectInfo", this.MsgInfo, this.properties.showLog);
+    MessageLog("IsPlanner: " + this._projectSelected.isPlanner + " - " + this._projectSelected.Id + " - " + this._projectSelected.Link.Description + " - " + this._projectSelected.Link.Url + " - " + this._projectSelected.ListName + " - " + this._projectSelected.Title + " - " + this._projectSelected.isPlanner, "_getProjectInfo", this.MsgInfo, this.properties.showLog);
     return projectInfo;
 
   }
@@ -365,6 +352,33 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
     this.render();
 
   }
+
+  private _onUploadFile = async (file: File, taskTitle: string) => {
+    try {
+      const { uploadEvidenceFile } = await import("./components/UploadService");
+      const siteRelativePath = this.context.pageContext.web.serverRelativeUrl
+      const siteUrl = this._siteUrl + siteRelativePath;
+      const repoName = this.properties.repositoryName || this._repositoryName;
+      console.log(`Uploading file to repository: ${repoName} for task: ${taskTitle} : ${this.properties.projectURL} : ${this._repositoryName}`);
+      //var folderPath = siteRelativePath + this._repositoryUrl + "/" + repoName;
+      var folderPath = this._repositoryUrl + "/" + repoName;
+
+      const { fileUrl, fileName } = await uploadEvidenceFile(
+        this.context.spHttpClient,
+        this.context,
+        siteUrl,
+        siteRelativePath,
+        folderPath,
+        file
+      );
+
+      console.log(`File uploaded: ${fileName} -> ${fileUrl}`);
+      return { fileUrl, fileName };
+    } catch (error) {
+      console.error("Upload failed:", error);
+      throw error;
+    }
+  };
 
   private _onUpdateTask = async (
     taskName: string,
@@ -419,6 +433,7 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
   };
 
   private _onGetTaskListItems = async (): Promise<void> => {
+    console.log("[_onGetTaskListItems] Fetching task list items...");
     const response: ITaskListItem[] = await this._getTaskListItems();
     this._tasks = response;
 
@@ -434,20 +449,20 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
     if (this._projectSelected.ListName.length > 0) {
       try {
         const siteRelativePath = this.context.pageContext.web.serverRelativeUrl;
-        const response = await this.context.spHttpClient.get(
-          //this.context.pageContext.web.absoluteUrl + `/_api/web/lists/getbytitle('PlanCascade')/items?$select=Id,Title,Complete,Status,Delay,Deliverable,Tasks,WBS`,
-          //this.context.pageContext.web.absoluteUrl + `/_api/web/lists/getbytitle('`+this._projectSelected.ListName+`')/items?$select=Id,Title,Complete,Delay,Deliverable,Task,WBS,Description,Responsible,Start,Finish,Barriers, ActualFinish, Effort, ActionableStatus, EvidenceOfCompletion`,
-          this._siteUrl + siteRelativePath + `/_api/web/lists/getbytitle('` + this._projectSelected.ListName + `')/items?$select=Id,Title,Complete,Deliverable,Task,WBS,Description,Responsible,Start,Finish,Barriers, ActualFinish, Effort, ActionableStatus, EvidenceOfCompletion`,
-          SPHttpClient.configurations.v1);
+        //, Responsible, Title, Barriers,  Effort, ActionableStatus
+        const querySelect = `Id,Gate,Task,Deliverable,Complete,Start,Finish,ActualFinish,Description,EvidenceOfCompletion`;
+        const queryUrl = this._siteUrl + siteRelativePath + `/_api/web/lists/getbytitle('` + this._projectSelected.ListName + `')/items?$select=` + querySelect;
+        const response = await this.context.spHttpClient.get(queryUrl, SPHttpClient.configurations.v1);
 
+        console.log("[_getTaskListItems] Fetching tasks from: " + queryUrl);
         const responseJson = await response.json();
         const tasks: ITaskListItem[] = responseJson.value as ITaskListItem[];
         //console.log("Project: " + project + " Grouper: "+grouper+" Filter: "+filter);
-        if (tasks.length > 0) {
-          for (let i = 0; i < tasks.length; i++) {
-            tasks[i].Complete = Math.trunc(tasks[i].Complete * 100);
-          }
-        }
+        // if (tasks.length > 0) {
+        //   for (let i = 0; i < tasks.length; i++) {
+        //     tasks[i].Complete = Math.trunc(tasks[i].Complete * 100);
+        //   }
+        // }
         const sortedItems = [...tasks].sort((a, b) => b.Gate.localeCompare(a.Gate));
 
         return sortedItems;
