@@ -13,7 +13,7 @@ export function GroupByProject(gates: IGateListItem[]) {
   let actualEnd: Date | null = null;
 
 
-  const data = [...gates].sort((a, b) => b.Title.localeCompare(a.Title));
+  const data = [...gates].sort((a, b) => b.Gate.localeCompare(a.Gate));
 
   if (data.length > 0) {
     for (count = 0; count < data.length; count++) {
@@ -46,7 +46,7 @@ export function GroupByProject(gates: IGateListItem[]) {
 
  const summary: IGateListItem = {
     Id: "0",
-    Title: "Project",
+    Gate: "Project",
     Complete: count > 0 ? Math.trunc(complete / count) : 0,
     Delay: Math.trunc(delay),
     Count: count,

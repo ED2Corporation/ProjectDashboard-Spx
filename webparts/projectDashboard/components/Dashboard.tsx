@@ -120,7 +120,7 @@ const Dashboard: React.FC<DashboardProps> = ({ gates, project, baseURL }) => {
                     fill={getCardDelay(gates[0].Delay, gates[0].Complete)}
                     font-size="24"
                   >
-                    {gates[0].Title.substring(0, 1)}
+                    {gates[0].Gate.substring(0, 1)}
                   </text>
                   <text
                     x="170"
@@ -128,7 +128,7 @@ const Dashboard: React.FC<DashboardProps> = ({ gates, project, baseURL }) => {
                     fill={getCardDelay(gates[1].Delay, gates[1].Complete)}
                     font-size="24"
                   >
-                    {gates[1].Title.substring(0, 1)}
+                    {gates[1].Gate.substring(0, 1)}
                   </text>
                   <text
                     x="150"
@@ -136,7 +136,7 @@ const Dashboard: React.FC<DashboardProps> = ({ gates, project, baseURL }) => {
                     fill={getCardDelay(gates[2].Delay, gates[2].Complete)}
                     font-size="24"
                   >
-                    {gates[2].Title.substring(0, 1)}
+                    {gates[2].Gate.substring(0, 1)}
                   </text>
                   <text
                     x="40"
@@ -144,7 +144,7 @@ const Dashboard: React.FC<DashboardProps> = ({ gates, project, baseURL }) => {
                     fill={getCardDelay(gates[3].Delay, gates[3].Complete)}
                     font-size="24"
                   >
-                    {gates[3].Title.substring(0, 1)}
+                    {gates[3].Gate.substring(0, 1)}
                   </text>
                   <text
                     x="20"
@@ -152,7 +152,7 @@ const Dashboard: React.FC<DashboardProps> = ({ gates, project, baseURL }) => {
                     fill={getCardDelay(gates[4].Delay, gates[4].Complete)}
                     font-size="24"
                   >
-                    {gates[4].Title.substring(0, 1)}
+                    {gates[4].Gate.substring(0, 1)}
                   </text>
 
                   <text

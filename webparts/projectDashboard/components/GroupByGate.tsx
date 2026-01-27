@@ -18,7 +18,7 @@ export function GroupByGate(tasks: ITaskListItem[]): IGateListItem[] {
       // Si el grupo no existe, inicialízalo SIN fechas por defecto
       if (!gate[Title]) {
         gate[Title] = {
-          Title,
+          Gate: Title,
           Complete: 0,
           Delay: 0,
           Count: 0,
@@ -31,7 +31,6 @@ export function GroupByGate(tasks: ITaskListItem[]): IGateListItem[] {
       }
 
       const group = gate[Title];
-
       // Actualizar métricas del grupo
       group.Id = Title.substring(0, 1);
       group.Complete += Complete ?? 0;
@@ -72,7 +71,7 @@ export function GroupByGate(tasks: ITaskListItem[]): IGateListItem[] {
 
   // Convertir los grupos en un arreglo
   return Object.values(groups).map((group) => ({
-    Title: group.Title,
+    Gate: group.Gate,
     Complete: group.Count > 0 ? group.Complete / group.Count : 0,
     Count: group.Count,
     Delay: group.Delay,

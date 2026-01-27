@@ -34,17 +34,17 @@ const DoughnutChart: React.FC<DoughnutChartProps> = ({
 
   const data = useMemo(
     () => ({
-      labels: showLegend ? gates.map(g => g.Title) : gates.map(g => g.Title.substring(0, 1)),
+      labels: showLegend ? gates.map(g => g.Gate) : gates.map(g => g.Gate.substring(0, 1)),
       datasets: [
         {
           data: values,
           backgroundColor: gates.map(g => {
-            const gateTasks = (tasks || []).filter(t => t.Title === g.Title);
+            const gateTasks = (tasks || []).filter(t => t.Title === g.Gate);
             const status = GetBucketStatusFromTasks(gateTasks);
             return StatusToColor(status, true);
           }),
           hoverBackgroundColor: gates.map(g => {
-            const gateTasks = (tasks || []).filter(t => t.Title === g.Title);
+            const gateTasks = (tasks || []).filter(t => t.Title === g.Gate);
             const status = GetBucketStatusFromTasks(gateTasks);
             return StatusToColor(status, false);
           }),
@@ -120,10 +120,10 @@ const DoughnutChart: React.FC<DoughnutChartProps> = ({
         const index = elements[0].index;
         const gate = gates[index];
         
-        console.log("[DoughnutChart] → Section:", gate.Title);
+        console.log("[DoughnutChart] → Section:", gate.Gate);
         
         if (gate && onSelectItem) {
-          onSelectItem(gate.Title, "gate");  // Filtrar por sección
+          onSelectItem(gate.Gate, "gate");  // Filtrar por sección
         }
         return; // ⭐ IMPORTANTE: retornar aquí para NO ejecutar el centro
       }
@@ -176,7 +176,7 @@ const DoughnutChart: React.FC<DoughnutChartProps> = ({
                   backgroundColor: data.datasets[0].backgroundColor?.[idx],
                 }}
               />
-              <span>{gate.Complete?.toFixed(0)}{"% | "}{gate.Title}</span>
+              <span>{gate.Complete?.toFixed(0)}{"% | "}{gate.Gate}</span>
             </div>
           ))}
         </div>
