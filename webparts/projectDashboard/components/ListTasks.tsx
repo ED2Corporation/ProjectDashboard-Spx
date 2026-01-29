@@ -154,7 +154,7 @@ const ListTasks = ({
                             className={styles["icon-small"]}
                           />
                         </button>
-                      </>
+                      </> 
                     ) : (
                       <>
                         {/* Enter edit mode */}
@@ -288,7 +288,7 @@ const ListTasks = ({
                                         }
                                       } catch (err) {
                                         console.error("Upload failed:", err);
-                                        alert("File upload failed. Please try again.");
+                                        alert("[ListTasks] File upload failed. \nPlease validate if the repository folder (defined in settings) has been created and try again.");
                                       } finally {
                                         setIsUploading(false);
                                         (ev.target as HTMLInputElement).value = "";

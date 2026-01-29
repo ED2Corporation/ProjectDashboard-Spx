@@ -224,25 +224,25 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
       }
     }
     if (propertyPath === 'sourceName' && newValue !== oldValue) {
-      //MessageLog(`Selected Project Changed: ${newValue}`, "", this.MsgInfo, this.properties.showLog);
+      //MessageLog(`sourceName Changed: ${newValue}`, "", this.MsgInfo, this.properties.showLog);
       super.onPropertyPaneFieldChanged(propertyPath, oldValue, newValue);
       await this._onProjectChange(this.properties.projectName); // Dispara tu función personalizada
     }
     if (propertyPath === 'projectName' && newValue !== oldValue) {
-      //MessageLog(`Project Name Changed: ${newValue}`, "", this.MsgInfo, this.properties.showLog);
+      //MessageLog(`projectName Changed: ${newValue}`, "", this.MsgInfo, this.properties.showLog);
       super.onPropertyPaneFieldChanged(propertyPath, oldValue, newValue);
       await this._onProjectChange(newValue);
     }
     if (propertyPath === 'repositoryName' && newValue !== oldValue) {
-      //MessageLog(`Repository Name Changed: ${newValue}`, "", this.MsgInfo, this.properties.showLog);
+      //MessageLog(`repositoryName Changed: ${newValue}`, "", this.MsgInfo, this.properties.showLog);
       super.onPropertyPaneFieldChanged(propertyPath, oldValue, newValue);
     }
     if (propertyPath === 'isPlanner' && newValue !== oldValue) {
-      //MessageLog(`Repository Name Changed: ${newValue}`, "", this.MsgInfo, this.properties.showLog);
+      MessageLog(`isPlanner Changed: ${newValue}`, "", this.MsgInfo, this.properties.showLog);
       super.onPropertyPaneFieldChanged(propertyPath, oldValue, newValue);
     }
     if (propertyPath === 'isDashboard' && newValue !== oldValue) {
-      //MessageLog(`Repository Name Changed: ${newValue}`, "", this.MsgInfo, this.properties.showLog);
+      MessageLog(`isDashboard Changed: ${newValue}`, "", this.MsgInfo, this.properties.showLog);
       super.onPropertyPaneFieldChanged(propertyPath, oldValue, newValue);
     }
   }
@@ -356,19 +356,26 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
   private _onUploadFile = async (file: File, taskTitle: string) => {
     try {
       const { uploadEvidenceFile } = await import("./components/UploadService");
+      const siteUrl = this._siteUrl || this.context.pageContext.web.absoluteUrl;
       const siteRelativePath = this.context.pageContext.web.serverRelativeUrl
-      const siteUrl = this._siteUrl + siteRelativePath;
-      const repoName = this.properties.repositoryName || this._repositoryName;
-      console.log(`Uploading file to repository: ${repoName} for task: ${taskTitle} : ${this.properties.projectURL} : ${this._repositoryName}`);
+      const folderPath = this._repositoryUrl + "/";
+      var folderName = this.properties.repositoryName || this._repositoryName;
       //var folderPath = siteRelativePath + this._repositoryUrl + "/" + repoName;
-      var folderPath = this._repositoryUrl + "/" + repoName;
+
+      console.log(`Uploading file to repository: ${siteUrl + siteRelativePath + folderPath + folderName} for task: ${taskTitle}`);
+      console.log(`siteUrl : ${siteUrl} `);
+      console.log(`siteRelativePath : ${siteRelativePath} `);
+      console.log(`folderPath : ${folderPath} `);
+      console.log(`folderName : ${folderName} `);
+      console.log(`file : ${file.name} `);
 
       const { fileUrl, fileName } = await uploadEvidenceFile(
         this.context.spHttpClient,
         this.context,
-        siteUrl,
-        siteRelativePath,
-        folderPath,
+        siteUrl.trim(),
+        siteRelativePath.trim(),
+        folderPath.trim(),
+        folderName.trim(),
         file
       );
 
