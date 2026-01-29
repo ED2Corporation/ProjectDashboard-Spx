@@ -13,8 +13,9 @@ interface IProjectDashboardState {
   allTasks: boolean;
   showTasks: boolean;
   showDetails: boolean;
-  selectedTask: ITaskListItem | null;
   showBuckets: boolean; 
+  showDashboard: boolean; 
+  selectedTask: ITaskListItem | null;
 }
 
 export default class ProjectDashboard extends React.Component<
@@ -27,8 +28,9 @@ export default class ProjectDashboard extends React.Component<
       allTasks: false,
       showTasks: true,
       showDetails: false,
-      selectedTask: null,
-      showBuckets: false 
+      showBuckets: false,
+      showDashboard: true,
+      selectedTask: null 
     };
   }
 
@@ -47,12 +49,18 @@ export default class ProjectDashboard extends React.Component<
       hasTeamsContext,
       project,
     } = this.props;
-
-    const { showDetails, allTasks, showTasks, selectedTask, showBuckets } = this.state;
+    
+    const { showDetails, allTasks, showTasks, selectedTask, showBuckets, showDashboard   } = this.state;
 
     return (
       <>
         <div id="progress-header" className={styles["rowContainer"]}>
+          <input
+            type="checkbox"
+            checked={showDashboard}
+            onChange={e => this.setState({ showDashboard: e.target.checked })}
+          />
+          
           <button
             type="button"
             className={styles["iconButton"]}
@@ -68,13 +76,13 @@ export default class ProjectDashboard extends React.Component<
           </button>
 
           <div>
-            {/* ====== TÍTULO con toggle showBuckets ====== */}
+            {/* ====== toggle showBuckets ====== */}
             <a
               href={project.Link.Url}
               onClick={(e) => {
                 const isModifier = e.metaKey || e.ctrlKey; // Cmd(mac) / Ctrl(win/linux)
                 if (!isModifier) {
-                  e.preventDefault(); // no navegues con click normal
+                  e.preventDefault(); 
                   this.setState((prev) => ({ showBuckets: !prev.showBuckets }));
                 }
               }}
@@ -87,7 +95,7 @@ export default class ProjectDashboard extends React.Component<
           </div>
         </div>
 
-        {this.props.isDashboard && (
+        {this.state.showDashboard && this.props.isDashboard && (
           <div className="task-card">
             {spGateListItems.length > 0 && (
               <div>
@@ -126,7 +134,7 @@ export default class ProjectDashboard extends React.Component<
           </div>
         )}
 
-        {(!this.props.isDashboard ||
+        {this.state.showDashboard && (!this.props.isDashboard ||
           (this.props.isDashboard && showDetails)) && (
           <section
             className={`${styles.projectDashboard} ${
@@ -161,6 +169,7 @@ export default class ProjectDashboard extends React.Component<
                 onSave={(taskId, payloadJson) => {
                   this.props.onUpdateTask?.(taskId, "full-update", payloadJson);
                   console.log("Update DB TaskCard:", taskId);
+                  this.onReset();
                 }}
                 onUploadEvidenceFile={async (file, taskTitle) => {
                   if (!this.props.onUploadFile) {
@@ -177,12 +186,12 @@ export default class ProjectDashboard extends React.Component<
                 items={allTasks ? spTaskListItems : spFilteredTaskItems}
                 heading={allTasks ? "All Tasks" : spFilteredTaskItems[0]?.Gate || "No tasks defined..."}
                 showDetails={showDetails}
-                onSelectItem={(item, group, mode, payload) => {
-                  console.log("ListTasks:", item, group, mode);
-                  if (mode === "quick-complete" && payload) {
-                    this.props.onUpdateTask?.(item.Task, "quick-complete", payload);
-                    return;
-                  }
+                onSave={(taskId, payloadJson) => {
+                  this.props.onUpdateTask?.(taskId, "quick-complete", payloadJson);
+                  console.log("Update DB ListTasks:", taskId);
+                  this.onReset();                  
+                }}onSelectItem={(item, group, mode, payload) => {
+                  console.log("ListTasks:", item, group, mode);                  
                   if (item && item.Task) {
                     this.setState({ selectedTask: item });
                   }

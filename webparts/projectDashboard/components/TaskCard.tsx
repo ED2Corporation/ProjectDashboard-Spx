@@ -17,7 +17,9 @@ interface TaskCardProps {
 }
 
 const TaskCard: React.FC<TaskCardProps> = ({ task, showDetails, onClose, onSave, onUploadEvidenceFile }) => {
+  const [gate, setGate] = useState(task.Gate ?? "");
   const [deliverable, setDeliverable] = useState(task.Deliverable ?? "");
+  const [taskTitle, setTaskTitle] = useState(task.Task ?? "");
   const [complete, setComplete] = useState<number>(task.Complete ?? 0);
   const [start, setStart] = useState<string>(
     task.Start ? new Date(task.Start).toISOString().slice(0, 10) : ""
@@ -39,7 +41,9 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, showDetails, onClose, onSave,
   const [isUploading, setIsUploading] = useState(false);
 
   useEffect(() => {
+    setGate(task.Gate ?? "");
     setDeliverable(task.Deliverable ?? "");
+    setTaskTitle(task.Task ?? "");
     setComplete(task.Complete ?? 0);
     setStart(task.Start ? new Date(task.Start).toISOString().slice(0, 10) : "");
     setFinish(task.Finish ? new Date(task.Finish).toISOString().slice(0, 10) : "");
@@ -59,6 +63,8 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, showDetails, onClose, onSave,
     const data = {
       Id: task.Id,
       Deliverable: deliverable,
+      Gate: gate,
+      Task: taskTitle,
       Complete: complete,
       Effort: effort ? Number(effort) : undefined,
       Barriers: barriers,
@@ -107,6 +113,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, showDetails, onClose, onSave,
               />
             </button>
           }
+          
           {onClose && (
             <button
               type="button"
@@ -125,7 +132,20 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, showDetails, onClose, onSave,
             <tbody>
               <tr>
                 <td>
-                  <strong>Task:</strong>
+                  <strong>Gate:</strong>
+                </td>
+                <td>
+                  <input
+                    type="text"
+                    value={gate}
+                    onChange={e => setGate(e.target.value)}
+                    className={styles["input-small"]}
+                  />
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <strong>Deliverable:</strong>
                 </td>
                 <td>
                   <input
@@ -136,7 +156,19 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, showDetails, onClose, onSave,
                   />
                 </td>
               </tr>
-
+              <tr>
+                <td>
+                  <strong>Task:</strong>
+                </td>
+                <td>
+                  <input
+                    type="text"
+                    value={taskTitle}
+                    onChange={e => setTaskTitle(e.target.value)}
+                    className={styles["input-small"]}
+                  />
+                </td>
+              </tr>
               <tr>
                 <td>
                   <strong>Completion:</strong>
@@ -261,6 +293,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, showDetails, onClose, onSave,
                               if (!result) return;
 
                               const { fileUrl, fileName } = result;
+                              console.log("Uploaded file URL:", fileUrl, "Name:", fileName);
 
                               // 2) Actualizar campos locales de edición
                               const newUrl = fileUrl;
@@ -269,6 +302,8 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, showDetails, onClose, onSave,
                               const data = {
                                 Id: task.Id,
                                 Deliverable: deliverable,
+                                Gate: gate,
+                                Task: taskTitle,
                                 Complete: complete,
                                 Effort: effort ? Number(effort) : undefined,
                                 Barriers: barriers,

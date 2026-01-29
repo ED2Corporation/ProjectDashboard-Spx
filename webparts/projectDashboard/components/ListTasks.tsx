@@ -11,6 +11,10 @@ interface ListGroupProps {
   heading: string;
   projectSiteURL?: string;
   showDetails?: boolean | true;
+  onSave: (
+    item: string,                 
+    payload?: string
+  ) => void;
   onSelectItem: (
     item: ITaskListItem,                 // Task selected
     group: string,                // Bucket / gate (as today)
@@ -23,6 +27,7 @@ interface ListGroupProps {
 const ListTasks = ({
   items,
   heading,
+  onSave,
   onSelectItem,
   showDetails,
   onUploadEvidenceFile,
@@ -137,12 +142,7 @@ const ListTasks = ({
                               },
                             });
 
-                            onSelectItem(
-                              item,
-                              item.Gate,
-                              "quick-complete",
-                              payload
-                            );
+                            onSave(item.Id, payload);
 
                             setEditingTaskId(null);
                           }}
@@ -252,7 +252,7 @@ const ListTasks = ({
                                         setIsUploading(true);
                                         if (onUploadEvidenceFile) {
                                           // 1) Subir archivo y obtener URL/Nombre
-                                          const result = await onUploadEvidenceFile(file, item.Gate || "CompletionEvidence");
+                                          const result = await onUploadEvidenceFile(file, item.Task || "CompletionEvidence");
                                           if (!result) return;
 
                                           const { fileUrl, fileName } = result;
@@ -260,6 +260,7 @@ const ListTasks = ({
                                           // 2) Actualizar campos locales de edición
                                           const newUrl = fileUrl;
                                           const newDesc = fileName || "Evidence file";
+                                          console.log("Uploaded file URL:", newUrl, "Name:", newDesc);
 
                                           setEditEvidenceUrl(newUrl);
                                           setEditEvidenceDesc(newDesc);
@@ -276,12 +277,7 @@ const ListTasks = ({
                                           });
 
                                           // 4) Disparar onSelectItem en modo "quick-complete"
-                                          onSelectItem(
-                                            item,
-                                            item.Gate,
-                                            "quick-complete",
-                                            payload
-                                          );
+                                          onSave(item.Id, payload);
 
                                           // 5) Cerrar modo edición si quieres mismo comportamiento que botón
                                           setEditingTaskId(null);
@@ -294,7 +290,6 @@ const ListTasks = ({
                                         (ev.target as HTMLInputElement).value = "";
                                       }
                                     }}
-
                                   />
                                   {/* button face */}
                                   <img
