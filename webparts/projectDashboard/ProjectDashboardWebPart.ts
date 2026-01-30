@@ -107,6 +107,8 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
         onPopulateAttachements: this._onPopulateAttachements,
         onSelectItem: this._onSelectedItem,
         onUpdateTask: this._onUpdateTask,
+        onDeleteTask: this._onDeleteTask,
+        onNewTask: this._onNewTask,
         onUploadFile: this._onUploadFile
       }
     );
@@ -348,7 +350,7 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
     this.render();
 
   }
-
+  ///**** Controllers   */
   private _onUploadFile = async (file: File, taskTitle: string) => {
     try {
       const { uploadEvidenceFile } = await import("./components/UploadService");
@@ -383,6 +385,48 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
     }
   };
 
+  private _onNewTask = async (
+    gate: string
+  ): Promise<void> => {
+    console.log("[_onNewTask] Creating new task in gate:", gate);
+    try {
+
+      if (this.properties.isPlanner) {
+        await this._createPlannerTask(gate);
+        await this._onGetPlannerListItems();
+      } else {
+        await this._createListTask(gate);
+        await this._onGetTaskListItems();
+      }
+
+      this._onReset();
+    } catch (error: any) {
+      console.error("[_onNewTask] Error:", error);
+      MessageLog(`[_onNewTask] Error: ${error.message}`, "error");
+    }
+  };
+
+  private _onDeleteTask = async (taskId: string): Promise<void> => {
+    if (!taskId) return;
+    console.log("[_onDeleteTask] Deleting task:", taskId);
+
+    try {
+      if (this.properties.isPlanner) {
+        await this._deletePlannerTask(taskId);
+        await this._onGetPlannerListItems();
+      } else {
+        await this._deleteListTask(taskId);
+        await this._onGetTaskListItems();
+      }
+
+      this._onReset();
+    } catch (error: any) {
+      console.error("[_onDeleteTask] Error:", error);
+      MessageLog(`[_onDeleteTask] Error: ${error.message}`, "error");
+    }
+  };
+
+
   private _onUpdateTask = async (
     taskName: string,
     action: "quick-complete" | "full-update",
@@ -412,6 +456,28 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
     } catch (error: any) {
       console.error("[_onUpdateTask] Error:", error);
       MessageLog(`[_onUpdateTask] Error: ${error.message}`, "error");
+    }
+  };
+
+  ///****** Interaction with Lists */
+  // Planner: POST /planner/tasks (Graph) [web:80][web:85]
+  // List: POST /_api/web/lists/getbytitle('...')/items [web:87]
+  private _createListTask = async (gate: string): Promise<void> => {
+    const listTitle = this.properties.sourceName;
+    const today = new Date();
+
+    try {
+      await this._sp.web.lists
+        .getByTitle(listTitle)
+        .items.add({
+          Gate: gate,
+          Task: "New task",
+          Start: today.toISOString(),
+          Finish: today.toISOString()
+        });
+    } catch (error) {
+      console.error("[_createListTask] Error creating task:", error);
+      throw error;
     }
   };
 
@@ -463,6 +529,49 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
     }
   };
 
+
+  // List: DELETE item por ID [web:84][web:87]
+  private _deleteListTask = async (itemId: string): Promise<void> => {
+    const listTitle = this.properties.sourceName;
+
+    try {
+      await this._sp.web.lists
+        .getByTitle(listTitle)
+        .items
+        .getById(Number(itemId))
+        .delete();
+    } catch (error) {
+      console.error("[_deleteListTask] Error deleting task:", error);
+      throw error;
+    }
+  };
+
+
+  ////****** Interaction with Planner */
+  private async _createPlannerTask(gate: string): Promise<void> {
+    const graphClient: MSGraphClientV3 =
+      await this.context.msGraphClientFactory.getClient("3");
+    const plannerService = new PlannerService(graphClient);
+
+    // Crea tarea vacía en el plan/bucket actual
+    const newTaskId = await plannerService.createEmptyTask(
+      this._projectSelected.Id,
+      gate
+    );
+
+    console.log("[_createEmptyPlannerTask] New planner task:", newTaskId);
+  }
+
+  private async _deletePlannerTask(taskId: string): Promise<void> {
+    const graphClient: MSGraphClientV3 =
+      await this.context.msGraphClientFactory.getClient("3");
+    const plannerService = new PlannerService(graphClient);
+
+    await plannerService.deleteTask(taskId);
+
+    console.log("[_deletePlannerTask] Deleted planner task:", taskId);
+  }
+
   private _updatePlannerTask = async (
     data: any,
     action: "quick-complete" | "full-update",
@@ -496,6 +605,7 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
     }
   };
 
+  /****** */
   private _onGetTaskListItems = async (): Promise<void> => {
     console.log("[_onGetTaskListItems] Fetching task list items...");
     const response: ITaskListItem[] = await this._getTaskListItems();

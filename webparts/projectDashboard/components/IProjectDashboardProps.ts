@@ -16,6 +16,13 @@ export interface IProjectDashboardProps {
   onReset?: ButtonClickedCallback;
   onPopulateAttachements?: ButtonClickedCallback;
   onSelectItem: (item: string, group: string) => void;
+  onNewTask?: (
+    Gate: string,
+    payloadJson?: string
+  ) => void;
+  onDeleteTask?: (
+    taskId: string
+  ) => void;
   onUpdateTask?: (
     taskName: string,
     action: "quick-complete" | "full-update",

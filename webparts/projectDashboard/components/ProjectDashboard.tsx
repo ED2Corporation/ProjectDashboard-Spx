@@ -95,8 +95,8 @@ export default class ProjectDashboard extends React.Component<
               rel="noopener noreferrer"
               title={
                 showBuckets
-                  ? "Hide buckets ¦ Cmd+Click-> Open Plan"
-                  : "Show buckets ¦ Cmd+Click-> Open Plan"
+                  ? "Hide buckets ¦ Cmd+Click-> To open the link"
+                  : "Show buckets ¦ Cmd+Click-> To open the link"
               }
             >
               <h2 style={{ margin: 0 }}>{project.Title}</h2>
@@ -176,6 +176,15 @@ export default class ProjectDashboard extends React.Component<
                 task={selectedTask}
                 showDetails={true}
                 onClose={() => this.setState({ selectedTask: null })}
+                onNew={(task) => {
+                  console.log("TaskCard onNew:", task);
+                  this.props.onNewTask?.(task.Gate);
+                }}
+                onDelete={(taskId) => {
+                  console.log("TaskCard onDelete:", taskId);
+                  this.props.onDeleteTask?.(taskId);
+                  this.onReset();
+                }}
                 onSave={(taskId, payloadJson) => {
                   this.props.onUpdateTask?.(taskId, "full-update", payloadJson);
                   console.log("Update DB TaskCard:", taskId);

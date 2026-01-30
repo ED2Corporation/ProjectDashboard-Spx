@@ -6,6 +6,8 @@ interface TaskCardProps {
   task: ITaskListItem;
   showDetails?: boolean | true;
   onClose?: () => void;
+  onDelete: (id: string) => void;
+  onNew: (task: ITaskListItem) => void;
   onSave: (
     item: string,                 
     payload?: string
@@ -16,7 +18,7 @@ interface TaskCardProps {
   ) => Promise<{ fileUrl: string; fileName: string }>;
 }
 
-const TaskCard: React.FC<TaskCardProps> = ({ task, showDetails, onClose, onSave, onUploadEvidenceFile }) => {
+const TaskCard: React.FC<TaskCardProps> = ({ task, showDetails, onClose, onSave, onDelete, onNew, onUploadEvidenceFile }) => {
   const [gate, setGate] = useState(task.Gate ?? "");
   const [deliverable, setDeliverable] = useState(task.Deliverable ?? "");
   const [taskTitle, setTaskTitle] = useState(task.Task ?? "");
@@ -93,76 +95,9 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, showDetails, onClose, onSave,
       onClose();
     }
   };
-  const handleNew = () => {
-    // Crear el objeto de datos (sin JSON.stringify aquí)
-    const data = {
-      Id: task.Id,
-      Deliverable: deliverable,
-      Gate: gate,
-      Task: taskTitle,
-      Complete: complete,
-      Effort: effort ? Number(effort) : undefined,
-      Barriers: barriers,
-      ActionableStatus: actionableStatus,
-      Description: description,
-      Start: start ? new Date(start) : undefined,
-      Finish: finish ? new Date(finish) : undefined,
-      ActualFinish: actualFinish ? new Date(actualFinish) : undefined,
-      EvidenceOfCompletion:
-        evidenceUrl || evidenceDesc
-          ? {
-              Url: evidenceUrl,
-              Description: evidenceDesc,
-            }
-          : undefined,
-    };
+  const handleNew = () => onNew(task);
+  const handleDelete = () => onDelete(task.Id);
 
-    // Convertir a JSON string
-    const payload = JSON.stringify(data);
-    console.log("TaskCard handleSave called", payload);
-
-    // Llamar el callback con taskId y payload JSON
-    onSave(task.Id, payload);
-
-    if (onClose) {
-      onClose();
-    }
-  };
-  const handleDelete = () => {
-    // Crear el objeto de datos (sin JSON.stringify aquí)
-    const data = {
-      Id: task.Id,
-      Deliverable: deliverable,
-      Gate: gate,
-      Task: taskTitle,
-      Complete: complete,
-      Effort: effort ? Number(effort) : undefined,
-      Barriers: barriers,
-      ActionableStatus: actionableStatus,
-      Description: description,
-      Start: start ? new Date(start) : undefined,
-      Finish: finish ? new Date(finish) : undefined,
-      ActualFinish: actualFinish ? new Date(actualFinish) : undefined,
-      EvidenceOfCompletion:
-        evidenceUrl || evidenceDesc
-          ? {
-              Url: evidenceUrl,
-              Description: evidenceDesc,
-            }
-          : undefined,
-    };
-
-    // Convertir a JSON string
-    const payload = JSON.stringify(data);
-    console.log("TaskCard handleSave called", payload);
-
-    // Llamar el callback con taskId y payload JSON
-    onSave(task.Id, payload);
-
-    if (onClose) {
-      onClose();
-    }
-  };
   return (
     <div className={styles["task-card"]}>
       <div className={styles["task-card-header"]}>

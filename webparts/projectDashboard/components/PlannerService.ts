@@ -369,6 +369,46 @@ export class PlannerService {
     );
   }
 
+  public async createEmptyTask(planId: string, bucketId: string): Promise<string> {
+    const body = {
+      planId,
+      bucketId,
+      title: "New task"
+    };
+
+    const task = await this.graphClient
+      .api("/planner/tasks")
+      .version("v1.0")
+      .post(body); // Crea plannerTask básico [web:88][web:89]
+
+    return task.id as string;
+  }
+
+  public async deleteTask(taskId: string): Promise<void> {
+    if (!taskId) {
+      throw new Error("deleteTask requires taskId");
+    }
+
+    // 1) Leer la tarea para obtener el ETag
+    const task = await this.graphClient
+      .api(`/planner/tasks/${taskId}`)
+      .version("v1.0")
+      .get();
+
+    const etag = task["@odata.etag"];
+    if (!etag) {
+      throw new Error(`No ETag found for planner task ${taskId}`);
+    }
+
+    // 2) Borrar usando If-Match [web:86][web:83]
+    await this.graphClient
+      .api(`/planner/tasks/${taskId}`)
+      .version("v1.0")
+      .header("If-Match", etag)
+      .delete();
+  }
+
+
   // Helper local y seguro
   private hasKeys = (o: any): boolean => !!o && typeof o === "object" && Object.keys(o).length > 0;
 
