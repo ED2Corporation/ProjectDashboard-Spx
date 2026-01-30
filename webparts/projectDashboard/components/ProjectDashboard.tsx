@@ -83,19 +83,25 @@ export default class ProjectDashboard extends React.Component<
             {/* ====== toggle showBuckets ====== */}
             <a
               href={project.Link.Url}
+              data-interception="off"
               onClick={(e) => {
                 const isModifier = e.metaKey || e.ctrlKey; // Cmd(mac) / Ctrl(win/linux)
                 if (!isModifier) {
-                  e.preventDefault(); 
+                  e.preventDefault();
                   this.setState((prev) => ({ showBuckets: !prev.showBuckets }));
                 }
               }}
               target="_blank"
               rel="noopener noreferrer"
-              title={showBuckets ? "Hide buckets ¦ Cmd+Click-> Open Plan" : "Show buckets ¦ Cmd+Click-> Open Plan"}
+              title={
+                showBuckets
+                  ? "Hide buckets ¦ Cmd+Click-> Open Plan"
+                  : "Show buckets ¦ Cmd+Click-> Open Plan"
+              }
             >
-              <h2 style={{ margin: 0 }}>{ project.Title}</h2>
+              <h2 style={{ margin: 0 }}>{project.Title}</h2>
             </a>
+
           </div>
         </div>
 

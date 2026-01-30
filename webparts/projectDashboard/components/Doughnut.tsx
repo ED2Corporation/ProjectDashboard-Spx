@@ -113,14 +113,14 @@ const DoughnutChart: React.FC<DoughnutChartProps> = ({
     
     // Section XOR Center
     onClick: (_event, elements: ActiveElement[]) => {
-      console.log("[DoughnutChart] Click detected, elements:", elements.length);
+      //console.log("[DoughnutChart] Click detected, elements:", elements.length);
       
       // CASO 1: Click a Section
       if (elements && elements.length > 0) {
         const index = elements[0].index;
         const gate = gates[index];
         
-        console.log("[DoughnutChart] → Section:", gate.Gate);
+        //console.log("[DoughnutChart] → Section:", gate.Gate);
         
         if (gate && onSelectItem) {
           onSelectItem(gate.Gate, "gate");  // Filtrar por sección
@@ -129,7 +129,7 @@ const DoughnutChart: React.FC<DoughnutChartProps> = ({
       }
       
       // CASO 2: Click Center (área vacía)
-      console.log("[DoughnutChart] → Center (Show all)");
+      //console.log("[DoughnutChart] → Center (Show all)");
       
       if (onSelectItem) {
         onSelectItem("all", "gate");  // Ver todas las secciones
