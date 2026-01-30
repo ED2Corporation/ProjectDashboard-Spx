@@ -93,7 +93,76 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, showDetails, onClose, onSave,
       onClose();
     }
   };
+  const handleNew = () => {
+    // Crear el objeto de datos (sin JSON.stringify aquí)
+    const data = {
+      Id: task.Id,
+      Deliverable: deliverable,
+      Gate: gate,
+      Task: taskTitle,
+      Complete: complete,
+      Effort: effort ? Number(effort) : undefined,
+      Barriers: barriers,
+      ActionableStatus: actionableStatus,
+      Description: description,
+      Start: start ? new Date(start) : undefined,
+      Finish: finish ? new Date(finish) : undefined,
+      ActualFinish: actualFinish ? new Date(actualFinish) : undefined,
+      EvidenceOfCompletion:
+        evidenceUrl || evidenceDesc
+          ? {
+              Url: evidenceUrl,
+              Description: evidenceDesc,
+            }
+          : undefined,
+    };
 
+    // Convertir a JSON string
+    const payload = JSON.stringify(data);
+    console.log("TaskCard handleSave called", payload);
+
+    // Llamar el callback con taskId y payload JSON
+    onSave(task.Id, payload);
+
+    if (onClose) {
+      onClose();
+    }
+  };
+  const handleDelete = () => {
+    // Crear el objeto de datos (sin JSON.stringify aquí)
+    const data = {
+      Id: task.Id,
+      Deliverable: deliverable,
+      Gate: gate,
+      Task: taskTitle,
+      Complete: complete,
+      Effort: effort ? Number(effort) : undefined,
+      Barriers: barriers,
+      ActionableStatus: actionableStatus,
+      Description: description,
+      Start: start ? new Date(start) : undefined,
+      Finish: finish ? new Date(finish) : undefined,
+      ActualFinish: actualFinish ? new Date(actualFinish) : undefined,
+      EvidenceOfCompletion:
+        evidenceUrl || evidenceDesc
+          ? {
+              Url: evidenceUrl,
+              Description: evidenceDesc,
+            }
+          : undefined,
+    };
+
+    // Convertir a JSON string
+    const payload = JSON.stringify(data);
+    console.log("TaskCard handleSave called", payload);
+
+    // Llamar el callback con taskId y payload JSON
+    onSave(task.Id, payload);
+
+    if (onClose) {
+      onClose();
+    }
+  };
   return (
     <div className={styles["task-card"]}>
       <div className={styles["task-card-header"]}>
@@ -111,9 +180,36 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, showDetails, onClose, onSave,
                 alt="send"
                 className={styles["icon-small"]}
               />
-            </button>
+            </button>            
           }
-          
+                   {
+            <button
+              type="button"
+              className={styles["task-button"]}
+              onClick={handleNew }
+              title="Add / New row"
+            >
+              <img
+                src={require("../assets/Create.png")}
+                alt="send"
+                className={styles["icon-small"]}
+              />
+            </button>            
+          }
+                   {
+            <button
+              type="button"
+              className={styles["task-button"]}
+              onClick={handleDelete }
+              title="Delete / Remove row"
+            >
+              <img
+                src={require("../assets/Delete.png")}
+                alt="send"
+                className={styles["icon-small"]}
+              />
+            </button>            
+          }
           {onClose && (
             <button
               type="button"

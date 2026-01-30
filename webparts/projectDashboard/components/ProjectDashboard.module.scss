@@ -492,6 +492,15 @@ h2 {
   /* Añade el borde */
 }
 
+.checkbox-main {
+  width: 15px;
+  height: 15px;
+  min-width: 15px;
+  min-height: 15px;
+  /* opcional, por si el navegador ignora width/height del checkbox */
+  transform: scale(1);
+}
+
 .task-alert {
   display: flex;
   width: 200px;
@@ -499,6 +508,7 @@ h2 {
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
+
 
 .task-card {
   background: #f4f6f8;

@@ -55,26 +55,30 @@ export default class ProjectDashboard extends React.Component<
     return (
       <>
         <div id="progress-header" className={styles["rowContainer"]}>
-          <input
+          <input className={styles["checkbox"]}
             type="checkbox"
             checked={showDashboard}
-            onChange={e => this.setState({ showDashboard: e.target.checked })}
+            onChange={e => this.setState({ showDashboard: e.target.checked }, () => {
+              if (e.target.checked) {
+                this.onReset();
+              }
+            })}
           />
           
-          <button
-            type="button"
-            className={styles["iconButton"]}
-            onClick={() => {
-              this.onReset();
-            }}
-          >
-            <img
-              alt=""
-              src={require("../assets/Restart.jpg")}
-              className={styles["iconImage"]}
-            />
-          </button>
-
+          { false &&  <button
+              type="button"
+              className={styles["iconButton"]}
+              onClick={() => {
+                this.onReset();
+              }}
+            >
+              <img
+                alt=""
+                src={require("../assets/Restart.jpg")}
+                className={styles["iconImage"]}
+              />
+            </button>
+          }
           <div>
             {/* ====== toggle showBuckets ====== */}
             <a
