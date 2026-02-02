@@ -36,6 +36,8 @@ export interface IProjectDashboardProps {
 
   showLog: boolean;
   showButtons: boolean;
+  onGateFilterChange?: (gate: string) => void;
+  currentGate?: string;
 
   refreshInterval: number;
   filterValue: string;

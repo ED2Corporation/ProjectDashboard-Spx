@@ -123,9 +123,9 @@ const DoughnutChart: React.FC<DoughnutChartProps> = ({
         //console.log("[DoughnutChart] → Section:", gate.Gate);
         
         if (gate && onSelectItem) {
-          onSelectItem(gate.Gate, "gate");  // Filtrar por sección
+          onSelectItem(gate.Gate, "gate");  
         }
-        return; // ⭐ IMPORTANTE: retornar aquí para NO ejecutar el centro
+        return; 
       }
       
       // CASO 2: Click Center (área vacía)

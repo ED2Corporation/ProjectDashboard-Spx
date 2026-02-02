@@ -36,12 +36,12 @@ export default class ProjectDashboard extends React.Component<
     };
   }
 
-  handleSwitchDetailsChange = (event) => {
-    this.setState({ showDetails: event.target.checked });
-  };
-  handleAllTasksChange = (event) => {
-    this.setState({ allTasks: event.target.checked });
-  };
+  // handleSwitchDetailsChange = (event) => {
+  //   this.setState({ showDetails: event.target.checked });
+  // };
+  // handleAllTasksChange = (event) => {
+  //   this.setState({ allTasks: event.target.checked });
+  // };
 
   public render(): React.ReactElement<IProjectDashboardProps> {
     const {
@@ -118,7 +118,7 @@ export default class ProjectDashboard extends React.Component<
                   showLegend={showBuckets}
                   onSelectItem={(item, group) => {
                     this.props.onSelectItem(item, group);
-                    //this.setState({ gateSelectedItem: item });
+                    this.props.onGateFilterChange?.(item);
                     if (item === "all") {
                       // Click en el CENTRO: toggle allTasks
                       console.log("[DoughnutChart] Show all tasks");
@@ -192,6 +192,7 @@ export default class ProjectDashboard extends React.Component<
                   console.log("Update DB TaskCard:"+ taskId +", selected task:" + this.state.selectedTask?.Task);
                   //this.onReset();
                   this.setState({ showCard: true });
+                  //this.props.onSelectItem(selectedGateItem, "gate");
                 }}
                 onUploadEvidenceFile={async (file, taskTitle) => {
                   if (!this.props.onUploadFile) {
@@ -205,19 +206,21 @@ export default class ProjectDashboard extends React.Component<
             {showTasks && spTaskListItems.length > 0 && (              
               
               <ListTasks
-                items={allTasks ? spTaskListItems : spFilteredTaskItems}
+                tasks={allTasks ? spTaskListItems : spFilteredTaskItems}
                 heading={allTasks ? "All Tasks" : spFilteredTaskItems[0]?.Gate || "No tasks defined..."}
                 showDetails={showDetails}
                 onSave={(taskId, payloadJson) => {
                   this.props.onUpdateTask?.(taskId, "quick-complete", payloadJson);
-                  console.log("Update DB ListTasks:", taskId);
-                  //this.onReset();                  
+                  //this.setState({ allTasks: false });
+                  //this.setState({ showTasks: true });                
+                  //console.log("Update DB ListTasks:", taskId,"allTasks:", allTasks,"showTasks:", showTasks);
+                  
                 }}onSelectItem={(item, group, mode, payload) => {
                   console.log("ListTasks:", item, group, mode);                  
                   if (item && item.Task) {
                     this.setState({ selectedTask:   item, showCard: true });
+                    this.props.onSelectItem(item.Task, group);
                   }
-                  this.props.onSelectItem(item.Task, group);
                 }}
                 onUploadEvidenceFile={async (file, taskTitle) => {
                   if (!this.props.onUploadFile) {
@@ -243,7 +246,7 @@ export default class ProjectDashboard extends React.Component<
   }
 
   private async onReset(): Promise<void> {
-    if (this.props.onReset) this.props.onReset();
+    //if (this.props.onReset) this.props.onReset();
     this.setState({ allTasks: false });
     this.setState({ showTasks: true });
     //this.setState({ selectedTask: null });

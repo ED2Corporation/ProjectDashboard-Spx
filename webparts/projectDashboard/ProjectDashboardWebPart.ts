@@ -49,6 +49,7 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
   private MsgInfo = 0;
   private MsgError = 2;
   private _sp: SPFI;
+  private _currentGate: string = "all";
 
   protected async onInit(): Promise<void> {
     this._sysError = false;
@@ -59,9 +60,23 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
 
     await this._onReset();
     this._sp = spfi().using(SPFx(this.context));
+    this._filteredTasks = FilterTasks(this._tasks, "gate", "actual");
 
     return super.onInit();
   }
+
+  private _onGateFilterChange = async (gate: string): Promise<void> => {
+    this._currentGate = gate;
+    if (this._tasks.length === 0) {
+      this._tasks = await this._getTaskListItems();
+    }
+    if (gate === "all") {
+      this._filteredTasks = this._tasks;
+    } else {
+      this._filteredTasks = FilterTasks(this._tasks, "gate", gate);
+    }
+    this.render();
+  };
 
   protected onDispose(): void {
     ReactDom.unmountComponentAtNode(this.domElement);
@@ -81,6 +96,8 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
 
         showLog: this.properties.showLog,
         showButtons: this.properties.showButtons,
+        currentGate: this._currentGate,
+        onGateFilterChange: this._onGateFilterChange,
 
         filterValue: this.properties.filterValue,
 
@@ -251,7 +268,7 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
 
     if (this._tasks.length > 0) {
       await this._onGetGateListItems();
-      this._filteredTasks = FilterTasks(this._tasks, "gate", "actual");
+      this._filteredTasks = FilterTasks(this._tasks, "gate", this._currentGate || "actual");
     }
     console.log("[_onReset] Data reset completed. Total tasks: " + this._tasks.length + "\nSelected Task: " + this._selectedTask?.Task);
     this.render();
@@ -333,10 +350,11 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
         item
       );
       MessageLog("[_onSelectedItem] Received: Value: " + item + " Group: " + group + " Total: " + this._tasks.length + " Filtered: " + this._selectedTask.Task, "_onSelectedItem", this.MsgInfo, this.properties.showLog);
-    } else {
-      this._filteredTasks = FilterTasks(this._tasks, group, item);
-      MessageLog("[_onSelectedItem] Received: Value: " + item + " Group: " + group + " Total: " + this._tasks.length + " Filtered: " + this._filteredTasks.length, "_onSelectedItem", this.MsgInfo, this.properties.showLog);
     }
+    // else {
+    //   this._filteredTasks = FilterTasks(this._tasks, group, item);
+    //   MessageLog("[_onSelectedItem] Received: Value: " + item + " Group: " + group + " Total: " + this._tasks.length + " Filtered: " + this._filteredTasks.length, "_onSelectedItem", this.MsgInfo, this.properties.showLog);
+    // }
     //if(this.properties.showLog) console.log("Received: Value: " + item + " Group: " + group+ " Total: "+ response.length + " Filtered: " + this._tasks.length );
     this.render();
 
@@ -705,7 +723,7 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
         //, Responsible, Title, Barriers,  Effort, ActionableStatus
         const querySelect = `Id,Gate,Task,Deliverable,Complete,Start,Finish,ActualFinish,Description,EvidenceOfCompletion,EvidenceDescription`;
         const queryUrl = this._siteUrl + siteRelativePath + `/_api/web/lists/getbytitle('` + this._projectSelected.ListName + `')/items?$select=` + querySelect;
-        console.log("[_getTaskListItems] Fetching tasks from: " + queryUrl);
+        console.log("[_getTaskListItems] Fetching tasks from: " + this._projectSelected.ListName);
 
         const response = await this.context.spHttpClient.get(queryUrl, SPHttpClient.configurations.v1);
         if (!response.ok) {
@@ -768,6 +786,13 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
 
   private _onGetGateListItems = async (): Promise<void> => {
     this._gates = await this._getGateListItems();
+
+    const gate = this._currentGate || "all";
+    if (gate === "all") {
+      this._filteredTasks = this._tasks;
+    } else {
+      this._filteredTasks = FilterTasks(this._tasks, "gate", gate);
+    }
     //this.render();
   }
 

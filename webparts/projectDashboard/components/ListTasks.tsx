@@ -7,7 +7,7 @@ import { GetFormatDate } from "./GetFormatDate";
 import styles from "./ProjectDashboard.module.scss";
 
 interface ListGroupProps {
-  items: ITaskListItem[];
+  tasks: ITaskListItem[];
   heading: string;
   projectSiteURL?: string;
   showDetails?: boolean | true;
@@ -25,7 +25,7 @@ interface ListGroupProps {
 }
 
 const ListTasks = ({
-  items,
+  tasks,
   heading,
   onSave,
   onSelectItem,
@@ -55,8 +55,8 @@ const ListTasks = ({
   return (
     <>
       {(showDetails
-        ? items.length
-        : items.filter(
+        ? tasks.length
+        : tasks.filter(
             (item) =>
               Math.floor(item.Complete) < 100 && Math.floor(item.Complete) > 0
           ).length) > 0 && (
@@ -73,8 +73,8 @@ const ListTasks = ({
             </thead>
             <tbody>
               {(showDetails
-                ? items
-                : items.filter(
+                ? tasks
+                : tasks.filter(
                     (item) =>
                       Math.floor(item.Complete) < 100 &&
                       GetDelay(item.Finish, item.ActualFinish) > 0
