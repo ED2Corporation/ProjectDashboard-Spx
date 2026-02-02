@@ -27,14 +27,6 @@ import { IDynamicDataPropertyDefinition } from '@microsoft/sp-dynamic-data';
 import { SPFI, spfi } from "@pnp/sp";
 import { SPFx } from "@pnp/sp/presets/all";
 
-export interface ISPLists {
-  value: ISPList[];
-}
-
-export interface ISPList {
-  Title: string;
-  Id: string;
-}
 
 interface ErrorPageProps {
   project: string;
@@ -46,7 +38,7 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
   //private _projects: IProjectListItem[] = [];
   private _tasks: ITaskListItem[] = [];
   private _filteredTasks: ITaskListItem[] = [];
-  private _selectedTask: ITaskListItem;
+  private _selectedTask?: ITaskListItem | null = null;
   private _gates: IGateListItem[] = [];
   private _environmentMessage: string = '';
   private _projectSelected: IProjectListItem;
@@ -249,7 +241,7 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
   private _onReset = async (): Promise<void> => {
     this._sysError = false;
 
-    console.log("[_onReset] Resetting data... IsPlanner: " + this._projectSelected.isPlanner);
+    console.log("[_onReset] Resetting data...\nActualTask:" + this._selectedTask?.Task);
     if (this._projectSelected.isPlanner) {
       await this._onGetPlannerListItems();
       await this._onPopulateAttachements();
@@ -261,8 +253,7 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
       await this._onGetGateListItems();
       this._filteredTasks = FilterTasks(this._tasks, "gate", "actual");
     }
-
-    this._selectedTask = this.newTask();
+    console.log("[_onReset] Data reset completed. Total tasks: " + this._tasks.length + "\nSelected Task: " + this._selectedTask?.Task);
     this.render();
   }
 
@@ -393,13 +384,12 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
 
       if (this.properties.isPlanner) {
         await this._createPlannerTask(gate);
-        await this._onGetPlannerListItems();
       } else {
         await this._createListTask(gate);
-        await this._onGetTaskListItems();
       }
 
       this._onReset();
+
     } catch (error: any) {
       console.error("[_onNewTask] Error:", error);
       MessageLog(`[_onNewTask] Error: ${error.message}`, "error");
@@ -413,13 +403,12 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
     try {
       if (this.properties.isPlanner) {
         await this._deletePlannerTask(taskId);
-        await this._onGetPlannerListItems();
       } else {
         await this._deleteListTask(taskId);
-        await this._onGetTaskListItems();
       }
 
       this._onReset();
+      this._selectedTask = null;
     } catch (error: any) {
       console.error("[_onDeleteTask] Error:", error);
       MessageLog(`[_onDeleteTask] Error: ${error.message}`, "error");
@@ -446,10 +435,8 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
 
       if (this.properties.isPlanner) {
         await this._updatePlannerTask(data, action, completeSafe);
-        await this._onGetPlannerListItems();
       } else {
         await this._updateListTask(data, action, completeSafe);
-        await this._onGetTaskListItems();
       }
 
       this._onReset();
@@ -467,19 +454,74 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
     const today = new Date();
 
     try {
-      await this._sp.web.lists
+      const addResult = await this._sp.web.lists
         .getByTitle(listTitle)
         .items.add({
+          Id: this._tasks.length + 1,
           Gate: gate,
-          Task: "New task",
+          Deliverable: gate + ". Deliverable",
+          Task: gate + ". Task",
           Start: today.toISOString(),
           Finish: today.toISOString()
         });
+
+      const addedId = addResult.data?.Id;
+      if (!addedId) {
+        this._selectedTask = this._tasks.find(t => t.Gate === gate && t.Task === gate + ". Task");
+        console.log("[_createListTask] No Id returned\n Task: " + this._selectedTask?.Task);
+        if (!this._selectedTask) {
+          this._selectedTask = this._tasks[this._tasks.length - 1];
+          console.log("[_createListTask] Last task in list: " + this._selectedTask?.Task);
+        }
+        return;
+      }
+
+      // Leer el item completo recién creado
+      const r: any = await this._sp.web.lists
+        .getByTitle(listTitle)
+        .items.getById(addedId)
+        .select(
+          "Id",
+          "Gate",
+          "Task",
+          "Deliverable",
+          "Complete",
+          "Start",
+          "Finish",
+          "ActualFinish",
+          "Description",
+          "EvidenceOfCompletion",
+          "EvidenceDescription"
+        )();
+
+      console.log(`[_createListTask] New List Task created: ${r.Id} - ${r.Task} in Gate: ${r.Gate}`);
+
+      const task: ITaskListItem = {
+        Id: String(r.Id),
+        Gate: r.Gate ?? gate,
+        Task: r.Task ?? "New task",
+        Deliverable: r.Deliverable ?? "",
+        Complete: typeof r.Complete === "number" ? r.Complete : Number(r.Complete) || 0,
+        Start: r.Start ? new Date(r.Start) : today,
+        Finish: r.Finish ? new Date(r.Finish) : today,
+        ActualFinish: r.ActualFinish ? new Date(r.ActualFinish) : undefined,
+        Description: r.Description ?? "",
+        EvidenceOfCompletion: r.EvidenceOfCompletion
+          ? {
+            Url: r.EvidenceOfCompletion,
+            Description: r.EvidenceDescription ?? ""
+          }
+          : undefined,
+      };
+
+      this._selectedTask = task;
+      console.log(" New Task created for: " + task.Gate + " - " + task.Task);
     } catch (error) {
       console.error("[_createListTask] Error creating task:", error);
       throw error;
     }
   };
+
 
   private _updateListTask = async (
     data: any,
@@ -495,38 +537,77 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
           ? new Date()
           : null;
 
+      const itemRef = this._sp.web.lists
+        .getByTitle(listTitle)
+        .items.getById(Number(data.Id));
+
+      // 1) Hacer el update
       if (action === "quick-complete") {
-        await this._sp.web.lists
-          .getByTitle(listTitle)
-          .items.getById(Number(data.Id))
-          .update({
-            Complete: curr,
-            Finish: data.Finish,
-            ActualFinish: actualFinishValue,
-            EvidenceOfCompletion: data.EvidenceOfCompletion?.Url,
-            EvidenceDescription: data.EvidenceOfCompletion?.Description
-          });
+        await itemRef.update({
+          Complete: curr,
+          Finish: data.Finish,
+          ActualFinish: actualFinishValue,
+          EvidenceOfCompletion: data.EvidenceOfCompletion?.Url,
+          EvidenceDescription: data.EvidenceOfCompletion?.Description
+        });
       } else {
-        await this._sp.web.lists
-          .getByTitle(listTitle)
-          .items.getById(Number(data.Id))
-          .update({
-            Deliverable: data.Deliverable,
-            Gate: data.Gate,
-            Task: data.Task,
-            Description: data.Description,
-            Complete: curr,
-            Start: data.Start,
-            Finish: data.Finish,
-            EvidenceOfCompletion: data.EvidenceOfCompletion?.Url,
-            EvidenceDescription: data.EvidenceOfCompletion?.Description,
-            ActualFinish: actualFinishValue
-          });
+        await itemRef.update({
+          Deliverable: data.Deliverable,
+          Gate: data.Gate,
+          Task: data.Task,
+          Description: data.Description,
+          Complete: curr,
+          Start: data.Start,
+          Finish: data.Finish,
+          EvidenceOfCompletion: data.EvidenceOfCompletion?.Url,
+          EvidenceDescription: data.EvidenceOfCompletion?.Description,
+          ActualFinish: actualFinishValue
+        });
       }
+
+      // 2) Leer el item actualizado
+      const r: any = await itemRef.select(
+        "Id",
+        "Gate",
+        "Task",
+        "Deliverable",
+        "Complete",
+        "Start",
+        "Finish",
+        "ActualFinish",
+        "Description",
+        "EvidenceOfCompletion",
+        "EvidenceDescription"
+      )();
+
+      console.log(`[_updateListTask] List Task updated: ${r.Id} - ${r.Task} in Gate: ${r.Gate}`);
+
+      const task: ITaskListItem = {
+        Id: String(r.Id),
+        Gate: r.Gate ?? data.Gate,
+        Task: r.Task ?? "New task",
+        Deliverable: r.Deliverable ?? "",
+        Complete: typeof r.Complete === "number" ? r.Complete : Number(r.Complete) || 0,
+        Start: r.Start ? new Date(r.Start) : undefined,
+        Finish: r.Finish ? new Date(r.Finish) : undefined,
+        ActualFinish: r.ActualFinish ? new Date(r.ActualFinish) : undefined,
+        Description: r.Description ?? "",
+        EvidenceOfCompletion: r.EvidenceOfCompletion
+          ? {
+            Url: r.EvidenceOfCompletion,
+            Description: r.EvidenceDescription ?? ""
+          }
+          : undefined,
+      };
+
+      this._selectedTask = task;
+      console.log(" Task updated for: " + task.Gate + " - " + task.Task);
+
     } catch (error) {
       console.error("[_updateListTask] Error updating task:", error);
       throw error;
     }
+
   };
 
 
@@ -607,7 +688,7 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
 
   /****** */
   private _onGetTaskListItems = async (): Promise<void> => {
-    console.log("[_onGetTaskListItems] Fetching task list items...");
+    //console.log("[_onGetTaskListItems] Fetching task list items...");
     const response: ITaskListItem[] = await this._getTaskListItems();
     this._tasks = response;
 

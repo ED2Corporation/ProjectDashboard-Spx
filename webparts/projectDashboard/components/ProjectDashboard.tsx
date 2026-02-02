@@ -1,7 +1,7 @@
 import * as React from "react";
 import styles from "./ProjectDashboard.module.scss";
 import type { IProjectDashboardProps } from "./IProjectDashboardProps";
-import { ITaskListItem } from "../../../models";
+import {  ITaskListItem } from "../../../models";
 import ProgressTasks from "./ProgressTasks";
 import TaskCard from "./TaskCard";
 import ListTasks from "./ListTasks";
@@ -12,6 +12,7 @@ import { GroupByProject } from "./GroupByProject";
 interface IProjectDashboardState {
   allTasks: boolean;
   showTasks: boolean;
+  showCard: boolean;
   showDetails: boolean;
   showBuckets: boolean; 
   showDashboard: boolean; 
@@ -26,11 +27,12 @@ export default class ProjectDashboard extends React.Component<
     super(props);
     this.state = {
       allTasks: false,
+      showCard: false,
       showTasks: true,
       showDetails: false,
       showBuckets: false,
       showDashboard: true,
-      selectedTask: null 
+      selectedTask: this.props.selectedTask || null 
     };
   }
 
@@ -50,7 +52,7 @@ export default class ProjectDashboard extends React.Component<
       project,
     } = this.props;
     
-    const { showDetails, allTasks, showTasks, selectedTask, showBuckets, showDashboard   } = this.state;
+    const { showDetails, allTasks, showCard, showTasks, selectedTask, showBuckets, showDashboard   } = this.state;
 
     return (
       <>
@@ -116,7 +118,7 @@ export default class ProjectDashboard extends React.Component<
                   showLegend={showBuckets}
                   onSelectItem={(item, group) => {
                     this.props.onSelectItem(item, group);
-
+                    //this.setState({ gateSelectedItem: item });
                     if (item === "all") {
                       // Click en el CENTRO: toggle allTasks
                       console.log("[DoughnutChart] Show all tasks");
@@ -162,7 +164,7 @@ export default class ProjectDashboard extends React.Component<
                       const task = spTaskListItems.find(t => t.Task === item);
                       //console.log("ProgressTasks found task:", task);
                       if (task) {
-                        this.setState({ selectedTask: task });
+                        this.setState({ selectedTask: task , showCard: true });                        
                       }
                       this.props.onSelectItem(item, group);
                     }}
@@ -171,11 +173,11 @@ export default class ProjectDashboard extends React.Component<
               </div>
             </div>
 
-            {selectedTask && (
+            {showCard && selectedTask &&(
               <TaskCard
                 task={selectedTask}
                 showDetails={true}
-                onClose={() => this.setState({ selectedTask: null })}
+                onClose={() => this.setState({ showCard: false })}
                 onNew={(task) => {
                   console.log("TaskCard onNew:", task);
                   this.props.onNewTask?.(task.Gate);
@@ -183,12 +185,12 @@ export default class ProjectDashboard extends React.Component<
                 onDelete={(taskId) => {
                   console.log("TaskCard onDelete:", taskId);
                   this.props.onDeleteTask?.(taskId);
-                  this.onReset();
+                  //this.onReset();
                 }}
                 onSave={(taskId, payloadJson) => {
                   this.props.onUpdateTask?.(taskId, "full-update", payloadJson);
-                  console.log("Update DB TaskCard:", taskId);
-                  this.onReset();
+                  console.log("Update DB TaskCard:"+ taskId +", selected task:" + this.state.selectedTask?.Task);
+                  //this.onReset();
                 }}
                 onUploadEvidenceFile={async (file, taskTitle) => {
                   if (!this.props.onUploadFile) {
@@ -208,11 +210,11 @@ export default class ProjectDashboard extends React.Component<
                 onSave={(taskId, payloadJson) => {
                   this.props.onUpdateTask?.(taskId, "quick-complete", payloadJson);
                   console.log("Update DB ListTasks:", taskId);
-                  this.onReset();                  
+                  //this.onReset();                  
                 }}onSelectItem={(item, group, mode, payload) => {
                   console.log("ListTasks:", item, group, mode);                  
                   if (item && item.Task) {
-                    this.setState({ selectedTask: item });
+                    this.setState({ selectedTask:   item, showCard: true });
                   }
                   this.props.onSelectItem(item.Task, group);
                 }}
@@ -239,11 +241,18 @@ export default class ProjectDashboard extends React.Component<
     );
   }
 
-  private onReset(): void {
+  private async onReset(): Promise<void> {
     if (this.props.onReset) this.props.onReset();
     this.setState({ allTasks: false });
     this.setState({ showTasks: true });
+    //this.setState({ selectedTask: null });
     MessageLog("ProjectDashboar/onReset...");
+  }
+
+  componentDidUpdate(prevProps: IProjectDashboardProps): void {
+    if (prevProps.selectedTask !== this.props.selectedTask) {
+      this.setState({ selectedTask: this.props.selectedTask || null });
+    }
   }
 
   componentDidMount(): void {

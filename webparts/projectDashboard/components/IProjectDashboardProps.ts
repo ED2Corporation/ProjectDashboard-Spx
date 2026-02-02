@@ -8,7 +8,7 @@ import {
 export interface IProjectDashboardProps {
   spTaskListItems: ITaskListItem[];
   spFilteredTaskItems: ITaskListItem[];
-  selectedTask: ITaskListItem;
+  selectedTask?: ITaskListItem | null;
   spGateListItems: IGateListItem[];
 
   onGetTaskListItems?: ButtonClickedCallback;

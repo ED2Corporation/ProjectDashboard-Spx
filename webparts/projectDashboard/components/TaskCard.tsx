@@ -86,7 +86,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, showDetails, onClose, onSave,
 
     // Convertir a JSON string
     const payload = JSON.stringify(data);
-    console.log("TaskCard handleSave called", payload);
+    //console.log("TaskCard handleSave called", payload);
 
     // Llamar el callback con taskId y payload JSON
     onSave(task.Id, payload);
