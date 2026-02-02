@@ -381,6 +381,7 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
   ): Promise<void> => {
     console.log("[_onNewTask] Creating new task in gate:", gate);
     try {
+      //const newTask = this.newTask(gate);
 
       if (this.properties.isPlanner) {
         await this._createPlannerTask(gate);
@@ -454,10 +455,9 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
     const today = new Date();
 
     try {
-      const addResult = await this._sp.web.lists
+      const addResult: any = await this._sp.web.lists
         .getByTitle(listTitle)
         .items.add({
-          Id: this._tasks.length + 1,
           Gate: gate,
           Deliverable: gate + ". Deliverable",
           Task: gate + ". Task",
@@ -465,18 +465,15 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
           Finish: today.toISOString()
         });
 
-      const addedId = addResult.data?.Id;
+      console.log("[_createListTask] addResult:", addResult);
+
+      const addedId = addResult.Id as number | undefined; // NO .data
       if (!addedId) {
-        this._selectedTask = this._tasks.find(t => t.Gate === gate && t.Task === gate + ". Task");
-        console.log("[_createListTask] No Id returned\n Task: " + this._selectedTask?.Task);
-        if (!this._selectedTask) {
-          this._selectedTask = this._tasks[this._tasks.length - 1];
-          console.log("[_createListTask] Last task in list: " + this._selectedTask?.Task);
-        }
+        console.warn("[_createListTask] No Id on addResult, cannot select new task");
+        this._selectedTask = this.newTask();
         return;
       }
 
-      // Leer el item completo recién creado
       const r: any = await this._sp.web.lists
         .getByTitle(listTitle)
         .items.getById(addedId)
@@ -521,6 +518,7 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
       throw error;
     }
   };
+
 
 
   private _updateListTask = async (
@@ -826,11 +824,11 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
     return this.newTask();
   }
 
-  private newTask(): ITaskListItem {
+  private newTask(gate?: string): ITaskListItem {
 
     return {
       Id: "",
-      Gate: "",
+      Gate: gate || "New Gate",
       Complete: 0,
       Deliverable: "",
       Task: "No Task Found..."

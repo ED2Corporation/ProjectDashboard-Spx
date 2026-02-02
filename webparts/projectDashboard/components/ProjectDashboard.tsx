@@ -191,6 +191,7 @@ export default class ProjectDashboard extends React.Component<
                   this.props.onUpdateTask?.(taskId, "full-update", payloadJson);
                   console.log("Update DB TaskCard:"+ taskId +", selected task:" + this.state.selectedTask?.Task);
                   //this.onReset();
+                  this.setState({ showCard: true });
                 }}
                 onUploadEvidenceFile={async (file, taskTitle) => {
                   if (!this.props.onUploadFile) {
