@@ -333,6 +333,16 @@ h2 {
   vertical-align: top;
 }
 
+.colActions {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  width: 50px;
+  text-align: center;
+  vertical-align: top;
+}
+
 .colDate {
   width: 120px;
   min-width: 120px;
@@ -634,13 +644,13 @@ h2 {
 .icon-button {
   border: none;
   background: transparent;
-  padding: 0;
+  padding: 1px;
   cursor: pointer;
 }
 
 .icon-small {
-  width: 20px;
-  height: 18px;
+  width: 18px;
+  height: 15px;
 }
 
 .input-small {

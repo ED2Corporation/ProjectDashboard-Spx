@@ -18,7 +18,7 @@ interface ListGroupProps {
   onSelectItem: (
     item: ITaskListItem,                 // Task selected
     group: string,                // Bucket / gate (as today)
-    mode?: "details" | "list" | "quick-complete",  // new optional parameter
+    mode?: "list" | "list-edit" | "list-save" | "list-delete"| "list-create",  // new optional parameter
     payload?: string
   ) => void;
   onUploadEvidenceFile?: (file: File, taskTitle: string) => Promise<{fileUrl: string; fileName: string;}>;
@@ -65,6 +65,7 @@ const ListTasks = ({
           <table className={styles["ed2Table"]}>
             <thead>
               <tr>
+                <th className={styles.colActions}>Action</th> 
                 <th className={styles.colText}>Task</th>
                 <th className={styles.colDate}>Completed</th>
                 <th className={styles.colDate}>Finish</th>
@@ -87,23 +88,62 @@ const ListTasks = ({
                     setSelectedIndex(index);
                   }}
                 >
-                  {/* Task column */}
-                  <td className={styles.colText}>
+                  {/* Columna de acciones CRUD */}
+                  <td className={styles.colActions}>
+                    {/* Abrir TaskCard (equivalente a "openCard") */}
                     <button
                       type="button"
                       className={styles["icon-button"]}
                       onClick={(e) => {
-                        e.stopPropagation(); // prevent row onClick
-                        onSelectItem(item, "task", "details");
+                        e.stopPropagation();
+                        onSelectItem(item, "task", "list-edit");
                       }}
-                      title="View details"
+                      title="Open card"
                     >
                       <img
                         src={require("../assets/View.png")}
-                        alt="View"
+                        alt="open"
                         className={styles["icon-small"]}
                       />
                     </button>
+
+                    {/* Nueva tarea en el mismo gate */}
+                    <button
+                      type="button"
+                      className={styles["icon-button"]}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        // Mandato equivalente a TaskCard.onNew -> WebPart.onNewTask(gate)
+                        onSelectItem(item, "task", "list-create");
+                      }}
+                      title="Add / New row"
+                    >
+                      <img
+                        src={require("../assets/Create.png")}
+                        alt="new"
+                        className={styles["icon-small"]}
+                      />
+                    </button>
+
+                    {/* Borrar tarea */}
+                    <button
+                      type="button"
+                      className={styles["icon-button"]}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onSelectItem(item, "task", "list-delete");
+                      }}
+                      title="Delete / Remove row"
+                    >
+                      <img
+                        src={require("../assets/Delete.png")}
+                        alt="delete"
+                        className={styles["icon-small"]}
+                      />
+                    </button>
+                  </td>
+                  {/* Task column */}
+                  <td className={styles.colText}>                    
                     <span>{item.Task}</span>
                   </td>
 
