@@ -166,14 +166,18 @@ export default class ProjectDashboard extends React.Component<
                   listName: string,
                   repositoryName: string,
                   projectTitle: string,
-                  firstGate: string
+                  firstGate: string,
+                  mode: "empty" | "from-excel",
+                  file?: File
                 ): Promise<void> => {
                   if (this.props.onCreateNewProject) {
                     await this.props.onCreateNewProject(
                       projectTitle,
                       listName,
                       repositoryName,
-                      firstGate
+                      firstGate,
+                      mode,
+                      file
                     );
                   }
                   this.setState({ showNewProject: false });

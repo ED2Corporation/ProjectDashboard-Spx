@@ -67,11 +67,6 @@ export async function ensureFolder(
     console.log("Ensure folder RAW:", siteUrl + relativePath + folderPath + folderName);
 
     try {
-        // Usamos rootFolder/folders/add para crear toda la ruta de golpe
-        // const addUrl =
-        //     `${siteUrl + relativePath}/_api/web/GetFolderByServerRelativeUrl('${relativePath + folderPath}')` +
-        //     `/folders/add('${folderName}')`;
-
         // Normalize web URL (no trailing slash)
         const webUrl = `${siteUrl.replace(/\/+$/, "")}${relativePath.replace(/\/+$/, "")}`;
 

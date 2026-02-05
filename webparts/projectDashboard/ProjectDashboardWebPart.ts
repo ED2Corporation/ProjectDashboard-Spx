@@ -259,7 +259,9 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
     listName: string,
     repositoryName: string,
     projectName: string,
-    firstGate: string
+    firstGate: string,
+    mode: "empty" | "from-excel",
+    file?: File
   ): Promise<void> => {
     try {
       // 1) Crear lista de tareas si no existe
@@ -269,8 +271,11 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
       await this._ensureEvidenceRepository(repositoryName);
 
       // 3) Crear tarea por defecto
-      await this._createInitialTask(listName, firstGate);
-
+      if (mode === "from-excel" && file) {
+        await this._importTasksFromExcel(listName, file, firstGate);
+      } else {
+        await this._createInitialTask(listName, firstGate);
+      }
       // 4) Actualizar propiedades y recargar datos
       this.properties.sourceName = listName;
       this.properties.repositoryName = repositoryName;
@@ -285,6 +290,101 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
       MessageLog(`[_onCreateNewProject] Error: ${error}`, "_onCreateNewProject", this.MsgError, this.properties.showLog);
     }
   };
+
+  private async _importTasksFromExcel(
+    listName: string,
+    file: File,
+    defaultGate: string
+  ): Promise<void> {
+    const XLSX = await import("xlsx");
+
+    const arrayBuffer = await file.arrayBuffer();
+    const workbook = XLSX.read(arrayBuffer, { type: "array" });
+    const sheetName = workbook.SheetNames[0];
+    const sheet = workbook.Sheets[sheetName];
+
+    // Convierte a objetos por fila usando la primera fila como headers
+    const rows: any[] = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+
+    if (!rows.length) {
+      alert("Excel plan is empty.");
+      return;
+    }
+
+    // Validar columnas mínimas para quick-update
+    const requiredCols = ["Gate", "Task", "Complete", "Finish"];
+    const headers = Object.keys(rows[0]);
+
+    const missing = requiredCols.filter(c => !headers.includes(c));
+    if (missing.length > 0) {
+      alert(
+        "Excel template missing required columns: " +
+        missing.join(", ") +
+        "\nPlease include at least: " +
+        requiredCols.join(", ")
+      );
+      return;
+    }
+
+    const list = this._sp.web.lists.getByTitle(listName);
+
+    let created = 0;
+    for (const row of rows) {
+      // Mapear columnas, tolerando que falten algunas
+      const gate = row.Gate || defaultGate;
+      const taskTitle = row.Task;
+      if (!taskTitle) {
+        // sin Task no tiene sentido crear la fila
+        continue;
+      }
+
+      const deliverable = row.Deliverable || "";
+      const description = row.Description || "";
+
+      const complete =
+        row.Complete !== undefined && row.Complete !== ""
+          ? Number(row.Complete) || 0
+          : 0;
+
+      const toIso = (v: any): string | undefined => {
+        if (!v) return undefined;
+        const d = new Date(v);
+        return isNaN(d.getTime()) ? undefined : d.toISOString();
+      };
+
+      const start = toIso(row.Start);
+      const finish = toIso(row.Finish);
+      const actualFinish = toIso(row.ActualFinish);
+
+      const evidenceUrl = row.EvidenceOfCompletion || "";
+      const evidenceDescription = row.EvidenceDescription || "";
+
+      // Validaciones básicas de contenido
+      if (complete < 0 || complete > 100) {
+        console.warn("Skipping row: invalid Complete value", complete, row);
+        continue;
+      }
+
+      await list.items.add({
+        Gate: gate,
+        Task: taskTitle,
+        Title: `${gate} - ${taskTitle}`,
+        Deliverable: deliverable,
+        Description: description,
+        Complete: complete,
+        Start: start,
+        Finish: finish,
+        ActualFinish: actualFinish,
+        EvidenceOfCompletion: evidenceUrl || null,
+        EvidenceDescription: evidenceDescription || null
+      });
+
+      created++;
+    }
+
+    alert(`Excel import finished.\nRows created: ${created}`);
+  }
+
 
   private async _ensureTaskList(listTitle: string): Promise<void> {
     const web = this._sp.web;

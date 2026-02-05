@@ -6,7 +6,14 @@ interface NewProjectSetupProps {
   defaultSourceName?: string;
   defaultRepositoryName?: string;
   onCancel: () => void;
-  onCreate: (listName: string, repositoryName: string, projectTitle: string, firstGate: string) => Promise<void>;
+  onCreate: (
+    listName: string,
+    repositoryName: string,
+    projectTitle: string,
+    firstGate: string,
+    mode: "empty" | "from-excel",
+    file?: File
+  ) => Promise<void>;
 }
 
 const NewProjectSetup: React.FC<NewProjectSetupProps> = ({
@@ -21,6 +28,7 @@ const NewProjectSetup: React.FC<NewProjectSetupProps> = ({
   const [repoName, setRepoName] = React.useState(defaultRepositoryName || "EvidenceRepository");
   const [firstGate, setFirstGate] = React.useState("1. Gate");
   const [isCreating, setIsCreating] = React.useState(false);
+  const [excelFile, setExcelFile] = React.useState<File | null>(null);
 
   const handleCreate = async () => {
     try {
@@ -29,13 +37,14 @@ const NewProjectSetup: React.FC<NewProjectSetupProps> = ({
         listName.trim(),
         repoName.trim(),
         projectName.trim(),
-        firstGate.trim()
+        firstGate.trim(),
+        "empty"
       );
-      // OJO: no cierres aquí; que el padre cierre el panel cuando termine
     } finally {
       setIsCreating(false);
     }
   };
+
 
   return (
     <div className={styles["task-card"]}>
@@ -104,6 +113,25 @@ const NewProjectSetup: React.FC<NewProjectSetupProps> = ({
               />
             </td>
           </tr>
+          <tr>
+            <td>
+              <strong>Plan template (Excel):</strong>
+            </td>
+            <td>
+              <input
+                type="file"
+                accept=".xlsx,.xls"
+                onChange={(e) => {
+                  const file = e.target.files?.[0] || null;
+                  setExcelFile(file);
+                }}
+                className={styles["input-small"]}
+              />
+              <div style={{ fontSize: 11, color: "#605e5c", marginTop: 4 }}>
+                Expected columns: Gate, Task, Deliverable, Start, Finish, Complete, Description, EvidenceOfCompletion, EvidenceDescription.
+              </div>
+            </td>
+          </tr>
         </tbody>
       </table>
 
@@ -117,29 +145,40 @@ const NewProjectSetup: React.FC<NewProjectSetupProps> = ({
         >
           {isCreating ? "Creating…" : "Create project"}
         </button>
-        <button
-          type="button"
-          className={styles["primaryCtaButton"]}
-          onClick={() =>
-            onCreate(
-              listName.trim(),
-              repoName.trim(),
-              projectName.trim(),
-              firstGate.trim()
-            )
-          }
-        >
-          From Excel template
-        </button>
+         <button
+            type="button"
+            className={styles["primaryCtaButton"]}
+            disabled={isCreating || !excelFile}
+            onClick={async () => {
+              if (!excelFile) return;
+              try {
+                setIsCreating(true);
+                await onCreate(
+                  listName.trim(),
+                  repoName.trim(),
+                  projectName.trim(),
+                  firstGate.trim(),
+                  "from-excel",
+                  excelFile
+                );
+              } finally {
+                setIsCreating(false);
+              }
+            }}
+            style={{ marginLeft: 8 }}
+          >
+            {isCreating ? "Processing…" : "From Excel template"}
+          </button>
 
-        <button
-          type="button"
-          className={styles["secondaryCtaButton"]}
-          onClick={onCancel}
-          style={{ marginLeft: 8 }}
-        >
-          Cancel
-        </button>
+          <button
+            type="button"
+            className={styles["secondaryCtaButton"]}
+            onClick={onCancel}
+            style={{ marginLeft: 8 }}
+            disabled={isCreating}
+          >
+            Cancel
+          </button>
         
       </div>
     </div>

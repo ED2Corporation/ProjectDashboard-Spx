@@ -34,8 +34,11 @@ export interface IProjectDashboardProps {
     projectTitle: string,
     listName: string,
     repositoryName: string,
-    firstGate: string
-  ) => void;
+    firstGate: string,
+    mode: "empty" | "from-excel",
+    file?: File
+  ) => Promise<void>;
+
 
   description: string;
   project: IProjectListItem;
