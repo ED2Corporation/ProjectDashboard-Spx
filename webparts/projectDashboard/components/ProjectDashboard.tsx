@@ -56,7 +56,7 @@ export default class ProjectDashboard extends React.Component<
     } = this.props;
     
     const { showDetails, allTasks, showCard, showTasks, selectedTask, showBuckets, showDashboard   } = this.state;
-
+   
     return (
       <>
         <div id="progress-header" className={styles["rowContainer"]}>
@@ -295,7 +295,7 @@ export default class ProjectDashboard extends React.Component<
 
             )}
 
-            {this.props.showLog && this.props.environmentMessage.length > 0 && (
+            {false &&this.props.showLog && this.props.environmentMessage.length > 0 && (
               <>
                 <p>
                   <strong>System Log: </strong> {this.props.environmentMessage}

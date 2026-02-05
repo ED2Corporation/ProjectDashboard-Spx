@@ -29,10 +29,10 @@
       "properties": {
         "description": "Create a plan in planner and register their Id as Source Name... ",
         "refreshInterval": "5000",
-        "projectName": "Plan Template",
-        "sourceName": "v-GYUc-0Jkqnqzs9WcCCjmUADgfe",
+        "projectName": "New Project",
+        "sourceName": "NewProject-List",
         "projectURL": "https://ed2corp.sharepoint.com/sites/home",
-        "repositoryName": "EvidenceRepository",
+        "repositoryName": "NewProject-Evidence",
         "isPlanner": true,
         "isDashboard": true,
         "showButtons": true,

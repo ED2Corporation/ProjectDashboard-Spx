@@ -32,6 +32,7 @@ import "@pnp/sp/lists";
 import "@pnp/sp/fields";
 import "@pnp/sp/views";
 import { IList } from "@pnp/sp/lists";
+import NewProjectSetup, { NewProjectSetupProps } from './components/NewProjectSetup';
 
 interface ErrorPageProps {
   project: string;
@@ -55,6 +56,7 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
   private MsgError = 2;
   private _sp: SPFI;
   private _currentGate: string = "all";
+  private _showNewProjectSetup: boolean = false;
 
   protected async onInit(): Promise<void> {
     this._sysError = false;
@@ -115,20 +117,48 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
       }
     );
 
+    const newProjectSetup: React.ReactElement<NewProjectSetupProps> = React.createElement(
+      NewProjectSetup,
+      {
+        defaultProjectName: this.properties.projectName,
+        defaultSourceName: this.properties.sourceName,
+        defaultRepositoryName: this.properties.repositoryName,
+        onCancel: async () => {
+          // si cancela, simplemente recargas (seguirá sin tareas)
+          this._showNewProjectSetup = false;
+          await this._onReset();
+        },
+        onCreate: async (listName, repoName, projectTitle, firstGate, mode, file) => {
+          await this._onCreateNewProject(
+            listName,
+            repoName,
+            projectTitle,
+            firstGate,
+            mode,
+            file
+          );
+          this._showNewProjectSetup = false;
+          await this._onReset(); // ahora ya habrá tareas
+        },
+      }
+    );
+
     const errorPage: React.ReactElement<ErrorPageProps> = React.createElement(
       ErrorPage,
       {
         project: this.properties.projectName,
-        errorMsg: this._environmentMessage
+        errorMsg: this._environmentMessage,
       }
     );
 
+    // Lógica de selección
     if (this._sysError) {
       ReactDom.render(errorPage, this.domElement);
-    }
-    else {
+      ReactDom.render(newProjectSetup, this.domElement);
+    } else if (this._showNewProjectSetup) {
+      ReactDom.render(newProjectSetup, this.domElement);
+    } else {
       ReactDom.render(projectDashboard, this.domElement);
-
     }
   }
 
@@ -455,8 +485,6 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
     }
   }
 
-
-
   private async _ensureDefaultViewFields(list: IList, fieldInternalNames: string[]) {
     // Obtiene la vista por defecto
     const view = await list.defaultView;
@@ -473,9 +501,6 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
       await view.fields.add(field);
     }
   }
-
-
-
 
   private async _ensureEvidenceRepository(repositoryName: string): Promise<void> {
     try {
@@ -567,10 +592,10 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
     }
   }
 
-
   /** */
   private _onReset = async (): Promise<void> => {
     this._sysError = false;
+    this._showNewProjectSetup = false;
 
     if (this._projectSelected.isPlanner) {
       await this._onGetPlannerListItems();
@@ -581,11 +606,25 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
 
     if (this._tasks.length > 0) {
       await this._onGetGateListItems();
-      this._filteredTasks = FilterTasks(this._tasks, "gate", this._currentGate || "actual");
+      this._filteredTasks = FilterTasks(
+        this._tasks,
+        "gate",
+        this._currentGate || "actual"
+      );
+    } else {
+      // No hay tareas -> mostrar NewProjectSetup
+      this._showNewProjectSetup = true;
     }
-    console.log("[_onReset] Data reset completed. Total tasks: " + this._tasks.length + "\nSelected Task: " + this._selectedTask?.Task);
+
+    console.log(
+      "[_onReset] Data reset completed. Total tasks: " +
+      this._tasks.length +
+      "\nSelected Task: " +
+      this._selectedTask?.Task
+    );
     this.render();
-  }
+  };
+
 
   private _onGetPlannerListItems = async (): Promise<void> => {
 

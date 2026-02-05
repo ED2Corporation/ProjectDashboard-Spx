@@ -1,7 +1,7 @@
 import React, {  } from "react";
 import styles from "./ProjectDashboard.module.scss";
 
-interface NewProjectSetupProps {
+export interface NewProjectSetupProps {
   defaultProjectName?: string;
   defaultSourceName?: string;
   defaultRepositoryName?: string;
