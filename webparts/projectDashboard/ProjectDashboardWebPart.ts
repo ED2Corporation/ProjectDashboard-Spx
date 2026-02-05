@@ -27,6 +27,11 @@ import { IDynamicDataPropertyDefinition } from '@microsoft/sp-dynamic-data';
 import { SPFI, spfi } from "@pnp/sp";
 import { SPFx } from "@pnp/sp/presets/all";
 import { compareWbs } from "./components/ParseWBS";
+import "@pnp/sp/webs";
+import "@pnp/sp/lists";
+import "@pnp/sp/fields";
+import "@pnp/sp/views";
+import { IList } from "@pnp/sp/lists";
 
 interface ErrorPageProps {
   project: string;
@@ -386,35 +391,91 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
     //alert(`Excel import finished.\nRows created: ${created}`);
   }
 
-
-
   private async _ensureTaskList(listTitle: string): Promise<void> {
     const web = this._sp.web;
 
     try {
-      console.log(`Ensuring task list exists: ${listTitle}`);
-      const exists = await web.lists.getByTitle(listTitle).select("Id")().then(() => true).catch(() => false);
-      if (exists) return;
+      console.log(`[_ensureTaskList] Ensuring list and schema for: ${listTitle}`);
 
-      await web.lists.add(listTitle, "Project tasks list", 100, true);
-      const list = web.lists.getByTitle(listTitle);
+      // 1) Asegurar que la lista exista (la crea si no existe)
+      const ensureResult = await web.lists.ensure(listTitle, "Project tasks list", 100, true);
+      const list: IList = ensureResult.list;
 
-      // Campos mínimos según tu ITaskListItem
-      await list.fields.addText("Gate");
-      await list.fields.addText("Task");
-      await list.fields.addText("Deliverable");
-      await list.fields.addNumber("Complete");
-      await list.fields.addDateTime("Start");
-      await list.fields.addDateTime("Finish");
-      await list.fields.addDateTime("ActualFinish");
-      await list.fields.addText("Description");
-      await list.fields.addText("EvidenceOfCompletion");
-      await list.fields.addText("EvidenceDescription");
+      // 2) Asegurar columnas necesarias (idempotente)
+      await this._ensureTextField(list, "Gate");
+      await this._ensureTextField(list, "Task");
+      await this._ensureTextField(list, "Deliverable");
+      await this._ensureNumberField(list, "Complete");
+      await this._ensureDateField(list, "Start");
+      await this._ensureDateField(list, "Finish");
+      await this._ensureDateField(list, "ActualFinish");
+      await this._ensureTextField(list, "Description");
+      await this._ensureTextField(list, "EvidenceOfCompletion");
+      await this._ensureTextField(list, "EvidenceDescription");
+
+      // 3) Opcional: agregar columnas a la vista por defecto
+      await this._ensureDefaultViewFields(list, [
+        "Title",
+        "Gate",
+        "Task",
+        "Deliverable",
+        "Complete",
+        "Start",
+        "Finish",
+        "ActualFinish",
+      ]);
+
     } catch (error) {
-      console.error("[_ensureTaskList] Error:", error);
+      console.error("[_ensureTaskList] Error ensuring list & schema:", error);
       throw error;
     }
   }
+
+  private async _ensureTextField(list: IList, name: string) {
+    const fields = await list.fields.select("InternalName")();
+    const exists = fields.some((f: any) => f.InternalName === name);
+    if (!exists) {
+      await list.fields.addText(name); // Title = "Gate", InternalName = "Gate"
+    }
+  }
+
+  private async _ensureNumberField(list: IList, name: string) {
+    const fields = await list.fields.select("InternalName")();
+    const exists = fields.some((f: any) => f.InternalName === name);
+    if (!exists) {
+      await list.fields.addNumber(name);
+    }
+  }
+
+  private async _ensureDateField(list: IList, name: string) {
+    const fields = await list.fields.select("InternalName")();
+    const exists = fields.some((f: any) => f.InternalName === name);
+    if (!exists) {
+      await list.fields.addDateTime(name);
+    }
+  }
+
+
+
+  private async _ensureDefaultViewFields(list: IList, fieldInternalNames: string[]) {
+    // Obtiene la vista por defecto
+    const view = await list.defaultView;
+
+    // Lee las columnas actuales de la vista
+    const viewFieldsResult = await view.fields.select("Items")();
+    const currentFields: string[] =
+      (viewFieldsResult as any).Items?.results || (viewFieldsResult as any).Items || [];
+
+    const current = new Set<string>(currentFields);
+    const toAdd = fieldInternalNames.filter(f => !current.has(f));
+
+    for (const field of toAdd) {
+      await view.fields.add(field);
+    }
+  }
+
+
+
 
   private async _ensureEvidenceRepository(repositoryName: string): Promise<void> {
     try {

@@ -26,9 +26,11 @@ const NewProjectSetup: React.FC<NewProjectSetupProps> = ({
   const [projectName, setProjectName] = React.useState(defaultProjectName || "");
   const [listName, setListName] = React.useState(defaultSourceName || "");
   const [repoName, setRepoName] = React.useState(defaultRepositoryName || "EvidenceRepository");
-  const [firstGate, setFirstGate] = React.useState("1. Gate");
+  const [firstGate, setFirstGate] = React.useState("1. Design");
   const [isCreating, setIsCreating] = React.useState(false);
   const [excelFile, setExcelFile] = React.useState<File | null>(null);
+  const [listTouched, setListTouched] = React.useState(false);
+  const [repoTouched, setRepoTouched] = React.useState(false);  
 
   const handleCreate = async () => {
     try {
@@ -42,6 +44,32 @@ const NewProjectSetup: React.FC<NewProjectSetupProps> = ({
       );
     } finally {
       setIsCreating(false);
+    }
+  };
+
+  const toCamelNoSpaces = (value: string): string => {
+    return value
+      .trim()
+      .split(/\s+/)
+      .map((w, i) =>
+        i === 0
+          ? w.charAt(0).toLowerCase() + w.slice(1)
+          : w.charAt(0).toUpperCase() + w.slice(1)
+      )
+      .join("");
+  };
+
+  const handleProjectNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setProjectName(value);
+
+    const base = toCamelNoSpaces(value);
+
+    if (!listTouched) {
+      setListName(base ? `${base}-List` : "");
+    }
+    if (!repoTouched) {
+      setRepoName(base ? `${base}-Evidence` : "EvidenceRepository");
     }
   };
 
@@ -62,7 +90,7 @@ const NewProjectSetup: React.FC<NewProjectSetupProps> = ({
               <input
                 type="text"
                 value={projectName}
-                onChange={(e) => setProjectName(e.target.value)}
+                onChange={handleProjectNameChange}
                 className={styles["input-small"]}
                 placeholder="Displayed title for the project"
               />
@@ -77,7 +105,10 @@ const NewProjectSetup: React.FC<NewProjectSetupProps> = ({
               <input
                 type="text"
                 value={listName}
-                onChange={(e) => setListName(e.target.value)}
+                onChange={(e) => {
+                  setListTouched(true);
+                  setListName(e.target.value);
+                }}
                 className={styles["input-small"]}
                 placeholder="SharePoint list name"
               />
@@ -89,10 +120,13 @@ const NewProjectSetup: React.FC<NewProjectSetupProps> = ({
               <strong>Evidence repository folder:</strong>
             </td>
             <td >
-              <input
+             <input
                 type="text"
                 value={repoName}
-                onChange={(e) => setRepoName(e.target.value)}
+                onChange={(e) => {
+                  setRepoTouched(true);
+                  setRepoName(e.target.value);
+                }}
                 className={styles["input-small"]}
                 placeholder="Folder for completion evidence"
               />
