@@ -299,12 +299,18 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
     const XLSX = await import("xlsx");
 
     const arrayBuffer = await file.arrayBuffer();
-    const workbook = XLSX.read(arrayBuffer, { type: "array" });
-    const sheetName = workbook.SheetNames[0];
-    const sheet = workbook.Sheets[sheetName];
+    const workbook = XLSX.read(arrayBuffer, {
+      type: "array",
+      cellDates: true,
+      cellText: false
+    });
+    const sheet = workbook.Sheets[workbook.SheetNames[0]];
 
     // Convierte a objetos por fila usando la primera fila como headers
-    const rows: any[] = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+    const rows: any[] = XLSX.utils.sheet_to_json(sheet, {
+      defval: "",
+      raw: false
+    });
 
     if (!rows.length) {
       alert("Excel plan is empty.");
