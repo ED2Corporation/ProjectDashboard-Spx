@@ -162,16 +162,24 @@ export default class ProjectDashboard extends React.Component<
                 defaultSourceName={this.props.project.ListName}
                 defaultRepositoryName={this.props.project.RepositoryName}
                 onCancel={() => this.setState({ showNewProject: false })}
-                onCreate={(
-                  projectTitle: string,
+                onCreate={async (
                   listName: string,
                   repositoryName: string,
+                  projectTitle: string,
                   firstGate: string
-                ) => {
-                  this.props.onCreateNewProject?.(projectTitle, listName, repositoryName, firstGate);
+                ): Promise<void> => {
+                  if (this.props.onCreateNewProject) {
+                    await this.props.onCreateNewProject(
+                      projectTitle,
+                      listName,
+                      repositoryName,
+                      firstGate
+                    );
+                  }
                   this.setState({ showNewProject: false });
                 }}
               />
+
             )}
           </div>
         )}

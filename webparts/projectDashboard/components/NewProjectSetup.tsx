@@ -6,7 +6,7 @@ interface NewProjectSetupProps {
   defaultSourceName?: string;
   defaultRepositoryName?: string;
   onCancel: () => void;
-  onCreate: (listName: string, repositoryName: string, projectTitle: string, firstGate: string) => void;
+  onCreate: (listName: string, repositoryName: string, projectTitle: string, firstGate: string) => Promise<void>;
 }
 
 const NewProjectSetup: React.FC<NewProjectSetupProps> = ({
@@ -19,7 +19,23 @@ const NewProjectSetup: React.FC<NewProjectSetupProps> = ({
   const [projectName, setProjectName] = React.useState(defaultProjectName || "");
   const [listName, setListName] = React.useState(defaultSourceName || "");
   const [repoName, setRepoName] = React.useState(defaultRepositoryName || "EvidenceRepository");
-  const [firstGate, setFirstGate] = React.useState("Gate 1");
+  const [firstGate, setFirstGate] = React.useState("1. Gate");
+  const [isCreating, setIsCreating] = React.useState(false);
+
+  const handleCreate = async () => {
+    try {
+      setIsCreating(true);
+      await onCreate(
+        listName.trim(),
+        repoName.trim(),
+        projectName.trim(),
+        firstGate.trim()
+      );
+      // OJO: no cierres aquí; que el padre cierre el panel cuando termine
+    } finally {
+      setIsCreating(false);
+    }
+  };
 
   return (
     <div className={styles["task-card"]}>
@@ -27,7 +43,7 @@ const NewProjectSetup: React.FC<NewProjectSetupProps> = ({
         Start new project: {defaultProjectName}
       </h2>
 
-      <table className={styles["ed2Table"]}>
+      <table className={styles["task-table"]}>
         <tbody>
           <tr>
             <td className={styles.colLabel}>
@@ -45,10 +61,10 @@ const NewProjectSetup: React.FC<NewProjectSetupProps> = ({
           </tr>
 
           <tr>
-            <td className={styles.colLabel}>
+            <td >
               <strong>Task list name:</strong>
             </td>
-            <td className={styles.colInput}>
+            <td >
               <input
                 type="text"
                 value={listName}
@@ -60,10 +76,10 @@ const NewProjectSetup: React.FC<NewProjectSetupProps> = ({
           </tr>
 
           <tr>
-            <td className={styles.colLabel}>
+            <td >
               <strong>Evidence repository folder:</strong>
             </td>
-            <td className={styles.colInput}>
+            <td >
               <input
                 type="text"
                 value={repoName}
@@ -75,16 +91,16 @@ const NewProjectSetup: React.FC<NewProjectSetupProps> = ({
           </tr>
 
           <tr>
-            <td className={styles.colLabel}>
+            <td >
               <strong>First gate:</strong>
             </td>
-            <td className={styles.colInput}>
+            <td >
               <input
                 type="text"
                 value={firstGate}
                 onChange={(e) => setFirstGate(e.target.value)}
                 className={styles["input-small"]}
-                placeholder="e.g. Gate 1"
+                placeholder="e.g. 1. Gate"
               />
             </td>
           </tr>
@@ -92,21 +108,15 @@ const NewProjectSetup: React.FC<NewProjectSetupProps> = ({
       </table>
 
       <div style={{ marginTop: 12 }}>
+        {isCreating && <span className={styles.spinner} aria-label="Loading" />}
         <button
           type="button"
           className={styles["primaryCtaButton"]}
-          onClick={() =>
-            onCreate(
-              listName.trim(),
-              repoName.trim(),
-              projectName.trim(),
-              firstGate.trim()
-            )
-          }
+          disabled={isCreating}
+          onClick={handleCreate}
         >
-          Create project
+          {isCreating ? "Creating…" : "Create project"}
         </button>
-
         <button
           type="button"
           className={styles["primaryCtaButton"]}
@@ -130,6 +140,7 @@ const NewProjectSetup: React.FC<NewProjectSetupProps> = ({
         >
           Cancel
         </button>
+        
       </div>
     </div>
   );
