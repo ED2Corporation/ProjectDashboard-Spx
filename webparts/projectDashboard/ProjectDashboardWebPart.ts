@@ -27,7 +27,6 @@ import { IDynamicDataPropertyDefinition } from '@microsoft/sp-dynamic-data';
 import { SPFI, spfi } from "@pnp/sp";
 import { SPFx } from "@pnp/sp/presets/all";
 
-
 interface ErrorPageProps {
   project: string;
   errorMsg: string;
@@ -65,19 +64,6 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
     return super.onInit();
   }
 
-  private _onGateFilterChange = async (gate: string): Promise<void> => {
-    this._currentGate = gate;
-    if (this._tasks.length === 0) {
-      this._tasks = await this._getTaskListItems();
-    }
-    if (gate === "all") {
-      this._filteredTasks = this._tasks;
-    } else {
-      this._filteredTasks = FilterTasks(this._tasks, "gate", gate);
-    }
-    this.render();
-  };
-
   protected onDispose(): void {
     ReactDom.unmountComponentAtNode(this.domElement);
   }
@@ -98,6 +84,7 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
         showButtons: this.properties.showButtons,
         currentGate: this._currentGate,
         onGateFilterChange: this._onGateFilterChange,
+        onCreateNewProject: this._onCreateNewProject,
 
         filterValue: this.properties.filterValue,
 
@@ -254,11 +241,168 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
     }
   }
 
+  /*** New Project ****    */
+  private _onGateFilterChange = async (gate: string): Promise<void> => {
+    this._currentGate = gate;
+    if (this._tasks.length === 0) {
+      this._tasks = await this._getTaskListItems();
+    }
+    if (gate === "all") {
+      this._filteredTasks = this._tasks;
+    } else {
+      this._filteredTasks = FilterTasks(this._tasks, "gate", gate);
+    }
+    this.render();
+  };
+
+  private _onCreateNewProject = async (
+    listName: string,
+    repositoryName: string,
+    projectName: string,
+    firstGate: string
+  ): Promise<void> => {
+    try {
+      // 1) Crear lista de tareas si no existe
+      await this._ensureTaskList(listName);
+
+      // 2) Crear repositorio (carpeta) para EvidenceOfCompletion
+      await this._ensureEvidenceRepository(repositoryName);
+
+      // 3) Crear tarea por defecto
+      await this._createInitialTask(listName, firstGate);
+
+      // 4) Actualizar propiedades y recargar datos
+      this.properties.sourceName = listName;
+      this.properties.repositoryName = repositoryName;
+      this.properties.projectName = projectName;
+      this.properties.isPlanner = false;
+      this._projectSelected = this._getProjectInfo(this.properties.projectName);
+      this._currentGate = firstGate;
+
+      await this._onReset();
+    } catch (error) {
+      console.error("[_onCreateNewProject] Error:", error);
+      MessageLog(`[_onCreateNewProject] Error: ${error}`, "_onCreateNewProject", this.MsgError, this.properties.showLog);
+    }
+  };
+
+  private async _ensureTaskList(listTitle: string): Promise<void> {
+    const web = this._sp.web;
+
+    try {
+      console.log(`Ensuring task list exists: ${listTitle}`);
+      const exists = await web.lists.getByTitle(listTitle).select("Id")().then(() => true).catch(() => false);
+      if (exists) return;
+
+      await web.lists.add(listTitle, "Project tasks list", 100, true);
+      const list = web.lists.getByTitle(listTitle);
+
+      // Campos mínimos según tu ITaskListItem
+      await list.fields.addText("Gate");
+      await list.fields.addText("Task");
+      await list.fields.addText("Deliverable");
+      await list.fields.addNumber("Complete");
+      await list.fields.addDateTime("Start");
+      await list.fields.addDateTime("Finish");
+      await list.fields.addDateTime("ActualFinish");
+      await list.fields.addText("Description");
+      await list.fields.addText("EvidenceOfCompletion");
+      await list.fields.addText("EvidenceDescription");
+    } catch (error) {
+      console.error("[_ensureTaskList] Error:", error);
+      throw error;
+    }
+  }
+
+  private async _ensureEvidenceRepository(repositoryName: string): Promise<void> {
+    try {
+      console.log(`Ensuring evidence repository exists: ${repositoryName}`);
+
+      const siteUrl = this._siteUrl || this.context.pageContext.web.absoluteUrl;
+      const siteRelativePath = this.context.pageContext.web.serverRelativeUrl; // p.ej. "/sites/ED2-Team"
+      const folderPath = this._repositoryUrl;                                  // "/Shared Documents/ProjectsEvidence/"
+      const folderName = repositoryName || this._repositoryName;
+
+      const { ensureFolder } = await import("./components/UploadService");
+      await ensureFolder(
+        this.context.spHttpClient,
+        siteUrl,
+        siteRelativePath,
+        folderPath,
+        folderName
+      );
+    } catch (error) {
+      console.error("[_ensureEvidenceRepository] Error:", error);
+      throw error;
+    }
+  }
+
+  private async _createInitialTask(listName: string, gate: string): Promise<void> {
+    try {
+      console.log(`Creating initial task in list: ${listName} with gate: ${gate}`);
+      const today = new Date();
+
+      const addResult: any = await this._sp.web.lists
+        .getByTitle(listName)
+        .items.add({
+          Gate: gate || "Gate 1",
+          Deliverable: (gate || "Gate 1") + ". Deliverable",
+          Task: (gate || "Gate 1") + ". Task",
+          Start: today.toISOString(),
+          Finish: today.toISOString(),
+          Complete: 0
+        });
+
+      const addedId = addResult.Id as number | undefined;
+      if (!addedId) return;
+
+      const r: any = await this._sp.web.lists
+        .getByTitle(listName)
+        .items.getById(addedId)
+        .select(
+          "Id",
+          "Gate",
+          "Task",
+          "Deliverable",
+          "Complete",
+          "Start",
+          "Finish",
+          "ActualFinish",
+          "Description",
+          "EvidenceOfCompletion",
+          "EvidenceDescription"
+        )();
+
+      const task: ITaskListItem = {
+        Id: String(r.Id),
+        Gate: r.Gate ?? gate,
+        Task: r.Task ?? "New task",
+        Deliverable: r.Deliverable ?? "",
+        Complete: typeof r.Complete === "number" ? r.Complete : Number(r.Complete) || 0,
+        Start: r.Start ? new Date(r.Start) : today,
+        Finish: r.Finish ? new Date(r.Finish) : today,
+        ActualFinish: r.ActualFinish ? new Date(r.ActualFinish) : undefined,
+        Description: r.Description ?? "",
+        EvidenceOfCompletion: r.EvidenceOfCompletion
+          ? {
+            Url: r.EvidenceOfCompletion,
+            Description: r.EvidenceDescription ?? ""
+          }
+          : undefined,
+      };
+
+      this._selectedTask = task;
+    } catch (error) {
+      console.error("[_createInitialTask] Error:", error);
+      throw error;
+    }
+
+  }
+
   /** */
   private _onReset = async (): Promise<void> => {
     this._sysError = false;
 
-    console.log("[_onReset] Resetting data...\nActualTask:" + this._selectedTask?.Task);
     if (this._projectSelected.isPlanner) {
       await this._onGetPlannerListItems();
       await this._onPopulateAttachements();
@@ -307,8 +451,6 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
 
   // Updating planner details when project changes
   private async _onProjectChange(projectName: string): Promise<void> {
-    // Aquí puedes agregar la lógica personalizada que necesites ejecutar.
-    //if(this.properties.showLog) console.log(`Handling project change: ${projectName}`);
     MessageLog(`Handling project change: ${projectName}`, "_onProjectChange", this.MsgInfo, this.properties.showLog);
 
     this._projectSelected = this._getProjectInfo(this.properties.projectName);
@@ -329,6 +471,7 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
       Id: this.properties.sourceName,
       Title: this.properties.projectName,
       isPlanner: this.properties.isPlanner,
+      RepositoryName: this.properties.repositoryName,
       ListName: this.properties.sourceName,
       Link: { Url: this.properties.projectURL, Description: this.properties.projectName }
     };
@@ -351,11 +494,6 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
       );
       MessageLog("[_onSelectedItem] Received: Value: " + item + " Group: " + group + " Total: " + this._tasks.length + " Filtered: " + this._selectedTask.Task, "_onSelectedItem", this.MsgInfo, this.properties.showLog);
     }
-    // else {
-    //   this._filteredTasks = FilterTasks(this._tasks, group, item);
-    //   MessageLog("[_onSelectedItem] Received: Value: " + item + " Group: " + group + " Total: " + this._tasks.length + " Filtered: " + this._filteredTasks.length, "_onSelectedItem", this.MsgInfo, this.properties.showLog);
-    // }
-    //if(this.properties.showLog) console.log("Received: Value: " + item + " Group: " + group+ " Total: "+ response.length + " Filtered: " + this._tasks.length );
     this.render();
 
   }
@@ -367,14 +505,6 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
       const siteRelativePath = this.context.pageContext.web.serverRelativeUrl
       const folderPath = this._repositoryUrl + "/";
       var folderName = this.properties.repositoryName || this._repositoryName;
-      //var folderPath = siteRelativePath + this._repositoryUrl + "/" + repoName;
-
-      //console.log(`Uploading file to repository: ${siteUrl + siteRelativePath + folderPath + folderName} for task: ${taskTitle}`);
-      // console.log(`siteUrl : ${siteUrl} `);
-      // console.log(`siteRelativePath : ${siteRelativePath} `);
-      // console.log(`folderPath : ${folderPath} `);
-      // console.log(`folderName : ${folderName} `);
-      // console.log(`file : ${file.name} `);
 
       const { fileUrl, fileName } = await uploadEvidenceFile(
         this.context.spHttpClient,
@@ -397,7 +527,6 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
   private _onNewTask = async (
     gate: string
   ): Promise<void> => {
-    console.log("[_onNewTask] Creating new task in gate:", gate);
     try {
       //const newTask = this.newTask(gate);
 
@@ -417,7 +546,6 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
 
   private _onDeleteTask = async (taskId: string): Promise<void> => {
     if (!taskId) return;
-    console.log("[_onDeleteTask] Deleting task:", taskId);
 
     try {
       if (this.properties.isPlanner) {
@@ -429,7 +557,6 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
       this._onReset();
       this._selectedTask = null;
     } catch (error: any) {
-      console.error("[_onDeleteTask] Error:", error);
       MessageLog(`[_onDeleteTask] Error: ${error.message}`, "error");
     }
   };
@@ -460,7 +587,6 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
 
       this._onReset();
     } catch (error: any) {
-      console.error("[_onUpdateTask] Error:", error);
       MessageLog(`[_onUpdateTask] Error: ${error.message}`, "error");
     }
   };
@@ -482,8 +608,6 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
           Start: today.toISOString(),
           Finish: today.toISOString()
         });
-
-      console.log("[_createListTask] addResult:", addResult);
 
       const addedId = addResult.Id as number | undefined; // NO .data
       if (!addedId) {
@@ -509,8 +633,6 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
           "EvidenceDescription"
         )();
 
-      console.log(`[_createListTask] New List Task created: ${r.Id} - ${r.Task} in Gate: ${r.Gate}`);
-
       const task: ITaskListItem = {
         Id: String(r.Id),
         Gate: r.Gate ?? gate,
@@ -530,7 +652,6 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
       };
 
       this._selectedTask = task;
-      console.log(" New Task created for: " + task.Gate + " - " + task.Task);
     } catch (error) {
       console.error("[_createListTask] Error creating task:", error);
       throw error;
@@ -546,7 +667,6 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
   ): Promise<void> => {
     const listTitle = this.properties.sourceName;
     const curr = completeSafe ?? data.Complete;
-    console.log(`[_updateListTask] Updating List Task: ${data.Task} - Action: ${action} - Complete: ${curr} \n ${data} `);
     try {
       const actualFinishValue =
         curr === 100
@@ -560,6 +680,8 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
       // 1) Hacer el update
       if (action === "quick-complete") {
         await itemRef.update({
+          Task: data.Task,
+          Title: data.Gate + " - " + data.Task,
           Complete: curr,
           Finish: data.Finish,
           ActualFinish: actualFinishValue,
@@ -569,6 +691,7 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
       } else {
         await itemRef.update({
           Deliverable: data.Deliverable,
+          Title: data.Gate + " - " + data.Task,
           Gate: data.Gate,
           Task: data.Task,
           Description: data.Description,
@@ -596,8 +719,6 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
         "EvidenceDescription"
       )();
 
-      console.log(`[_updateListTask] List Task updated: ${r.Id} - ${r.Task} in Gate: ${r.Gate}`);
-
       const task: ITaskListItem = {
         Id: String(r.Id),
         Gate: r.Gate ?? data.Gate,
@@ -617,7 +738,6 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
       };
 
       this._selectedTask = task;
-      console.log(" Task updated for: " + task.Gate + " - " + task.Task);
 
     } catch (error) {
       console.error("[_updateListTask] Error updating task:", error);
@@ -704,7 +824,6 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
 
   /****** */
   private _onGetTaskListItems = async (): Promise<void> => {
-    //console.log("[_onGetTaskListItems] Fetching task list items...");
     const response: ITaskListItem[] = await this._getTaskListItems();
     this._tasks = response;
 
@@ -713,7 +832,6 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
 
   private async _getTaskListItems(): Promise<ITaskListItem[]> {
 
-    //if(this.properties.showLog) console.log("ProjectName : "+ this.properties.projectName);
     MessageLog("ProjectName : " + this.properties.projectName, "_getTaskListItems", this.MsgInfo, this.properties.showLog);
 
     //this._projectSelected = this._getProjectInfo(this.properties.projectName);
@@ -723,7 +841,6 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
         //, Responsible, Title, Barriers,  Effort, ActionableStatus
         const querySelect = `Id,Gate,Task,Deliverable,Complete,Start,Finish,ActualFinish,Description,EvidenceOfCompletion,EvidenceDescription`;
         const queryUrl = this._siteUrl + siteRelativePath + `/_api/web/lists/getbytitle('` + this._projectSelected.ListName + `')/items?$select=` + querySelect;
-        console.log("[_getTaskListItems] Fetching tasks from: " + this._projectSelected.ListName);
 
         const response = await this.context.spHttpClient.get(queryUrl, SPHttpClient.configurations.v1);
         if (!response.ok) {
@@ -756,7 +873,6 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
         const sortedItems = [...tasks].sort((a, b) => b.Gate.localeCompare(a.Gate));
 
         return sortedItems;
-        //console.log(groupedArray);  
       } catch (error) {
         if (this.properties.showLog) console.error("[_getTaskListItems] Error fetching gate list items:", error);
         //MessageLog("ProjectName : "+ this.properties.projectName,"_getTaskListItems",this.MsgInfo,this.properties.showLog);
@@ -802,18 +918,15 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
     if (this._projectSelected.ListName.length > 0) {
       try {
         if (this._tasks.length === 0) {
-          console.log("[_getGateListItems] Fetching task list items first... VALIDATE CASE");
           const response: ITaskListItem[] = await this._getTaskListItems();
           this._tasks = response;
         } else {
           if (this._tasks.length > 0) {
-            console.log("[_getGateListItems] Grouping tasks by gate...");
             return GroupByGate(this._tasks);
           }
         }
         MessageLog("Gate- List not found for: " + this.properties.projectName, "_getGateListItems", this.MsgError, this.properties.showLog);
         return []; //Error State      
-        //console.log(groupedArray);  
       } catch (error) {
         if (this.properties.showLog) console.error("Error fetching gate list items:", error);
         this._sysError = true;
@@ -822,7 +935,6 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
         return [];
       }
     } else {
-      //if(this.properties.showLog) console.error("Gate- List not found for: ", this.properties.projectName);
       MessageLog("Gate- List not found for: " + this.properties.projectName, "_getGateListItems", this.MsgError, this.properties.showLog);
       this._sysError = true;
       //this.render();  
@@ -837,7 +949,6 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
   ): ITaskListItem {
 
     const task = taskList.find((task) => task.Task === taskName);
-    //if(this.properties.showLog) console.log("findTaskByName  taskName: " + taskName+ " lenght: "+ taskList.length + " filter: "+  task?.Task);
 
     if (task !== undefined) {
       MessageLog("Found: " + taskName + " lenght: " + taskList.length + " filter: " + task?.Task, "findTaskByName", this.MsgInfo, this.properties.showLog);

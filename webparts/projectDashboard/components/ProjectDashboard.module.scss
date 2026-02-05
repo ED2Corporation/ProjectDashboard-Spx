@@ -315,8 +315,7 @@ h2 {
 }
 
 .colText {
-  min-width: 200px;
-  max-width: 250px;
+  width: 250px;
   text-align: left;
   vertical-align: top;
   white-space: normal;
@@ -326,9 +325,7 @@ h2 {
 }
 
 .colNumber {
-  width: 100px;
-  min-width: 100px;
-  max-width: 100px;
+  width: 60px;
   text-align: center;
   vertical-align: top;
 }
@@ -338,22 +335,19 @@ h2 {
   flex-direction: row;
   align-items: center;
   justify-content: center;
-  width: 50px;
+  width: 80px;
   text-align: center;
   vertical-align: top;
 }
 
 .colDate {
-  width: 120px;
-  min-width: 120px;
-  max-width: 120px;
+  width: 100px;
   text-align: center;
   vertical-align: top;
 }
 
 .colURL {
-  min-width: 200px;
-  max-width: 300px;
+  width: 250px;
   text-align: left;
   vertical-align: top;
   white-space: normal;
@@ -362,9 +356,14 @@ h2 {
   overflow-wrap: anywhere;
 }
 
+.tableRoot {
+  width: 100%;
+  border-collapse: collapse;
+}
+
 .tableRoot th,
 .tableRoot td {
-  vertical-align: middle;
+  vertical-align: top;
 }
 
 .green {
@@ -409,6 +408,70 @@ h2 {
 
 .blackFont {
   color: black;
+}
+
+.colLabel {
+  width: 180px;
+  padding: 4px 8px;
+  text-align: right;
+  vertical-align: top;
+  color: #323130;
+  font-size: 13px;
+}
+
+.colInput {
+  padding: 4px 8px;
+  vertical-align: top;
+}
+
+
+.primaryCtaButton {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 16px;
+  border-radius: 20px;
+  border: none;
+  background: #0078d4;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.16);
+  transition: background 0.2s ease, box-shadow 0.2s ease, transform 0.1s ease;
+}
+
+.primaryCtaButton:hover {
+  background: #005a9e;
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.2);
+}
+
+.primaryCtaButton:active {
+  transform: translateY(1px);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.secondaryCtaButton {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 16px;
+  border-radius: 20px;
+  border: 1px solid #8a8886;
+  background: #ffffff;
+  color: #323130;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+.secondaryCtaButton:hover {
+  background: #f3f2f1;
+  border-color: #605e5c;
+}
+
+.secondaryCtaButton:active {
+  background: #edebe9;
+  border-color: #484644;
 }
 
 .myComponent {
@@ -465,8 +528,8 @@ h2 {
   /* Añade el borde */
   padding: 4px;
   /* Da un espacio interno a las celdas */
-  vertical-align: middle;
-  text-align: center;
+  vertical-align: top;
+  text-align: middle;
   /* Alinea el contenido a la izquierda */
   size: 12px;
   background-color: whitesmoke;
@@ -478,7 +541,7 @@ h2 {
   /* Añade el borde */
   padding: 2px;
   /* Da un espacio interno a las celdas */
-  vertical-align: middle;
+  vertical-align: top;
   text-align: left;
   /* Alinea el contenido a la izquierda */
   size: 10px;
@@ -559,20 +622,35 @@ h2 {
   word-break: break-word;
 }
 
+/* Tercera columna (Status) ocupa el resto */
+.task-card-column {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  padding-left: 8px;
+}
+
 .task-card-row {
   display: flex;
   flex-direction: row;
+  align-items: stretch;
+  width: 100%;
+  gap: 12px;
 }
 
-.task-card-column {
-  display: flex;
-  flex-direction: column;
+.task-card-column textarea {
+  flex: 1 1 auto;
+  /* ocupa el resto del alto disponible */
+  min-height: 0;
+  width: 100%;
+  resize: vertical;
+  /* o 'none' si no quieres que lo cambien */
 }
+
 
 .task-card-body {
-  flex: 1;
+  flex: 0 0 auto;
   overflow-y: auto;
-  /* evita desborde vertical del contenido */
 }
 
 .task-card p {
@@ -583,14 +661,42 @@ h2 {
 
 /* tabla dentro del card */
 .task-table {
-  width: 100%;
   border-collapse: collapse;
 }
 
 .task-table td {
   padding: 4px 6px;
   vertical-align: top;
-  word-break: break-word;
+}
+
+.task-table td:first-child {
+  width: 120px;
+  max-width: 120px;
+  white-space: normal;
+  word-wrap: break-word;
+  text-align: right;
+}
+
+/* Segunda columna: inputs */
+.task-table td:nth-child(2) {
+  width: 200px;
+  max-width: 200px;
+}
+
+.task-table td:nth-child(2)>* {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.input-small {
+  width: 100%;
+  font-size: 12px;
+  padding: 2px 4px;
+  box-sizing: border-box;
+}
+
+.evidence-edit {
+  width: 100%;
 }
 
 /* botón de cierre en la esquina del header */
@@ -651,14 +757,6 @@ h2 {
 .icon-small {
   width: 18px;
   height: 15px;
-}
-
-.input-small {
-  width: 100%;
-  max-width: 140px;
-  font-size: 12px;
-  padding: 2px 4px;
-  box-sizing: border-box;
 }
 
 .evidence-edit {

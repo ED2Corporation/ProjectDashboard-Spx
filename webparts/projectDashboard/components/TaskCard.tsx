@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { ITaskListItem } from "../../../models";
 import styles from "./ProjectDashboard.module.scss";
+import EvidenceEditor from "./EvidenceEditor";
 
 interface TaskCardProps {
   task: ITaskListItem;
-  showDetails?: boolean | true;
+  isPlanner?: boolean;
   onClose?: () => void;
   onDelete: (id: string) => void;
   onNew: (task: ITaskListItem) => void;
@@ -18,7 +19,7 @@ interface TaskCardProps {
   ) => Promise<{ fileUrl: string; fileName: string }>;
 }
 
-const TaskCard: React.FC<TaskCardProps> = ({ task, showDetails, onClose, onSave, onDelete, onNew, onUploadEvidenceFile }) => {
+const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, onClose, onSave, onDelete, onNew, onUploadEvidenceFile }) => {
   const [gate, setGate] = useState(task.Gate ?? "");
   const [deliverable, setDeliverable] = useState(task.Deliverable ?? "");
   const [taskTitle, setTaskTitle] = useState(task.Task ?? "");
@@ -40,7 +41,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, showDetails, onClose, onSave,
   const [description, setDescription] = useState(task.Description ?? "");
   const [evidenceUrl, setEvidenceUrl] = useState(task.EvidenceOfCompletion?.Url ?? "");
   const [evidenceDesc, setEvidenceDesc] = useState(task.EvidenceOfCompletion?.Description ?? "");
-  const [isUploading, setIsUploading] = useState(false);
+  //const [isUploading, setIsUploading] = useState(false);
 
   useEffect(() => {
     setGate(task.Gate ?? "");
@@ -83,10 +84,10 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, showDetails, onClose, onSave,
             }
           : undefined,
     };
-
     // Convertir a JSON string
     const payload = JSON.stringify(data);
     //console.log("TaskCard handleSave called", payload);
+    console.log("TaskCard handleSave called with values:",payload);
 
     // Llamar el callback con taskId y payload JSON
     onSave(task.Id, payload);
@@ -173,20 +174,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, showDetails, onClose, onSave,
                     className={styles["input-small"]}
                   />
                 </td>
-              </tr>
-              <tr>
-                <td>
-                  <strong>Deliverable:</strong>
-                </td>
-                <td>
-                  <input
-                    type="text"
-                    value={deliverable}
-                    onChange={e => setDeliverable(e.target.value)}
-                    className={styles["input-small"]}
-                  />
-                </td>
-              </tr>
+              </tr>              
               <tr>
                 <td>
                   <strong>Task:</strong>
@@ -202,19 +190,29 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, showDetails, onClose, onSave,
               </tr>
               <tr>
                 <td>
-                  <strong>Completion:</strong>
+                  <strong>% Complete:</strong>
                 </td>
                 <td >
-                  <select
-                    value={complete}
-                    onChange={e => setComplete(Number(e.target.value) || 0)}
-                    className={styles["select-complete"]}
-                  >
-                    <option value={0}>0%</option>
-                    <option value={50}>50%</option>
-                    <option value={100}>100%</option>
-                  </select>
-                  %
+                  {isPlanner ? (
+                    <select
+                      value={complete}
+                      onChange={(e) => setComplete(Number(e.target.value) || 0)}
+                      className={styles["select-complete"]}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <option value={0}>0%</option>
+                      <option value={50}>50%</option>
+                      <option value={100}>100%</option>
+                    </select>
+                  ) : (
+                    <input
+                      type="number"
+                      value={complete}
+                      onChange={(e) => setComplete(Number(e.target.value) || 0)}
+                      className={styles["input-small"]}
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                  )}              
                 </td>
               </tr>
 
@@ -282,138 +280,26 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, showDetails, onClose, onSave,
               <tr>
                 <td>    
                   <strong>Evidence of Completion:</strong>              
-                  {/* Button to open URL */}
-                  {evidenceUrl && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (/^https?:\/\/\S+/i.test(evidenceUrl)) {
-                          window.open(evidenceUrl, "_blank");
-                        }
-                      }}
-                      title="Open evidence link"
-                      className={styles["icon-button"]}
-                      style={{ padding: 4 }}
-                      disabled={!/^https?:\/\/\S+/i.test(evidenceUrl)}
-                    >
-                      <img
-                        src={require("../assets/Document.png")}
-                        alt="open"
-                        className={styles["icon-small"]}
-                      />
-                    </button>
-                  )}
-                  {/* Button to Upload File */}
-                  
-                    {/* Upload file control */}
-                    <label className={styles["icon-button"]} title="Upload file">
-                      <input
-                        type="file"
-                        style={{ display: "none" }}                              
-                        
-                        onChange={async (ev) => {
-                          ev.stopPropagation();
-                          const file = ev.target.files?.[0];
-                          if (!file) return;
-
-                          try {
-                            setIsUploading(true);
-                            if (onUploadEvidenceFile) {
-                              // 1) Subir archivo y obtener URL/Nombre
-                              const result = await onUploadEvidenceFile(file, evidenceDesc || "CompletionEvidence");
-                              if (!result) return;
-
-                              const { fileUrl, fileName } = result;
-                              console.log("Uploaded file URL:", fileUrl, "Name:", fileName);
-
-                              // 2) Actualizar campos locales de edición
-                              const newUrl = fileUrl;
-                              const newDesc = fileName || "EvidenceFile";
-
-                              const data = {
-                                Id: task.Id,
-                                Deliverable: deliverable,
-                                Gate: gate,
-                                Task: taskTitle,
-                                Complete: complete,
-                                Effort: effort ? Number(effort) : undefined,
-                                Barriers: barriers,
-                                ActionableStatus: actionableStatus,
-                                Description: description,
-                                Start: start ? new Date(start) : undefined,
-                                Finish: finish ? new Date(finish) : undefined,
-                                ActualFinish: actualFinish ? new Date(actualFinish) : undefined,
-                                EvidenceOfCompletion:
-                                  newUrl || newDesc
-                                    ? {
-                                        Url: newUrl,
-                                        Description: newDesc,
-                                      }
-                                    : undefined,
-                              };
-
-                              // Convertir a JSON string
-                              const payload = JSON.stringify(data);
-                              //console.log("TaskCard handleSave called", payload);
-
-                              // Llamar el callback con taskId y payload JSON
-                              onSave(task.Id, payload);
-                                if (onClose) {
-                                  onClose();
-                                }
-                            }
-                          } catch (err) {
-                            console.error("Upload failed:", err);
-                            alert("[TaskCard] File upload failed. \nPlease validate if the repository folder has been created and try again (defined in settings).");
-                          } finally {
-                            setIsUploading(false);
-                            (ev.target as HTMLInputElement).value = "";
-                          }
-                        }}
-
-                      />
-                      {/* button face */}
-                      <img
-                        src={require("../assets/Upload.png")}
-                        alt="upload"
-                        className={styles["icon-small"]}
-                      />
-                    </label>
-                    {/* optional: simple spinner / progress text */}
-                    {isUploading && <span style={{ fontSize: 10 }}>Uploading…</span>}
 
                 </td>
                 <td>              
                   <div className={styles["evidence-edit"]}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <input
-                        type="text"
-                        value={evidenceUrl}
-                        onChange={e => {
-                          // Sanitiza: quita espacios invisibles y recorta
-                          const cleanValue = e.target.value.trim().replace(/[\u200B-\u200D\uFEFF\u00A0]/g, "");
-                          setEvidenceUrl(cleanValue);
-                        }}
-                        placeholder="Evidence URL"
-                        className={styles["input-small"]}
-                        style={{ flex: 1 }}
-                      />            
-                    </div>
-
-                    {/* Hint visual si la URL no es válida */}
-                    {evidenceUrl && !/^https?:\/\/\S+/i.test(evidenceUrl) && (
-                      <div style={{ color: "red", fontSize: "12px", marginTop: 4 }}>
-                        La URL debe iniciar con <strong>http(s)://</strong>
-                      </div>
-                    )}
-                    <input
-                      type="text"
-                      value={evidenceDesc}
-                      onChange={e => setEvidenceDesc(e.target.value)}
-                      placeholder="Evidence description"
-                      className={styles["input-small"]}
-                      style={{ marginTop: 4, width: "100%" }}
-                    />
+                    <EvidenceEditor
+                      evidenceUrl={evidenceUrl}
+                      evidenceDesc={evidenceDesc}
+                      onChangeUrl={(v) => {
+                        // sanitizar si quieres
+                        const cleanValue = v.trim().replace(/[\u200B-\u200D\uFEFF\u00A0]/g, "");
+                        setEvidenceUrl(cleanValue);
+                      }}
+                      onChangeDesc={setEvidenceDesc}
+                      onUploadEvidenceFile={onUploadEvidenceFile}
+                      taskId={task.Id}
+                      taskTitle={taskTitle || task.Task || "CompletionEvidence"}
+                      onQuickSave={undefined}
+                      onAfterUpload={undefined}
+                      stopRowClick={false}                      
+                    />                    
                   </div>
                 </td>
               </tr>
@@ -428,7 +314,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, showDetails, onClose, onSave,
               onChange={e => setDescription(e.target.value)}
               className={styles["input-small"]}
               rows={3}
-              style={{ width: "100%", height: "100%", resize: "vertical" }}
+              style={{ width: "100%", resize: "vertical" }}
               placeholder="Add notes or description for this task..."
             />
           

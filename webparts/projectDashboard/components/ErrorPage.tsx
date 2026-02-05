@@ -12,8 +12,7 @@ const ErrorPage: React.FC<ErrorPageProps> = ({ errorMsg, project }) => {
   return (
     <div className="task-card">
       <div>        
-          <h1> {"The project list for: <" + project + "> is not defined..."} </h1>          
-          <p>{errorMsg} </p>
+          <h1> {"The project list for: <" + project + "> is not defined..."} </h1>                    
       </div>
     </div>
   );

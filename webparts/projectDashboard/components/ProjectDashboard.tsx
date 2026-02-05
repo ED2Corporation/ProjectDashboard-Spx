@@ -7,6 +7,7 @@ import TaskCard from "./TaskCard";
 import ListTasks from "./ListTasks";
 import { MessageLog } from "./MessageLog";
 import DoughnutChart from "./Doughnut";
+import NewProjectSetup from "./NewProjectSetup";
 import { GroupByProject } from "./GroupByProject";
 
 interface IProjectDashboardState {
@@ -16,6 +17,7 @@ interface IProjectDashboardState {
   showDetails: boolean;
   showBuckets: boolean; 
   showDashboard: boolean; 
+  showNewProject: boolean;
   selectedTask: ITaskListItem | null;
 }
 
@@ -32,6 +34,7 @@ export default class ProjectDashboard extends React.Component<
       showDetails: false,
       showBuckets: false,
       showDashboard: true,
+      showNewProject: false,
       selectedTask: this.props.selectedTask || null 
     };
   }
@@ -141,7 +144,34 @@ export default class ProjectDashboard extends React.Component<
               </div>
             )}
             {spGateListItems.length === 0 && (
-              <h1>Review your plan setup (unable to reach the info)... </h1>
+              <div>
+                <h1>Review your plan setup (unable to reach the info)...</h1>
+                  <button
+                    type="button"
+                    className={styles["primaryCtaButton"]}
+                    onClick={() => this.setState({ showNewProject: !this.state.showNewProject })}
+                    >                    
+                    Start new project
+                  </button>
+
+              </div>
+            )}
+            {this.state.showNewProject && (
+              <NewProjectSetup
+                defaultProjectName={this.props.project.Title}
+                defaultSourceName={this.props.project.ListName}
+                defaultRepositoryName={this.props.project.RepositoryName}
+                onCancel={() => this.setState({ showNewProject: false })}
+                onCreate={(
+                  projectTitle: string,
+                  listName: string,
+                  repositoryName: string,
+                  firstGate: string
+                ) => {
+                  this.props.onCreateNewProject?.(projectTitle, listName, repositoryName, firstGate);
+                  this.setState({ showNewProject: false });
+                }}
+              />
             )}
           </div>
         )}
@@ -176,7 +206,7 @@ export default class ProjectDashboard extends React.Component<
             {showCard && selectedTask &&(
               <TaskCard
                 task={selectedTask}
-                showDetails={true}
+                isPlanner={project.isPlanner || false}
                 onClose={() => this.setState({ showCard: false })}
                 onNew={(task) => {
                   console.log("TaskCard onNew:", task);
@@ -207,15 +237,14 @@ export default class ProjectDashboard extends React.Component<
               
               <ListTasks
                 tasks={allTasks ? spTaskListItems : spFilteredTaskItems}
+                isPlanner={project.isPlanner || false}
                 heading={allTasks ? "All Tasks" : spFilteredTaskItems[0]?.Gate || "No tasks defined..."}
                 showDetails={showDetails}
                 onSave={(taskId, payloadJson) => {
+                  console.log("Update DB ListTasks:", taskId,"allTasks:", allTasks,"showTasks:", showTasks, payloadJson);
                   this.props.onUpdateTask?.(taskId, "quick-complete", payloadJson);
-                  //this.setState({ allTasks: false });
-                  //this.setState({ showTasks: true });                
-                  //console.log("Update DB ListTasks:", taskId,"allTasks:", allTasks,"showTasks:", showTasks);
                   
-                }}onSelectItem={(item, group, mode, payload) => {
+                }}onSelectItem={(item, group, mode) => {
                   console.log("ListTasks:", item, group, mode);                  
                   
                   if (!item || !item.Task) return;

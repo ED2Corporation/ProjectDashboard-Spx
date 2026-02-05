@@ -57,7 +57,7 @@ export async function uploadEvidenceFile(
     }
 }
 
-async function ensureFolder(
+export async function ensureFolder(
     spHttpClient: SPHttpClient,
     siteUrl: string,        // siteUrl : https://ed2corp.sharepoint.com/ 
     relativePath: string,   // siteRelativePath : / 

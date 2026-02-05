@@ -5,12 +5,14 @@ import { ITaskListItem } from "../../../models";
 import { GetDelay } from "./GetDelay";
 import { GetFormatDate } from "./GetFormatDate";
 import styles from "./ProjectDashboard.module.scss";
+import EvidenceEditor from "./EvidenceEditor";
 
 interface ListGroupProps {
   tasks: ITaskListItem[];
   heading: string;
   projectSiteURL?: string;
   showDetails?: boolean | true;
+  isPlanner?: boolean;
   onSave: (
     item: string,                 
     payload?: string
@@ -30,16 +32,18 @@ const ListTasks = ({
   onSave,
   onSelectItem,
   showDetails,
+  isPlanner,
   onUploadEvidenceFile,
 }: ListGroupProps) => {
   // UI state
   const [selectedIndex, setSelectedIndex] = useState(-1);
+  const [editTaskTitle, setEditTaskTitle] = useState<string>("");
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const [editEvidenceUrl, setEditEvidenceUrl] = useState<string>("");
   const [editEvidenceDesc, setEditEvidenceDesc] = useState<string>("");
   const [editPercentComplete, setEditPercentComplete] = useState<number>(0);
   const [editFinish, setEditFinish] = useState<string>("");
-  const [isUploading, setIsUploading] = useState(false);
+  //const [isUploading, setIsUploading] = useState(false);
 
   // Helper: convert Date/ISO/string -> YYYY-MM-DD (local time) for the date input
   const toDateInputValue = (value: any): string => {
@@ -141,41 +145,24 @@ const ListTasks = ({
                         className={styles["icon-small"]}
                       />
                     </button>
-                  </td>
-                  {/* Task column */}
-                  <td className={styles.colText}>                    
-                    <span>{item.Task}</span>
-                  </td>
 
-                  {/* Completed column with edit/save actions */}
-                  <td className={styles["cell-complete"]}>
                     {editingTaskId === item.Id ? (
-                      <>
-                        {/* Progress selector shown only in edit mode */}
-                        <select
-                          value={editPercentComplete}
-                          onChange={(e) =>
-                            setEditPercentComplete(parseInt(e.target.value, 10))
-                          }
-                          className={styles["select-complete"]}
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <option value={0}>0%</option>
-                          <option value={50}>50%</option>
-                          <option value={100}>100%</option>
-                        </select>
-
+                      <>                        
                         {/* Save/Accept button */}
                         <button
                           type="button"
                           className={styles["icon-button"]}
                           onClick={() => {
 
+                          console.log("item.Task:", item.Task);
+                          console.log("editTaskTitle:", editTaskTitle);
+                          
                             const payload = JSON.stringify({
                               Id: item.Id,
+                              Gate: item.Gate,
+                              Task: editTaskTitle, 
                               Complete: editPercentComplete,
-                              // Include both formats so the caller can choose
-                              Finish: editFinish || null,   // "YYYY-MM-DD"
+                              Finish: editFinish || null,   // "YYYY-MM-DD"                                                       
                               EvidenceOfCompletion: {
                                 Url: editEvidenceUrl,
                                 Description: editEvidenceDesc,
@@ -203,6 +190,7 @@ const ListTasks = ({
                           className={styles["icon-button"]}
                           onClick={() => {
                             setEditingTaskId(item.Id);
+                            setEditTaskTitle(item.Task || "");
                             setEditPercentComplete(item.Complete);
                             setEditEvidenceUrl(item.EvidenceOfCompletion?.Url ?? "");
                             setEditEvidenceDesc(item.EvidenceOfCompletion?.Description ?? "");
@@ -217,6 +205,58 @@ const ListTasks = ({
                             className={styles["icon-small"]}
                           />
                         </button>
+                      </>
+                    )}
+                  </td>
+                  {/* Task column */}
+                  <td className={styles.colText}>
+                    {editingTaskId === item.Id ? (
+                      <input
+                        type="text"
+                        value={editTaskTitle}
+                        onChange={(e) => {
+                          setEditTaskTitle(e.target.value);
+                        }}
+                        className={styles["input-small"]}
+                        onClick={(e) => e.stopPropagation()}
+                        placeholder="Task title"
+                      />
+                    ) : (
+                      <span>{item.Task}</span>
+                    )}
+                  </td>
+
+                  {/* % Completed column with edit/save actions */}
+                  <td className={styles["cell-complete"]}>
+                    {editingTaskId === item.Id ? (
+                      <>
+                        {/* Progress selector shown only in edit mode */}
+                        {isPlanner ? (
+                          <select
+                            value={editPercentComplete}
+                            onChange={(e) => setEditPercentComplete(Number(e.target.value) || 0)}
+                            className={styles["select-complete"]}
+                            onClick={(e) => e.stopPropagation()}
+                            placeholder="% Complete"
+                          >
+                            <option value={0}>0%</option>
+                            <option value={50}>50%</option>
+                            <option value={100}>100%</option>
+                          </select>
+                        ) : (
+                          <input
+                            type="number"
+                            value={editPercentComplete}
+                            onChange={(e) => setEditPercentComplete(Number(e.target.value) || 0)}
+                            className={styles["input-small"]}
+                            onClick={(e) => e.stopPropagation()}
+                            placeholder="% Complete"
+                          />
+                        )}
+                        %                        
+                      </> 
+                    ) : (
+                      <>                        
                         <span>{Math.floor(item.Complete)}%</span>
                       </>
                     )}
@@ -251,113 +291,28 @@ const ListTasks = ({
                       GetFormatDate(item.Finish)
                     )}
                   </td>
-
                   
                   {/* Evidence of Completion column */}
                   <td className={styles.colURL}>
                     {editingTaskId === item.Id ? (
-                      <div className={styles["evidence-edit"]}>
-                        <div style={{
-                              display: "flex",
-                              flexDirection: "column",
-                              gap: 4,
-                              width: "100%",
-                            }}>
-                            <div className={styles.columnContainer}>
-                              <div className={styles.rowContainer}>
-                                {/* Name */}
-                                <label style={{ fontSize: 10, marginLeft: 4, marginRight: 4, width: 30 }}>Name:</label>
-                                <input
-                                  type="text"
-                                  title="Enter file name"
-                                  value={editEvidenceDesc}
-                                  onChange={(e) => setEditEvidenceDesc(e.target.value)}
-                                  placeholder="File name"
-                                  className={styles["input-small"]}
-                                  onClick={(e) => e.stopPropagation()}
-                                  style={{ flex: "1 1 250px" }}
-                                />        
-                                {/* Upload file control */}
-                                <label className={styles["icon-button"]} title="Upload file">
-                                  <input
-                                    type="file"
-                                    style={{ display: "none" }}                              
-                                    
-                                    onChange={async (ev) => {
-                                      ev.stopPropagation();
-                                      const file = ev.target.files?.[0];
-                                      if (!file) return;
-
-                                      try {
-                                        setIsUploading(true);
-                                        if (onUploadEvidenceFile) {
-                                          // 1) Subir archivo y obtener URL/Nombre
-                                          const result = await onUploadEvidenceFile(file, item.Task || "CompletionEvidence");
-                                          if (!result) return;
-
-                                          const { fileUrl, fileName } = result;
-
-                                          // 2) Actualizar campos locales de edición
-                                          const newUrl = fileUrl;
-                                          const newDesc = fileName || "Evidence file";
-                                          console.log("Uploaded file URL:", newUrl, "Name:", newDesc);
-
-                                          setEditEvidenceUrl(newUrl);
-                                          setEditEvidenceDesc(newDesc);
-
-                                          // 3) Construir payload igual que el botón "Accept / Update DB"
-                                          const payload = JSON.stringify({
-                                            Id: item.Id,
-                                            Complete: editPercentComplete,
-                                            Finish: editFinish || null,
-                                            EvidenceOfCompletion: {
-                                              Url: newUrl,
-                                              Description: newDesc,
-                                            },
-                                          });
-
-                                          // 4) Disparar onSelectItem en modo "quick-complete"
-                                          onSave(item.Id, payload);
-
-                                          // 5) Cerrar modo edición si quieres mismo comportamiento que botón
-                                          setEditingTaskId(null);
-                                        }
-                                      } catch (err) {
-                                        console.error("Upload failed:", err);
-                                        alert("[ListTasks] File upload failed. \nPlease validate if the repository folder (defined in settings) has been created and try again.");
-                                      } finally {
-                                        setIsUploading(false);
-                                        (ev.target as HTMLInputElement).value = "";
-                                      }
-                                    }}
-                                  />
-                                  {/* button face */}
-                                  <img
-                                    src={require("../assets/Upload.png")}
-                                    alt="upload"
-                                    className={styles["icon-small"]}
-                                  />
-                                </label>
-                                {/* optional: simple spinner / progress text */}
-                                {isUploading && <span style={{ fontSize: 10 }}>Uploading…</span>}
-                              </div>
-                              <div className={styles.rowContainer}>
-                                {/* URL */}
-                                  <label style={{ fontSize: 10, marginLeft:4, marginRight: 4, width: 30 }}>URL:</label>
-                                  <input
-                                    type="text"
-                                    title="Enter URL"
-                                    value={editEvidenceUrl}
-                                    onChange={(e) => setEditEvidenceUrl(e.target.value)}
-                                    placeholder="Evidence URL"
-                                    className={styles["input-small"]}
-                                    onClick={(e) => e.stopPropagation()}
-                                    style={{ flex: "1 1 300px" }}
-                                  />                                                                   
-                              </div>
-                            </div>
-                        </div>
-                      </div>
+                      <EvidenceEditor
+                        evidenceUrl={editEvidenceUrl}
+                        evidenceDesc={editEvidenceDesc}
+                        onChangeUrl={setEditEvidenceUrl}
+                        onChangeDesc={setEditEvidenceDesc}
+                        onUploadEvidenceFile={onUploadEvidenceFile}
+                        taskId={editingTaskId}
+                        taskTitle={editTaskTitle || "CompletionEvidence"}
+                        complete={editPercentComplete}
+                        finish={editFinish || null}
+                        onQuickSave={(payloadJson) => {
+                          onSave(editingTaskId, payloadJson);
+                          setEditingTaskId(null);
+                        }}
+                        onAfterUpload={() => {
+                          setEditingTaskId(null);
+                        }}
+                      />
                     ) : item.EvidenceOfCompletion?.Url ? (
                       <a
                         href={item.EvidenceOfCompletion.Url}

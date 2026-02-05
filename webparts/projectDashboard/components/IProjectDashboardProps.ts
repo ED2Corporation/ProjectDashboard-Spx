@@ -30,6 +30,13 @@ export interface IProjectDashboardProps {
   ) => void;
   onUploadFile?: UploadEvidenceHandler;
 
+  onCreateNewProject?: (
+    projectTitle: string,
+    listName: string,
+    repositoryName: string,
+    firstGate: string
+  ) => void;
+
   description: string;
   project: IProjectListItem;
   repositoryURL: string;
