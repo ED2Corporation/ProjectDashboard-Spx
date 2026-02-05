@@ -680,6 +680,8 @@ export class PlannerService {
         task.dueDateTime ? new Date(task.dueDateTime) : new Date(),
         task.completedDateTime ? new Date(task.completedDateTime) : new Date()
       ),
+      Title: "", //WBS Task Title
+      WBS: "", //Title-WBS
     };
   }
 

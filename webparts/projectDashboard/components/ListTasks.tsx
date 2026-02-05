@@ -6,6 +6,7 @@ import { GetDelay } from "./GetDelay";
 import { GetFormatDate } from "./GetFormatDate";
 import styles from "./ProjectDashboard.module.scss";
 import EvidenceEditor from "./EvidenceEditor";
+//import { compareWbs } from "./ParseWBS";
 
 interface ListGroupProps {
   tasks: ITaskListItem[];
@@ -56,6 +57,55 @@ const ListTasks = ({
     return `${yyyy}-${mm}-${dd}`;
   };
 
+  const filteredTasks = showDetails
+    ? tasks
+    : tasks.filter(
+        (item) =>
+          Math.floor(item.Complete) < 100 &&
+          GetDelay(item.Finish, item.ActualFinish) > 0
+      );
+
+  // const sortedTasks = filteredTasks.slice().sort((a, b) => {
+  //   // Primero por Gate
+  //   if (a.Gate < b.Gate) return -1;
+  //   if (a.Gate > b.Gate) return 1;
+
+  //   // Dentro del mismo Gate, por Title como WBS
+  //   const aw = a.Title ?? "";
+  //   const bw = b.Title ?? "";
+  //   if (aw && bw) {
+  //     return compareWbs(aw, bw);
+  //   }
+
+  //   // Fallback por Id
+  //   const ai = Number(a.Id);
+  //   const bi = Number(b.Id);
+  //   if (!isNaN(ai) && !isNaN(bi)) return ai - bi;
+  //   return a.Id.localeCompare(b.Id);
+  // });
+
+  const sortedTasks = filteredTasks.slice().sort((a, b) => {
+    const gateA = (a.Gate || "").trim().toLowerCase();
+    const gateB = (b.Gate || "").trim().toLowerCase();
+
+    if (gateA < gateB) return -1;
+    if (gateA > gateB) return 1;
+
+    const taskA = (a.Task || "").trim().toLowerCase();
+    const taskB = (b.Task || "").trim().toLowerCase();
+
+    if (taskA < taskB) return -1;
+    if (taskA > taskB) return 1;
+
+    // Fallback por Title (WBS) si quieres mantener orden estable dentro del mismo Task
+    const ai = Number(a.Title);
+    const bi = Number(b.Title);
+    if (!isNaN(ai) && !isNaN(bi)) return ai - bi;
+
+    return (a.Title || "").localeCompare(b.Title || "");
+  });
+
+
   return (
     <>
       {(showDetails
@@ -77,14 +127,7 @@ const ListTasks = ({
               </tr>
             </thead>
             <tbody>
-              {(showDetails
-                ? tasks
-                : tasks.filter(
-                    (item) =>
-                      Math.floor(item.Complete) < 100 &&
-                      GetDelay(item.Finish, item.ActualFinish) > 0
-                  )
-              ).map((item, index) => (
+              {sortedTasks.map((item, index) => (
                 <tr
                   key={item.Id}
                   className={selectedIndex === index ? "table-active" : ""}

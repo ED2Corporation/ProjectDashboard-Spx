@@ -26,6 +26,7 @@ import { IProjectListItem, ITaskListItem, IGateListItem, IProjectDashboardWebPar
 import { IDynamicDataPropertyDefinition } from '@microsoft/sp-dynamic-data';
 import { SPFI, spfi } from "@pnp/sp";
 import { SPFx } from "@pnp/sp/presets/all";
+import { compareWbs } from "./components/ParseWBS";
 
 interface ErrorPageProps {
   project: string;
@@ -306,7 +307,6 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
     });
     const sheet = workbook.Sheets[workbook.SheetNames[0]];
 
-    // Convierte a objetos por fila usando la primera fila como headers
     const rows: any[] = XLSX.utils.sheet_to_json(sheet, {
       defval: "",
       raw: false
@@ -317,10 +317,8 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
       return;
     }
 
-    // Validar columnas mínimas para quick-update
     const requiredCols = ["Gate", "Task", "Complete", "Finish"];
     const headers = Object.keys(rows[0]);
-
     const missing = requiredCols.filter(c => !headers.includes(c));
     if (missing.length > 0) {
       alert(
@@ -336,17 +334,12 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
 
     let created = 0;
     for (const row of rows) {
-      // Mapear columnas, tolerando que falten algunas
       const gate = row.Gate || defaultGate;
       const taskTitle = row.Task;
-      if (!taskTitle) {
-        // sin Task no tiene sentido crear la fila
-        continue;
-      }
+      if (!taskTitle) continue;
 
       const deliverable = row.Deliverable || "";
       const description = row.Description || "";
-
       const complete =
         row.Complete !== undefined && row.Complete !== ""
           ? Number(row.Complete) || 0
@@ -361,20 +354,21 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
       const start = toIso(row.Start);
       const finish = toIso(row.Finish);
       const actualFinish = toIso(row.ActualFinish);
-
       const evidenceUrl = row.EvidenceOfCompletion || "";
       const evidenceDescription = row.EvidenceDescription || "";
 
-      // Validaciones básicas de contenido
       if (complete < 0 || complete > 100) {
         console.warn("Skipping row: invalid Complete value", complete, row);
         continue;
       }
 
+      // calcular WBS para este gate antes de crear
+      const nextWbs = await this._getNextWbsForGate(listName, gate);
+
       await list.items.add({
         Gate: gate,
         Task: taskTitle,
-        Title: `${gate} - ${taskTitle}`,
+        Title: nextWbs,                       // 👈 WBS importado
         Deliverable: deliverable,
         Description: description,
         Complete: complete,
@@ -388,8 +382,10 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
       created++;
     }
 
-    alert(`Excel import finished.\nRows created: ${created}`);
+    console.log(`Excel import finished.\nRows created: ${created}`);
+    //alert(`Excel import finished.\nRows created: ${created}`);
   }
+
 
 
   private async _ensureTaskList(listTitle: string): Promise<void> {
@@ -448,10 +444,14 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
       console.log(`Creating initial task in list: ${listName} with gate: ${gate}`);
       const today = new Date();
 
+      // calcular siguiente WBS para este gate
+      const nextWbs = await this._getNextWbsForGate(listName, gate || "Gate 1");
+
       const addResult: any = await this._sp.web.lists
         .getByTitle(listName)
         .items.add({
           Gate: gate || "Gate 1",
+          Title: nextWbs,                                // 👈 WBS
           Deliverable: (gate || "Gate 1") + ". Deliverable",
           Task: (gate || "Gate 1") + ". Task",
           Start: today.toISOString(),
@@ -476,7 +476,8 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
           "ActualFinish",
           "Description",
           "EvidenceOfCompletion",
-          "EvidenceDescription"
+          "EvidenceDescription",
+          "Title"                                        // 👈 incluir Title
         )();
 
       const task: ITaskListItem = {
@@ -495,6 +496,7 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
             Description: r.EvidenceDescription ?? ""
           }
           : undefined,
+        Title: r.Title ?? nextWbs                         // 👈 WBS en el modelo
       };
 
       this._selectedTask = task;
@@ -502,8 +504,8 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
       console.error("[_createInitialTask] Error:", error);
       throw error;
     }
-
   }
+
 
   /** */
   private _onReset = async (): Promise<void> => {
@@ -705,23 +707,30 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
     const today = new Date();
 
     try {
+      // 1) calcular siguiente WBS (Title) para ese gate
+      const nextWbs = await this._getNextWbsForGate(listTitle, gate);
+
+      // 2) crear el item con Title = WBS
       const addResult: any = await this._sp.web.lists
         .getByTitle(listTitle)
         .items.add({
           Gate: gate,
+          Title: nextWbs,                 // 👈 WBS
           Deliverable: gate + ". Deliverable",
           Task: gate + ". Task",
           Start: today.toISOString(),
-          Finish: today.toISOString()
+          Finish: today.toISOString(),
+          Complete: 0
         });
 
-      const addedId = addResult.Id as number | undefined; // NO .data
+      const addedId = addResult.Id as number | undefined;
       if (!addedId) {
         console.warn("[_createListTask] No Id on addResult, cannot select new task");
         this._selectedTask = this.newTask();
         return;
       }
 
+      // 3) leer item incluyendo Title
       const r: any = await this._sp.web.lists
         .getByTitle(listTitle)
         .items.getById(addedId)
@@ -736,7 +745,8 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
           "ActualFinish",
           "Description",
           "EvidenceOfCompletion",
-          "EvidenceDescription"
+          "EvidenceDescription",
+          "Title"
         )();
 
       const task: ITaskListItem = {
@@ -755,6 +765,7 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
             Description: r.EvidenceDescription ?? ""
           }
           : undefined,
+        Title: r.Title ?? nextWbs       // 👈 WBS en el modelo
       };
 
       this._selectedTask = task;
@@ -763,7 +774,6 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
       throw error;
     }
   };
-
 
 
   private _updateListTask = async (
@@ -787,7 +797,6 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
       if (action === "quick-complete") {
         await itemRef.update({
           Task: data.Task,
-          Title: data.Gate + " - " + data.Task,
           Complete: curr,
           Finish: data.Finish,
           ActualFinish: actualFinishValue,
@@ -797,7 +806,6 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
       } else {
         await itemRef.update({
           Deliverable: data.Deliverable,
-          Title: data.Gate + " - " + data.Task,
           Gate: data.Gate,
           Task: data.Task,
           Description: data.Description,
@@ -822,7 +830,8 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
         "ActualFinish",
         "Description",
         "EvidenceOfCompletion",
-        "EvidenceDescription"
+        "EvidenceDescription",
+        "Title"
       )();
 
       const task: ITaskListItem = {
@@ -841,6 +850,7 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
             Description: r.EvidenceDescription ?? ""
           }
           : undefined,
+        Title: r.Title ?? undefined
       };
 
       this._selectedTask = task;
@@ -852,6 +862,35 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
 
   };
 
+
+  private async _getNextWbsForGate(
+    listTitle: string,
+    gate: string
+  ): Promise<string> {
+    const existing = await this._sp.web.lists
+      .getByTitle(listTitle)
+      .items.select("Title", "Gate")
+      .filter(`Gate eq '${gate.replace(/'/g, "''")}'`)();
+
+    if (!existing.length) {
+      return "1";
+    }
+
+    const titles = existing
+      .map((e: any) => e.Title as string)
+      .filter(t => !!t);
+
+    if (!titles.length) {
+      return "1";
+    }
+
+    titles.sort(compareWbs);
+    const last = titles[titles.length - 1];
+    const parts = last.split(".");
+    const lastNum = Number(parts[parts.length - 1]) || 0;
+    parts[parts.length - 1] = String(lastNum + 1);
+    return parts.join(".");
+  }
 
   // List: DELETE item por ID [web:84][web:87]
   private _deleteListTask = async (itemId: string): Promise<void> => {
@@ -963,6 +1002,7 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
           Id: String(r.Id),
           Gate: r.Gate ?? "",
           Task: r.Task ?? "",
+          Title: r.Title ?? undefined,
           Deliverable: r.Deliverable ?? "",
           Complete: typeof r.Complete === "number" ? r.Complete : Number(r.Complete) || 0,
           Start: r.Start ? new Date(r.Start) : undefined,
@@ -1073,8 +1113,15 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
       Gate: gate || "New Gate",
       Complete: 0,
       Deliverable: "",
+      Title: "",
+      Start: new Date(),
+      Finish: new Date(),
+      Description: "",
       Task: "No Task Found..."
     };
   }
 
+
+
 }
+

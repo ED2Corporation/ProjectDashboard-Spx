@@ -1,5 +1,6 @@
 export interface ITaskListItem {
   Id: string;
+  Title: string; //WBS Task Title
   Gate: string;
   Task: string;
   Deliverable: string;
@@ -19,7 +20,7 @@ export interface ITaskListItem {
   Barriers?: string;
   Effort?: number;
   ActionableStatus?: string;
-  WBS?: string; //Title-WBS
+  WBS?: string;
   Checklist?: {
     isChecked: boolean,
     title: string,
