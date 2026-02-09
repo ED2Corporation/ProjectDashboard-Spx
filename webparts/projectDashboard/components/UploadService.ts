@@ -64,22 +64,46 @@ export async function ensureFolder(
     folderPath: string,     // /Shared Documents/ProjectsEvidence/
     folderName: string,     // EvidenceRepository
 ): Promise<void> {
-    console.log("Ensure folder RAW:", siteUrl + relativePath + folderPath + folderName);
+    console.log("[ensureFolder] Ensure folder RAW:", siteUrl + relativePath + folderPath + folderName);
 
     try {
+
+        /** Controling Main Page - Production envitronment Root directory */
+        const isRootSite = relativePath === "/"; // true si estamos en la raíz del tenant, false si estamos en un site collection (p.ej. /sites/ED2-Team)
+
+        // Para raíz: anteponer el webServerRelativeUrl si la ruta empieza directamente con nombre de biblioteca
+        const evidenceBasePath = isRootSite
+            ? `${relativePath}ED2 Repository Internal/Engineering/ProjectDashboard/${folderPath}`
+            : `${relativePath}${folderPath}`;
+
         // Normalize web URL (no trailing slash)
-        const webUrl = `${siteUrl.replace(/\/+$/, "")}${relativePath.replace(/\/+$/, "")}`;
+        let webUrl = `${siteUrl.replace(/\/+$/, "")}${relativePath.replace(/\/+$/, "")}`;
 
         // Server-relative URL of the **parent folder**, no trailing slash
-        const parentFolderServerRelative =
-            `${relativePath.replace(/\/+$/, "")}${folderPath}`.replace(/\/+$/, "");
+        let parentFolderServerRelative = `${evidenceBasePath.replace(/\/+$/, "")}`;
+
+        if (isRootSite) {
+            // // Normalize web URL (no trailing slash)
+            // webUrl = `${siteUrl.replace(/\/+$/, "")}${relativePath.replace(/\/+$/, "")}`;
+
+            // // Server-relative URL of the **parent folder**, no trailing slash
+            // parentFolderServerRelative =
+            //     `${relativePath.replace(/\/+$/, "")}${folderPath}`.replace(/\/+$/, "");
+
+            console.log(`Root site detected. Using evidence path: ${webUrl}${parentFolderServerRelative}${folderName}`);
+
+        } else {
+            console.log(`Non-root site detected. Using evidence path: ${webUrl}${parentFolderServerRelative}${folderName}`);
+        }
+
 
         // Escape single quotes for safety in OData
         const safeParent = parentFolderServerRelative.replace(/'/g, "''");
         const safeFolderName = folderName.replace(/'/g, "''");
 
-        const addUrl =
-            `${webUrl}/_api/web/GetFolderByServerRelativeUrl('${safeParent}')/folders/add(url='${safeFolderName}')`;
+        console.log(`[ensureFolder] Evidence repository : ${webUrl} / ${safeParent} / ${safeFolderName}`);
+
+        const addUrl = `${webUrl}/_api/web/GetFolderByServerRelativeUrl('${safeParent}')/folders/add(url='${safeFolderName}')`;
 
         console.log("Creating folder via:", addUrl);
 

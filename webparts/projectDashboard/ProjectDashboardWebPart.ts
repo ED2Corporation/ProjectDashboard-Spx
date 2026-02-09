@@ -510,7 +510,7 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
       const folderPath = this._repositoryUrl;                                  // "/Shared Documents/ProjectsEvidence/"
       const folderName = repositoryName || this._repositoryName;
 
-      //console.log(`Ensuring evidence repository exists: ${repositoryName}: ${siteUrl}: ${siteRelativePath}: ${folderPath}: ${folderName}`);
+      //console.log(`[_ensureEvidenceRepository] Ensuring evidence repository exists: ${repositoryName}: ${siteUrl}: ${siteRelativePath}: ${folderPath}: ${folderName}`);
 
       const { ensureFolder } = await import("./components/UploadService");
       await ensureFolder(
