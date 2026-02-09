@@ -206,6 +206,12 @@ h2 {
   gap: 2px;
 }
 
+.evidenceEdit {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
 
 .fieldLabel {
   width: 50px; // mismo ancho para Name y URL

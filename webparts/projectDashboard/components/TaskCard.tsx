@@ -30,9 +30,6 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, onClose, onSave, o
   const [finish, setFinish] = useState<string>(
     task.Finish ? new Date(task.Finish).toISOString().slice(0, 10) : ""
   );
-  const [actualFinish, setActualFinish] = useState<string>(
-    task.ActualFinish ? new Date(task.ActualFinish).toISOString().slice(0, 10) : ""
-  );
   const [effort, setEffort] = useState<string>(
     task.Effort !== undefined ? task.Effort.toString() : ""
   );
@@ -50,9 +47,6 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, onClose, onSave, o
     setComplete(task.Complete ?? 0);
     setStart(task.Start ? new Date(task.Start).toISOString().slice(0, 10) : "");
     setFinish(task.Finish ? new Date(task.Finish).toISOString().slice(0, 10) : "");
-    setActualFinish(
-      task.ActualFinish ? new Date(task.ActualFinish).toISOString().slice(0, 10) : ""
-    );
     setEffort(task.Effort !== undefined ? task.Effort.toString() : "");
     setBarriers(task.Barriers ?? "");
     setActionableStatus(task.ActionableStatus ?? "");
@@ -61,8 +55,19 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, onClose, onSave, o
     setEvidenceDesc(task.EvidenceOfCompletion?.Description ?? "");
   }, [task]);
 
-  const handleSave = () => {
-    // Crear el objeto de datos (sin JSON.stringify aquí)
+  const handleSave = (evidence?: { url: string; description: string }) => {
+     let actualFinish: Date | null | undefined;
+
+    if (complete === 100) {
+      if (!task.ActualFinish) {
+        actualFinish = new Date();          // se acaba de completar
+      } else {
+        actualFinish = new Date(task.ActualFinish); // ya tenía fecha, la conservas
+      }
+    } else {
+      actualFinish = null;                  // se bajó de 100, se limpia
+    }
+
     const data = {
       Id: task.Id,
       Deliverable: deliverable,
@@ -75,26 +80,29 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, onClose, onSave, o
       Description: description,
       Start: start ? new Date(start) : undefined,
       Finish: finish ? new Date(finish) : undefined,
-      ActualFinish: actualFinish ? new Date(actualFinish) : undefined,
-      EvidenceOfCompletion:
-        evidenceUrl || evidenceDesc
-          ? {
-              Url: evidenceUrl,
-              Description: evidenceDesc,
-            }
-          : undefined,
+      ActualFinish: actualFinish,
+      EvidenceOfCompletion: evidence
+        ? {
+            Url: evidence.url,
+            Description: evidence.description,
+          }
+        : evidenceUrl || evidenceDesc
+        ? {
+            Url: evidenceUrl,
+            Description: evidenceDesc,
+          }
+        : undefined,
     };
-    // Convertir a JSON string
+
     const payload = JSON.stringify(data);
-    //console.log("TaskCard handleSave called", payload);
-    console.log("TaskCard handleSave called with values:",payload);
+    console.log("TaskCard handleSave called with values:", payload);
 
-    // Llamar el callback con taskId y payload JSON
     onSave(task.Id, payload);
+    onClose?.();
+  };
 
-    if (onClose) {
-      onClose();
-    }
+  const handleSaveClick: React.MouseEventHandler<HTMLButtonElement> = () => {
+    handleSave(); // usa el estado actual (sin evidencia explícita)
   };
   const handleNew = () => onNew(task);
   const handleDelete = () => onDelete(task.Id);
@@ -108,7 +116,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, onClose, onSave, o
             <button
               type="button"
               className={styles["task-button"]}
-              onClick={handleSave}
+              onClick={handleSaveClick}
               title="Accept / Update DB"
             >
               <img
@@ -288,7 +296,6 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, onClose, onSave, o
                       evidenceUrl={evidenceUrl}
                       evidenceDesc={evidenceDesc}
                       onChangeUrl={(v) => {
-                        // sanitizar si quieres
                         const cleanValue = v.trim().replace(/[\u200B-\u200D\uFEFF\u00A0]/g, "");
                         setEvidenceUrl(cleanValue);
                       }}
@@ -296,10 +303,25 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, onClose, onSave, o
                       onUploadEvidenceFile={onUploadEvidenceFile}
                       taskId={task.Id}
                       taskTitle={taskTitle || task.Task || "CompletionEvidence"}
-                      onQuickSave={undefined}
-                      onAfterUpload={undefined}
-                      stopRowClick={false}                      
-                    />                    
+                      onEvidenceUpdated={({ taskId, url, description }) => {
+                        // Actualiza estado para que UI muestre el nuevo archivo
+                        setEvidenceDesc(description);
+                        setEvidenceUrl(url);
+
+                        // Guarda usando la evidencia NUEVA
+                        handleSave({ url, description });
+                      }}
+                      onAfterUpload={(success) => {
+                        if (!success) {
+                          console.log("Evidence upload failed.");
+                          return;
+                        }
+                        // En éxito no llamamos a handleSave aquí, ya se hizo en onEvidenceUpdated
+                        console.log("Evidence uploaded and task updated successfully.");
+                      }}
+                      stopRowClick={false}
+                    />
+                
                   </div>
                 </td>
               </tr>

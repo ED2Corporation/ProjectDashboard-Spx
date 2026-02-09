@@ -1,4 +1,3 @@
-
 import * as React from "react";
 import { useState } from "react";
 import { ITaskListItem } from "../../../models";
@@ -6,7 +5,6 @@ import { GetDelay } from "./GetDelay";
 import { GetFormatDate } from "./GetFormatDate";
 import styles from "./ProjectDashboard.module.scss";
 import EvidenceEditor from "./EvidenceEditor";
-//import { compareWbs } from "./ParseWBS";
 
 interface ListGroupProps {
   tasks: ITaskListItem[];
@@ -14,17 +12,17 @@ interface ListGroupProps {
   projectSiteURL?: string;
   showDetails?: boolean | true;
   isPlanner?: boolean;
-  onSave: (
-    item: string,                 
-    payload?: string
-  ) => void;
+  onSave: (itemId: string, payload?: string) => void;
   onSelectItem: (
-    item: ITaskListItem,                 // Task selected
-    group: string,                // Bucket / gate (as today)
-    mode?: "list" | "list-edit" | "list-save" | "list-delete"| "list-create",  // new optional parameter
+    item: ITaskListItem,
+    group: string,
+    mode?: "list" | "list-edit" | "list-save" | "list-delete" | "list-create",
     payload?: string
   ) => void;
-  onUploadEvidenceFile?: (file: File, taskTitle: string) => Promise<{fileUrl: string; fileName: string;}>;
+  onUploadEvidenceFile?: (
+    file: File,
+    taskTitle: string
+  ) => Promise<{ fileUrl: string; fileName: string }>;
 }
 
 const ListTasks = ({
@@ -36,7 +34,6 @@ const ListTasks = ({
   isPlanner,
   onUploadEvidenceFile,
 }: ListGroupProps) => {
-  // UI state
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const [editTaskTitle, setEditTaskTitle] = useState<string>("");
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
@@ -44,9 +41,8 @@ const ListTasks = ({
   const [editEvidenceDesc, setEditEvidenceDesc] = useState<string>("");
   const [editPercentComplete, setEditPercentComplete] = useState<number>(0);
   const [editFinish, setEditFinish] = useState<string>("");
-  //const [isUploading, setIsUploading] = useState(false);
 
-  // Helper: convert Date/ISO/string -> YYYY-MM-DD (local time) for the date input
+  // Helper: Date/ISO/string -> YYYY-MM-DD
   const toDateInputValue = (value: any): string => {
     if (!value) return "";
     const d = new Date(value);
@@ -68,23 +64,56 @@ const ListTasks = ({
   const sortedTasks = filteredTasks.slice().sort((a, b) => {
     const gateA = (a.Gate || "").trim().toLowerCase();
     const gateB = (b.Gate || "").trim().toLowerCase();
-
     if (gateA < gateB) return -1;
     if (gateA > gateB) return 1;
 
     const taskA = (a.Task || "").trim().toLowerCase();
     const taskB = (b.Task || "").trim().toLowerCase();
-
     if (taskA < taskB) return -1;
     if (taskA > taskB) return 1;
 
-    // Fallback por Title (WBS) si quieres mantener orden estable dentro del mismo Task
     const ai = Number(a.Title);
     const bi = Number(b.Title);
     if (!isNaN(ai) && !isNaN(bi)) return ai - bi;
 
     return (a.Title || "").localeCompare(b.Title || "");
   });
+
+  // handleSave AHORA vive dentro del componente y usa el estado de edición
+  const handleSave = (
+    task: ITaskListItem,
+    evidence?: { url: string; description: string }
+  ) => {
+    let actualFinish: Date | null | undefined;
+
+    if (editPercentComplete === 100) {
+      if (!task.ActualFinish) {
+        actualFinish = new Date();          // se acaba de completar
+      } else {
+        actualFinish = new Date(task.ActualFinish); // ya tenía fecha, la conservas
+      }
+    } else {
+      actualFinish = null;                  // se bajó de 100, se limpia
+    }
+    const data = {
+      Id: task.Id,
+      Gate: task.Gate,
+      Task: editTaskTitle || task.Task,
+      Complete: editPercentComplete,
+      Finish: editFinish || null,
+      ActualFinish: actualFinish,
+      EvidenceOfCompletion: evidence
+        ? {
+            Url: evidence.url,
+            Description: evidence.description,
+          }
+        : undefined,
+    };
+
+    const payload = JSON.stringify(data);
+    console.log("ListTasks handleSave called with:", payload);
+    onSave(task.Id, payload);
+  };
 
 
   return (
@@ -93,14 +122,17 @@ const ListTasks = ({
         ? tasks.length
         : tasks.filter(
             (item) =>
-              Math.floor(item.Complete) < 100 && Math.floor(item.Complete) > 0
+              Math.floor(item.Complete) < 100 &&
+              Math.floor(item.Complete) > 0
           ).length) > 0 && (
         <div>
           <h1>{heading}</h1>
-          <table className={styles["ed2Table"]}>
+          <table className={styles.ed2Table}>
             <thead>
               <tr>
-                <th className={`${styles.colActions} ${styles.actionsFixed}`}>Action</th> 
+                <th className={`${styles.colActions} ${styles.actionsFixed}`}>
+                  Action
+                </th>
                 <th className={styles.colText}>Task</th>
                 <th className={styles.colDate}>Completed</th>
                 <th className={styles.colDate}>Finish</th>
@@ -112,13 +144,11 @@ const ListTasks = ({
                 <tr
                   key={item.Id}
                   className={selectedIndex === index ? "table-active" : ""}
-                  onClick={() => {
-                    setSelectedIndex(index);
-                  }}
+                  onClick={() => setSelectedIndex(index)}
                 >
-                  {/* Columna de acciones CRUD */}
+                  {/* ACCIONES */}
                   <td className={`${styles.colActions} ${styles.actionsFixed}`}>
-                    {/* Abrir TaskCard (equivalente a "openCard") */}
+                    {/* Open card */}
                     <button
                       type="button"
                       className={styles["icon-button"]}
@@ -135,13 +165,12 @@ const ListTasks = ({
                       />
                     </button>
 
-                    {/* Nueva tarea en el mismo gate */}
+                    {/* New in same gate */}
                     <button
                       type="button"
                       className={styles["icon-button"]}
                       onClick={(e) => {
                         e.stopPropagation();
-                        // Mandato equivalente a TaskCard.onNew -> WebPart.onNewTask(gate)
                         onSelectItem(item, "task", "list-create");
                       }}
                       title="Add / New row"
@@ -153,7 +182,7 @@ const ListTasks = ({
                       />
                     </button>
 
-                    {/* Borrar tarea */}
+                    {/* Delete */}
                     <button
                       type="button"
                       className={styles["icon-button"]}
@@ -171,30 +200,13 @@ const ListTasks = ({
                     </button>
 
                     {editingTaskId === item.Id ? (
-                      <>                        
-                        {/* Save/Accept button */}
+                      <>
+                        {/* Save/Accept */}
                         <button
                           type="button"
                           className={styles["icon-button"]}
                           onClick={() => {
-
-                          console.log("item.Task:", item.Task);
-                          console.log("editTaskTitle:", editTaskTitle);
-                          
-                            const payload = JSON.stringify({
-                              Id: item.Id,
-                              Gate: item.Gate,
-                              Task: editTaskTitle, 
-                              Complete: editPercentComplete,
-                              Finish: editFinish || null,   // "YYYY-MM-DD"                                                       
-                              EvidenceOfCompletion: {
-                                Url: editEvidenceUrl,
-                                Description: editEvidenceDesc,
-                              },
-                            });
-
-                            onSave(item.Id, payload);
-
+                            handleSave(item);
                             setEditingTaskId(null);
                           }}
                           title="Accept / Update DB"
@@ -205,7 +217,7 @@ const ListTasks = ({
                             className={styles["icon-small"]}
                           />
                         </button>
-                      </> 
+                      </>
                     ) : (
                       <>
                         {/* Enter edit mode */}
@@ -216,9 +228,12 @@ const ListTasks = ({
                             setEditingTaskId(item.Id);
                             setEditTaskTitle(item.Task || "");
                             setEditPercentComplete(item.Complete);
-                            setEditEvidenceUrl(item.EvidenceOfCompletion?.Url ?? "");
-                            setEditEvidenceDesc(item.EvidenceOfCompletion?.Description ?? "");
-                            // Initialize Finish date input from current value
+                            setEditEvidenceUrl(
+                              item.EvidenceOfCompletion?.Url ?? ""
+                            );
+                            setEditEvidenceDesc(
+                              item.EvidenceOfCompletion?.Description ?? ""
+                            );
                             setEditFinish(toDateInputValue(item.Finish));
                           }}
                           title="Edit task"
@@ -232,15 +247,14 @@ const ListTasks = ({
                       </>
                     )}
                   </td>
-                  {/* Task column */}
+
+                  {/* Task */}
                   <td className={styles.colText}>
                     {editingTaskId === item.Id ? (
                       <input
                         type="text"
                         value={editTaskTitle}
-                        onChange={(e) => {
-                          setEditTaskTitle(e.target.value);
-                        }}
+                        onChange={(e) => setEditTaskTitle(e.target.value)}
                         className={styles["input-small"]}
                         onClick={(e) => e.stopPropagation()}
                         placeholder="Task title"
@@ -250,18 +264,20 @@ const ListTasks = ({
                     )}
                   </td>
 
-                  {/* % Completed column with edit/save actions */}
+                  {/* % Completed */}
                   <td className={styles["cell-complete"]}>
                     {editingTaskId === item.Id ? (
                       <>
-                        {/* Progress selector shown only in edit mode */}
                         {isPlanner ? (
                           <select
                             value={editPercentComplete}
-                            onChange={(e) => setEditPercentComplete(Number(e.target.value) || 0)}
+                            onChange={(e) =>
+                              setEditPercentComplete(
+                                Number(e.target.value) || 0
+                              )
+                            }
                             className={styles["select-complete"]}
                             onClick={(e) => e.stopPropagation()}
-                            placeholder="% Complete"
                           >
                             <option value={0}>0%</option>
                             <option value={50}>50%</option>
@@ -271,39 +287,43 @@ const ListTasks = ({
                           <input
                             type="number"
                             value={editPercentComplete}
-                            onChange={(e) => setEditPercentComplete(Number(e.target.value) || 0)}
+                            onChange={(e) =>
+                              setEditPercentComplete(
+                                Number(e.target.value) || 0
+                              )
+                            }
                             className={styles["input-small"]}
                             onClick={(e) => e.stopPropagation()}
                             placeholder="% Complete"
                           />
                         )}
-                        %                        
-                      </> 
-                    ) : (
-                      <>                        
-                        <span>{Math.floor(item.Complete)}%</span>
+                        %
                       </>
+                    ) : (
+                      <span>{Math.floor(item.Complete)}%</span>
                     )}
                   </td>
 
-                  {/* Finish column: editable in edit mode, otherwise read-only */}
+                  {/* Finish */}
                   <td className={styles.colDate}>
                     {editingTaskId === item.Id ? (
                       <input
                         type="date"
                         value={editFinish}
-                        onChange={(e) => {                                                    
+                        onChange={(e) => {
                           const newFinish = e.target.value;
-                          // No validamos si start no tiene valor aún
                           if (item.Start && newFinish) {
                             const startUTC = new Date(item.Start).getTime();
-                            // Convertimos ambas a fechas UTC para comparar correctamente
-                            const [fy, fm, fd] = newFinish.split("-").map(Number);
+                            const [fy, fm, fd] = newFinish
+                              .split("-")
+                              .map(Number);
                             const finishUTC = Date.UTC(fy, fm - 1, fd);
 
                             if (finishUTC < startUTC) {
-                              alert("Finish date cannot be earlier than Start date.");
-                              return; // No actualizamos el estado
+                              alert(
+                                "Finish date cannot be earlier than Start date."
+                              );
+                              return;
                             }
                           }
                           setEditFinish(newFinish);
@@ -315,28 +335,39 @@ const ListTasks = ({
                       GetFormatDate(item.Finish)
                     )}
                   </td>
-                  
-                  {/* Evidence of Completion column */}
+
+                  {/* Evidence of Completion */}
                   <td className={styles.colURL}>
                     {editingTaskId === item.Id ? (
                       <EvidenceEditor
                         evidenceUrl={editEvidenceUrl}
                         evidenceDesc={editEvidenceDesc}
-                        onChangeUrl={setEditEvidenceUrl}
+                        onChangeUrl={(v) => {
+                          const cleanValue = v
+                            .trim()
+                            .replace(/[\u200B-\u200D\uFEFF\u00A0]/g, "");
+                          setEditEvidenceUrl(cleanValue);
+                        }}
                         onChangeDesc={setEditEvidenceDesc}
                         onUploadEvidenceFile={onUploadEvidenceFile}
                         taskId={editingTaskId}
                         taskTitle={editTaskTitle || "CompletionEvidence"}
-                        complete={editPercentComplete}
-                        finish={editFinish || null}
-                        onQuickSave={(payloadJson) => {
-                          onSave(editingTaskId, payloadJson);
-                          setEditingTaskId(null);
+                        onEvidenceUpdated={({ taskId, url, description }) => {
+                          // éxito: actualiza estado y guarda
+                          setEditEvidenceDesc(description);
+                          setEditEvidenceUrl(url);
+
+                          handleSave(item, { url, description });           // construye payload con estados de edición
+                          setEditingTaskId(null);     // cierra modo edición
                         }}
-                        onAfterUpload={() => {
-                          setEditingTaskId(null);
+                        onAfterUpload={(success) => {
+                          if (!success) {
+                            // sólo manejar error (log, toast...), NO cerrar ni guardar
+                            console.log("Evidence upload failed.");
+                          }
                         }}
                       />
+
                     ) : item.EvidenceOfCompletion?.Url ? (
                       <a
                         href={item.EvidenceOfCompletion.Url}
@@ -344,13 +375,13 @@ const ListTasks = ({
                         rel="noreferrer"
                         onClick={(e) => e.stopPropagation()}
                       >
-                        {item.EvidenceOfCompletion.Description || item.EvidenceOfCompletion.Url}
+                        {item.EvidenceOfCompletion.Description ||
+                          item.EvidenceOfCompletion.Url}
                       </a>
                     ) : (
                       <span>-</span>
                     )}
                   </td>
-
                 </tr>
               ))}
             </tbody>
