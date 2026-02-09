@@ -10,8 +10,37 @@ export async function uploadEvidenceFile(
     file: File              // file : ProjectDashboardAll.png 
 ): Promise<{ fileUrl: string; fileName: string }> {
     const doUpload = async (): Promise<{ fileUrl: string; fileName: string }> => {
+
+        /** Controling Main Page - Production envitronment Root directory */
+        const isRootSite = relativePath === "/"; // true si estamos en la raíz del tenant, false si estamos en un site collection (p.ej. /sites/ED2-Team)
+
+        // Para raíz: anteponer el webServerRelativeUrl si la ruta empieza directamente con nombre de biblioteca
+        const evidenceBasePath = isRootSite
+            ? `${relativePath}ED2 Repository Internal/Engineering/ProjectDashboard/${folderPath}`
+            : `${relativePath}Shared Documents/${folderPath}`;
+
+        // Normalize web URL (no trailing slash)
+        let webUrl = `${siteUrl.replace(/\/+$/, "")}${relativePath.replace(/\/+$/, "")}`;
+
+        // Server-relative URL of the **parent folder**, no trailing slash
+        let parentFolderServerRelative = `${evidenceBasePath.replace(/\/+$/, "")}`;
+
+        if (isRootSite) {
+            console.log(`Root site detected. Using evidence path: ${webUrl}${parentFolderServerRelative}/${folderName}`);
+
+        } else {
+            console.log(`Non-root site detected. Using evidence path: ${webUrl}${parentFolderServerRelative}${folderName}`);
+        }
+
+        // Escape single quotes for safety in OData
+        const safeParent = parentFolderServerRelative.replace(/'/g, "''");
+        const safeFolderName = folderName.replace(/'/g, "''");
+
+        console.log(`[doUpload] Evidence repository : ${webUrl} / ${safeParent} / ${safeFolderName}`);
+
+        ///***  */
         const uploadUrl =
-            `${siteUrl + relativePath}/_api/web/GetFolderByServerRelativeUrl('${relativePath + folderPath + folderName}')` +
+            `${webUrl}/_api/web/GetFolderByServerRelativeUrl('${safeParent}/${safeFolderName}')` +
             `/Files/add(url='${file.name}',overwrite=true)`;
 
         console.log(`DoUpload uploadUrl: ${uploadUrl}`);
@@ -74,7 +103,7 @@ export async function ensureFolder(
         // Para raíz: anteponer el webServerRelativeUrl si la ruta empieza directamente con nombre de biblioteca
         const evidenceBasePath = isRootSite
             ? `${relativePath}ED2 Repository Internal/Engineering/ProjectDashboard/${folderPath}`
-            : `${relativePath}${folderPath}`;
+            : `${relativePath}Shared Documents/${folderPath}`;
 
         // Normalize web URL (no trailing slash)
         let webUrl = `${siteUrl.replace(/\/+$/, "")}${relativePath.replace(/\/+$/, "")}`;
@@ -90,7 +119,7 @@ export async function ensureFolder(
             // parentFolderServerRelative =
             //     `${relativePath.replace(/\/+$/, "")}${folderPath}`.replace(/\/+$/, "");
 
-            console.log(`Root site detected. Using evidence path: ${webUrl}${parentFolderServerRelative}${folderName}`);
+            console.log(`Root site detected. Using evidence path: ${webUrl}${parentFolderServerRelative}/${folderName}`);
 
         } else {
             console.log(`Non-root site detected. Using evidence path: ${webUrl}${parentFolderServerRelative}${folderName}`);

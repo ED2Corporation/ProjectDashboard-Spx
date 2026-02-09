@@ -50,7 +50,7 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
   private _projectSelected: IProjectListItem;
   private _sysError: boolean = false;
   private _siteUrl: string = "https://ed2corp.sharepoint.com";
-  private _repositoryUrl: string = "/Shared Documents/ProjectsEvidence/";
+  private _repositoryUrl: string = "ProjectsEvidence";
   private _repositoryName: string = "EvidenceRepository";
   private MsgInfo = 0;
   private MsgError = 2;
