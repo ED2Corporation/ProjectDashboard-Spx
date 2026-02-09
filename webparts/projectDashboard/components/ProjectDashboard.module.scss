@@ -509,9 +509,14 @@ h2 {
   }
 }
 
+.actionsFixed {
+  width: 80px;
+}
+
 .ed2Table {
   width: 100%;
   border-collapse: collapse;
+  table-layout: auto;
 }
 
 .ed2Table thead,

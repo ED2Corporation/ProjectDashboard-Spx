@@ -50,7 +50,7 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
   private _projectSelected: IProjectListItem;
   private _sysError: boolean = false;
   private _siteUrl: string = "https://ed2corp.sharepoint.com";
-  private _repositoryUrl: string = "/Shared Documents/ProjectsEvidence";
+  private _repositoryUrl: string = "/Shared Documents/ProjectsEvidence/";
   private _repositoryName: string = "EvidenceRepository";
   private MsgInfo = 0;
   private MsgError = 2;
@@ -504,12 +504,13 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
 
   private async _ensureEvidenceRepository(repositoryName: string): Promise<void> {
     try {
-      console.log(`Ensuring evidence repository exists: ${repositoryName}`);
 
       const siteUrl = this._siteUrl || this.context.pageContext.web.absoluteUrl;
       const siteRelativePath = this.context.pageContext.web.serverRelativeUrl; // p.ej. "/sites/ED2-Team"
       const folderPath = this._repositoryUrl;                                  // "/Shared Documents/ProjectsEvidence/"
       const folderName = repositoryName || this._repositoryName;
+
+      //console.log(`Ensuring evidence repository exists: ${repositoryName}: ${siteUrl}: ${siteRelativePath}: ${folderPath}: ${folderName}`);
 
       const { ensureFolder } = await import("./components/UploadService");
       await ensureFolder(

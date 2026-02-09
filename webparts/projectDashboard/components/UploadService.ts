@@ -60,7 +60,7 @@ export async function uploadEvidenceFile(
 export async function ensureFolder(
     spHttpClient: SPHttpClient,
     siteUrl: string,        // siteUrl : https://ed2corp.sharepoint.com/ 
-    relativePath: string,   // siteRelativePath : / 
+    relativePath: string,   // siteRelativePath : / || /sites/ED2-Team
     folderPath: string,     // /Shared Documents/ProjectsEvidence/
     folderName: string,     // EvidenceRepository
 ): Promise<void> {
@@ -87,9 +87,7 @@ export async function ensureFolder(
             addUrl,
             SPHttpClient.configurations.v1,
             {
-                headers: {
-                    "Accept": "application/json;odata=verbose"
-                }
+                headers: {}
             }
         );
 

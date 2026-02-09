@@ -119,7 +119,7 @@ const ListTasks = ({
           <table className={styles["ed2Table"]}>
             <thead>
               <tr>
-                <th className={styles.colActions}>Action</th> 
+                <th className={`${styles.colActions} ${styles.actionsFixed}`}>Action</th> 
                 <th className={styles.colText}>Task</th>
                 <th className={styles.colDate}>Completed</th>
                 <th className={styles.colDate}>Finish</th>
@@ -136,7 +136,7 @@ const ListTasks = ({
                   }}
                 >
                   {/* Columna de acciones CRUD */}
-                  <td className={styles.colActions}>
+                  <td className={`${styles.colActions} ${styles.actionsFixed}`}>
                     {/* Abrir TaskCard (equivalente a "openCard") */}
                     <button
                       type="button"
