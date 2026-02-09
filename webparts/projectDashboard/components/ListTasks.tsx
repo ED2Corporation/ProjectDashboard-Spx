@@ -65,25 +65,6 @@ const ListTasks = ({
           GetDelay(item.Finish, item.ActualFinish) > 0
       );
 
-  // const sortedTasks = filteredTasks.slice().sort((a, b) => {
-  //   // Primero por Gate
-  //   if (a.Gate < b.Gate) return -1;
-  //   if (a.Gate > b.Gate) return 1;
-
-  //   // Dentro del mismo Gate, por Title como WBS
-  //   const aw = a.Title ?? "";
-  //   const bw = b.Title ?? "";
-  //   if (aw && bw) {
-  //     return compareWbs(aw, bw);
-  //   }
-
-  //   // Fallback por Id
-  //   const ai = Number(a.Id);
-  //   const bi = Number(b.Id);
-  //   if (!isNaN(ai) && !isNaN(bi)) return ai - bi;
-  //   return a.Id.localeCompare(b.Id);
-  // });
-
   const sortedTasks = filteredTasks.slice().sort((a, b) => {
     const gateA = (a.Gate || "").trim().toLowerCase();
     const gateB = (b.Gate || "").trim().toLowerCase();

@@ -60,7 +60,7 @@ const EvidenceEditor: React.FC<EvidenceEditorProps> = ({
         <div className={styles.columnContainer}>
           <div className={styles.rowContainer}>
             {/* Name */}
-            <label style={{ fontSize: 10, marginLeft: 4, marginRight: 4, width: 30 }}>
+            <label style={{ fontSize: 8, marginLeft: 2, marginRight: 2, width: 40 }}>
               Name:
             </label>
             <input
@@ -136,7 +136,7 @@ const EvidenceEditor: React.FC<EvidenceEditorProps> = ({
 
           <div className={styles.rowContainer}>
             {/* URL */}
-            <label style={{ fontSize: 10, marginLeft: 4, marginRight: 4, width: 30 }}>
+            <label style={{ fontSize: 8, marginLeft: 2, marginRight: 2, width: 40 }}>
               URL:
             </label>
             <input
