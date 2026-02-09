@@ -130,7 +130,7 @@ export async function ensureFolder(
         const safeParent = parentFolderServerRelative.replace(/'/g, "''");
         const safeFolderName = folderName.replace(/'/g, "''");
 
-        console.log(`[ensureFolder] Evidence repository : ${webUrl} / ${safeParent} / ${safeFolderName}`);
+        console.log(`[ensureFolder] Evidence repository : ${webUrl}${safeParent}/${safeFolderName}`);
 
         const addUrl = `${webUrl}/_api/web/GetFolderByServerRelativeUrl('${safeParent}')/folders/add(url='${safeFolderName}')`;
 
