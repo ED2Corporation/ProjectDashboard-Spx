@@ -4,6 +4,7 @@ import {
   ITaskListItem,
   IGateListItem
 } from '../../../models';
+import { BaseComponentContext } from "@microsoft/sp-component-base";
 
 export interface IProjectDashboardProps {
   spTaskListItems: ITaskListItem[];
@@ -13,7 +14,7 @@ export interface IProjectDashboardProps {
 
   onGetTaskListItems?: ButtonClickedCallback;
   onGetGateListItems?: ButtonClickedCallback;
-  onReset?: ButtonClickedCallback;
+  onReset: ButtonClickedCallback;
   onPopulateAttachements?: ButtonClickedCallback;
   onSelectItem: (item: string, group: string) => void;
   onNewTask?: (
@@ -42,8 +43,13 @@ export interface IProjectDashboardProps {
 
   description: string;
   project: IProjectListItem;
+  repositoryName: string;
+  projectName: string;
   repositoryURL: string;
+  evidenceFolderServerRelative: string;
+  context: BaseComponentContext;
 
+  isPlanner: boolean;
   showLog: boolean;
   showButtons: boolean;
   onGateFilterChange?: (gate: string) => void;

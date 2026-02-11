@@ -9,6 +9,7 @@ import { MessageLog } from "./MessageLog";
 import DoughnutChart from "./Doughnut";
 import NewProjectSetup from "./NewProjectSetup";
 import { GroupByProject } from "./GroupByProject";
+import {ProjectService} from "./ProjectService";
 
 interface IProjectDashboardState {
   allTasks: boolean;
@@ -18,6 +19,7 @@ interface IProjectDashboardState {
   showBuckets: boolean; 
   showDashboard: boolean; 
   showNewProject: boolean;
+  showProjectActions: boolean;
   selectedTask: ITaskListItem | null;
 }
 
@@ -25,8 +27,12 @@ export default class ProjectDashboard extends React.Component<
   IProjectDashboardProps,
   IProjectDashboardState
 > {
-  constructor(props) {
+  private _projectService: ProjectService;
+  constructor(props)  {
     super(props);
+
+    this._projectService = new ProjectService(this.props.context, "Projects");
+
     this.state = {
       allTasks: false,
       showCard: false,
@@ -35,16 +41,10 @@ export default class ProjectDashboard extends React.Component<
       showBuckets: false,
       showDashboard: true,
       showNewProject: false,
+      showProjectActions: false,
       selectedTask: this.props.selectedTask || null 
     };
   }
-
-  // handleSwitchDetailsChange = (event) => {
-  //   this.setState({ showDetails: event.target.checked });
-  // };
-  // handleAllTasksChange = (event) => {
-  //   this.setState({ allTasks: event.target.checked });
-  // };
 
   public render(): React.ReactElement<IProjectDashboardProps> {
     const {
@@ -55,7 +55,7 @@ export default class ProjectDashboard extends React.Component<
       project,
     } = this.props;
     
-    const { showDetails, allTasks, showCard, showTasks, selectedTask, showBuckets, showDashboard   } = this.state;
+    const { showDetails, allTasks, showCard, showTasks, selectedTask, showBuckets, showProjectActions, showNewProject, showDashboard   } = this.state;
    
     return (
       <>
@@ -65,32 +65,19 @@ export default class ProjectDashboard extends React.Component<
             checked={showDashboard}
             onChange={e => this.setState({ showDashboard: e.target.checked }, () => {
               if (e.target.checked) {
-                this.onReset();
+                this.props.onReset();
               }
             })}
           />
           
-          { false &&  <button
-              type="button"
-              className={styles["iconButton"]}
-              onClick={() => {
-                this.onReset();
-              }}
-            >
-              <img
-                alt=""
-                src={require("../assets/Restart.jpg")}
-                className={styles["iconImage"]}
-              />
-            </button>
-          }
+          {/* ====== toggle showBuckets ====== */}
           <div>
-            {/* ====== toggle showBuckets ====== */}
             <a
               href={project.Link.Url}
               data-interception="off"
               onClick={(e) => {
                 const isModifier = e.metaKey || e.ctrlKey; // Cmd(mac) / Ctrl(win/linux)
+                console.log("showBuckets:",showBuckets);
                 if (!isModifier) {
                   e.preventDefault();
                   this.setState((prev) => ({ showBuckets: !prev.showBuckets }));
@@ -108,6 +95,20 @@ export default class ProjectDashboard extends React.Component<
             </a>
 
           </div>
+          { showBuckets && (
+            <div style={{ marginLeft: "30px" }}>
+              <input className={styles["checkbox"]}
+                type="checkbox"
+                checked={showProjectActions}
+                onChange={e => this.setState({ showProjectActions: e.target.checked }, () => {
+                  if (e.target.checked) {
+                    this.onReset();
+                  }
+                })}
+              /> Project Actions
+            </div>
+          )
+          }
         </div>
 
         {this.state.showDashboard && this.props.isDashboard && (
@@ -143,6 +144,107 @@ export default class ProjectDashboard extends React.Component<
                 />              
               </div>
             )}
+            {showProjectActions && showBuckets && (
+              <div>
+                <h1>Project actions</h1>
+                  <div className={styles.actionsBar}>
+                  <button
+                    type="button"
+                    className={styles.actionItem}
+                    onClick={() => this.setState({ showNewProject: !this.state.showNewProject })}
+                  >
+                    Create new
+                  </button>
+
+                  <button
+                    type="button"
+                    className={styles.actionItem}
+                    onClick={async () => {
+                      if (!this.props.project.Id) return;
+                      await this._projectService.archiveProject(this.props.project.Id);
+                    }}
+                  >
+                    Archive
+                  </button>
+
+                  <button
+                    type="button"
+                    className={styles.actionItem}
+                    onClick={async () => {
+                      const listTitle = this.props.project.Id;
+                      const evidenceFolder = this.props.evidenceFolderServerRelative; 
+                      if (!listTitle) return;
+
+                      if (!confirm("Are you sure you want to delete this project and its evidence repository?")) {
+                        return;
+                      }
+
+                      await this._projectService.deleteProject(listTitle, evidenceFolder);
+                      this.props.onReset();
+                    }}
+                  >
+                    Delete
+                  </button>
+
+
+                  <button
+                    type="button"
+                    className={styles.actionItem}
+                    onClick={async () => {
+                      if (!this.props.project.Id) return;
+                      try{
+                        const listTitle = this.props.project.Id; 
+                        console.log("Export: "+listTitle);
+                        if (!listTitle) return;
+
+                        const blob = await this._projectService.exportProject(listTitle);
+                        const url = window.URL.createObjectURL(blob);
+                        console.log("url: "+url);
+                        const a = document.createElement("a");
+                        a.href = url;
+                        a.download = `${listTitle}-export.csv`;
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        window.URL.revokeObjectURL(url);
+
+                      } catch{
+                        console.log("Error downloading file...");
+
+                      }
+                    }}
+                  >
+                    Export
+                  </button>
+
+                  <button
+                    type="button"
+                    className={styles.actionItem}
+                    onClick={async () => {
+                      if (!this.props.project.Id) return;
+                      try{
+                        const blob = await this._projectService.exportProject(this.props.project.Id);
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement("a");
+                        a.href = url;
+                        a.download = `${this.props.project.Title || "project-export"}.json`; // nombre del archivo
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        window.URL.revokeObjectURL(url);
+
+                      } catch{
+                        console.log("Error downloading file...");
+
+                      }
+                    }}
+                  >
+                    Import
+                  </button>
+                  {/* Import y Replicate se conectan igual */}
+                </div>
+              </div>
+            )}
             {spGateListItems.length === 0 && (
               <div>
                 <h1>Review your plan setup (unable to reach the info)...</h1>
@@ -156,7 +258,7 @@ export default class ProjectDashboard extends React.Component<
 
               </div>
             )}
-            {this.state.showNewProject && (
+            {showNewProject && (
               <NewProjectSetup
                 defaultProjectName={this.props.project.Title}
                 defaultSourceName={this.props.project.ListName}

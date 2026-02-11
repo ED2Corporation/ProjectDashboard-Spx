@@ -213,6 +213,34 @@ h2 {
   gap: 4px;
 }
 
+.actionsBar {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 4px 0;
+  border-bottom: 1px solid #e1dfdd;
+}
+
+.actionItem {
+  border: none;
+  background: transparent;
+  padding: 6px 12px;
+  border-radius: 16px;
+  font-size: 13px;
+  color: #323130;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+
+  &:hover {
+    background: #f3f2f1;
+    color: #005a9e;
+  }
+
+  &:active {
+    background: #e1dfdd;
+  }
+}
+
 .fieldLabel {
   width: 50px; // mismo ancho para Name y URL
   font-size: 8px;

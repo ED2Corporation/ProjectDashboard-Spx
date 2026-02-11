@@ -33,6 +33,7 @@ import "@pnp/sp/fields";
 import "@pnp/sp/views";
 import { IList } from "@pnp/sp/lists";
 import NewProjectSetup, { NewProjectSetupProps } from './components/NewProjectSetup';
+import { buildRepoRelativeUrl } from './components/UploadService';
 
 interface ErrorPageProps {
   project: string;
@@ -52,6 +53,7 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
   private _siteUrl: string = "https://ed2corp.sharepoint.com";
   private _repositoryUrl: string = "ProjectsEvidence";
   private _repositoryName: string = "EvidenceRepository";
+  private _EvidenceFolderServerRelative: string = "";
   private MsgInfo = 0;
   private MsgError = 2;
   private _sp: SPFI;
@@ -64,6 +66,15 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
     this.context.dynamicDataSourceManager.initializeSource(this);
     //this._projects = await this._getProjectListItems();
     this._projectSelected = this._getProjectInfo(this.properties.projectName);
+
+    const siteRelativePath = this.context.pageContext.web.serverRelativeUrl; // "/sites/ED2-Team" o "/"
+    const folderPath = this._repositoryUrl;                                  // "ProjectsEvidence/" (o tu valor actual)
+    const folderName = this.properties.repositoryName || this._repositoryName;                                 // p.ej. "NewProject-Evidence"
+
+    this._EvidenceFolderServerRelative = buildRepoRelativeUrl(siteRelativePath, folderPath, folderName);
+
+    console.log("[onInit] EvidenceFolderServerRelative:", this._EvidenceFolderServerRelative);
+
 
     await this._onReset();
     this._sp = spfi().using(SPFx(this.context));
@@ -81,6 +92,7 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
     const projectDashboard: React.ReactElement<IProjectDashboardProps> = React.createElement(
       ProjectDashboard,
       {
+        context: this.context,
 
         description: this.properties.description,
         refreshInterval: this.properties.refreshInterval,
@@ -93,9 +105,11 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
         currentGate: this._currentGate,
         onGateFilterChange: this._onGateFilterChange,
         onCreateNewProject: this._onCreateNewProject,
+        onReset: this._onReset,
 
         filterValue: this.properties.filterValue,
 
+        evidenceFolderServerRelative: this._EvidenceFolderServerRelative,
         isDashboard: this.properties.isDashboard,
         isPlanner: this.properties.isPlanner,
         environmentMessage: this._environmentMessage,
@@ -107,7 +121,6 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
         spFilteredTaskItems: this._filteredTasks,
         selectedTask: this._selectedTask,
 
-        onReset: this._onReset,
         onPopulateAttachements: this._onPopulateAttachements,
         onSelectItem: this._onSelectedItem,
         onUpdateTask: this._onUpdateTask,
@@ -319,6 +332,11 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
       this.properties.isPlanner = false;
       this._projectSelected = this._getProjectInfo(this.properties.projectName);
       this._currentGate = firstGate;
+
+      const list = await this._sp.web.lists.getByTitle(listName).select("DefaultViewUrl")();
+      const webUrl = this.context.pageContext.web.absoluteUrl.replace(/\/+$/, "");
+      const projectUrl = `${webUrl.replace(this.context.pageContext.web.serverRelativeUrl, "")}${list.DefaultViewUrl}`;
+      this.properties.projectURL = projectUrl;
 
       await this._onReset();
     } catch (error) {
@@ -626,7 +644,6 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
     this.render();
   };
 
-
   private _onGetPlannerListItems = async (): Promise<void> => {
 
     // Obtener el cliente de Microsoft Graph (versión V3)
@@ -770,7 +787,6 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
     }
   };
 
-
   private _onUpdateTask = async (
     taskName: string,
     action: "quick-complete" | "full-update",
@@ -875,7 +891,6 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
       throw error;
     }
   };
-
 
   private _updateListTask = async (
     data: any,
@@ -1008,7 +1023,6 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
       throw error;
     }
   };
-
 
   ////****** Interaction with Planner */
   private async _createPlannerTask(gate: string): Promise<void> {
@@ -1221,8 +1235,6 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
       Task: "No Task Found..."
     };
   }
-
-
 
 }
 
