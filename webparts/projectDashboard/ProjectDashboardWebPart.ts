@@ -348,7 +348,7 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
   private async _importTasksFromExcel(
     listName: string,
     file: File,
-    defaultGate: string
+    defaultGate?: string
   ): Promise<void> {
     const XLSX = await import("xlsx");
 
@@ -387,7 +387,7 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
 
     let created = 0;
     for (const row of rows) {
-      const gate = row.Gate || defaultGate;
+      const gate = row.Gate || defaultGate || "0. New Gate";
       const taskTitle = row.Task;
       if (!taskTitle) continue;
 

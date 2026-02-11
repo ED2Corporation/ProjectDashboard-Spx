@@ -20,6 +20,7 @@ interface IProjectDashboardState {
   showDashboard: boolean; 
   showNewProject: boolean;
   showProjectActions: boolean;
+  importFile: File | null;
   selectedTask: ITaskListItem | null;
 }
 
@@ -42,6 +43,7 @@ export default class ProjectDashboard extends React.Component<
       showDashboard: true,
       showNewProject: false,
       showProjectActions: false,
+      importFile: null,
       selectedTask: this.props.selectedTask || null 
     };
   }
@@ -161,7 +163,8 @@ export default class ProjectDashboard extends React.Component<
                     className={styles.actionItem}
                     onClick={async () => {
                       if (!this.props.project.Id) return;
-                      await this._projectService.archiveProject(this.props.project.Id);
+                      await this._projectService.archiveProject(this.props.project.Id, this.props.evidenceFolderServerRelative);
+                      this.props.onReset();
                     }}
                   >
                     Archive
@@ -172,14 +175,13 @@ export default class ProjectDashboard extends React.Component<
                     className={styles.actionItem}
                     onClick={async () => {
                       const listTitle = this.props.project.Id;
-                      const evidenceFolder = this.props.evidenceFolderServerRelative; 
                       if (!listTitle) return;
 
                       if (!confirm("Are you sure you want to delete this project and its evidence repository?")) {
                         return;
                       }
 
-                      await this._projectService.deleteProject(listTitle, evidenceFolder);
+                      await this._projectService.deleteProject(listTitle, this.props.evidenceFolderServerRelative);
                       this.props.onReset();
                     }}
                   >
@@ -216,31 +218,57 @@ export default class ProjectDashboard extends React.Component<
                   >
                     Export
                   </button>
+                  <div style={{ fontSize: 11, color: "#605e5c", marginTop: 4 }}>
+                    <button
+                      type="button"
+                      className={styles.actionItem}
+                      onClick={async () => {
+                        const file = this.state.importFile;
+                        const listTitle = this.props.project.Id;
+                        if (!listTitle || !file) {
+                          alert("Please select an Excel file first.");
+                          return;
+                        }
+                        await this._projectService.importProject(listTitle, file);
+                        this.setState({ importFile: null });
+                        this.props.onReset();
+                      }}
+                    >
+                      Import
+                    </button>
 
-                  <button
-                    type="button"
-                    className={styles.actionItem}
-                    onClick={async () => {
-                      if (!this.props.project.Id) return;
-                      try{
-                        const blob = await this._projectService.exportProject(this.props.project.Id);
-                        const url = window.URL.createObjectURL(blob);
-                        const a = document.createElement("a");
-                        a.href = url;
-                        a.download = `${this.props.project.Title || "project-export"}.json`; // nombre del archivo
-                        document.body.appendChild(a);
-                        a.click();
-                        document.body.removeChild(a);
-                        window.URL.revokeObjectURL(url);
-
-                      } catch{
-                        console.log("Error downloading file...");
-
+                     <a
+                      href={project.Link.Url}
+                      data-interception="off"
+                      onClick={(e) => {
+                        const isModifier = e.metaKey || e.ctrlKey; // Cmd(mac) / Ctrl(win/linux)
+                        console.log("showBuckets:",showBuckets);
+                        if (!isModifier) {
+                          e.preventDefault();
+                          this.setState((prev) => ({ showBuckets: !prev.showBuckets }));
+                        }
+                      }}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      title={
+                        showBuckets
+                          ? "Hide buckets ¦ Cmd+Click-> To open the link"
+                          : "Show buckets ¦ Cmd+Click-> To open the link"
                       }
-                    }}
-                  >
-                    Import
-                  </button>
+                    >
+                      <p style={{ margin: 0 }}>Download template</p>
+                    </a>
+                    <input
+                      type="file"
+                      accept=".xlsx,.xls"
+                      onChange={(e) => {
+                          const file = e.target.files?.[0] || null;
+                          this.setState({ importFile: file });
+                      }}
+                      className={styles["input-small"]}
+                    />
+                    
+                  </div>
                   {/* Import y Replicate se conectan igual */}
                 </div>
               </div>
