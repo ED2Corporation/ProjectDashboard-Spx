@@ -1,28 +1,6 @@
 import * as React from 'react';
 import * as ReactDom from 'react-dom';
 import { Version } from '@microsoft/sp-core-library';
-import {
-  type IPropertyPaneConfiguration,
-  PropertyPaneTextField,
-  PropertyPaneCheckbox,
-  //  PropertyPaneDropdown,
-  PropertyPaneToggle
-} from '@microsoft/sp-property-pane';
-import { BaseClientSideWebPart } from '@microsoft/sp-webpart-base';
-
-import { MSGraphClientV3 } from '@microsoft/sp-http';
-//import * as MicrosoftGraph from '@microsoft/microsoft-graph-types';
-
-import { PlannerService } from "./components/PlannerService";
-
-import ProjectDashboard from './components/ProjectDashboard';
-import ErrorPage from './components/ErrorPage';
-import { MessageLog } from './components/MessageLog';
-
-import { GroupByGate, FilterTasks, IProjectDashboardProps } from './components';
-import { SPHttpClient } from '@microsoft/sp-http';
-import { IProjectListItem, ITaskListItem, IGateListItem, IProjectDashboardWebPartProps } from '../../models';
-
 import { IDynamicDataPropertyDefinition } from '@microsoft/sp-dynamic-data';
 import { SPFI, spfi } from "@pnp/sp";
 import { SPFx } from "@pnp/sp/presets/all";
@@ -32,8 +10,30 @@ import "@pnp/sp/lists";
 import "@pnp/sp/fields";
 import "@pnp/sp/views";
 import { IList } from "@pnp/sp/lists";
+import {
+  type IPropertyPaneConfiguration,
+  PropertyPaneTextField,
+  PropertyPaneCheckbox,
+  //  PropertyPaneDropdown,
+  PropertyPaneToggle
+} from '@microsoft/sp-property-pane';
+import { BaseClientSideWebPart } from '@microsoft/sp-webpart-base';
+import { SPHttpClient } from '@microsoft/sp-http';
+import { MSGraphClientV3 } from '@microsoft/sp-http';
+
+import { PlannerService } from "./components/PlannerService";
+
+import ProjectDashboard from './components/ProjectDashboard';
+import ErrorPage from './components/ErrorPage';
+import { MessageLog } from './components/MessageLog';
+
+import { GroupByGate, FilterTasks, IProjectDashboardProps } from './components';
+import { IProjectListItem, ITaskListItem, IGateListItem, IProjectDashboardWebPartProps } from '../../models';
+
 import NewProjectSetup, { NewProjectSetupProps } from './components/NewProjectSetup';
 import { buildRepoRelativeUrl } from './components/UploadService';
+
+import { ProjectService } from "./components/ProjectService";
 
 interface ErrorPageProps {
   project: string;
@@ -59,12 +59,12 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
   private _sp: SPFI;
   private _currentGate: string = "all";
   private _showNewProjectSetup: boolean = false;
+  private _projectService: ProjectService;
 
   protected async onInit(): Promise<void> {
     this._sysError = false;
 
     this.context.dynamicDataSourceManager.initializeSource(this);
-    //this._projects = await this._getProjectListItems();
     this._projectSelected = this._getProjectInfo(this.properties.projectName);
 
     const siteRelativePath = this.context.pageContext.web.serverRelativeUrl; // "/sites/ED2-Team" o "/"
@@ -73,13 +73,12 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
 
     this._EvidenceFolderServerRelative = buildRepoRelativeUrl(siteRelativePath, folderPath, folderName);
 
-    console.log("[onInit] EvidenceFolderServerRelative:", this._EvidenceFolderServerRelative);
-
-
     await this._onReset();
     this._sp = spfi().using(SPFx(this.context));
+    this._projectService = new ProjectService(this.context, "Projects");
     this._filteredTasks = FilterTasks(this._tasks, "gate", "actual");
 
+    console.log("[onInit] onInit completed...");
     return super.onInit();
   }
 
@@ -110,6 +109,7 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
         filterValue: this.properties.filterValue,
 
         evidenceFolderServerRelative: this._EvidenceFolderServerRelative,
+        projectService: this._projectService,
         isDashboard: this.properties.isDashboard,
         isPlanner: this.properties.isPlanner,
         environmentMessage: this._environmentMessage,
@@ -151,9 +151,17 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
             file
           );
           this._showNewProjectSetup = false;
-          await this._onReset(); // ahora ya habrá tareas
+          await this._onReset();
+        },
+        getLastProjectFromCatalog: async () => {
+          return this._projectService.getLastProjectFromCatalog(); // debe devolver { ProjectNumber?: number } | null
+        },
+
+        addProjectToCatalog: async (data) => {
+          await this._projectService.addProjectToCatalog(data);
         },
       }
+
     );
 
     const errorPage: React.ReactElement<ErrorPageProps> = React.createElement(

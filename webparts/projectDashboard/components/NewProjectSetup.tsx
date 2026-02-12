@@ -14,6 +14,18 @@ export interface NewProjectSetupProps {
     mode: "empty" | "from-excel",
     file?: File
   ) => Promise<void>;
+
+  getLastProjectFromCatalog: () => Promise<{ ProjectNumber?: string } | null>;
+
+  addProjectToCatalog: (data: {
+    Title: string;
+    ProjectNumber: string;
+    ProjectId: string;
+    Year: number;
+    Team: string;
+    Status: string;
+    Customer: string;
+  }) => Promise<void>;
 }
 
 const NewProjectSetup: React.FC<NewProjectSetupProps> = ({
@@ -22,8 +34,10 @@ const NewProjectSetup: React.FC<NewProjectSetupProps> = ({
   defaultRepositoryName,
   onCancel,
   onCreate,
+  getLastProjectFromCatalog,
+  addProjectToCatalog,
 }) => {
-  const [projectName, setProjectName] = React.useState(defaultProjectName || "");
+  const [projectName, setProjectName] = React.useState( defaultProjectName || "");
   const [listName, setListName] = React.useState(defaultSourceName || "");
   const [repoName, setRepoName] = React.useState(defaultRepositoryName || "EvidenceRepository");
   const [firstGate, setFirstGate] = React.useState("1. Design");
@@ -32,9 +46,67 @@ const NewProjectSetup: React.FC<NewProjectSetupProps> = ({
   const [listTouched, setListTouched] = React.useState(false);
   const [repoTouched, setRepoTouched] = React.useState(false);  
 
+  const [projectNumber, setProjectNumber] = React.useState<string | null>(null);
+  const [customer, setCustomer] = React.useState("Internal");
+  const [team, setTeam] = React.useState<"Engineering" | "Strategic" | "Operations" | "Sales" | "Other">("Operations");
+  const [status] = React.useState("Open");
+
+  const resetProjectId = (newProject: string): string => {
+    const num = newProject ?? "0";
+    const cleanCustomer = customer.trim().replace(/\s+/g, "-");
+    const cleanTitle = projectName.trim().replace(/\s+/g, "-");
+    return `${num}-${cleanCustomer}-${cleanTitle}`;
+  };
+
+  const buildProjectId = (): string => {
+    return resetProjectId(projectNumber ?? "0");
+  };
+
+  React.useEffect(() => {
+    (async () => {
+      try {
+        const last = await getLastProjectFromCatalog();
+        const lastStr = last?.ProjectNumber || "0";
+        const lastNum = Number(lastStr) || 0;
+        const nextNum = lastNum + 1;
+        const nextSeq = String(nextNum);
+
+        setProjectNumber(nextSeq);
+        
+        if (projectName.trim()) {
+          const newName = resetProjectId(nextSeq); 
+          setProjectName(newName);
+          setListName(newName ? `${newName}-List` : projectName+"-List");
+          setRepoName(newName ? `${newName}-Evidence` : "EvidenceRepository");
+        }
+        console.log("[NewProjectSetup-useEffect] ProjectId:",nextSeq);
+      } catch (e) {
+        console.error("Error loading last ProjectNumber from catalog:", e);
+      }
+    })();
+  }, [getLastProjectFromCatalog]);
+
+  
+
   const handleCreate = async () => {
+    if (!projectName.trim() || !listName.trim() || !repoName.trim()) {
+      alert("Please fill in Project name, Task list name and Evidence repository.");
+      return;
+    }
+
+    const projectSeq = projectNumber ?? "0";
+    if (!projectSeq) {
+      alert("Invalid project number.");
+      return;
+    }
+
+    const projectId = buildProjectId();
+    const year = new Date().getFullYear();
+
     try {
       setIsCreating(true);
+
+      // 1) Crear el proyecto (lista, repo, etc.)
       await onCreate(
         listName.trim(),
         repoName.trim(),
@@ -42,6 +114,19 @@ const NewProjectSetup: React.FC<NewProjectSetupProps> = ({
         firstGate.trim(),
         "empty"
       );
+
+      // 2) Registrar en catálogo
+      await addProjectToCatalog({
+        Title: projectName.trim(),
+        ProjectNumber: projectSeq,
+        ProjectId: projectId,
+        Year: year,
+        Team: team,
+        Status: status,      // "Open"
+        Customer: customer.trim(),
+      });
+
+      console.log("New ProjectId:", projectId);
     } finally {
       setIsCreating(false);
     }
@@ -166,6 +251,56 @@ const NewProjectSetup: React.FC<NewProjectSetupProps> = ({
               </div>
             </td>
           </tr>
+
+          <tr>
+            <td className={styles.colLabel}>
+              <strong>Project number:</strong>
+            </td>
+            <td className={styles.colInput}>
+              <input
+                type="number"
+                value={projectNumber ?? ""}
+                onChange={(e) => setProjectNumber(e.target.value || "0")}
+                className={styles["input-small"]}
+                placeholder="Auto-assigned"
+              />
+            </td>
+          </tr>
+
+          <tr>
+            <td className={styles.colLabel}>
+              <strong>Customer:</strong>
+            </td>
+            <td className={styles.colInput}>
+              <input
+                type="text"
+                value={customer}
+                onChange={(e) => setCustomer(e.target.value)}
+                className={styles["input-small"]}
+                placeholder="Customer name"
+              />
+            </td>
+          </tr>
+
+          <tr>
+            <td className={styles.colLabel}>
+              <strong>Team:</strong>
+            </td>
+            <td className={styles.colInput}>
+              <select
+                value={team}
+                onChange={(e) => setTeam(e.target.value as any)}
+                className={styles["input-small"]}
+              >
+                <option value="Engineering">Engineering</option>
+                <option value="Strategic">Strategic</option>
+                <option value="Operations">Operations</option> {/* default */}
+                <option value="Sales">Sales</option>
+                <option value="Other">Other</option>
+              </select>
+            </td>
+          </tr>
+
         </tbody>
       </table>
 

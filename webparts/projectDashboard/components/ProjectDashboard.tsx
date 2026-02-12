@@ -9,7 +9,7 @@ import { MessageLog } from "./MessageLog";
 import DoughnutChart from "./Doughnut";
 import NewProjectSetup from "./NewProjectSetup";
 import { GroupByProject } from "./GroupByProject";
-import {ProjectService} from "./ProjectService";
+import { IProjectCatalogItem } from "../../../models/IProjectService";
 
 interface IProjectDashboardState {
   allTasks: boolean;
@@ -28,11 +28,9 @@ export default class ProjectDashboard extends React.Component<
   IProjectDashboardProps,
   IProjectDashboardState
 > {
-  private _projectService: ProjectService;
   constructor(props)  {
     super(props);
 
-    this._projectService = new ProjectService(this.props.context, "Projects");
 
     this.state = {
       allTasks: false,
@@ -163,7 +161,7 @@ export default class ProjectDashboard extends React.Component<
                     className={styles.actionItem}
                     onClick={async () => {
                       if (!this.props.project.Id) return;
-                      await this._projectService.archiveProject(this.props.project.Id, this.props.evidenceFolderServerRelative);
+                      await this.props.projectService.archiveProject(this.props.project.Id, this.props.evidenceFolderServerRelative);
                       this.props.onReset();
                     }}
                   >
@@ -181,7 +179,7 @@ export default class ProjectDashboard extends React.Component<
                         return;
                       }
 
-                      await this._projectService.deleteProject(listTitle, this.props.evidenceFolderServerRelative);
+                      await this.props.projectService.deleteProject(listTitle, this.props.evidenceFolderServerRelative);
                       this.props.onReset();
                     }}
                   >
@@ -199,7 +197,7 @@ export default class ProjectDashboard extends React.Component<
                         console.log("Export: "+listTitle);
                         if (!listTitle) return;
 
-                        const blob = await this._projectService.exportProject(listTitle);
+                        const blob = await this.props.projectService.exportProject(listTitle);
                         const url = window.URL.createObjectURL(blob);
                         console.log("url: "+url);
                         const a = document.createElement("a");
@@ -218,56 +216,43 @@ export default class ProjectDashboard extends React.Component<
                   >
                     Export
                   </button>
-                  <div style={{ fontSize: 11, color: "#605e5c", marginTop: 4 }}>
+                  <div style={{ border: "1px solid #e1dfdd", borderRadius: 4, display: "flex", flexDirection: "row" }}>
                     <button
-                      type="button"
-                      className={styles.actionItem}
-                      onClick={async () => {
-                        const file = this.state.importFile;
-                        const listTitle = this.props.project.Id;
-                        if (!listTitle || !file) {
-                          alert("Please select an Excel file first.");
-                          return;
-                        }
-                        await this._projectService.importProject(listTitle, file);
-                        this.setState({ importFile: null });
-                        this.props.onReset();
-                      }}
-                    >
-                      Import
+                        type="button"
+                        className={styles.actionItem}
+                        onClick={async () => {
+                          const file = this.state.importFile;
+                          const listTitle = this.props.project.Id;
+                          if (!listTitle || !file) {
+                            alert("Please select an Excel file first.");
+                            return;
+                          }
+                          await this.props.projectService.importProject(listTitle, file);
+                          this.setState({ importFile: null });
+                          this.props.onReset();
+                        }}
+                      >
+                        Import
                     </button>
 
-                     <a
-                      href={project.Link.Url}
-                      data-interception="off"
-                      onClick={(e) => {
-                        const isModifier = e.metaKey || e.ctrlKey; // Cmd(mac) / Ctrl(win/linux)
-                        console.log("showBuckets:",showBuckets);
-                        if (!isModifier) {
-                          e.preventDefault();
-                          this.setState((prev) => ({ showBuckets: !prev.showBuckets }));
-                        }
-                      }}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      title={
-                        showBuckets
-                          ? "Hide buckets ¦ Cmd+Click-> To open the link"
-                          : "Show buckets ¦ Cmd+Click-> To open the link"
-                      }
-                    >
-                      <p style={{ margin: 0 }}>Download template</p>
-                    </a>
-                    <input
-                      type="file"
-                      accept=".xlsx,.xls"
-                      onChange={(e) => {
-                          const file = e.target.files?.[0] || null;
-                          this.setState({ importFile: file });
-                      }}
-                      className={styles["input-small"]}
-                    />
-                    
+                    <div style={{ fontSize: 11, color: "#605e5c", marginTop: 4, display: "flex", flexDirection: "column"  }}>
+                      <input
+                        type="file"
+                        accept=".xlsx,.xls"
+                        onChange={(e) => {
+                            const file = e.target.files?.[0] || null;
+                            this.setState({ importFile: file });
+                        }}
+                        className={styles["input-small"]}
+                      /> 
+                      <a
+                        href="https://ed2corp.sharepoint.com/:x:/g/IQCO4yJi-ZQvS6wiVWAQ95I6AUb7buP7UpAsIpZ_d7QSuuY?e=64Tc7H&download=1" 
+                        target="_blank"
+                        rel="noopener noreferrer"                     
+                      >
+                        <p style={{ margin: 0 }}>Download template</p>
+                      </a>
+                    </div>
                   </div>
                   {/* Import y Replicate se conectan igual */}
                 </div>
@@ -311,6 +296,12 @@ export default class ProjectDashboard extends React.Component<
                     );
                   }
                   this.setState({ showNewProject: false });
+                }}
+                getLastProjectFromCatalog={async () => {
+                  return this.props.projectService.getLastProjectFromCatalog();
+                }}
+                addProjectToCatalog={async (data: IProjectCatalogItem) => {
+                  await this.props.projectService.addProjectToCatalog(data);
                 }}
               />
 

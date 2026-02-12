@@ -1,6 +1,6 @@
 import { BaseComponentContext } from "@microsoft/sp-component-base";
 import { SPHttpClient } from "@microsoft/sp-http";
-import { IProjectService } from "../../../models/IProjectService";
+import { IProjectService, IProjectCatalogItem } from "../../../models/IProjectService";
 
 import { SPFI, spfi } from "@pnp/sp";
 import { SPFx } from "@pnp/sp/presets/all";
@@ -13,6 +13,7 @@ import "@pnp/sp/views";
 export class ProjectService implements IProjectService {
     private readonly _context: BaseComponentContext;
     private readonly _listName: string;
+    private readonly _catalogListName = "ED2-Projects";
 
     private _sp: SPFI;
 
@@ -21,7 +22,7 @@ export class ProjectService implements IProjectService {
             // Caso 1: te pasan el context del WebPart
             this._context = contextOrSp as BaseComponentContext;
             this._listName = listName;
-            this._sp = spfi().using(SPFx(this._context)); // inicializas PnP aquí
+            this._sp = spfi().using(SPFx(this._context));
         } else {
             // Caso 2: te pasan directamente un SPFI ya configurado
             this._sp = contextOrSp as SPFI;
@@ -29,7 +30,7 @@ export class ProjectService implements IProjectService {
         }
     }
 
-    private get webUrl(): string {
+    public get webUrl(): string {
         return this._context.pageContext.web.absoluteUrl.replace(/\/+$/, "");
     }
 
@@ -423,4 +424,118 @@ export class ProjectService implements IProjectService {
         // 3) crear nuevo item
         return this.createProject(baseData);
     }
+
+    /** Obtener todos los proyectos del catálogo (lista master) */
+    public async getProjectCatalog(
+        listName: string = "ProjectCatalog" // o el nombre real de tu lista
+    ): Promise<IProjectCatalogItem[]> {
+        const items = await this._sp.web.lists
+            .getByTitle(listName)
+            .items.select(
+                "Id",
+                "Title",
+                "ProjectNumber",
+                "ProjectId",
+                "Year",
+                "Team",
+                "Status",
+                "Customer"
+            )
+            .top(5000)(); // ajusta si necesitas paginar
+
+        return items as IProjectCatalogItem[];
+    }
+
+    /** Obtener un proyecto del catálogo por ProjectId */
+    public async getProjectByProjectId(
+        projectId: string,
+        listName: string = "ProjectCatalog"
+    ): Promise<IProjectCatalogItem | null> {
+        const items = await this._sp.web.lists
+            .getByTitle(listName)
+            .items.select(
+                "Id",
+                "Title",
+                "ProjectNumber",
+                "ProjectId",
+                "Year",
+                "Team",
+                "Status",
+                "Customer"
+            )
+            .filter(`ProjectId eq '${projectId.replace(/'/g, "''")}'`)();
+
+        if (!items.length) {
+            return null;
+        }
+
+        return items[0] as IProjectCatalogItem;
+    }
+
+    /** Obtener proyectos filtrando por año / estado, etc. */
+    public async getProjectsByYearAndStatus(
+        year: number,
+        status?: string,
+        listName: string = "ProjectCatalog"
+    ): Promise<IProjectCatalogItem[]> {
+        let filter = `Year eq ${year}`;
+        if (status) {
+            filter += ` and Status eq '${status.replace(/'/g, "''")}'`;
+        }
+
+        const items = await this._sp.web.lists
+            .getByTitle(listName)
+            .items.select(
+                "Id",
+                "Title",
+                "ProjectNumber",
+                "ProjectId",
+                "Year",
+                "Team",
+                "Status",
+                "Customer"
+            )
+            .filter(filter)();
+
+        return items as IProjectCatalogItem[];
+    }
+
+
+    public async getLastProjectFromCatalog(): Promise<{ ProjectNumber?: string } | null> {
+        console.log("[getLastProjectFromCatalog] projects from: ", this._catalogListName);
+
+        const items = await this._sp.web.lists
+            .getByTitle(this._catalogListName)
+            .items.select("ID", "Title", "ProjectNumber", "ProjectId", "Year", "Team", "Status", "Customer")
+            .orderBy("ProjectNumber", false) // false = DESC
+            .top(1)();
+
+        if (!items.length) {
+            return null;
+        }
+        console.log("[getLastProjectFromCatalog] items: ", items.length);
+
+        const item = items[0] as any;
+        return {
+            ProjectNumber: item.ProjectNumber as string | undefined,
+        };
+    }
+
+    public async addProjectToCatalog(item: IProjectCatalogItem): Promise<string> {
+        const res = await this._sp.web.lists
+            .getByTitle(this._catalogListName)
+            .items.add({
+                Title: item.Title,
+                ProjectNumber: item.ProjectNumber,
+                ProjectId: item.ProjectId,
+                Year: item.Year,
+                Team: item.Team,
+                Status: item.Status,
+                Customer: item.Customer,
+            });
+
+        return res.data.ID as string;
+    }
 }
+
+
