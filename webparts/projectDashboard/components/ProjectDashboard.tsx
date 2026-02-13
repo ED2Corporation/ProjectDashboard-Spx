@@ -94,21 +94,7 @@ export default class ProjectDashboard extends React.Component<
               <h2 style={{ margin: 0 }}>{project.Title}</h2>
             </a>
 
-          </div>
-          { showBuckets && (
-            <div style={{ marginLeft: "30px" }}>
-              <input className={styles["checkbox"]}
-                type="checkbox"
-                checked={showProjectActions}
-                onChange={e => this.setState({ showProjectActions: e.target.checked }, () => {
-                  if (e.target.checked) {
-                    this.onReset();
-                  }
-                })}
-              /> Project Actions
-            </div>
-          )
-          }
+          </div>          
         </div>
 
         {this.state.showDashboard && this.props.isDashboard && (
@@ -124,7 +110,6 @@ export default class ProjectDashboard extends React.Component<
                     this.props.onSelectItem(item, group);
                     this.props.onGateFilterChange?.(item);
                     if (item === "all") {
-                      // Click en el CENTRO: toggle allTasks
                       console.log("[DoughnutChart] Show all tasks");
                       this.setState({
                         allTasks: true,
@@ -132,7 +117,6 @@ export default class ProjectDashboard extends React.Component<
                         showDetails: !showDetails
                       });
                     } else {
-                      // Click en SECCIÓN: mostrar filtradas
                       console.log("[DoughnutChart] Filter by section:", item);
                       this.setState({
                         allTasks: false,
@@ -144,6 +128,20 @@ export default class ProjectDashboard extends React.Component<
                 />              
               </div>
             )}
+            { showBuckets && (
+              <div style={{ marginTop: "20px" }}>
+                <input className={styles["checkbox"]}
+                  type="checkbox"
+                  checked={showProjectActions}
+                  onChange={e => this.setState({ showProjectActions: e.target.checked }, () => {
+                    if (e.target.checked) {
+                      this.onReset();
+                    }
+                  })}
+                /> Project Actions
+              </div>
+            )
+            }
             {showProjectActions && showBuckets && (
               <div>
                 <h1>Project actions</h1>
@@ -160,8 +158,8 @@ export default class ProjectDashboard extends React.Component<
                     type="button"
                     className={styles.actionItem}
                     onClick={async () => {
-                      if (!this.props.project.Id) return;
-                      await this.props.projectService.archiveProject(this.props.project.Id, this.props.evidenceFolderServerRelative);
+                      if (!this.props.project.ListName) return;
+                      await this.props.projectService.archiveProject(this.props.project.ListName, this.props.evidenceFolderServerRelative, this.props.project.Title);
                       this.props.onReset();
                     }}
                   >
@@ -172,14 +170,13 @@ export default class ProjectDashboard extends React.Component<
                     type="button"
                     className={styles.actionItem}
                     onClick={async () => {
-                      const listTitle = this.props.project.Id;
-                      if (!listTitle) return;
-
+                      if (!this.props.project.ListName) return;
+                      console.log("[Delete] List:",this.props.project.ListName)  
                       if (!confirm("Are you sure you want to delete this project and its evidence repository?")) {
                         return;
                       }
 
-                      await this.props.projectService.deleteProject(listTitle, this.props.evidenceFolderServerRelative);
+                      await this.props.projectService.deleteProject(this.props.project.ListName, this.props.project.Title, this.props.evidenceFolderServerRelative);
                       this.props.onReset();
                     }}
                   >
@@ -191,9 +188,9 @@ export default class ProjectDashboard extends React.Component<
                     type="button"
                     className={styles.actionItem}
                     onClick={async () => {
-                      if (!this.props.project.Id) return;
+                      if (!this.props.project.ListName) return;
                       try{
-                        const listTitle = this.props.project.Id; 
+                        const listTitle = this.props.project.ListName; 
                         console.log("Export: "+listTitle);
                         if (!listTitle) return;
 
@@ -222,7 +219,7 @@ export default class ProjectDashboard extends React.Component<
                         className={styles.actionItem}
                         onClick={async () => {
                           const file = this.state.importFile;
-                          const listTitle = this.props.project.Id;
+                          const listTitle = this.props.project.ListName;
                           if (!listTitle || !file) {
                             alert("Please select an Excel file first.");
                             return;
@@ -274,8 +271,6 @@ export default class ProjectDashboard extends React.Component<
             {showNewProject && (
               <NewProjectSetup
                 defaultProjectName={this.props.project.Title}
-                defaultSourceName={this.props.project.ListName}
-                defaultRepositoryName={this.props.project.RepositoryName}
                 onCancel={() => this.setState({ showNewProject: false })}
                 onCreate={async (
                   listName: string,
@@ -287,9 +282,9 @@ export default class ProjectDashboard extends React.Component<
                 ): Promise<void> => {
                   if (this.props.onCreateNewProject) {
                     await this.props.onCreateNewProject(
-                      projectTitle,
                       listName,
                       repositoryName,
+                      projectTitle,
                       firstGate,
                       mode,
                       file
@@ -302,6 +297,13 @@ export default class ProjectDashboard extends React.Component<
                 }}
                 addProjectToCatalog={async (data: IProjectCatalogItem) => {
                   await this.props.projectService.addProjectToCatalog(data);
+                }}
+                onProjectCreated={(data) => {
+                  console.log("ProjName: ", data.projectId, "-", data.projectName)
+
+                  this.props.project.Title = data.projectId;
+                  this.props.project.ListName = data.listName;
+                  this.props.project.RepositoryName = data.repoName;
                 }}
               />
 

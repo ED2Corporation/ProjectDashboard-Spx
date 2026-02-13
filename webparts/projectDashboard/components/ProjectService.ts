@@ -12,19 +12,17 @@ import "@pnp/sp/views";
 
 export class ProjectService implements IProjectService {
     private readonly _context: BaseComponentContext;
-    private readonly _listName: string;
+    private readonly _listName: string;              // lista master si aplicara
     private readonly _catalogListName = "ED2-Projects";
 
     private _sp: SPFI;
 
     constructor(contextOrSp: BaseComponentContext | SPFI, listName: string = "Projects") {
         if ((contextOrSp as any).pageContext) {
-            // Caso 1: te pasan el context del WebPart
             this._context = contextOrSp as BaseComponentContext;
             this._listName = listName;
             this._sp = spfi().using(SPFx(this._context));
         } else {
-            // Caso 2: te pasan directamente un SPFI ya configurado
             this._sp = contextOrSp as SPFI;
             this._listName = listName;
         }
@@ -43,8 +41,7 @@ export class ProjectService implements IProjectService {
         const body = {
             __metadata: { type: `SP.Data.${this._listName.replace(/\s/g, "_x0020_")}ListItem` },
             Title: baseData.Title,
-            Status: baseData.Status || "Active",
-            // agrega más campos de tu modelo
+            Status: baseData.Status || "Active"
         };
 
         const resp = await this._context.spHttpClient.post(
@@ -68,21 +65,26 @@ export class ProjectService implements IProjectService {
         return data.Id as string;
     }
 
-    /** DELETE: Delete project by Id */
+    /**
+     * DELETE:
+     * - listName: nombre de la lista de tareas del proyecto (SharePoint list)
+     * - projectId: identificador lógico del proyecto en el catálogo (columna ProjectId)
+     */
     public async deleteProject(
+        listName: string,
         projectId: string,
         evidenceFolderServerRelative?: string
     ): Promise<void> {
-        console.log("[deleteProject] projectId: " + projectId);
+        console.log("[deleteProject] listName:", listName, "projectId:", projectId);
 
-        const listUrl = `${this.webUrl}/_api/web/lists/GetByTitle('${projectId}')`;
+        // 1) Eliminar la lista de tareas
+        const listUrl = `${this.webUrl}/_api/web/lists/GetByTitle('${listName}')`;
 
         const listResp = await this._context.spHttpClient.post(
             listUrl,
             SPHttpClient.configurations.v1,
             {
                 headers: {
-                    // SIN Accept
                     "IF-MATCH": "*",
                     "X-HTTP-Method": "DELETE"
                 }
@@ -98,8 +100,10 @@ export class ProjectService implements IProjectService {
             );
         }
 
+        // 2) Eliminar carpeta de evidencias (si aplica)
         console.log(
-            "[deleteProject] evidenceFolderServerRelative: " + evidenceFolderServerRelative
+            "[deleteProject] evidenceFolderServerRelative:",
+            evidenceFolderServerRelative
         );
 
         if (evidenceFolderServerRelative) {
@@ -112,7 +116,6 @@ export class ProjectService implements IProjectService {
                 SPHttpClient.configurations.v1,
                 {
                     headers: {
-                        // SIN Accept
                         "IF-MATCH": "*",
                         "X-HTTP-Method": "DELETE"
                     }
@@ -132,36 +135,82 @@ export class ProjectService implements IProjectService {
                 );
             }
         }
+
+        // 3) Eliminar el registro del catálogo (ED2-Projects) por ProjectId
+        const getItemUrl =
+            `${this.webUrl}/_api/web/lists/GetByTitle('${this._catalogListName}')/items` +
+            `?$select=Id,ProjectId&$filter=ProjectId eq '${projectId.replace(/'/g, "''")}'`;
+
+        const getResp = await this._context.spHttpClient.get(
+            getItemUrl,
+            SPHttpClient.configurations.v1
+        );
+
+        if (!getResp.ok) {
+            const err = await getResp.text();
+            throw new Error(`deleteProject (catalog lookup) failed: ${getResp.status} - ${err}`);
+        }
+
+        const data = await getResp.json();
+        const item = (data.value && data.value[0]) || null;
+
+        if (item && item.Id) {
+            const itemId = item.Id as number;
+
+            const deleteItemUrl =
+                `${this.webUrl}/_api/web/lists/GetByTitle('${this._catalogListName}')/items(${itemId})`;
+
+            const deleteResp = await this._context.spHttpClient.post(
+                deleteItemUrl,
+                SPHttpClient.configurations.v1,
+                {
+                    headers: {
+                        "IF-MATCH": "*",
+                        "X-HTTP-Method": "DELETE"
+                    }
+                }
+            );
+
+            console.log(
+                "[deleteProject] catalog item delete status:",
+                deleteResp.status,
+                deleteResp.ok
+            );
+
+            if (!deleteResp.ok && deleteResp.status !== 404) {
+                const errorText = await deleteResp.text();
+                throw new Error(
+                    `deleteProject (catalog item) failed: ${deleteResp.status} - ${errorText}`
+                );
+            }
+        } else {
+            console.log("[deleteProject] No catalog item found for ProjectId:", projectId);
+        }
     }
 
-    /** ARCHIVE: marcar proyecto como archivado (ej. columna Status = Archived) */
+    /** ARCHIVE: exporta lista, sube CSV al repo y borra la lista */
     public async archiveProject(
-        listTitle: string,
+        listName: string,
         evidenceFolderServerRelative: string,
-        projectItemId?: number // si además marcas el master como Archived
+        projectId?: string // si quieres pasarlo aquí por conveniencia
     ): Promise<void> {
-        console.log("[archiveProject] listTitle:", listTitle);
+        console.log("[archiveProject] listName:", listName);
 
-        // // (Opcional) marcar proyecto como Archived en la lista maestra
-        // if (projectItemId != null) {
-        //     await this._markProjectAsArchived(projectItemId);
-        // }
-
-        // 1. Obtener el CSV como Blob reutilizando exportProject
-        const csvBlob = await this.exportProject(listTitle);
+        // 1) CSV de la lista
+        const csvBlob = await this.exportProject(listName);
         console.log("[archiveProject] exportProject file:", csvBlob.size);
 
-        // 2. Subir el CSV a la carpeta Archive del repo
+        // 2) Carpeta de destino (repo ya existente, p.ej. 1003003-XXX-Evidence[/Archive])
         const reportFolder = `${evidenceFolderServerRelative}`;
         const timeStamp = new Date().toISOString().replace(/[:.]/g, "-");
-        const fileName = `${listTitle}-${timeStamp}-Archived.csv`;
+        const fileName = `${listName}-${timeStamp}-Archived.csv`;
 
         await this._uploadBlobToReportFolder(reportFolder, fileName, csvBlob);
-        console.log("[archiveProject] exportProject:", csvBlob.size);
+        console.log("[archiveProject] CSV uploaded");
 
-        // 3. Borrar la lista, manteniendo el repo
-        await this.deleteProject(listTitle);
-        console.log("[archiveProject] List deleted :", listTitle);
+        // 3) Borrar solo la lista (no el repo ni el catálogo aquí, salvo que quieras)
+        await this.deleteProject(listName, projectId ?? "", undefined);
+        console.log("[archiveProject] List deleted:", listName);
     }
 
     private async _uploadBlobToReportFolder(
@@ -169,7 +218,11 @@ export class ProjectService implements IProjectService {
         fileName: string,
         blob: Blob
     ): Promise<void> {
-        console.log("[_uploadBlobToReportFolder] reportFolderServerRelativeUrl:", reportFolderServerRelativeUrl);
+        console.log(
+            "[_uploadBlobToReportFolder] reportFolderServerRelativeUrl:",
+            reportFolderServerRelativeUrl
+        );
+
         const url = `${this.webUrl}/_api/web/GetFolderByServerRelativeUrl('${encodeURI(
             reportFolderServerRelativeUrl
         ).replace(/'/g, "''")}')/Files/add(overwrite=true, url='${fileName}')`;
@@ -177,9 +230,7 @@ export class ProjectService implements IProjectService {
         const resp = await this._context.spHttpClient.post(
             url,
             SPHttpClient.configurations.v1,
-            {
-                body: blob
-            }
+            { body: blob }
         );
 
         if (!resp.ok) {
@@ -188,11 +239,11 @@ export class ProjectService implements IProjectService {
         }
     }
 
-    /** EXPORT: puedes devolver un Blob con JSON de todo el proyecto */
-    public async exportProject(projectId: string): Promise<Blob> {
-        console.log("[exportProject] projectId: " + projectId);
+    /** EXPORT: devuelve Blob CSV de una lista de tareas */
+    public async exportProject(listName: string): Promise<Blob> {
+        console.log("[exportProject] listName:", listName);
 
-        const url = `${this.webUrl}/_api/web/lists/getbytitle('${projectId}')/items?$top=5000`;
+        const url = `${this.webUrl}/_api/web/lists/getbytitle('${listName}')/items?$top=5000`;
 
         const resp = await this._context.spHttpClient.get(
             url,
@@ -207,7 +258,6 @@ export class ProjectService implements IProjectService {
         const data = await resp.json();
         const items = data.value as any[];
 
-        // muy simple: CSV con columnas clave
         const headers = [
             "Id",
             "Title",
@@ -253,7 +303,6 @@ export class ProjectService implements IProjectService {
                 ].join(",");
             })
         ];
-
 
         const csv = lines.join("\r\n");
         console.log("[exportProject] Export completed...");
@@ -331,13 +380,12 @@ export class ProjectService implements IProjectService {
                 continue;
             }
 
-            // calcular WBS para este gate antes de crear
             const nextWbs = await this._getNextWbsForGate(listName, gate);
 
             await list.items.add({
                 Gate: gate,
                 Task: taskTitle,
-                Title: nextWbs,                       // 👈 WBS importado
+                Title: nextWbs,
                 Deliverable: deliverable,
                 Description: description,
                 Complete: complete,
@@ -352,15 +400,14 @@ export class ProjectService implements IProjectService {
         }
 
         console.log(`Excel import finished.\nRows created: ${created}`);
-        //alert(`Excel import finished.\nRows created: ${created}`);
     }
 
     private async _getNextWbsForGate(
-        listTitle: string,
+        listName: string,
         gate: string
     ): Promise<string> {
         const existing = await this._sp.web.lists
-            .getByTitle(listTitle)
+            .getByTitle(listName)
             .items.select("Title", "Gate")
             .filter(`Gate eq '${gate.replace(/'/g, "''")}'`)();
 
@@ -384,18 +431,17 @@ export class ProjectService implements IProjectService {
         return parts.join(".");
     }
 
-    /** IMPORT: leer un archivo (ej. JSON) y crear un nuevo proyecto */
+    /** IMPORT: leer un Excel y crear tareas en una lista */
     public async importProject(listName: string, file: File): Promise<string> {
-        console.log("[importProject] projectId: " + file.name);
-
+        console.log("[importProject] listName:", listName);
         await this._importTasksFromExcel(listName, file);
         return listName;
     }
 
-    /** REPLICATE: copiar campos del proyecto origen a uno nuevo */
+    /** REPLICATE: copiar campos del proyecto origen a uno nuevo (catálogo master) */
     public async replicateProject(projectId: string): Promise<string> {
-        console.log("[replicateProject] projectId: " + projectId);
-        // 1) leer proyecto origen
+        console.log("[replicateProject] projectId:", projectId);
+
         const url = `${this.listItemsEndpoint}(${projectId})`;
         const resp = await this._context.spHttpClient.get(
             url,
@@ -414,20 +460,17 @@ export class ProjectService implements IProjectService {
 
         const src = await resp.json();
 
-        // 2) construir datos base del nuevo proyecto (puedes cambiar el título, agregar sufijo, etc.)
         const baseData = {
             Title: `${src.Title} (Copy)`,
-            Status: src.Status || "Active",
-            // copiar otros campos que quieras replicar
+            Status: src.Status || "Active"
         };
 
-        // 3) crear nuevo item
         return this.createProject(baseData);
     }
 
-    /** Obtener todos los proyectos del catálogo (lista master) */
+    /** Obtener todos los proyectos del catálogo */
     public async getProjectCatalog(
-        listName: string = "ProjectCatalog" // o el nombre real de tu lista
+        listName: string = "ProjectCatalog"
     ): Promise<IProjectCatalogItem[]> {
         const items = await this._sp.web.lists
             .getByTitle(listName)
@@ -441,7 +484,7 @@ export class ProjectService implements IProjectService {
                 "Status",
                 "Customer"
             )
-            .top(5000)(); // ajusta si necesitas paginar
+            .top(5000)();
 
         return items as IProjectCatalogItem[];
     }
@@ -472,7 +515,6 @@ export class ProjectService implements IProjectService {
         return items[0] as IProjectCatalogItem;
     }
 
-    /** Obtener proyectos filtrando por año / estado, etc. */
     public async getProjectsByYearAndStatus(
         year: number,
         status?: string,
@@ -500,24 +542,23 @@ export class ProjectService implements IProjectService {
         return items as IProjectCatalogItem[];
     }
 
-
     public async getLastProjectFromCatalog(): Promise<{ ProjectNumber?: string } | null> {
-        console.log("[getLastProjectFromCatalog] projects from: ", this._catalogListName);
+        console.log("[getLastProjectFromCatalog] projects from:", this._catalogListName);
 
         const items = await this._sp.web.lists
             .getByTitle(this._catalogListName)
             .items.select("ID", "Title", "ProjectNumber", "ProjectId", "Year", "Team", "Status", "Customer")
-            .orderBy("ProjectNumber", false) // false = DESC
+            .orderBy("ProjectNumber", false)
             .top(1)();
 
         if (!items.length) {
             return null;
         }
-        console.log("[getLastProjectFromCatalog] items: ", items.length);
+        console.log("[getLastProjectFromCatalog] items:", items.length);
 
         const item = items[0] as any;
         return {
-            ProjectNumber: item.ProjectNumber as string | undefined,
+            ProjectNumber: item.ProjectNumber as string | undefined
         };
     }
 
@@ -531,11 +572,9 @@ export class ProjectService implements IProjectService {
                 Year: item.Year,
                 Team: item.Team,
                 Status: item.Status,
-                Customer: item.Customer,
+                Customer: item.Customer
             });
 
         return res.data.ID as string;
     }
 }
-
-

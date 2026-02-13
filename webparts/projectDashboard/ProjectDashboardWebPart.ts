@@ -134,8 +134,6 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
       NewProjectSetup,
       {
         defaultProjectName: this.properties.projectName,
-        defaultSourceName: this.properties.sourceName,
-        defaultRepositoryName: this.properties.repositoryName,
         onCancel: async () => {
           // si cancela, simplemente recargas (seguirá sin tareas)
           this._showNewProjectSetup = false;
@@ -160,6 +158,15 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
         addProjectToCatalog: async (data) => {
           await this._projectService.addProjectToCatalog(data);
         },
+
+        onProjectCreated: (data) => {
+          console.log("ProjName: ", data.projectId, "-", data.projectName)
+          this.properties.projectName = data.projectId;
+          this.properties.sourceName = data.listName;
+          this.properties.repositoryName = data.repoName;
+          this._showNewProjectSetup = false;
+          this._onReset();
+        }
       }
 
     );
@@ -653,24 +660,13 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
   };
 
   private _onGetPlannerListItems = async (): Promise<void> => {
-
-    // Obtener el cliente de Microsoft Graph (versión V3)
     const graphClient: MSGraphClientV3 = await this.context.msGraphClientFactory.getClient("3");
-
-    // Crear una instancia del servicio de Planner
     const plannerService = new PlannerService(graphClient);
-
-    // Obtener los detalles del plan y almacenarlos en _plan
     try {
-      //const groupId = await this.getGroupId(); // Obtener el ID del grupo
-      //const planName = "PlanCascade";
-      //const planId = await plannerService.getPlanId(groupId, planName);
       if (this._projectSelected.ListName.length > 0) {
         const planId = this._projectSelected.ListName;
         const planDetails = await plannerService.getPlanDetails(planId);
         this._tasks = planDetails ? planDetails : [];
-
-        //MessageLog(" Plan: " + planId + " Bucket. " + planDetails[0].Title + " task. " + planDetails[0].Task, "_onGetPlannerListItems", this.MsgInfo, this.properties.showLog);
       } else {
         MessageLog("[_onGetPlannerListItems] Plan : " + this._projectSelected.ListName + " was not found... ", "_onGetPlannerListItems", this.MsgError, this.properties.showLog);
         this._projectSelected = this._getProjectInfo(this.properties.projectName);
@@ -679,8 +675,6 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
     } catch (error) {
       console.error("Error loading plan details:", error);
     }
-
-    //this.render();
   }
 
   // Updating planner details when project changes
