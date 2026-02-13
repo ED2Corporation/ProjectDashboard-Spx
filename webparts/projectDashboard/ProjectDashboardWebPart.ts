@@ -69,9 +69,9 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
 
     const siteRelativePath = this.context.pageContext.web.serverRelativeUrl; // "/sites/ED2-Team" o "/"
     const folderPath = this._repositoryUrl;                                  // "ProjectsEvidence/" (o tu valor actual)
-    const folderName = this.properties.repositoryName || this._repositoryName;                                 // p.ej. "NewProject-Evidence"
+    //const folderName = this.properties.repositoryName || this._repositoryName;                                 // p.ej. "NewProject-Evidence"
 
-    this._EvidenceFolderServerRelative = buildRepoRelativeUrl(siteRelativePath, folderPath, folderName);
+    this._EvidenceFolderServerRelative = buildRepoRelativeUrl(siteRelativePath, folderPath);
 
     await this._onReset();
     this._sp = spfi().using(SPFx(this.context));
@@ -164,6 +164,7 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
           this.properties.projectName = data.projectId;
           this.properties.sourceName = data.listName;
           this.properties.repositoryName = data.repoName;
+
           this._showNewProjectSetup = false;
           this._onReset();
         }
@@ -297,6 +298,7 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
     if (propertyPath === 'isPlanner' && newValue !== oldValue) {
       MessageLog(`isPlanner Changed: ${newValue}`, "", this.MsgInfo, this.properties.showLog);
       super.onPropertyPaneFieldChanged(propertyPath, oldValue, newValue);
+      await this._onProjectChange(this.properties.projectName);
       await this._onReset();
     }
     if (propertyPath === 'isDashboard' && newValue !== oldValue) {
@@ -630,6 +632,7 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
   private _onReset = async (): Promise<void> => {
     this._sysError = false;
     this._showNewProjectSetup = false;
+    this._projectSelected = this._getProjectInfo(this.properties.projectName);
 
     if (this._projectSelected.isPlanner) {
       await this._onGetPlannerListItems();
@@ -704,7 +707,8 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
       Link: { Url: this.properties.projectURL, Description: this.properties.projectName }
     };
     this._projectSelected = projectInfo;
-    MessageLog("IsPlanner: " + this._projectSelected.isPlanner + " - " + this._projectSelected.Id + " - " + this._projectSelected.Link.Description + " - " + this._projectSelected.Link.Url + " - " + this._projectSelected.ListName + " - " + this._projectSelected.Title + " - " + this._projectSelected.isPlanner, "_getProjectInfo", this.MsgInfo, this.properties.showLog);
+    MessageLog("[_getProjectInfo] Updated Project Info..." + this._projectSelected.Id, "_getProjectInfo", this.MsgInfo, this.properties.showLog);
+    //MessageLog("[_getProjectInfo] Updated Project Info: " + this._projectSelected.isPlanner + " - " + this._projectSelected.Id + " - " + this._projectSelected.Link.Description + " - " + this._projectSelected.Link.Url + " - " + this._projectSelected.ListName + " - " + this._projectSelected.Title + " - " + this._projectSelected.isPlanner, "_getProjectInfo", this.MsgInfo, this.properties.showLog);
     return projectInfo;
 
   }

@@ -158,26 +158,27 @@ export async function ensureFolder(
 export function buildRepoRelativeUrl(
     siteRelativePath: string, // this.context.pageContext.web.serverRelativeUrl
     repositoryUrl: string,    // this._repositoryUrl, ej. "ProjectsEvidence/" o "/ProjectsEvidence/"
-    repositoryName: string    // folderName, ej. "NewProject-Evidence"
+    //repositoryName: string    // folderName, ej. "NewProject-Evidence"
 ): string {
     const relativePath = siteRelativePath || "/";              // "/sites/ED2-Team" o "/"
     const folderPath = repositoryUrl || "/ProjectsEvidence/";  // normaliza
-    const folderName = repositoryName || "DefaultRepo";
+    //const folderName = repositoryName || "DefaultRepo";
 
     const isRootSite = relativePath === "/";
 
     // normalizar componentes (sin dobles barras)
     const cleanRelative = relativePath.replace(/\/+$/, "");        // "/sites/ED2-Team" o ""
     const cleanFolderPath = folderPath.replace(/^\/+/, "");        // "ProjectsEvidence/" o "Shared Documents/ProjectsEvidence/"
-    const cleanFolder = cleanFolderPath.replace(/\/+$/, "");       // "ProjectsEvidence"
+    //const cleanFolder = cleanFolderPath.replace(/\/+$/, "");       // "ProjectsEvidence"
 
     // Base según si es raíz o subsite
     const base = isRootSite
-        ? `/ED2 Repository Internal/Engineering/ProjectDashboard/${cleanFolder}` // producción root
-        : `${cleanRelative}/Shared Documents/${cleanFolder}`;                    // subsite (Teams)
+        ? `/ED2 Repository Internal/Engineering/ProjectDashboard/${cleanFolderPath}/` // producción root
+        : `${cleanRelative}/Shared Documents/${cleanFolderPath}/`;                    // subsite (Teams)
 
     // server-relative final de la carpeta del proyecto
-    const serverRelative = `${base}/${folderName}`; // p.ej. "/sites/ED2-Team/Shared Documents/ProjectsEvidence/NewProject-Evidence"
+    const serverRelative = `${base}`; // p.ej. "/sites/ED2-Team/Shared Documents/ProjectsEvidence/NewProject-Evidence"
+    //const serverRelative = `${base}/${folderName}`; // p.ej. "/sites/ED2-Team/Shared Documents/ProjectsEvidence/NewProject-Evidence"
 
     return serverRelative;
 }

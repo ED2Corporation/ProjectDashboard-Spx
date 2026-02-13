@@ -77,7 +77,7 @@ export default class ProjectDashboard extends React.Component<
               data-interception="off"
               onClick={(e) => {
                 const isModifier = e.metaKey || e.ctrlKey; // Cmd(mac) / Ctrl(win/linux)
-                console.log("showBuckets:",showBuckets);
+                //console.log("showBuckets:",showBuckets);
                 if (!isModifier) {
                   e.preventDefault();
                   this.setState((prev) => ({ showBuckets: !prev.showBuckets }));
@@ -138,13 +138,13 @@ export default class ProjectDashboard extends React.Component<
                       this.onReset();
                     }
                   })}
-                /> Project Actions
+                /> Other options...
               </div>
             )
             }
             {showProjectActions && showBuckets && (
-              <div>
-                <h1>Project actions</h1>
+              <div style={{ border: "1px solid #e1dfdd", borderRadius: 4}}>
+                <h3>Options</h3>
                   <div className={styles.actionsBar}>
                   <button
                     type="button"
@@ -159,7 +159,7 @@ export default class ProjectDashboard extends React.Component<
                     className={styles.actionItem}
                     onClick={async () => {
                       if (!this.props.project.ListName) return;
-                      await this.props.projectService.archiveProject(this.props.project.ListName, this.props.evidenceFolderServerRelative, this.props.project.Title);
+                      await this.props.projectService.archiveProject(this.props.project.ListName, this.props.evidenceFolderServerRelative+this.props.project.RepositoryName, this.props.project.Title);
                       this.props.onReset();
                     }}
                   >
@@ -176,7 +176,7 @@ export default class ProjectDashboard extends React.Component<
                         return;
                       }
 
-                      await this.props.projectService.deleteProject(this.props.project.ListName, this.props.project.Title, this.props.evidenceFolderServerRelative);
+                      await this.props.projectService.deleteProject(this.props.project.ListName, this.props.project.Title, this.props.evidenceFolderServerRelative+this.props.project.RepositoryName);
                       this.props.onReset();
                     }}
                   >
@@ -304,6 +304,7 @@ export default class ProjectDashboard extends React.Component<
                   this.props.project.Title = data.projectId;
                   this.props.project.ListName = data.listName;
                   this.props.project.RepositoryName = data.repoName;
+                  
                 }}
               />
 
