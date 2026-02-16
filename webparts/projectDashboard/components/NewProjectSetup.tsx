@@ -42,6 +42,7 @@ const NewProjectSetup: React.FC<NewProjectSetupProps> = ({
   const [firstGate, setFirstGate] = React.useState("1. Design");
   const [isCreating, setIsCreating] = React.useState(false);
   const [excelFile, setExcelFile] = React.useState<File | null>(null);
+  const fileInputRef = React.useRef<HTMLInputElement | null>(null);
 
   const [projectNumber, setProjectNumber] = React.useState<string | null>(null);
   const [customer, setCustomer] = React.useState("Internal");
@@ -77,7 +78,7 @@ const NewProjectSetup: React.FC<NewProjectSetupProps> = ({
     })();
   }, [getLastProjectFromCatalog]);
 
-  const handleCreate = async (mode: "empty" | "from-excel") => {
+  const handleCreate = async (mode: "empty" | "from-excel", fileArg?: File | null) => {
     if (!projectName.trim()) {
       alert("Please fill in Project name.");
       return;
@@ -88,7 +89,15 @@ const NewProjectSetup: React.FC<NewProjectSetupProps> = ({
       alert("Invalid project number.");
       return;
     }
+    const fileToUse = fileArg ?? excelFile;
+    //console.log("Mode: "+mode+" file: "+fileToUse?.size+" file: "+fileArg?.size)
 
+    if (mode === "from-excel" && !fileToUse) {
+      alert("Please select a valid file.");
+      setExcelFile(null);
+      return;
+
+    }
     const projectId = buildProjectId(projectSeq, customer, projectName);
     const year = new Date().getFullYear();
 
@@ -104,7 +113,7 @@ const NewProjectSetup: React.FC<NewProjectSetupProps> = ({
         projectId.trim(),
         firstGate.trim(),
         mode,
-        mode === "from-excel" ? excelFile || undefined : undefined
+        mode === "from-excel" ? fileToUse || undefined : undefined
       );
 
       await addProjectToCatalog({
@@ -229,18 +238,25 @@ const NewProjectSetup: React.FC<NewProjectSetupProps> = ({
             </td>
             <td>
               <input
+                ref={fileInputRef}
                 type="file"
                 accept=".xlsx,.xls"
+                style={{ display: "none" }}
                 onChange={(e) => {
                   const file = e.target.files?.[0] || null;
                   setExcelFile(file);
+                  if(file) {handleCreate("from-excel", file);}                  
                 }}
                 className={styles["input-small"]}
               />
-              <div style={{ fontSize: 11, color: "#605e5c", marginTop: 4 }}>
-                Expected columns: Gate, Task, Deliverable, Start, Finish, Complete,
-                Description, EvidenceOfCompletion, EvidenceDescription.
-              </div>
+              <a 
+                style={{ fontSize: 10}}
+                href="https://ed2corp.sharepoint.com/:x:/g/IQCO4yJi-ZQvS6wiVWAQ95I6AUb7buP7UpAsIpZ_d7QSuuY?e=64Tc7H&download=1" 
+                target="_blank"
+                rel="noopener noreferrer"                     
+              >
+                <p style={{ margin: 0 }}>Download template</p>
+              </a>
             </td>
           </tr>
         </tbody>
@@ -260,8 +276,8 @@ const NewProjectSetup: React.FC<NewProjectSetupProps> = ({
         <button
           type="button"
           className={styles["primaryCtaButton"]}
-          disabled={isCreating || !excelFile}
-          onClick={() => handleCreate("from-excel")}
+          disabled={isCreating}
+          onClick={() => fileInputRef.current?.click()}
           style={{ marginLeft: 8 }}
         >
           {isCreating ? "Processing…" : "From Excel template"}

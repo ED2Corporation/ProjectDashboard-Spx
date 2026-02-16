@@ -156,17 +156,21 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
         },
 
         addProjectToCatalog: async (data) => {
+          if (data)
+            console.log("addProjectToCatalog: ", data.Title, "-", data.ProjectNumber)
           await this._projectService.addProjectToCatalog(data);
         },
 
         onProjectCreated: (data) => {
-          console.log("ProjName: ", data.projectId, "-", data.projectName)
-          this.properties.projectName = data.projectId;
-          this.properties.sourceName = data.listName;
-          this.properties.repositoryName = data.repoName;
+          if (data) {
+            console.log("onProjectCreated: ", data.projectId, "-", data.projectName)
+            this.properties.projectName = data.projectId;
+            this.properties.sourceName = data.listName;
+            this.properties.repositoryName = data.repoName;
 
-          this._showNewProjectSetup = false;
-          this._onReset();
+            this._showNewProjectSetup = false;
+            this._onReset();
+          }
         }
       }
 

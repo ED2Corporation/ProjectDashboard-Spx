@@ -5,7 +5,6 @@ import {  ITaskListItem } from "../../../models";
 import ProgressTasks from "./ProgressTasks";
 import TaskCard from "./TaskCard";
 import ListTasks from "./ListTasks";
-import { MessageLog } from "./MessageLog";
 import DoughnutChart from "./Doughnut";
 import NewProjectSetup from "./NewProjectSetup";
 import { GroupByProject } from "./GroupByProject";
@@ -28,8 +27,12 @@ export default class ProjectDashboard extends React.Component<
   IProjectDashboardProps,
   IProjectDashboardState
 > {
+
+  private fileInputRef: React.RefObject<HTMLInputElement>;
+
   constructor(props)  {
     super(props);
+    this.fileInputRef = React.createRef<HTMLInputElement>();
 
 
     this.state = {
@@ -135,7 +138,7 @@ export default class ProjectDashboard extends React.Component<
                   checked={showProjectActions}
                   onChange={e => this.setState({ showProjectActions: e.target.checked }, () => {
                     if (e.target.checked) {
-                      this.onReset();
+                      this.props.onReset();
                     }
                   })}
                 /> Other options...
@@ -143,17 +146,20 @@ export default class ProjectDashboard extends React.Component<
             )
             }
             {showProjectActions && showBuckets && (
-              <div style={{ border: "1px solid #e1dfdd", borderRadius: 4}}>
-                <h3>Options</h3>
-                  <div className={styles.actionsBar}>
-                  <button
-                    type="button"
-                    className={styles.actionItem}
-                    onClick={() => this.setState({ showNewProject: !this.state.showNewProject })}
-                  >
-                    Create new
-                  </button>
-
+              <div style={{ border: "1px solid #e1dfdd", borderRadius: 4, backgroundColor: "#f4f4f4", padding: 4 }}>
+                <div className={styles.actionsBar}>
+                  {/* ====== Create new ====== */}
+                  { false &&
+                    <button
+                      type="button"
+                      className={styles.actionItem}
+                      onClick={() => this.setState({ showNewProject: !this.state.showNewProject })}
+                    >
+                      Create new
+                    </button>
+                  }
+                  
+                  {/* ====== Archive ====== */}
                   <button
                     type="button"
                     className={styles.actionItem}
@@ -166,24 +172,23 @@ export default class ProjectDashboard extends React.Component<
                     Archive
                   </button>
 
+                  {/* ====== Delete ====== */}
                   <button
                     type="button"
                     className={styles.actionItem}
                     onClick={async () => {
                       if (!this.props.project.ListName) return;
-                      console.log("[Delete] List:",this.props.project.ListName)  
                       if (!confirm("Are you sure you want to delete this project and its evidence repository?")) {
                         return;
                       }
-
-                      await this.props.projectService.deleteProject(this.props.project.ListName, this.props.project.Title, this.props.evidenceFolderServerRelative+this.props.project.RepositoryName);
+                      await this.props.projectService.deleteProject(this.props.project.ListName, this.props.project.Title, this.props.evidenceFolderServerRelative+this.props.repositoryName);
                       this.props.onReset();
                     }}
                   >
                     Delete
                   </button>
 
-
+                  {/* ====== Export ====== */}
                   <button
                     type="button"
                     className={styles.actionItem}
@@ -213,32 +218,31 @@ export default class ProjectDashboard extends React.Component<
                   >
                     Export
                   </button>
+
+                  {/* ====== Import ====== */}
                   <div style={{ border: "1px solid #e1dfdd", borderRadius: 4, display: "flex", flexDirection: "row" }}>
                     <button
                         type="button"
                         className={styles.actionItem}
-                        onClick={async () => {
-                          const file = this.state.importFile;
-                          const listTitle = this.props.project.ListName;
-                          if (!listTitle || !file) {
-                            alert("Please select an Excel file first.");
-                            return;
-                          }
-                          await this.props.projectService.importProject(listTitle, file);
-                          this.setState({ importFile: null });
-                          this.props.onReset();
-                        }}
+                        onClick={() => this.fileInputRef.current?.click()}
                       >
                         Import
                     </button>
 
                     <div style={{ fontSize: 11, color: "#605e5c", marginTop: 4, display: "flex", flexDirection: "column"  }}>
                       <input
+                        ref={this.fileInputRef}
                         type="file"
                         accept=".xlsx,.xls"
+                        style={{ display: "none" }}
                         onChange={(e) => {
-                            const file = e.target.files?.[0] || null;
+                          const file = e.target.files?.[0] || null;
+                          if(file) {
+                            const listTitle = this.props.project.ListName;
+                            this.props.projectService.importProject(listTitle, file);
                             this.setState({ importFile: file });
+                          }
+                          this.props.onReset();
                         }}
                         className={styles["input-small"]}
                       /> 
@@ -296,15 +300,19 @@ export default class ProjectDashboard extends React.Component<
                   return this.props.projectService.getLastProjectFromCatalog();
                 }}
                 addProjectToCatalog={async (data: IProjectCatalogItem) => {
-                  await this.props.projectService.addProjectToCatalog(data);
+                  if(data){
+                    console.log("addProjectToCatalog: ", data.Title, "-", data.ProjectNumber)
+                    await this.props.projectService.addProjectToCatalog(data);
+                  }
                 }}
                 onProjectCreated={(data) => {
-                  console.log("ProjName: ", data.projectId, "-", data.projectName)
+                  if(data){
+                    console.log("onProjectCreated: ", data.projectId, "-", data.projectName)
 
-                  this.props.project.Title = data.projectId;
-                  this.props.project.ListName = data.listName;
-                  this.props.project.RepositoryName = data.repoName;
-                  
+                    this.props.project.Title = data.projectId;
+                    this.props.project.ListName = data.listName;
+                    this.props.project.RepositoryName = data.repoName;
+                  }                  
                 }}
               />
 
@@ -432,13 +440,13 @@ export default class ProjectDashboard extends React.Component<
     );
   }
 
-  private async onReset(): Promise<void> {
-    //if (this.props.onReset) this.props.onReset();
-    this.setState({ allTasks: false });
-    this.setState({ showTasks: true });
-    //this.setState({ selectedTask: null });
-    MessageLog("ProjectDashboar/onReset...");
-  }
+  // private async onLocalReset(): Promise<void> {
+  //   //if (this.props.onReset) this.props.onReset();
+  //   this.setState({ allTasks: false });
+  //   this.setState({ showTasks: true });
+  //   //this.setState({ selectedTask: null });
+  //   MessageLog("ProjectDashboar/onLocalReset...");
+  // }
 
   componentDidUpdate(prevProps: IProjectDashboardProps): void {
     if (prevProps.selectedTask !== this.props.selectedTask) {

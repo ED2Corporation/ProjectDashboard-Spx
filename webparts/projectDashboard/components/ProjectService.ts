@@ -563,18 +563,31 @@ export class ProjectService implements IProjectService {
     }
 
     public async addProjectToCatalog(item: IProjectCatalogItem): Promise<string> {
-        const res = await this._sp.web.lists
-            .getByTitle(this._catalogListName)
-            .items.add({
-                Title: item.Title,
-                ProjectNumber: item.ProjectNumber,
-                ProjectId: item.ProjectId,
-                Year: item.Year,
-                Team: item.Team,
-                Status: item.Status,
-                Customer: item.Customer
-            });
+        try {
+            const res = await this._sp.web.lists
+                .getByTitle(this._catalogListName)
+                .items.add({
+                    Title: item.Title,
+                    ProjectNumber: item.ProjectNumber,
+                    ProjectId: item.ProjectId,
+                    Year: item.Year,
+                    Team: item.Team,
+                    Status: item.Status,
+                    Customer: item.Customer
+                });
 
-        return res.data.ID as string;
+            const project = res?.[0];
+            if (!project) {
+                console.error("No items returned when adding project to catalog: ", item.Title, "-", this._catalogListName);
+                return "";
+            }
+
+            return res.data.Title || "" as string;
+
+        } catch (error) {
+            console.error("[addProjectToCatalog] No items returned when adding project to catalog: ", item.Title, "-", this._catalogListName);
+            return "";
+
+        }
     }
 }
