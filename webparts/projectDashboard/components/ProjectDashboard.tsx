@@ -21,6 +21,7 @@ interface IProjectDashboardState {
   showProjectActions: boolean;
   importFile: File | null;
   selectedTask: ITaskListItem | null;
+  isImporting: boolean;
 }
 
 export default class ProjectDashboard extends React.Component<
@@ -45,7 +46,8 @@ export default class ProjectDashboard extends React.Component<
       showNewProject: false,
       showProjectActions: false,
       importFile: null,
-      selectedTask: this.props.selectedTask || null 
+      selectedTask: this.props.selectedTask || null ,
+      isImporting: false
     };
   }
 
@@ -221,28 +223,36 @@ export default class ProjectDashboard extends React.Component<
 
                   {/* ====== Import ====== */}
                   <div style={{ border: "1px solid #e1dfdd", borderRadius: 4, display: "flex", flexDirection: "row" }}>
+                      {this.state.isImporting && (
+                        <span className={styles.spinner} aria-label="Loading" style={{ marginLeft: 8 }} />
+                      )}
                     <button
                         type="button"
                         className={styles.actionItem}
                         onClick={() => this.fileInputRef.current?.click()}
                       >
-                        Import
+                        {this.state.isImporting ? "Importing…" : "Import"}
                     </button>
-
+    
                     <div style={{ fontSize: 11, color: "#605e5c", marginTop: 4, display: "flex", flexDirection: "column"  }}>
                       <input
                         ref={this.fileInputRef}
                         type="file"
                         accept=".xlsx,.xls"
                         style={{ display: "none" }}
-                        onChange={(e) => {
+                        onChange={async (e) => {
                           const file = e.target.files?.[0] || null;
-                          if(file) {
+                          if (file) {
                             const listTitle = this.props.project.ListName;
-                            this.props.projectService.importProject(listTitle, file);
-                            this.setState({ importFile: file });
+                            try {
+                              this.setState({ isImporting: true });
+                              await this.props.projectService.importProject(listTitle, file);
+                              this.setState({ importFile: file });
+                              this.props.onReset();
+                            } finally {
+                              this.setState({ isImporting: false });
+                            }
                           }
-                          this.props.onReset();
                         }}
                         className={styles["input-small"]}
                       /> 
