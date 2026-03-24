@@ -1,5 +1,4 @@
 import {
-  ButtonClickedCallback,
   IProjectListItem,
   ITaskListItem,
   IGateListItem
@@ -13,10 +12,8 @@ export interface IProjectDashboardProps {
   selectedTask?: ITaskListItem | null;
   spGateListItems: IGateListItem[];
 
-  onGetTaskListItems?: ButtonClickedCallback;
-  onGetGateListItems?: ButtonClickedCallback;
-  onReset: ButtonClickedCallback;
-  onPopulateAttachements?: ButtonClickedCallback;
+  onReset: () => void;
+  onPopulateAttachements?: () => void;
   onSelectItem: (item: string, group: string) => void;
   onNewTask?: (
     Gate: string,

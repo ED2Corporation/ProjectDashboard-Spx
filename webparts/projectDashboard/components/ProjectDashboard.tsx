@@ -7,6 +7,7 @@ import TaskCard from "./TaskCard";
 import ListTasks from "./ListTasks";
 import DoughnutChart from "./Doughnut";
 import NewProjectSetup from "./NewProjectSetup";
+import ProjectActionsBar from "./ProjectActionsBar";
 import { GroupByProject } from "../utils/GroupByProject";
 import { IProjectCatalogItem } from "../../../models/IProjectService";
 
@@ -15,13 +16,11 @@ interface IProjectDashboardState {
   showTasks: boolean;
   showCard: boolean;
   showDetails: boolean;
-  showBuckets: boolean; 
-  showDashboard: boolean; 
+  showBuckets: boolean;
+  showDashboard: boolean;
   showNewProject: boolean;
   showProjectActions: boolean;
-  importFile: File | null;
   selectedTask: ITaskListItem | null;
-  isImporting: boolean;
 }
 
 export default class ProjectDashboard extends React.Component<
@@ -29,12 +28,8 @@ export default class ProjectDashboard extends React.Component<
   IProjectDashboardState
 > {
 
-  private fileInputRef: React.RefObject<HTMLInputElement>;
-
   constructor(props)  {
     super(props);
-    this.fileInputRef = React.createRef<HTMLInputElement>();
-
 
     this.state = {
       allTasks: false,
@@ -45,9 +40,7 @@ export default class ProjectDashboard extends React.Component<
       showDashboard: true,
       showNewProject: false,
       showProjectActions: false,
-      importFile: null,
-      selectedTask: this.props.selectedTask || null ,
-      isImporting: false
+      selectedTask: this.props.selectedTask || null,
     };
   }
 
@@ -148,127 +141,13 @@ export default class ProjectDashboard extends React.Component<
             )
             }
             {showProjectActions && showBuckets && (
-              <div style={{ border: "1px solid #e1dfdd", borderRadius: 4, backgroundColor: "#f4f4f4", padding: 4 }}>
-                <div className={styles.actionsBar}>
-                  {/* ====== Create new ====== */}
-                  { false &&
-                    <button
-                      type="button"
-                      className={styles.actionItem}
-                      onClick={() => this.setState({ showNewProject: !this.state.showNewProject })}
-                    >
-                      Create new
-                    </button>
-                  }
-                  
-                  {/* ====== Archive ====== */}
-                  <button
-                    type="button"
-                    className={styles.actionItem}
-                    onClick={async () => {
-                      if (!this.props.project.ListName) return;
-                      await this.props.projectService.archiveProject(this.props.project.ListName, this.props.evidenceFolderServerRelative+this.props.project.RepositoryName, this.props.project.Title);
-                      this.props.onReset();
-                    }}
-                  >
-                    Archive
-                  </button>
-
-                  {/* ====== Delete ====== */}
-                  <div style={{ display: 'none'}}>
-                    <button
-                      type="button"
-                      className={styles.actionItem}
-                      onClick={async () => {
-                        if (!this.props.project.ListName) return;
-                        if (!confirm("Are you sure you want to delete this project and its evidence repository?")) {
-                          return;
-                        }
-                        await this.props.projectService.deleteProject(this.props.project.ListName, this.props.project.Title, this.props.evidenceFolderServerRelative+this.props.repositoryName);
-                        this.props.onReset();
-                      }}
-                    >
-                      Delete
-                    </button>
-                  </div>
-                  {/* ====== Export ====== */}
-                  <button
-                    type="button"
-                    className={styles.actionItem}
-                    onClick={async () => {
-                      if (!this.props.project.ListName) return;
-                      try{
-                        const listTitle = this.props.project.ListName; 
-                        console.log("Export: "+listTitle);
-                        if (!listTitle) return;
-
-                        const blob = await this.props.projectService.exportProject(listTitle);
-                        const url = window.URL.createObjectURL(blob);
-                        console.log("url: "+url);
-                        const a = document.createElement("a");
-                        a.href = url;
-                        a.download = `${listTitle}-export.csv`;
-                        document.body.appendChild(a);
-                        a.click();
-                        document.body.removeChild(a);
-                        window.URL.revokeObjectURL(url);
-
-                      } catch{
-                        console.log("Error downloading file...");
-
-                      }
-                    }}
-                  >
-                    Export
-                  </button>
-
-                  {/* ====== Import ====== */}
-                  <div style={{ border: "1px solid #e1dfdd", borderRadius: 4, display: "flex", flexDirection: "row" }}>
-                      {this.state.isImporting && (
-                        <span className={styles.spinner} aria-label="Loading" style={{ marginLeft: 8 }} />
-                      )}
-                    <button
-                        type="button"
-                        className={styles.actionItem}
-                        onClick={() => this.fileInputRef.current?.click()}
-                      >
-                        {this.state.isImporting ? "Importing…" : "Import"}
-                    </button>
-    
-                    <div style={{ fontSize: 11, color: "#605e5c", marginTop: 4, display: "flex", flexDirection: "column"  }}>
-                      <input
-                        ref={this.fileInputRef}
-                        type="file"
-                        accept=".xlsx,.xls"
-                        style={{ display: "none" }}
-                        onChange={async (e) => {
-                          const file = e.target.files?.[0] || null;
-                          if (file) {
-                            const listTitle = this.props.project.ListName;
-                            try {
-                              this.setState({ isImporting: true });
-                              await this.props.projectService.importProject(listTitle, file);
-                              this.setState({ importFile: file });
-                              this.props.onReset();
-                            } finally {
-                              this.setState({ isImporting: false });
-                            }
-                          }
-                        }}
-                        className={styles["input-small"]}
-                      /> 
-                      <a
-                        href="https://ed2corp.sharepoint.com/:x:/g/IQCO4yJi-ZQvS6wiVWAQ95I6AUb7buP7UpAsIpZ_d7QSuuY?e=64Tc7H&download=1" 
-                        target="_blank"
-                        rel="noopener noreferrer"                     
-                      >
-                        <p style={{ margin: 0 }}>Download template</p>
-                      </a>
-                    </div>
-                  </div>
-                  {/* Import y Replicate se conectan igual */}
-                </div>
-              </div>
+              <ProjectActionsBar
+                project={project}
+                projectService={this.props.projectService}
+                evidenceFolderServerRelative={this.props.evidenceFolderServerRelative}
+                repositoryName={this.props.repositoryName}
+                onReset={this.props.onReset}
+              />
             )}
             {spGateListItems.length === 0 && (
               <div>
@@ -463,10 +342,6 @@ export default class ProjectDashboard extends React.Component<
     if (prevProps.selectedTask !== this.props.selectedTask) {
       this.setState({ selectedTask: this.props.selectedTask || null });
     }
-  }
-
-  componentDidMount(): void {
-    if (this.props.onGetGateListItems) this.props.onGetGateListItems();
   }
 
   componentWillUnmount(): void {

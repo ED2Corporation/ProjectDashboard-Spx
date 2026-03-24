@@ -72,7 +72,7 @@ export class ProjectService implements IProjectService {
     ): Promise<void> {
         console.log("[deleteProject] listName:", listName, "projectId:", projectId);
 
-        // 1) Eliminar la lista de tareas
+        // 1) Delete the task list
         const listUrl = `${this.webUrl}/_api/web/lists/GetByTitle('${listName}')`;
 
         const listResp = await this._context.spHttpClient.post(
@@ -93,7 +93,7 @@ export class ProjectService implements IProjectService {
             throw new Error(`deleteProject (list) failed: ${listResp.status} - ${errorText}`);
         }
 
-        // 2) Eliminar carpeta de evidencias (si aplica)
+        // 2) Delete the evidence folder (if provided)
         if (evidenceFolderServerRelative) {
             const folderUrl = `${this.webUrl}/_api/web/GetFolderByServerRelativeUrl('${encodeURI(
                 evidenceFolderServerRelative
@@ -111,7 +111,7 @@ export class ProjectService implements IProjectService {
             }
         }
 
-        // 3) Eliminar el registro del catálogo (ED2-Projects) por ProjectId
+        // 3) Delete the catalog entry (ED2-Projects) by ProjectId
         const getItemUrl =
             `${this.webUrl}/_api/web/lists/GetByTitle('${this._catalogListName}')/items` +
             `?$select=Id,ProjectId&$filter=ProjectId eq '${projectId.replace(/'/g, "''")}'`;
@@ -143,7 +143,7 @@ export class ProjectService implements IProjectService {
         }
     }
 
-    /** ARCHIVE: exporta lista, sube CSV al repo y borra la lista */
+    /** ARCHIVE: exports the list as CSV, uploads it to the evidence folder, then deletes the list */
     public async archiveProject(
         listName: string,
         evidenceFolderServerRelative: string,

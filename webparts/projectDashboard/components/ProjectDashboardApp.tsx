@@ -1,14 +1,12 @@
 import * as React from 'react';
-import * as ReactDom from 'react-dom';
 import { SPFI } from "@pnp/sp";
 import { BaseComponentContext } from "@microsoft/sp-component-base";
-import { SPHttpClient, MSGraphClientV3 } from '@microsoft/sp-http';
+import { SPHttpClient } from '@microsoft/sp-http';
 
 import { IProjectDashboardWebPartProps } from '../../../models';
 import { ProjectService } from '../services/ProjectService';
 import { useProjectState } from '../hooks/useProjectState';
 import ProjectDashboard from './ProjectDashboard';
-import ErrorPage from './ErrorPage';
 import NewProjectSetup from './NewProjectSetup';
 import { buildRepoRelativeUrl } from '../services/UploadService';
 import { IProjectCatalogItem } from '../../../models/IProjectService';
@@ -47,7 +45,7 @@ const ProjectDashboardApp: React.FC<IProjectDashboardAppProps> = (props) => {
   const {
     tasks, gates, filteredTasks, selectedTask, sysError, showNewProjectSetup, environmentMessage,
     projectSelected, onReset, onGateFilterChange, onSelectItem, onNewTask, onDeleteTask,
-    onUpdateTask, onUploadFile, onPopulateAttachements, onCreateNewProject, setSelectedTask,
+    onUpdateTask, onUploadFile, onPopulateAttachements, onCreateNewProject,
   } = state;
 
   // ── New Project Setup view ────────────────────────────────────────────────

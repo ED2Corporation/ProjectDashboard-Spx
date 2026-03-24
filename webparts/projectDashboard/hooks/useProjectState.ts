@@ -11,8 +11,7 @@ import { PlannerService } from '../services/PlannerService';
 import { ProjectService } from '../services/ProjectService';
 import { MessageLog } from '../utils/MessageLog';
 import { compareWbs } from '../utils/ParseWBS';
-import { buildRepoRelativeUrl, ensureFolder, uploadEvidenceFile } from '../services/UploadService';
-import { IProjectCatalogItem } from '../../../models/IProjectService';
+import { ensureFolder, uploadEvidenceFile } from '../services/UploadService';
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 const MSG_INFO = 0;
@@ -99,7 +98,7 @@ function makeEmptyTask(gate?: string): ITaskListItem {
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────
 export function useProjectState(config: UseProjectStateConfig): UseProjectStateResult {
-  const { context, sp, projectService, evidenceFolderServerRelative, showLog, onPatchProperties } = config;
+  const { context, sp, showLog, onPatchProperties } = config;
 
   // ── State ──────────────────────────────────────────────────────────────────
   const [tasks, setTasks] = useState<ITaskListItem[]>([]);

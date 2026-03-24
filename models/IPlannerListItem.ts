@@ -12,21 +12,21 @@ export interface IPlannerListItem {
   planId: string;
   bucketId: string;
 
-  // Para tracking/auditoría
+  // For tracking/audit
   createdDateTime?: string;
   lastModifiedDateTime?: string;
 
-  // De plannerTaskDetails
+  // From plannerTaskDetails
   description?: string;
-  references?: { [key: string]: IPlannerExternalReference }; // para Evidence
+  references?: { [key: string]: IPlannerExternalReference }; // for Evidence
 
-  // Metadatos útiles
+  // Useful metadata
   hasDescription?: boolean;
 
-  // Para asignaciones
+  // For assignments
   assignments?: { [key: string]: IPlannerAssignment };
 
-  // Campos locales (no de Planner)
+  // Local fields (not from Planner)
   planName?: string;
   bucketName?: string;
 }
