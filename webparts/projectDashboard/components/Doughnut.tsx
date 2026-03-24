@@ -11,7 +11,7 @@ import {
 } from "chart.js";
 import ChartDataLabels from "chartjs-plugin-datalabels";
 import { ITaskListItem, IGateListItem } from "../../../models";
-import { GetBucketStatusFromTasks, StatusToColor } from "./GetGateStatus";
+import { GetBucketStatusFromTasks, StatusToColor } from "../utils/GetGateStatus";
 
 ChartJS.register(ArcElement, Tooltip, Legend, Title, ChartDataLabels);
 

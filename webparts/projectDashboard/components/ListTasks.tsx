@@ -1,8 +1,8 @@
 import * as React from "react";
 import { useState } from "react";
 import { ITaskListItem } from "../../../models";
-import { GetDelay } from "./GetDelay";
-import { GetFormatDate } from "./GetFormatDate";
+import { GetDelay } from "../utils/GetDelay";
+import { GetFormatDate } from "../utils/GetFormatDate";
 import styles from "./ProjectDashboard.module.scss";
 import EvidenceEditor from "./EvidenceEditor";
 

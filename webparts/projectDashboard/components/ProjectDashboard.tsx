@@ -7,7 +7,7 @@ import TaskCard from "./TaskCard";
 import ListTasks from "./ListTasks";
 import DoughnutChart from "./Doughnut";
 import NewProjectSetup from "./NewProjectSetup";
-import { GroupByProject } from "./GroupByProject";
+import { GroupByProject } from "../utils/GroupByProject";
 import { IProjectCatalogItem } from "../../../models/IProjectService";
 
 interface IProjectDashboardState {
@@ -175,21 +175,22 @@ export default class ProjectDashboard extends React.Component<
                   </button>
 
                   {/* ====== Delete ====== */}
-                  <button
-                    type="button"
-                    className={styles.actionItem}
-                    onClick={async () => {
-                      if (!this.props.project.ListName) return;
-                      if (!confirm("Are you sure you want to delete this project and its evidence repository?")) {
-                        return;
-                      }
-                      await this.props.projectService.deleteProject(this.props.project.ListName, this.props.project.Title, this.props.evidenceFolderServerRelative+this.props.repositoryName);
-                      this.props.onReset();
-                    }}
-                  >
-                    Delete
-                  </button>
-
+                  <div style={{ display: 'none'}}>
+                    <button
+                      type="button"
+                      className={styles.actionItem}
+                      onClick={async () => {
+                        if (!this.props.project.ListName) return;
+                        if (!confirm("Are you sure you want to delete this project and its evidence repository?")) {
+                          return;
+                        }
+                        await this.props.projectService.deleteProject(this.props.project.ListName, this.props.project.Title, this.props.evidenceFolderServerRelative+this.props.repositoryName);
+                        this.props.onReset();
+                      }}
+                    >
+                      Delete
+                    </button>
+                  </div>
                   {/* ====== Export ====== */}
                   <button
                     type="button"

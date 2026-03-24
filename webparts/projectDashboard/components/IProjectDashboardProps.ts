@@ -5,7 +5,7 @@ import {
   IGateListItem
 } from '../../../models';
 import { BaseComponentContext } from "@microsoft/sp-component-base";
-import { ProjectService } from "./ProjectService";
+import { ProjectService } from "../services/ProjectService";
 
 export interface IProjectDashboardProps {
   spTaskListItems: ITaskListItem[];

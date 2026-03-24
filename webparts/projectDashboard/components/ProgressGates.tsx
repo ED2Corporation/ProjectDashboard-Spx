@@ -5,7 +5,7 @@ import { IGateListItem, ITaskListItem } from "../../../models";
 import {
   GetBucketStatusFromTasks,
   getBackgroundImageByStatus
-} from "./GetGateStatus";
+} from "../utils/GetGateStatus";
 
 interface GateCardProps {
   gates: IGateListItem[];

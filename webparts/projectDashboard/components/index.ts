@@ -1,10 +1,12 @@
 export * from './BarChart';
-export * from './FilterTasks';
 export * from './ProgressGates';
-export * from './GroupByGate';
-export * from './GetGateStatus';
 export * from './IProjectDashboardProps';
 export * from './ListTasks';
 export * from './ProjectDashboard';
 export * from './StackGates';
-export * from './PlannerService';
+// utils
+export * from '../utils/FilterTasks';
+export * from '../utils/GroupByGate';
+export * from '../utils/GetGateStatus';
+// services
+export * from '../services/PlannerService';

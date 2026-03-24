@@ -15,7 +15,6 @@ export function GroupByGate(tasks: ITaskListItem[]): IGateListItem[] {
       const finishDate = Finish ? new Date(Finish) : null;
       const actualFinishDate = ActualFinish ? new Date(ActualFinish) : null;
 
-      // Si el grupo no existe, inicialízalo SIN fechas por defecto
       if (!gate[Gate]) {
         gate[Gate] = {
           Gate: Gate,
@@ -31,18 +30,13 @@ export function GroupByGate(tasks: ITaskListItem[]): IGateListItem[] {
       }
 
       const group = gate[Gate];
-      // Actualizar métricas del grupo
       group.Id = Gate.substring(0, 1);
       group.Complete += Complete ?? 0;
       group.Count += 1;
       group.Effort += Effort ?? 0;
 
-      group.Delay = Math.max(
-        group.Delay,
-        GetDelay(Finish, ActualFinish)
-      );
+      group.Delay = Math.max(group.Delay, GetDelay(Finish, ActualFinish));
 
-      // Fechas mínimas / máximas solo si existen
       if (startDate) {
         if (!group.Start || startDate.getTime() < group.Start.getTime()) {
           group.Start = startDate;
@@ -56,10 +50,7 @@ export function GroupByGate(tasks: ITaskListItem[]): IGateListItem[] {
       }
 
       if (actualFinishDate) {
-        if (
-          !group.ActualFinish ||
-          actualFinishDate.getTime() > group.ActualFinish.getTime()
-        ) {
+        if (!group.ActualFinish || actualFinishDate.getTime() > group.ActualFinish.getTime()) {
           group.ActualFinish = actualFinishDate;
         }
       }
@@ -69,7 +60,6 @@ export function GroupByGate(tasks: ITaskListItem[]): IGateListItem[] {
     {}
   );
 
-  // Convertir los grupos en un arreglo
   return Object.values(groups).map((group) => ({
     Gate: group.Gate,
     Complete: group.Count > 0 ? group.Complete / group.Count : 0,

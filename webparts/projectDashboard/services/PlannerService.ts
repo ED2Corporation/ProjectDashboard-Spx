@@ -2,8 +2,8 @@
 /* eslint-disable guard-for-in */
 import { MSGraphClientV3 } from "@microsoft/sp-http";
 import { IPlannerListItem, ITaskListItem } from "../../../models";
-import { GetDelay } from "./GetDelay";
-import { toUtcIso } from "./DateUtils"
+import { GetDelay } from "../utils/GetDelay";
+import { toUtcIso } from "../utils/DateUtils";
 
 export interface IPlanItem {
   id: string;
@@ -86,10 +86,6 @@ export class PlannerService {
             if ((await attachments).EvidenceOfCompletion?.Description) {
               task.EvidenceOfCompletion = (await attachments).EvidenceOfCompletion;
               task.Checklist = (await attachments).checklist;
-              // tasks[i].AttachementUrl = (await attachments).Url;
-              // tasks[i].AttachementDescription = (await attachments).Description;
-              //console.log(`<a href="${task.EvidenceOfCompletion?.Url}" target="_blank">${task.EvidenceOfCompletion?.Description}</a>`);
-              //console.log(`<a href="${tasks[i].AttachementUrl}" target="_blank">${tasks[i].AttachementDescription}</a>`);
             }
           }
           return null;
@@ -264,14 +260,11 @@ export class PlannerService {
           type: "Other"
         }
       }
-      // Opcional: si quieres que la tarjeta muestre el enlace como vista previa
-      // , puedes añadir: previewType: "reference"
     };
 
     await this.graphClient
       .api(`/planner/tasks/${taskId}/details`)
       .header("If-Match", details["@odata.etag"])
-      // .header("Prefer", "return=representation") // si quieres el objeto actualizado en la respuesta
       .patch(patchBody);
 
     console.log(`Reference agregada OK: ${taskId}`);
@@ -296,7 +289,7 @@ export class PlannerService {
   public async updateTaskStatus(payload: {
     taskId: string;
     percentComplete?: number;
-    finish?: string;                 // make it optional for flexibility
+    finish?: string;
     evidenceUrl?: string;
     evidenceDesc?: string;
     setPreviewAsReference?: boolean;
@@ -379,7 +372,7 @@ export class PlannerService {
     const task = await this.graphClient
       .api("/planner/tasks")
       .version("v1.0")
-      .post(body); // Crea plannerTask básico [web:88][web:89]
+      .post(body);
 
     return task.id as string;
   }
@@ -400,7 +393,7 @@ export class PlannerService {
       throw new Error(`No ETag found for planner task ${taskId}`);
     }
 
-    // 2) Borrar usando If-Match [web:86][web:83]
+    // 2) Borrar usando If-Match
     await this.graphClient
       .api(`/planner/tasks/${taskId}`)
       .version("v1.0")
@@ -408,14 +401,9 @@ export class PlannerService {
       .delete();
   }
 
-
   // Helper local y seguro
   private hasKeys = (o: any): boolean => !!o && typeof o === "object" && Object.keys(o).length > 0;
 
-  /**
-   * Single entry point to update a Planner task (task + details).
-   * Accepts generic task fields. Start/Finish/ActualFinish can be string (YYYY-MM-DD or ISO) or Date.
-   */
   public async updateFromTaskItem(
     item: {
       Id: string;
@@ -424,7 +412,7 @@ export class PlannerService {
       Start?: string | Date;
       Finish?: string | Date;
       ActualFinish?: string | Date;
-      Description?: string; // Notes
+      Description?: string;
       EvidenceOfCompletion?: { Url?: string; Description?: string };
     },
     options?: {
@@ -559,16 +547,9 @@ export class PlannerService {
 
   private async getAttachements(taskId: string): Promise<IAttachements> {
     let attachement: IAttachements = {
-      EvidenceOfCompletion: {
-        Url: "",
-        Description: ""
-      },
-      checklist: {
-        isChecked: false,
-        title: "",
-        orderHint: ""
-      },
-    }
+      EvidenceOfCompletion: { Url: "", Description: "" },
+      checklist: { isChecked: false, title: "", orderHint: "" },
+    };
     const taskDetails = await this.graphClient
       .api(`/planner/tasks/${taskId}/details`)
       .get();
@@ -576,61 +557,35 @@ export class PlannerService {
     if (taskDetails.references) {
       const references = taskDetails.references;
       for (const reference in references) {
-        attachement.EvidenceOfCompletion.Url = decodeURI(decodeURIComponent(reference)) || ""; // Decodificar la URL
-        attachement.EvidenceOfCompletion.Description = references[reference].alias || ""; // Obtener el nombre del archivo        
+        attachement.EvidenceOfCompletion.Url = decodeURI(decodeURIComponent(reference)) || "";
+        attachement.EvidenceOfCompletion.Description = references[reference].alias || "";
       }
-
-      // const checklists = taskDetails.checklist;
-
-      // for (const subtask in checklists) {
-
-      //   attachement.checklist.isChecked = checklists[subtask].checklist.isChecked || false; // Decodificar la URL
-      //   attachement.checklist.title = checklists[subtask].checklist.title || ""; // Obtener el nombre del archivo        
-      //   attachement.checklist.orderHint = checklists[subtask].checklist.orderHint || ""; // Obtener el nombre del archivo        
-
-      //   console.log("[getAttachements]  Attachements: "+ attachement.checklist);
-      // }  
-      //console.log("[getAttachements] References - " + references.length + " - " + taskId + " ; "+ attachement.Description+ " => " + attachement.Url);
-
     }
     return attachement || {
-      EvidenceOfCompletion: {
-        Url: "",
-        Description: ""
-      },
-      checklist: {
-        isChecked: false,
-        title: "",
-        orderHint: ""
-      },
+      EvidenceOfCompletion: { Url: "", Description: "" },
+      checklist: { isChecked: false, title: "", orderHint: "" },
     };
   }
 
   private getBucketNameById(bucketId: string, buckets: IBucketItem[]): string {
     const bucket = buckets.find(b => b.id === bucketId);
-    return bucket ? bucket.name : ""; // Devuelve el nombre si lo encuentra, sino undefined
+    return bucket ? bucket.name : "";
   }
 
   // Obtener el ID del plan por nombre
   public async getPlanId(groupId: string, planName: string): Promise<string> {
-    //console.log("[getPlanId] groupId: "+groupId + " planName:"+planName )
-
     try {
       const plansResponse = await this.graphClient
         .api(`/groups/${groupId}/planner/plans`)
         .get();
 
-      const plans: IPlanItem[] = plansResponse.value; // Accede a `value`    
+      const plans: IPlanItem[] = plansResponse.value;
 
       if (plans.length > 0) {
         const plan = plans.find((p: any) => p.title === planName);
-
-        //console.log("[getPlanId] plan: "+plan?.id + " Name: "+plan?.title)
-        //ToDo: To Correct Hardcode
         return plan ? plan.id : "";
       } else {
         console.log("[getPlanId] Error fetching plan details...");
-        //ToDo: To Correct Hardcode
         return "";
       }
 
@@ -641,10 +596,6 @@ export class PlannerService {
     return "";
   }
 
-  /**
-   * Build ITaskListItem from Planner task + details.
-   * Keeps UI decoupled from Graph shape.
-   */
   private mapPlannerToTaskItem(
     task: IPlannerListItem,
     buckets: IBucketItem[],
@@ -667,7 +618,7 @@ export class PlannerService {
       Task: task.title || "",
       Deliverable: task.title || "",
       Complete: task.percentComplete || 0,
-      Description: details?.description || task.description || "", // Notes map here
+      Description: details?.description || task.description || "",
       Start: task.startDateTime ? new Date(task.startDateTime) : undefined,
       Finish: task.dueDateTime ? new Date(task.dueDateTime) : undefined,
       ActualFinish: task.completedDateTime ? new Date(task.completedDateTime) : undefined,
@@ -675,14 +626,12 @@ export class PlannerService {
         Url: evidenceUrl,
         Description: evidenceDesc
       },
-      // Example: keep your existing delay Effort calculation
       Effort: GetDelay(
         task.dueDateTime ? new Date(task.dueDateTime) : new Date(),
         task.completedDateTime ? new Date(task.completedDateTime) : new Date()
       ),
-      Title: "", //WBS Task Title
-      WBS: "", //Title-WBS
+      Title: "",
+      WBS: "",
     };
   }
-
 }

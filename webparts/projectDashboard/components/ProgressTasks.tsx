@@ -1,7 +1,7 @@
 import * as React from "react";
 import { ITaskListItem } from "../../../models";
 import styles from "./ProjectDashboard.module.scss";
-import { getCardClass, getCardDelay } from "./GetGateStatus";
+import { getCardClass, getCardDelay } from "../utils/GetGateStatus";
 
 interface GateCardProps {
   tasks: ITaskListItem[];

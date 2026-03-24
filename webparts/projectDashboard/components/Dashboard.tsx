@@ -1,6 +1,6 @@
 import React from "react";
 import { IGateListItem, IProjectListItem } from "../../../models";
-import { GroupByProject } from "./GroupByProject";
+import { GroupByProject } from "../utils/GroupByProject";
 import DoughnutChart from "./Doughnut";
 //import styles from "./ProjectDashboard.module.scss";
 
