@@ -16,4 +16,5 @@ export interface IProjectCatalogItem {
     Team?: string;
     Status?: string;
     Customer?: string;
+    BoardView?: boolean;
 }

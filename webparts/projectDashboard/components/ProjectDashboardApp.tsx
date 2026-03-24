@@ -8,6 +8,7 @@ import { ProjectService } from '../services/ProjectService';
 import { useProjectState } from '../hooks/useProjectState';
 import ProjectDashboard from './ProjectDashboard';
 import NewProjectSetup from './NewProjectSetup';
+import ProjectsCatalogCard from './ProjectsCatalogCard';
 import { buildRepoRelativeUrl } from '../services/UploadService';
 import { IProjectCatalogItem } from '../../../models/IProjectService';
 
@@ -79,43 +80,56 @@ const ProjectDashboardApp: React.FC<IProjectDashboardAppProps> = (props) => {
   }
 
   // ── Main Dashboard view ───────────────────────────────────────────────────
+  const handleSelectProject = (proj: IProjectCatalogItem) => {
+    onPatchProperties({
+      sourceName:  proj.ProjectId ?? '',
+      projectName: proj.ProjectId ?? '',
+    });
+  };
+
   return (
-    <ProjectDashboard
-      context={context}
-      description={properties.description}
-      refreshInterval={properties.refreshInterval}
-      project={projectSelected}
-      repositoryName={properties.repositoryName}
-      repositoryURL={buildRepoRelativeUrl(
-        context.pageContext.web.serverRelativeUrl,
-        "ProjectsEvidence"
-      )}
-      projectName={properties.projectName}
-      showLog={properties.showLog}
-      showButtons={properties.showButtons}
-      currentGate={state.currentGate}
-      onGateFilterChange={onGateFilterChange}
-      onCreateNewProject={onCreateNewProject}
-      onReset={onReset}
-      filterValue={properties.filterValue}
-      evidenceFolderServerRelative={evidenceFolderServerRelative}
-      projectService={projectService}
-      isDashboard={properties.isDashboard}
-      isPlanner={properties.isPlanner}
-      environmentMessage={environmentMessage}
-      hasTeamsContext={!!(context as any).sdks?.microsoftTeams} // eslint-disable-line @typescript-eslint/no-explicit-any
-      userDisplayName={context.pageContext.user.displayName}
-      spGateListItems={gates}
-      spTaskListItems={tasks}
-      spFilteredTaskItems={filteredTasks}
-      selectedTask={selectedTask}
-      onPopulateAttachements={onPopulateAttachements}
-      onSelectItem={onSelectItem}
-      onUpdateTask={onUpdateTask}
-      onDeleteTask={onDeleteTask}
-      onNewTask={onNewTask}
-      onUploadFile={onUploadFile}
-    />
+    <>
+      {/* Master catalog card — overview of all projects */}
+      <ProjectsCatalogCard sp={sp} onSelectProject={handleSelectProject} />
+
+      {/* Single-project task dashboard */}
+      <ProjectDashboard
+        context={context}
+        description={properties.description}
+        refreshInterval={properties.refreshInterval}
+        project={projectSelected}
+        repositoryName={properties.repositoryName}
+        repositoryURL={buildRepoRelativeUrl(
+          context.pageContext.web.serverRelativeUrl,
+          "ProjectsEvidence"
+        )}
+        projectName={properties.projectName}
+        showLog={properties.showLog}
+        showButtons={properties.showButtons}
+        currentGate={state.currentGate}
+        onGateFilterChange={onGateFilterChange}
+        onCreateNewProject={onCreateNewProject}
+        onReset={onReset}
+        filterValue={properties.filterValue}
+        evidenceFolderServerRelative={evidenceFolderServerRelative}
+        projectService={projectService}
+        isDashboard={properties.isDashboard}
+        isPlanner={properties.isPlanner}
+        environmentMessage={environmentMessage}
+        hasTeamsContext={!!(context as any).sdks?.microsoftTeams} // eslint-disable-line @typescript-eslint/no-explicit-any
+        userDisplayName={context.pageContext.user.displayName}
+        spGateListItems={gates}
+        spTaskListItems={tasks}
+        spFilteredTaskItems={filteredTasks}
+        selectedTask={selectedTask}
+        onPopulateAttachements={onPopulateAttachements}
+        onSelectItem={onSelectItem}
+        onUpdateTask={onUpdateTask}
+        onDeleteTask={onDeleteTask}
+        onNewTask={onNewTask}
+        onUploadFile={onUploadFile}
+      />
+    </>
   );
 };
 
