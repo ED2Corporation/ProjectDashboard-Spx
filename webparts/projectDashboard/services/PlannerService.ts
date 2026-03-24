@@ -36,7 +36,7 @@ export class PlannerService {
     this.graphClient = graphClient;
   }
 
-  // Obtener los detalles de un plan de Planner
+  // Fetch the details of a Planner plan
   public async getPlanDetails(planId: string): Promise<ITaskListItem[]> {
     try {
       console.log("[getPlanDetails] planId : " + planId);
@@ -80,7 +80,7 @@ export class PlannerService {
             .api(`/planner/tasks/${task.Id}/details`)
             .get();
 
-          // Verifica si hay archivos adjuntos
+          // Check whether the task has attachments
           if (taskDetails.references && Object.keys(taskDetails.references).length > 0) {
             const attachments = this.getAttachements(task.Id);
             if ((await attachments).EvidenceOfCompletion?.Description) {
@@ -92,7 +92,7 @@ export class PlannerService {
         })
       );
 
-      // Filtra solo las tareas con adjuntos
+      // Keep only tasks that have attachments
       const filteredTasks = tasksWithAttachments.filter((task) => task !== null);
 
       console.log("Task with attached files:", filteredTasks);
@@ -127,7 +127,7 @@ export class PlannerService {
       const encodedKey = this.encodePlannerReferenceKey(evidenceUrl);
 
       if (currentRefs[encodedKey]) {
-        console.log(`Reference ya existe: ${encodedKey}`);
+        console.log(`Reference already exists: ${encodedKey}`);
         return;
       }
 
@@ -144,7 +144,7 @@ export class PlannerService {
         .header("If-Match", details["@odata.etag"])
         .patch({ references: newReferences });
 
-      console.log(`Reference agregada OK: ${taskId}`);
+      console.log(`Reference added successfully: ${taskId}`);
     } catch (error) {
       console.error(`Error updating reference for task ${taskId}:`, error);
       throw error;
@@ -161,7 +161,7 @@ export class PlannerService {
 
     const task = await this.graphClient.api(`/planner/tasks/${taskId}`).get();
 
-    // 1) Actualizar con el percentComplete del dropdown
+    // 1) Update with the percentComplete from the dropdown
     await this.graphClient
       .api(`/planner/tasks/${taskId}`)
       .header("If-Match", task["@odata.etag"])
@@ -178,7 +178,7 @@ export class PlannerService {
       const encodedKey = this.encodePlannerReferenceKey(evidenceUrl);
 
       if (currentRefs[encodedKey]) {
-        console.log(`Reference ya existe: ${encodedKey}`);
+        console.log(`Reference already exists: ${encodedKey}`);
         return;
       }
 
@@ -195,7 +195,7 @@ export class PlannerService {
         .header("If-Match", details["@odata.etag"])
         .patch({ references: newReferences });
 
-      console.log(`Reference agregada OK: ${taskId}`);
+      console.log(`Reference added successfully: ${taskId}`);
     } catch (error) {
       console.error(`Error updating reference for task ${taskId}:`, error);
     }
@@ -210,7 +210,7 @@ export class PlannerService {
       for (const prop of Object.keys(src)) {
         if (allowed.has(prop)) cleaned[key][prop] = src[prop];
       }
-      // Asegurar tipo correcto
+      // Ensure correct type
       if (!cleaned[key]["@odata.type"]) {
         cleaned[key]["@odata.type"] = "#microsoft.graph.plannerExternalReference";
       }
@@ -226,14 +226,14 @@ export class PlannerService {
   }): Promise<void> {
     const { taskId, percentComplete = 100, evidenceUrl, evidenceDesc } = payload;
 
-    // 1) Actualizar % de completado
+    // 1) Update percent complete
     const task = await this.graphClient.api(`/planner/tasks/${taskId}`).get();
     await this.graphClient
       .api(`/planner/tasks/${taskId}`)
       .header("If-Match", task["@odata.etag"])
       .patch({ percentComplete });
 
-    // 2) Agregar referencia (si aplica)
+    // 2) Add reference (if applicable)
     if (!evidenceUrl) return;
 
     const details = await this.graphClient
@@ -242,11 +242,11 @@ export class PlannerService {
 
     const encodedKey = this.encodePlannerReferenceKey(evidenceUrl);
 
-    // Si ya existe, salimos
+    // If already exists, bail out
     const exists =
       details.references && Object.prototype.hasOwnProperty.call(details.references, encodedKey);
     if (exists) {
-      console.log(`Reference ya existe: ${encodedKey}`);
+      console.log(`Reference already exists: ${encodedKey}`);
       return;
     }
 
@@ -267,7 +267,7 @@ export class PlannerService {
       .header("If-Match", details["@odata.etag"])
       .patch(patchBody);
 
-    console.log(`Reference agregada OK: ${taskId}`);
+    console.log(`Reference added successfully: ${taskId}`);
   }
 
   /******** */
@@ -382,7 +382,7 @@ export class PlannerService {
       throw new Error("deleteTask requires taskId");
     }
 
-    // 1) Leer la tarea para obtener el ETag
+    // 1) Read the task to get its ETag
     const task = await this.graphClient
       .api(`/planner/tasks/${taskId}`)
       .version("v1.0")
@@ -393,7 +393,7 @@ export class PlannerService {
       throw new Error(`No ETag found for planner task ${taskId}`);
     }
 
-    // 2) Borrar usando If-Match
+    // 2) Delete using If-Match
     await this.graphClient
       .api(`/planner/tasks/${taskId}`)
       .version("v1.0")
@@ -401,7 +401,7 @@ export class PlannerService {
       .delete();
   }
 
-  // Helper local y seguro
+  // Local type-safe helper
   private hasKeys = (o: any): boolean => !!o && typeof o === "object" && Object.keys(o).length > 0;
 
   public async updateFromTaskItem(
@@ -572,7 +572,7 @@ export class PlannerService {
     return bucket ? bucket.name : "";
   }
 
-  // Obtener el ID del plan por nombre
+  // Get the plan ID by its display name
   public async getPlanId(groupId: string, planName: string): Promise<string> {
     try {
       const plansResponse = await this.graphClient

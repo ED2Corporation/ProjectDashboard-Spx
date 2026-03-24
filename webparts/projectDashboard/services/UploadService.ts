@@ -12,9 +12,9 @@ export async function uploadEvidenceFile(
     const doUpload = async (): Promise<{ fileUrl: string; fileName: string }> => {
 
         /** Controling Main Page - Production envitronment Root directory */
-        const isRootSite = relativePath === "/"; // true si estamos en la raíz del tenant, false si estamos en un site collection (p.ej. /sites/ED2-Team)
+        const isRootSite = relativePath === "/"; // true if at tenant root, false if in a site collection (e.g. /sites/ED2-Team)
 
-        // Para raíz: anteponer el webServerRelativeUrl si la ruta empieza directamente con nombre de biblioteca
+        // For root: prepend webServerRelativeUrl when the path starts directly with a library name
         const evidenceBasePath = isRootSite
             ? `${relativePath}ED2 Repository Internal/Engineering/ProjectDashboard/${folderPath}`
             : `${relativePath}Shared Documents/${folderPath}`;
@@ -98,9 +98,9 @@ export async function ensureFolder(
     try {
 
         /** Controling Main Page - Production envitronment Root directory */
-        const isRootSite = relativePath === "/"; // true si estamos en la raíz del tenant, false si estamos en un site collection (p.ej. /sites/ED2-Team)
+        const isRootSite = relativePath === "/"; // true if at tenant root, false if in a site collection (e.g. /sites/ED2-Team)
 
-        // Para raíz: anteponer el webServerRelativeUrl si la ruta empieza directamente con nombre de biblioteca
+        // For root: prepend webServerRelativeUrl when the path starts directly with a library name
         const evidenceBasePath = isRootSite
             ? `${relativePath}ED2 Repository Internal/Engineering/ProjectDashboard/${folderPath}`
             : `${relativePath}Shared Documents/${folderPath}`;
@@ -145,7 +145,7 @@ export async function ensureFolder(
         );
 
         if (!res.ok && res.status !== 409) {
-            // 409 = ya existe → lo consideramos OK
+            // 409 = already exists → treat as OK
             const txt = await res.text();
             throw new Error(`ensureFolder failed: ${res.status} - ${txt}`);
         }
@@ -171,13 +171,13 @@ export function buildRepoRelativeUrl(
     const cleanFolderPath = folderPath.replace(/^\/+/, "");        // "ProjectsEvidence/" o "Shared Documents/ProjectsEvidence/"
     //const cleanFolder = cleanFolderPath.replace(/\/+$/, "");       // "ProjectsEvidence"
 
-    // Base según si es raíz o subsite
+    // Base path depending on root vs subsite
     const base = isRootSite
         ? `/ED2 Repository Internal/Engineering/ProjectDashboard/${cleanFolderPath}/` // producción root
         : `${cleanRelative}/Shared Documents/${cleanFolderPath}/`;                    // subsite (Teams)
 
-    // server-relative final de la carpeta del proyecto
-    const serverRelative = `${base}`; // p.ej. "/sites/ED2-Team/Shared Documents/ProjectsEvidence/NewProject-Evidence"
+    // final server-relative path for the project folder
+    const serverRelative = `${base}`; // e.g. "/sites/ED2-Team/Shared Documents/ProjectsEvidence/NewProject-Evidence"
     //const serverRelative = `${base}/${folderName}`; // p.ej. "/sites/ED2-Team/Shared Documents/ProjectsEvidence/NewProject-Evidence"
 
     return serverRelative;

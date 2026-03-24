@@ -1,7 +1,7 @@
 //Write Message in Console / StatusBar
 export function GetFormatDate(dateString?: Date) : string {
   if (!dateString) {
-    return ""; // Retorna un valor vacío si la fecha es inválida
+    return ""; // Returns an empty string if the date is invalid
   }
   const date = new Date(dateString);
   

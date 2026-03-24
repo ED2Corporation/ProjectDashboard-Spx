@@ -178,7 +178,7 @@ export class ProjectService implements IProjectService {
         }
     }
 
-    /** EXPORT: devuelve Blob CSV de una lista de tareas */
+    /** EXPORT: returns a CSV Blob for the given task list */
     public async exportProject(listName: string): Promise<Blob> {
         const url = `${this.webUrl}/_api/web/lists/getbytitle('${listName}')/items?$top=5000`;
         const resp = await this._context.spHttpClient.get(url, SPHttpClient.configurations.v1);
@@ -292,7 +292,7 @@ export class ProjectService implements IProjectService {
         return parts.join(".");
     }
 
-    /** IMPORT: leer un Excel y crear tareas en una lista */
+    /** IMPORT: reads an Excel file and creates tasks in the given list */
     public async importProject(listName: string, file: File): Promise<string> {
         await this._importTasksFromExcel(listName, file);
         return listName;
