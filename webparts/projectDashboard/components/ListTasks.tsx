@@ -79,7 +79,7 @@ const ListTasks = ({
     return (a.Title || "").localeCompare(b.Title || "");
   });
 
-  // handleSave AHORA vive dentro del componente y usa el estado de edición
+  // handleSave lives inside the component and uses the current editing state
   const handleSave = (
     task: ITaskListItem,
     evidence?: { url: string; description: string }
@@ -88,12 +88,12 @@ const ListTasks = ({
 
     if (editPercentComplete === 100) {
       if (!task.ActualFinish) {
-        actualFinish = new Date();          // se acaba de completar
+        actualFinish = new Date();          // just completed
       } else {
-        actualFinish = new Date(task.ActualFinish); // ya tenía fecha, la conservas
+        actualFinish = new Date(task.ActualFinish); // already had a date, keep it
       }
     } else {
-      actualFinish = null;                  // se bajó de 100, se limpia
+      actualFinish = null;                  // dropped below 100, clear it
     }
     const data = {
       Id: task.Id,
@@ -146,7 +146,7 @@ const ListTasks = ({
                   className={selectedIndex === index ? "table-active" : ""}
                   onClick={() => setSelectedIndex(index)}
                 >
-                  {/* ACCIONES */}
+                  {/* ACTIONS */}
                   <td className={`${styles.colActions} ${styles.actionsFixed}`}>
                     {/* Open card */}
                     <button
@@ -353,16 +353,16 @@ const ListTasks = ({
                         taskId={editingTaskId}
                         taskTitle={editTaskTitle || "CompletionEvidence"}
                         onEvidenceUpdated={({ taskId, url, description }) => {
-                          // éxito: actualiza estado y guarda
+                          // success: update state and save
                           setEditEvidenceDesc(description);
                           setEditEvidenceUrl(url);
 
-                          handleSave(item, { url, description });           // construye payload con estados de edición
-                          setEditingTaskId(null);     // cierra modo edición
+                          handleSave(item, { url, description });           // builds payload from editing state
+                          setEditingTaskId(null);     // exit edit mode
                         }}
                         onAfterUpload={(success) => {
                           if (!success) {
-                            // sólo manejar error (log, toast...), NO cerrar ni guardar
+                            // handle error only (log, toast...), do NOT close or save
                             console.log("Evidence upload failed.");
                           }
                         }}

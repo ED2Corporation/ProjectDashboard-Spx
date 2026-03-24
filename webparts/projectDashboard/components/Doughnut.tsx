@@ -115,7 +115,7 @@ const DoughnutChart: React.FC<DoughnutChartProps> = ({
     onClick: (_event, elements: ActiveElement[]) => {
       //console.log("[DoughnutChart] Click detected, elements:", elements.length);
       
-      // CASO 1: Click a Section
+      // CASE 1: Click on a section
       if (elements && elements.length > 0) {
         const index = elements[0].index;
         const gate = gates[index];
@@ -128,11 +128,11 @@ const DoughnutChart: React.FC<DoughnutChartProps> = ({
         return; 
       }
       
-      // CASO 2: Click Center (área vacía)
+      // CASE 2: Click on center (empty area)
       //console.log("[DoughnutChart] → Center (Show all)");
       
       if (onSelectItem) {
-        onSelectItem("all", "gate");  // Ver todas las secciones
+        onSelectItem("all", "gate");  // Show all sections
       }
     },
   };
@@ -144,7 +144,7 @@ const DoughnutChart: React.FC<DoughnutChartProps> = ({
         <Doughnut data={data} options={options} plugins={[centerTextPlugin]} />
       </div>
 
-      {/* Leyenda con scroll solo si está visible */}
+      {/* Legend with scroll, rendered only when visible */}
       {showLegend && (
         <div
           style={{

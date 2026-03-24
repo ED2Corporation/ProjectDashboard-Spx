@@ -60,12 +60,12 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, onClose, onSave, o
 
     if (complete === 100) {
       if (!task.ActualFinish) {
-        actualFinish = new Date();          // se acaba de completar
+        actualFinish = new Date();          // just completed
       } else {
-        actualFinish = new Date(task.ActualFinish); // ya tenía fecha, la conservas
+        actualFinish = new Date(task.ActualFinish); // already had a date, keep it
       }
     } else {
-      actualFinish = null;                  // se bajó de 100, se limpia
+      actualFinish = null;                  // dropped below 100, clear it
     }
 
     const data = {
@@ -102,7 +102,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, onClose, onSave, o
   };
 
   const handleSaveClick: React.MouseEventHandler<HTMLButtonElement> = () => {
-    handleSave(); // usa el estado actual (sin evidencia explícita)
+    handleSave(); // uses current state (no explicit evidence)
   };
   const handleNew = () => onNew(task);
   const handleDelete = () => onDelete(task.Id);
@@ -234,7 +234,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, onClose, onSave, o
                     value={start}
                     onChange={(e) => {
                       const newStart = e.target.value;
-                      // No validamos si start no tiene valor aún
+                      // Skip validation if start has no value yet
                       if (newStart && finish) {
                         // Convertimos ambas a fechas UTC para comparar correctamente
                         const [sy, sm, sd] = newStart.split("-").map(Number);
@@ -244,7 +244,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, onClose, onSave, o
 
                         if (finishUTC < startUTC) {
                           alert("Finish date cannot be earlier than Start date.");
-                          return; // No actualizamos el estado
+                          return; // Do not update state
                         }
                       }
                       setStart(newStart);
@@ -264,7 +264,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, onClose, onSave, o
                     value={finish}
                     onChange={(e) => {
                       const newFinish = e.target.value;
-                      // No validamos si start no tiene valor aún
+                      // Skip validation if start has no value yet
                       if (start && newFinish) {
                         // Convertimos ambas a fechas UTC para comparar correctamente
                         const [sy, sm, sd] = start.split("-").map(Number);
@@ -274,7 +274,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, onClose, onSave, o
 
                         if (finishUTC < startUTC) {
                           alert("Finish date cannot be earlier than Start date.");
-                          return; // No actualizamos el estado
+                          return; // Do not update state
                         }
                       }
                       setFinish(newFinish);
@@ -304,11 +304,11 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, onClose, onSave, o
                       taskId={task.Id}
                       taskTitle={taskTitle || task.Task || "CompletionEvidence"}
                       onEvidenceUpdated={({ taskId, url, description }) => {
-                        // Actualiza estado para que UI muestre el nuevo archivo
+                        // Update state so the UI reflects the new file
                         setEvidenceDesc(description);
                         setEvidenceUrl(url);
 
-                        // Guarda usando la evidencia NUEVA
+                        // Save using the new evidence
                         handleSave({ url, description });
                       }}
                       onAfterUpload={(success) => {
@@ -316,7 +316,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, onClose, onSave, o
                           console.log("Evidence upload failed.");
                           return;
                         }
-                        // En éxito no llamamos a handleSave aquí, ya se hizo en onEvidenceUpdated
+                        // On success, handleSave was already called in onEvidenceUpdated — no need to call it again
                         console.log("Evidence uploaded and task updated successfully.");
                       }}
                       stopRowClick={false}

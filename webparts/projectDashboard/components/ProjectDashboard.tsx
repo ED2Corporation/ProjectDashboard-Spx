@@ -285,23 +285,23 @@ export default class ProjectDashboard extends React.Component<
 
                   switch (mode) {
                     case "list-edit":
-                      // abrir TaskCard para esta tarea (mismo patrón que ProgressTasks)
+                      // open TaskCard for this task (same pattern as ProgressTasks)
                       this.setState({ selectedTask: item, showCard: true });
                       this.props.onSelectItem(item.Task, "task");
                       break;
 
                     case "list-create":
-                      // equivalente a TaskCard.onNew -> WebPart._onNewTask(gate)
+                      // equivalent to TaskCard.onNew -> WebPart._onNewTask(gate)
                       this.props.onNewTask?.(item.Gate);
                       break;
 
                     case "list-delete":
-                      // equivalente a TaskCard.onDelete -> WebPart._onDeleteTask(id)
+                      // equivalent to TaskCard.onDelete -> WebPart._onDeleteTask(id)
                       this.props.onDeleteTask?.(item.Id);
                       break;
 
                     default:
-                      // fallback: solo selecciona
+                      // fallback: select item only
                       this.setState({ selectedTask: item, showCard: true });
                       this.props.onSelectItem(item.Task, "task");
                       break;
