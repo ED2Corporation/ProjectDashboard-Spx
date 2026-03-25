@@ -18,6 +18,8 @@ $c-surface-dark:   #e1dfdd;
 // ── Colors: Border ─────────────────────────────────────────────────────────
 $c-border:         #D3D1C7;
 $c-border-subtle:  #e1dfdd;
+$c-border-mid:     #8a8886;
+$c-input-border:   #cccccc;
 
 // ── Colors: Text ───────────────────────────────────────────────────────────
 $c-text:           #323130;
@@ -35,6 +37,20 @@ $c-closed-bg:      #EAF3DE;
 $c-hidden:         #605e5c;
 $c-hidden-bg:      #f3f2f1;
 
+// ── Colors: Gate status (cell backgrounds) ──────────────────────────────────
+$c-status-green:   #c6efce;
+$c-status-yellow:  #ffeb9c;
+$c-status-red:     #ffc7ce;
+$c-status-grey:    #d9d9d9;
+$c-font-green:     #375623;
+$c-font-orange:    #9c5700;
+$c-font-red:       #9c0006;
+$c-font-grey:      #444444;
+
+// ── Colors: Table ──────────────────────────────────────────────────────────
+$c-table-hover:    #f1f1f1;
+$c-table-active:   #cce5ff;
+
 // ── Spacing (4px base scale) ───────────────────────────────────────────────
 $sp-1: 2px;   // extra-tight
 $sp-2: 4px;   // tight
@@ -49,18 +65,24 @@ $r-sm:   4px;
 $r-md:   8px;
 $r-lg:   10px;
 $r-pill: 16px;
+$r-cta:  20px;
 
 // ── Shadows ────────────────────────────────────────────────────────────────
 $shadow-card:  0 1px 4px rgba(0, 0, 0, 0.10);
+$shadow-sm:    0 1px 3px rgba(0, 0, 0, 0.16);
+$shadow-md:    0 4px 6px rgba(0, 0, 0, 0.10);
+$shadow-hover: 0 6px 10px rgba(0, 0, 0, 0.20);
 $shadow-focus: 0 0 0 2px #cce5ff;
 
 // ── Typography ─────────────────────────────────────────────────────────────
+$f-tiny:   8px;
 $f-xs:     9px;
 $f-sm:     10px;
 $f-base:   11px;
 $f-md:     12px;
 $f-body:   13px;
 $f-lg:     14px;
+$f-title:  18px;
 $f-family: 'Segoe UI', sans-serif;
 
 // ── Transitions ────────────────────────────────────────────────────────────

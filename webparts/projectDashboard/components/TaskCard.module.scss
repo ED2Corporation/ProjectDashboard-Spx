@@ -1,0 +1,152 @@
+@import './styles/tokens';
+
+// ─── TaskCard shell ────────────────────────────────────────────────────────
+
+// stylelint-disable selector-class-pattern
+.task-card {
+  background: $c-surface-soft;
+  border: 1px solid $c-border;
+  border-radius: $r-md;
+  padding: $sp-6;
+  width: 100%;
+  max-width: 100%;
+  max-height: 450px;
+  box-shadow: $shadow-md;
+  font-family: $f-family;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+
+.task-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $sp-4;
+  margin-bottom: $sp-4;
+}
+
+.task-title {
+  margin: 0;
+  color: $c-primary;
+  font-size: $f-title;
+  font-weight: bold;
+  flex: 1;
+  word-break: break-word;
+}
+
+.task-card-row {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  width: 100%;
+  gap: $sp-5;
+}
+
+.task-card-body {
+  flex: 0 0 auto;
+  overflow-y: auto;
+}
+
+.task-card-column {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  padding-left: $sp-4;
+
+  textarea {
+    flex: 1 1 auto;
+    min-height: 0;
+    width: 100%;
+    resize: vertical;
+  }
+}
+
+.task-card-close {
+  border: none;
+  background: transparent;
+  color: $c-text-muted;
+  font-size: 1.4rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 $sp-2;
+  align-self: flex-start;
+
+  &:hover { color: $c-text; }
+}
+
+.task-button {
+  display: inline-block;
+  padding: $sp-1;
+  font-size: $f-lg;
+  color: $c-surface;
+  border: none;
+  border-radius: $r-sm;
+  cursor: pointer;
+  transition: border-radius 0.3s ease;
+
+  &:hover { border-radius: $r-md; }
+}
+
+.task-table {
+  border-collapse: collapse;
+
+  td {
+    padding: $sp-2 $sp-3;
+    vertical-align: top;
+
+    &:first-child {
+      width: 120px;
+      max-width: 120px;
+      white-space: normal;
+      word-wrap: break-word;
+      text-align: right;
+    }
+
+    &:nth-child(2) {
+      width: 200px;
+      max-width: 200px;
+
+      > * {
+        width: 100%;
+        box-sizing: border-box;
+      }
+    }
+  }
+}
+
+// ─── Shared inline controls ────────────────────────────────────────────────
+
+.icon-small {
+  width: 18px;
+  height: 15px;
+}
+
+.input-small {
+  width: 100%;
+  font-size: $f-md;
+  padding: $sp-1 $sp-2;
+  box-sizing: border-box;
+}
+
+.evidence-edit {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: $sp-2;
+}
+
+.select-complete {
+  padding: $sp-2 $sp-4;
+  border: 1px solid $c-input-border;
+  border-radius: $r-sm;
+  font-size: $f-lg;
+  margin-right: $sp-4;
+
+  &:focus {
+    outline: none;
+    border-color: $c-primary;
+    box-shadow: $shadow-focus;
+  }
+}
+// stylelint-enable selector-class-pattern

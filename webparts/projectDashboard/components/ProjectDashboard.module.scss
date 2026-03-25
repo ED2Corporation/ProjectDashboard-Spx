@@ -1,257 +1,55 @@
 @import '~@fluentui/react/dist/sass/References.scss';
-//@import '~@bootstrap/dist/css/bootstrap.min.css';
+@import './styles/tokens';
 
+// ─── Root webpart wrapper ──────────────────────────────────────────────────
 
 .projectDashboard {
   overflow: hidden;
   padding: 1em;
-  color: "[theme:bodyText, default: #323130]";
   color: var(--bodyText);
+  font-family: $f-family;
 
   &.teams {
     font-family: $ms-font-family-fallbacks;
   }
 }
 
-.welcome {
-  text-align: center;
-}
-
-.welcomeImage {
-  width: 100%;
-  max-width: 420px;
-}
-
-
-.links {
-  a {
-    text-decoration: none;
-    color: "[theme:link, default:#03787c]";
-    color: var(--link); // note: CSS Custom Properties support is limited to modern browsers only
-
-    &:hover {
-      text-decoration: underline;
-      color: "[theme:linkHovered, default: #014446]";
-      color: var(--linkHovered); // note: CSS Custom Properties support is limited to modern browsers only
-    }
-  }
-}
-
-h2 {
-  margin: 5px;
-}
-
-.buttons {
-  padding-top: 10px;
-
-  >button {
-    margin-right: 10px;
-  }
-}
-
-.imageContainer {
-  width: 100%;
-  height: 300px;
-  //background-image: url('/ruta/a/la/imagen.jpg');
-  background-size: cover;
-  /* Escala la imagen para que cubra todo el área */
-  background-repeat: no-repeat;
-  /* Evita que se repita */
-  background-position: center;
-  /* Centra la imagen */
-}
-
-.iconButton {
-  background: none;
-  border: none;
-  padding: 0;
-  cursor: pointer;
-}
-
-.iconImage {
-  width: 100%;
-  max-width: 25px;
-}
-
-.iconArrow {
-  width: 80px;
-  height: 80px;
-}
-
-.cardContainer {
-  display: flex;
-  flex-direction: row;
-  gap: 0px;
-  padding: 2px;
-  margin: 2px;
-  min-height: 90px;
-  justify-content: start;
-  align-items: start;
-  overflow: auto;
-}
-
-.gateCardDetail {
-  //background-color: whitesmoke;
-  //background-size: "cover";
-  //background-image: '../assets/ArrowGreen.jpg';
-  border-radius: 0px;
-  border-color: #333;
-  box-shadow: 0 4px 6px rgba(8, 8, 8, 0.89);
-  width: 100px;
-  height: 100px;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  transition: transform 0.2s, box-shadow 0.2s;
-}
-
-.gateCard {
-  //background-color: whitesmoke;
-  //background-size: "cover";
-  //background-image: '../assets/ArrowGreen.jpg';
-  border-radius: 0px;
-  //border-color:#333;
-  //box-shadow: 0 4px 6px rgba(8, 8, 8, 0.89);
-  width: 80px;
-  height: 80px;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  transition: transform 0.2s, box-shadow 0.2s;
-}
-
-.gateCard:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 6px 10px rgba(0, 0, 0, 0.2);
-}
-
-.gateCard h3 {
-  margin: 2px;
-}
-
-.gateCard p {
-  font-size: 10px;
-}
-
-.pilaCard {
-  background-color: whitesmoke;
-  border-radius: 0px;
-  border-color: #333;
-  box-shadow: 0 4px 6px rgba(8, 8, 8, 0.89);
-  width: 80px;
-  height: 50px;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  transition: transform 0.2s, box-shadow 0.2s;
-}
-
-.pilaCard:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 6px 10px rgba(0, 0, 0, 0.2);
-}
-
-.pilaCard h3 {
-  margin: 2px;
-}
-
-.pilaCard p {
-  font-size: 10px;
-}
-
-.progressContainer {
-  display: flex;
-  flex-direction: row;
-  height: 40px;
-  max-width: 600px;
-  display: flex;
-  flex-direction: row;
-  gap: 2px;
-  padding: 2px;
-  margin: 0px;
-  justify-content: start;
-  align-items: start;
-  overflow: auto;
-}
-
-.progressCard {
-  background-color: whitesmoke;
-  border-radius: 0px;
-  border-color: #333;
-  box-shadow: 0 4px 6px rgba(8, 8, 8, 0.89);
-  width: 15px;
-  height: 30px;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  transition: transform 0.2s, box-shadow 0.2s;
-}
-
-.progressCard:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 6px 10px rgba(0, 0, 0, 0.2);
-}
+// ─── Layout helpers ────────────────────────────────────────────────────────
 
 .rowContainer {
   display: flex;
   flex-direction: row;
   align-items: center;
-  margin-bottom: 4px;
-  gap: 2px;
+  margin-bottom: $sp-2;
+  gap: $sp-1;
 }
 
 .columnContainer {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: $sp-1;
 }
+
+// ─── Evidence editor (used by EvidenceEditor.tsx) ─────────────────────────
 
 .evidenceEdit {
   width: 100%;
   display: flex;
   flex-direction: column;
-  gap: 4px;
-}
-
-.actionsBar {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  padding: 4px 0;
-  border-bottom: 1px solid #e1dfdd;
-}
-
-.actionItem {
-  border: none;
-  background: transparent;
-  padding: 6px 12px;
-  border-radius: 16px;
-  font-size: 13px;
-  color: #323130;
-  cursor: pointer;
-  transition: background 0.15s ease, color 0.15s ease;
-
-  &:hover {
-    background: #faf9f8;
-    color: #005a9e;
-  }
-
-  &:active {
-    background: #e1dfdd;
-  }
+  gap: $sp-2;
 }
 
 .fieldLabel {
-  width: 50px; // mismo ancho para Name y URL
-  font-size: 8px;
-  margin: 0 4px 0 2px;
-  text-align: right; // pegado a la derecha
+  width: 50px;
+  font-size: $f-tiny;
+  margin: 0 $sp-2 0 $sp-1;
+  text-align: right;
   flex-shrink: 0;
 }
 
 .inputSmall {
   flex: 1 1 auto;
-  min-width: 0; // evita desbordes horizontales
+  min-width: 0;
 }
 
 .inputWithIcon {
@@ -264,7 +62,7 @@ h2 {
 .iconButton {
   border: none;
   background: transparent;
-  padding: 0 4px;
+  padding: 0 $sp-2;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -276,127 +74,133 @@ h2 {
 }
 
 .uploadingText {
-  font-size: 10px;
-  margin-left: 4px;
+  font-size: $f-sm;
+  margin-left: $sp-2;
 }
 
+// ─── Project actions bar (used by ProjectActionsBar.tsx) ───────────────────
 
-.arrowCard {
-  background-size: "cover";
-  color: "#fff"; // Texto blanco para visibilidad
-  padding: 20px;
-  border-radius: 8px;
-  text-align: "center";
-  height: 200px; // Ajusta el tamaño según tu diseño
-  width: 300px;
-  display: "flex";
-  flex-direction: "column";
-  justify-content: "center";
-  box-shadow: "0 4px 6px rgba(0,0,0,0.1)";
-  background-image: 'https://ed2corp.sharepoint.com/Shared%20Documents/imagenes/ArrowGreen.jpg';
+.actionsBar {
+  display: flex;
+  gap: $sp-4;
+  align-items: center;
+  padding: $sp-2 0;
+  border-bottom: 1px solid $c-border-subtle;
 }
 
-;
+.actionItem {
+  border: none;
+  background: transparent;
+  padding: $sp-3 $sp-5;
+  border-radius: $r-pill;
+  font-size: $f-body;
+  color: $c-text;
+  cursor: pointer;
+  transition: $t-fast;
 
-.arrowCardRed {
-  background-size: "cover";
-  background-image: 'https://ed2corp.sharepoint.com/sites/SiteAssets/imagenes/ArrowRed.jpg';
+  &:hover {
+    background: $c-surface-soft;
+    color: $c-primary-hover;
+  }
+
+  &:active {
+    background: $c-surface-dark;
+  }
 }
 
-.arrowCardYellow {
-  background-size: "cover";
-  background-image: 'https://ed2corp.sharepoint.com/Shared%20Documents/imagenes/ArrowGreen.jpg';
+// ─── ProgressTasks card strip (used by ProgressTasks.tsx) ─────────────────
+
+.cardContainer {
+  display: flex;
+  flex-direction: row;
+  gap: 0;
+  padding: $sp-1;
+  margin: $sp-1;
+  min-height: 90px;
+  justify-content: start;
+  align-items: start;
+  overflow: auto;
 }
 
-.arrowCardGreen {
-  background-size: "cover";
-  background-image: '../assets/ArrowGreen.jpg';
+.progressContainer {
+  display: flex;
+  flex-direction: row;
+  height: 40px;
+  max-width: 600px;
+  gap: $sp-1;
+  padding: $sp-1;
+  margin: 0;
+  justify-content: start;
+  align-items: start;
+  overflow: auto;
 }
-
-.arrowCardWhite {
-  background-size: "cover";
-  background-image: 'https://ed2corp.sharepoint.com/sites/SiteAssets/imagenes/ArrowWhite.jpg';
-}
-
-
 
 .ed2Card {
-  background-color: #ffffff;
-  border-radius: 2px;
-  border-color: #333;
-  box-shadow: 0 4px 6px rgba(8, 8, 8, 0.89);
-  padding: 15px;
+  background-color: $c-surface;
+  border-radius: $r-sm;
+  box-shadow: $shadow-md;
   width: 50px;
   height: 50px;
-  padding: 10px 2px 2px 2px;
+  padding: 10px $sp-1 $sp-1 $sp-1;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   transition: transform 0.2s, box-shadow 0.2s;
+
+  &:hover {
+    transform: translateY(-5px);
+    box-shadow: $shadow-hover;
+  }
+
+  h3 { margin: $sp-1; }
+  p  { font-size: $f-sm; }
 }
 
-.ed2Card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 6px 10px rgba(0, 0, 0, 0.2);
-}
+.progressCard {
+  background-color: $c-surface-mid;
+  border-radius: 0;
+  box-shadow: $shadow-md;
+  width: 15px;
+  height: 30px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: transform 0.2s, box-shadow 0.2s;
 
-.ed2Card h3 {
-  margin: 2px;
-}
-
-.ed2Card p {
-  font-size: 10px;
-}
-
-
-.cardHeader {
-  background-color: #56b3fa;
-  /* Estilo destacado */
-  color: #ffffff;
-  padding: 5px;
-  height: 40px;
-  border-radius: 8px 8px 0 0;
-  font-size: .8em;
-  font-weight: bold;
-  text-align: center;
-  align-items: center;
+  &:hover {
+    transform: translateY(-5px);
+    box-shadow: $shadow-hover;
+  }
 }
 
 .cardContent {
-  padding: 0px;
-  color: #333;
+  padding: 0;
+  color: $c-text;
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: $sp-3;
   text-align: center;
-  font-size: 12px;
+  font-size: $f-md;
+
+  h5 {
+    margin: 0;
+    color: $c-primary;
+    font-size: $f-lg;
+  }
+
+  p {
+    margin: 0;
+    font-size: $f-sm;
+  }
 }
 
-.cardContent p {
-  margin: 0;
-  font-size: 10px;
-}
-
-.cardContent h5 {
-  margin: 5px 10px 2px 5px;
-  color: darkblue;
-  font-size: 14px;
-  margin: 0;
-}
-
-.cardContent p {
-  margin: 5px 10px 2px 5px;
-  color: darkblue;
-  font-size: 10px;
-  margin: 0;
-}
+// ─── Table column widths (shared across ListTasks / TaskCard / NewProjectSetup)
 
 .colText {
   width: 250px;
   text-align: left;
   vertical-align: top;
   white-space: normal;
-  /* permite varias líneas */
   word-wrap: break-word;
   overflow-wrap: anywhere;
 }
@@ -428,7 +232,6 @@ h2 {
   text-align: left;
   vertical-align: top;
   white-space: normal;
-  /* wrap de URLs */
   word-wrap: break-word;
   overflow-wrap: anywhere;
 }
@@ -436,412 +239,155 @@ h2 {
 .tableRoot {
   width: 100%;
   border-collapse: collapse;
+
+  th, td { vertical-align: top; }
 }
 
-.tableRoot th,
-.tableRoot td {
-  vertical-align: top;
-}
+// ─── Status color classes ──────────────────────────────────────────────────
 
-.green {
-  background-color: green;
-}
+.green      { background-color: $c-status-green; }
+.yellow     { background-color: $c-status-yellow; }
+.red        { background-color: $c-status-red; }
+.white      { background-color: $c-surface; }
+.grey       { background-color: $c-status-grey; }
 
-.yellow {
-  background-color: yellow;
-}
+.greenFont  { color: $c-font-green; }
+.yellowFont { color: $c-font-orange; }
+.redFont    { color: $c-font-red; }
+.greyFont   { color: $c-font-grey; }
+.whiteFont  { color: $c-surface; }
+.blackFont  { color: $c-text; }
 
-.red {
-  background-color: red;
-}
-
-.white {
-  background-color: white;
-}
-
-.grey {
-  background-color: lightgray;
-}
-
-.greenFont {
-  color: darkgreen;
-}
-
-.yellowFont {
-  color: darkorange;
-}
-
-.redFont {
-  color: darkred;
-}
-
-.greyFont {
-  color: darkgray;
-}
-
-.whiteFont {
-  color: whitesmoke;
-}
-
-.blackFont {
-  color: black;
-}
+// ─── NewProjectSetup fields ────────────────────────────────────────────────
 
 .colLabel {
   width: 180px;
-  padding: 4px 8px;
+  padding: $sp-2 $sp-4;
   text-align: right;
   vertical-align: top;
-  color: #323130;
-  font-size: 13px;
+  color: $c-text;
+  font-size: $f-body;
 }
 
 .colInput {
-  padding: 4px 8px;
+  padding: $sp-2 $sp-4;
   vertical-align: top;
 }
 
+// ─── CTA buttons (used by NewProjectSetup.tsx) ────────────────────────────
 
 .primaryCtaButton {
   display: inline-flex;
   align-items: center;
-  padding: 8px 16px;
-  border-radius: 20px;
+  padding: $sp-4 $sp-6;
+  border-radius: $r-cta;
   border: none;
-  background: #0078d4;
-  color: #ffffff;
-  font-size: 14px;
+  background: $c-primary;
+  color: $c-surface;
+  font-size: $f-lg;
   font-weight: 600;
   cursor: pointer;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.16);
+  box-shadow: $shadow-sm;
   transition: background 0.2s ease, box-shadow 0.2s ease, transform 0.1s ease;
-}
 
-.primaryCtaButton:hover {
-  background: #005a9e;
-  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.2);
-}
+  &:hover {
+    background: $c-primary-hover;
+    box-shadow: $shadow-md;
+  }
 
-.primaryCtaButton:active {
-  transform: translateY(1px);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  &:active {
+    transform: translateY(1px);
+    box-shadow: $shadow-sm;
+  }
 }
 
 .secondaryCtaButton {
   display: inline-flex;
   align-items: center;
-  padding: 8px 16px;
-  border-radius: 20px;
-  border: 1px solid #8a8886;
-  background: #ffffff;
-  color: #323130;
-  font-size: 14px;
+  padding: $sp-4 $sp-6;
+  border-radius: $r-cta;
+  border: 1px solid $c-border-mid;
+  background: $c-surface;
+  color: $c-text;
+  font-size: $f-lg;
   font-weight: 500;
   cursor: pointer;
   transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
-}
 
-.secondaryCtaButton:hover {
-  background: #f3f2f1;
-  border-color: #605e5c;
-}
-
-.secondaryCtaButton:active {
-  background: #edebe9;
-  border-color: #484644;
-}
-
-.myComponent {
-  padding: 20px;
-  font-family: Arial, sans-serif;
-
-  .myButton {
-    background-color: #0078d7;
-    color: white;
-    padding: 10px 20px;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    font-size: 16px;
-
-    &:hover {
-      background-color: #005a9e;
-    }
+  &:hover {
+    background: $c-surface-mid;
+    border-color: $c-text-secondary;
   }
 
-  .error {
-    color: red;
-    margin-top: 10px;
-  }
-
-  .listContainer {
-    margin-top: 20px;
-    padding: 0;
-    list-style: none;
-
-    .listItem {
-      padding: 10px;
-      border-bottom: 1px solid #ddd;
-    }
+  &:active {
+    background: $c-surface-dark;
+    border-color: $c-text;
   }
 }
 
-.actionsFixed {
-  width: 80px;
-}
-
-.ed2Table {
-  width: 100%;
-  border-collapse: collapse;
-  table-layout: auto;
-}
-
-.ed2Table thead,
-.ed2Table tbody {
-  border: 1px solid whitesmoke;
-  /* Añade el borde */
-  background-color: white;
-  text-align: center;
-  /* Alinea el contenido a la izquierda */
-}
-
-.ed2Table th {
-  border: 1px solid whitesmoke;
-  /* Añade el borde */
-  padding: 4px;
-  /* Da un espacio interno a las celdas */
-  vertical-align: top;
-  text-align: middle;
-  /* Alinea el contenido a la izquierda */
-  size: 12px;
-  background-color: whitesmoke;
-  font-weight: bold;
-}
-
-.ed2Table td {
-  border: 1px solid whitesmoke;
-  /* Añade el borde */
-  padding: 2px;
-  /* Da un espacio interno a las celdas */
-  vertical-align: top;
-  text-align: left;
-  /* Alinea el contenido a la izquierda */
-  size: 10px;
-
-}
-
-.ed2Table tr:hover {
-  background-color: #f1f1f1;
-  /* Efecto hover */
-}
-
-.table-active {
-  background-color: #cce5ff;
-  /* Fondo para filas activas */
-}
-
-.table-bordered {
-  background-color: #cce5ff;
-  /* Fondo para filas activas */
-  border: 1px solid #ddd;
-  /* Añade el borde */
-}
-
-.checkbox-main {
-  width: 25px;
-  height: 25px;
-  min-width: 15px;
-  min-height: 15px;
-  /* opcional, por si el navegador ignora width/height del checkbox */
-  transform: scale(1);
-}
-
-.task-alert {
-  display: flex;
-  width: 200px;
-  height: 20px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-
-.task-card {
-  background: #f4f6f8;
-  border: 1px solid #e1e1e1;
-  border-radius: 8px;
-  padding: 16px;
-  width: 100%;
-  max-width: 100%;
-  max-height: 450px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-  font-family: Arial, sans-serif;
-  display: flex;
-  flex-direction: column;
-  box-sizing: border-box;
-}
-
-
-.task-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 6px 10px rgba(0, 0, 0, 0.2);
-}
-
-.task-card-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  margin-bottom: 8px;
-}
-
-.task-title {
-  margin: 0;
-  color: darkblue;
-  font-size: 18px;
-  font-weight: bold;
-  flex: 1;
-  word-break: break-word;
-}
-
-/* Tercera columna (Status) ocupa el resto */
-.task-card-column {
-  flex: 1 1 auto;
-  display: flex;
-  flex-direction: column;
-  padding-left: 8px;
-}
-
-.task-card-row {
-  display: flex;
-  flex-direction: row;
-  align-items: stretch;
-  width: 100%;
-  gap: 12px;
-}
-
-.task-card-column textarea {
-  flex: 1 1 auto;
-  /* ocupa el resto del alto disponible */
-  min-height: 0;
-  width: 100%;
-  resize: vertical;
-  /* o 'none' si no quieres que lo cambien */
-}
-
-
-.task-card-body {
-  flex: 0 0 auto;
-  overflow-y: auto;
-}
-
-.task-card p {
-  margin: 8px 0;
-  font-size: 14px;
-  color: #4a4a4a;
-}
-
-/* tabla dentro del card */
-.task-table {
-  border-collapse: collapse;
-}
-
-.task-table td {
-  padding: 4px 6px;
-  vertical-align: top;
-}
-
-.task-table td:first-child {
-  width: 120px;
-  max-width: 120px;
-  white-space: normal;
-  word-wrap: break-word;
-  text-align: right;
-}
-
-/* Segunda columna: inputs */
-.task-table td:nth-child(2) {
-  width: 200px;
-  max-width: 200px;
-}
-
-.task-table td:nth-child(2)>* {
-  width: 100%;
-  box-sizing: border-box;
-}
+// ─── Spinner ───────────────────────────────────────────────────────────────
 
 .spinner {
   display: inline-block;
   width: 16px;
   height: 16px;
   border-radius: 50%;
-  border: 2px solid #ccc;
-  border-top-color: #0078d4;
+  border: 2px solid $c-border;
+  border-top-color: $c-primary;
   animation: spin 0.8s linear infinite;
 }
 
 @keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
+  to { transform: rotate(360deg); }
 }
 
-.input-small {
+// ─── ed2Table (used by ListTasks.tsx) ─────────────────────────────────────
+
+.actionsFixed { width: 80px; }
+
+.ed2Table {
   width: 100%;
-  font-size: 12px;
-  padding: 2px 4px;
-  box-sizing: border-box;
-}
+  border-collapse: collapse;
+  table-layout: auto;
 
-.evidence-edit {
-  width: 100%;
-}
-
-/* botón de cierre en la esquina del header */
-.task-card-close {
-  border: none;
-  background: transparent;
-  color: #999;
-  font-size: 1.4rem;
-  line-height: 1;
-  cursor: pointer;
-  padding: 0 4px;
-  align-self: flex-start;
-
-  &:hover {
-    color: #333;
+  thead, tbody {
+    border: 1px solid $c-surface-mid;
+    background-color: $c-surface;
+    text-align: center;
   }
+
+  th {
+    border: 1px solid $c-surface-mid;
+    padding: $sp-2;
+    vertical-align: top;
+    text-align: center;
+    font-size: $f-md;
+    background-color: $c-surface-mid;
+    font-weight: bold;
+  }
+
+  td {
+    border: 1px solid $c-surface-mid;
+    padding: $sp-1;
+    vertical-align: top;
+    text-align: left;
+    font-size: $f-sm;
+  }
+
+  tr:hover { background-color: $c-table-hover; }
 }
 
-/* si quieres seguir usando este estilo para otros botones */
-.task-button {
-  display: inline-block;
-  padding: 2px 2px;
-  font-size: 14px;
-  color: white;
-  border: none;
-  border-radius: 2px;
-  cursor: pointer;
-  text-transform: uppercase;
-  transition: background-color 0.3s ease;
-}
+// ─── Shared inline controls (kebab-case — accessed via styles["name"]) ─────
 
-.task-button:hover {
-  border-radius: 3px;
-}
-
-.cell-task {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  /* evita que el botón empuje demasiado */
-  justify-content: flex-start;
+// stylelint-disable selector-class-pattern
+.table-active {
+  background-color: $c-table-active;
 }
 
 .cell-complete {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: $sp-2;
   justify-content: flex-start;
 }
 
@@ -857,31 +403,145 @@ h2 {
   height: 15px;
 }
 
-.evidence-edit {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+.input-small {
+  width: 100%;
+  font-size: $f-md;
+  padding: $sp-1 $sp-2;
+  box-sizing: border-box;
 }
 
-.textarea-small {
+.evidence-edit {
   width: 100%;
-  min-height: 60px;
-  font-size: 12px;
-  padding: 2px 4px;
-  box-sizing: border-box;
-  resize: vertical;
+  display: flex;
+  flex-direction: column;
+  gap: $sp-2;
 }
 
 .select-complete {
-  padding: 4px 8px;
-  border: 1px solid #ccc;
-  border-radius: 3px;
-  font-size: 14px;
-  margin-right: 8px;
+  padding: $sp-2 $sp-4;
+  border: 1px solid $c-input-border;
+  border-radius: $r-sm;
+  font-size: $f-lg;
+  margin-right: $sp-4;
 
   &:focus {
     outline: none;
-    border-color: #0078d4;
-    box-shadow: 0 0 0 2px rgba(0, 120, 212, 0.1);
+    border-color: $c-primary;
+    box-shadow: $shadow-focus;
   }
 }
+
+// ─── TaskCard shell + inner layout ────────────────────────────────────────
+
+.task-card {
+  background: $c-surface-soft;
+  border: 1px solid $c-border;
+  border-radius: $r-md;
+  padding: $sp-6;
+  width: 100%;
+  max-width: 100%;
+  max-height: 450px;
+  box-shadow: $shadow-md;
+  font-family: $f-family;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+
+.task-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $sp-4;
+  margin-bottom: $sp-4;
+}
+
+.task-title {
+  margin: 0;
+  color: $c-primary;
+  font-size: $f-title;
+  font-weight: bold;
+  flex: 1;
+  word-break: break-word;
+}
+
+.task-card-row {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  width: 100%;
+  gap: $sp-5;
+}
+
+.task-card-body {
+  flex: 0 0 auto;
+  overflow-y: auto;
+}
+
+.task-card-column {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  padding-left: $sp-4;
+
+  textarea {
+    flex: 1 1 auto;
+    min-height: 0;
+    width: 100%;
+    resize: vertical;
+  }
+}
+
+.task-card-close {
+  border: none;
+  background: transparent;
+  color: $c-text-muted;
+  font-size: 1.4rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 $sp-2;
+  align-self: flex-start;
+
+  &:hover { color: $c-text; }
+}
+
+.task-button {
+  display: inline-block;
+  padding: $sp-1;
+  font-size: $f-lg;
+  color: $c-surface;
+  border: none;
+  border-radius: $r-sm;
+  cursor: pointer;
+  transition: border-radius 0.3s ease;
+
+  &:hover { border-radius: $r-md; }
+}
+
+.task-table {
+  border-collapse: collapse;
+
+  td {
+    padding: $sp-2 $sp-3;
+    vertical-align: top;
+
+    &:first-child {
+      width: 120px;
+      max-width: 120px;
+      white-space: normal;
+      word-wrap: break-word;
+      text-align: right;
+    }
+
+    &:nth-child(2) {
+      width: 200px;
+      max-width: 200px;
+
+      > * {
+        width: 100%;
+        box-sizing: border-box;
+      }
+    }
+  }
+}
+// stylelint-enable selector-class-pattern

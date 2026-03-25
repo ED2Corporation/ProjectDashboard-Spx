@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { ITaskListItem } from "../../../models";
-import styles from "./ProjectDashboard.module.scss";
+import styles from "./TaskCard.module.scss";
 import EvidenceEditor from "./EvidenceEditor";
 
 interface TaskCardProps {
