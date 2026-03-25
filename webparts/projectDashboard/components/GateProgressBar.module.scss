@@ -10,9 +10,10 @@
 
 .row {
   display: flex;
-  gap: 3px;
+  gap: 10px;
   width: 100%;
-  align-items: stretch;
+  align-items: flex-end;
+  padding-top: $sp-2;   // absorbe el translateY(-2px) sin encimar el contenido de arriba
 }
 
 // ─── Gate segment ────────────────────────────────────────────────────────────
@@ -37,19 +38,21 @@
   justify-content: center;
   font-size: $f-sm;
   font-weight: 600;
-  overflow: hidden;
   padding: 0 $sp-2;
-  transition: border 0.15s ease, box-shadow 0.15s ease;
+  transition: border 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
 
   &:hover {
     border-color: $c-primary;
     border-width: 1px;
+    transform: translateY(-2px);
+    box-shadow: 0 3px 8px rgba(0, 120, 212, 0.20);
   }
 }
 
 .gateBarActive {
   border: 2px solid $c-primary !important;
-  box-shadow: $shadow-focus;
+  box-shadow: 0 0 0 3px rgba(0, 120, 212, 0.18), 0 2px 6px rgba(0, 120, 212, 0.20);
+  transform: translateY(-2px);
 }
 
 .gateLabel {
@@ -66,7 +69,8 @@
 
 .gateLabelActive {
   color: $c-primary;
-  font-weight: 600;
+  font-weight: 700;
+  letter-spacing: 0.01em;
 }
 
 // ─── Overall badge ────────────────────────────────────────────────────────────

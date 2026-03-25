@@ -1,23 +1,23 @@
 
 require("./GateProgressBar.module.css");
 const styles = {
-  wrapper: 'wrapper_3bec3855',
-  row: 'row_3bec3855',
-  gateSegment: 'gateSegment_3bec3855',
-  gateBar: 'gateBar_3bec3855',
-  gateBarActive: 'gateBarActive_3bec3855',
-  gateLabel: 'gateLabel_3bec3855',
-  gateLabelActive: 'gateLabelActive_3bec3855',
-  overallWrapper: 'overallWrapper_3bec3855',
-  overallBar: 'overallBar_3bec3855',
-  overallBarActive: 'overallBarActive_3bec3855',
-  overallLabel: 'overallLabel_3bec3855',
-  overallLabelActive: 'overallLabelActive_3bec3855',
-  settingsWrapper: 'settingsWrapper_3bec3855',
-  settingsBtn: 'settingsBtn_3bec3855',
-  settingsBtnActive: 'settingsBtnActive_3bec3855',
-  settingsLabel: 'settingsLabel_3bec3855',
-  settingsLabelActive: 'settingsLabelActive_3bec3855'
+  wrapper: 'wrapper_6904d7ea',
+  row: 'row_6904d7ea',
+  gateSegment: 'gateSegment_6904d7ea',
+  gateBar: 'gateBar_6904d7ea',
+  gateBarActive: 'gateBarActive_6904d7ea',
+  gateLabel: 'gateLabel_6904d7ea',
+  gateLabelActive: 'gateLabelActive_6904d7ea',
+  overallWrapper: 'overallWrapper_6904d7ea',
+  overallBar: 'overallBar_6904d7ea',
+  overallBarActive: 'overallBarActive_6904d7ea',
+  overallLabel: 'overallLabel_6904d7ea',
+  overallLabelActive: 'overallLabelActive_6904d7ea',
+  settingsWrapper: 'settingsWrapper_6904d7ea',
+  settingsBtn: 'settingsBtn_6904d7ea',
+  settingsBtnActive: 'settingsBtnActive_6904d7ea',
+  settingsLabel: 'settingsLabel_6904d7ea',
+  settingsLabelActive: 'settingsLabelActive_6904d7ea'
 };
 
 export default styles;

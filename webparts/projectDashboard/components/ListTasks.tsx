@@ -125,7 +125,7 @@ const ListTasks = ({
               Math.floor(item.Complete) > 0
           ).length) > 0 && (
         <div>
-          <h1>{heading}</h1>
+          <p className={styles.taskSectionHeading}>{heading}</p>
           <table className={styles.ed2Table}>
             <thead>
               <tr>

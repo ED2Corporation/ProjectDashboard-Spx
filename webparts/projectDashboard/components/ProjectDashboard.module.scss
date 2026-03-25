@@ -341,6 +341,19 @@
   to { transform: rotate(360deg); }
 }
 
+// ─── Task section heading (used by ListTasks.tsx) ─────────────────────────
+
+.taskSectionHeading {
+  margin: 0 0 $sp-3 0;
+  font-size: $f-body;
+  font-weight: 600;
+  color: $c-text-secondary;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  border-bottom: 1px solid $c-border-subtle;
+  padding-bottom: $sp-2;
+}
+
 // ─── ed2Table (used by ListTasks.tsx) ─────────────────────────────────────
 
 .actionsFixed { width: 80px; }
