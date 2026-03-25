@@ -16,6 +16,8 @@ import GateProgressBar from "./GateProgressBar";
 import ListTasks from "./ListTasks";
 import TaskCard from "./TaskCard";
 import ProjectActionsBar from "./ProjectActionsBar";
+import ProjectCatalogEditor from "./ProjectCatalogEditor";
+import styles from "./ProjectRowDashboard.module.scss";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -28,12 +30,14 @@ export interface ProjectRowDashboardProps {
   sp: SPFI;
   /** Called once gate data is ready so the parent can compute aggregate counts */
   onStatusReady?: (projectId: string, statusKey: "ontime" | "delayed" | "closed") => void;
+  /** Called after a catalog item is saved — use to reload the parent catalog list */
+  onCatalogItemSaved?: () => void;
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
 const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
-  project, context, sp, onStatusReady,
+  project, context, sp, onStatusReady, onCatalogItemSaved,
 }) => {
   const listName   = `${project.ProjectId}-List`;
   const repoName   = `${project.ProjectId}-Evidence`;
@@ -68,11 +72,13 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
     onPatchProperties: noop,
   });
 
-  const [activeGate,        setActiveGate]        = useState<string | null>(null);
-  const [showCard,          setShowCard]          = useState(false);
-  const [selectedTask,      setSelectedTask]      = useState<ITaskListItem | null>(null);
-  const [statusReported,    setStatusReported]    = useState(false);
+  const [activeGate,         setActiveGate]         = useState<string | null>(null);
+  const [showCard,           setShowCard]           = useState(false);
+  const [selectedTask,       setSelectedTask]       = useState<ITaskListItem | null>(null);
+  const [statusReported,     setStatusReported]     = useState(false);
   const [showProjectActions, setShowProjectActions] = useState(false);
+  // Local copy of catalog fields — updated optimistically after a successful save
+  const [localProject,       setLocalProject]       = useState(project);
 
   // Minimal IProjectListItem shape required by ProjectActionsBar
   const projectListItem = useMemo(() => ({
@@ -126,35 +132,14 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
     : filteredTasks[0]?.Gate || activeGate || "";
 
   return (
-    <div style={{
-      border: "0.5px solid #D3D1C7",
-      borderRadius: 8,
-      marginBottom: 6,
-      overflow: "hidden",
-      background: "white",
-    }}>
+    <div className={styles.card}>
+
       {/* ── Row header: project info (left) + gate bar (right) ───────── */}
-      <div style={{
-        display: "flex",
-        alignItems: "center",
-        padding: "6px 12px",
-        gap: 12,
-        background: "#faf9f8",
-        borderBottom: activeGate !== null ? "0.5px solid #E8E6E0" : "none",
-      }}>
-        <div style={{ width: 160, flexShrink: 0 }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: "#2C2C2A" }}>
-            {project.ProjectNumber}
-          </div>
-          <div style={{
-            fontSize: 11, fontWeight: 500, color: "#323130",
-            overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-          }}>
-            {project.Title}
-          </div>
-          <div style={{ fontSize: 10, color: "#888780" }}>
-            {project.Customer}
-          </div>
+      <div className={`${styles.header} ${activeGate !== null ? styles.headerActive : ""}`}>
+        <div className={styles.projectInfo}>
+          <div className={styles.projectNumber}>{localProject.ProjectNumber}</div>
+          <div className={styles.projectTitle}>{localProject.Title}</div>
+          <div className={styles.projectCustomer}>{localProject.Customer}</div>
         </div>
 
         {gates.length > 0 ? (
@@ -168,15 +153,15 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
             settingsActive={showProjectActions}
           />
         ) : (
-          <span style={{ fontSize: 11, color: "#B4B2A9", fontStyle: "italic" }}>
+          <span className={styles.noGates}>
             {tasks.length === 0 ? "Loading..." : "No gates defined"}
           </span>
         )}
       </div>
 
-      {/* ── Project actions — visible when gear is active ────────────── */}
+      {/* ── Project actions + settings editor — visible when gear is active ── */}
       {showProjectActions && (
-        <div style={{ padding: "4px 12px 8px 12px", borderBottom: "0.5px solid #E8E6E0" }}>
+        <div className={styles.actionsSection}>
           <ProjectActionsBar
             project={projectListItem}
             projectService={projectService}
@@ -184,12 +169,21 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
             repositoryName={repoName}
             onReset={onReset}
           />
+          <ProjectCatalogEditor
+            project={localProject}
+            projectService={projectService}
+            onSaved={updated => {
+              setLocalProject(updated);
+              onCatalogItemSaved?.();
+            }}
+            onCancel={() => setShowProjectActions(false)}
+          />
         </div>
       )}
 
-      {/* ── Task section — visible when a gate is active ─────────────── */}
+      {/* ── Task section — visible when a gate is active ──────────────── */}
       {activeGate !== null && tasks.length > 0 && (
-        <div style={{ padding: "8px 12px" }}>
+        <div className={styles.taskSection}>
           {showCard && selectedTask && (
             <TaskCard
               task={selectedTask}
@@ -241,15 +235,7 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
             }}
           />
 
-          <button
-            type="button"
-            onClick={() => onReset()}
-            style={{
-              marginTop: 6, padding: "2px 10px", fontSize: 11,
-              border: "1px solid #D3D1C7", borderRadius: 12,
-              background: "white", cursor: "pointer", color: "#888780",
-            }}
-          >
+          <button type="button" onClick={() => onReset()} className={styles.reloadBtn}>
             Reload
           </button>
         </div>

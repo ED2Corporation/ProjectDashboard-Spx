@@ -36,7 +36,6 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
     this._sp = spfi().using(SPFx(this.context));
     this._projectService = new ProjectService(this.context, "Projects");
 
-    console.log("[onInit] Initialized.");
     return super.onInit();
   }
 

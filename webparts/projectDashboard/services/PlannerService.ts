@@ -39,7 +39,6 @@ export class PlannerService {
   // Fetch the details of a Planner plan
   public async getPlanDetails(planId: string): Promise<ITaskListItem[]> {
     try {
-      console.log("[getPlanDetails] planId : " + planId);
       if (!planId) throw new Error("Plan not defined");
 
       const bucketsResponse = await this.graphClient
@@ -74,7 +73,7 @@ export class PlannerService {
 
   public async populateAttachements(tasks: ITaskListItem[]): Promise<ITaskListItem[]> {
     if (tasks.length > 0) {
-      const tasksWithAttachments = await Promise.all(
+      await Promise.all(
         tasks.map(async (task) => {
           const taskDetails = await this.graphClient
             .api(`/planner/tasks/${task.Id}/details`)
@@ -92,10 +91,7 @@ export class PlannerService {
         })
       );
 
-      // Keep only tasks that have attachments
-      const filteredTasks = tasksWithAttachments.filter((task) => task !== null);
 
-      console.log("Task with attached files:", filteredTasks);
     }
 
     return tasks;
@@ -127,7 +123,6 @@ export class PlannerService {
       const encodedKey = this.encodePlannerReferenceKey(evidenceUrl);
 
       if (currentRefs[encodedKey]) {
-        console.log(`Reference already exists: ${encodedKey}`);
         return;
       }
 
@@ -144,7 +139,6 @@ export class PlannerService {
         .header("If-Match", details["@odata.etag"])
         .patch({ references: newReferences });
 
-      console.log(`Reference added successfully: ${taskId}`);
     } catch (error) {
       console.error(`Error updating reference for task ${taskId}:`, error);
       throw error;
@@ -178,7 +172,6 @@ export class PlannerService {
       const encodedKey = this.encodePlannerReferenceKey(evidenceUrl);
 
       if (currentRefs[encodedKey]) {
-        console.log(`Reference already exists: ${encodedKey}`);
         return;
       }
 
@@ -195,7 +188,6 @@ export class PlannerService {
         .header("If-Match", details["@odata.etag"])
         .patch({ references: newReferences });
 
-      console.log(`Reference added successfully: ${taskId}`);
     } catch (error) {
       console.error(`Error updating reference for task ${taskId}:`, error);
     }
@@ -267,7 +259,6 @@ export class PlannerService {
       .header("If-Match", details["@odata.etag"])
       .patch(patchBody);
 
-    console.log(`Reference added successfully: ${taskId}`);
   }
 
   /******** */
@@ -454,9 +445,7 @@ export class PlannerService {
         .api(`/planner/tasks/${item.Id}`)
         .header("If-Match", task["@odata.etag"])
         .patch(taskPatch);
-      console.log(`[updateFromTaskItem] /tasks updated: ${item.Id}`);
     } else {
-      console.log(`[updateFromTaskItem] No changes for /tasks: ${item.Id}`);
     }
 
     // 3) Build details patch (description + references)
@@ -525,7 +514,6 @@ export class PlannerService {
           .header("If-Match", details["@odata.etag"])
           .header("Prefer", "return=representation")
           .patch(detailsPatch);
-        console.log(`[updateFromTaskItem] /details updated: ${item.Id}`);
       } catch (err: any) {
         if (err?.statusCode === 412 || err?.status === 412) {
           console.warn("[updateFromTaskItem] 412 on /details. Retrying with fresh ETag…");
@@ -535,13 +523,11 @@ export class PlannerService {
             .header("If-Match", details["@odata.etag"])
             .header("Prefer", "return=representation")
             .patch(detailsPatch);
-          console.log(`[updateFromTaskItem] /details retry OK: ${item.Id}`);
         } else {
           throw err;
         }
       }
     } else {
-      console.log(`[updateFromTaskItem] No changes for /details: ${item.Id}`);
     }
   }
 
@@ -585,7 +571,7 @@ export class PlannerService {
         const plan = plans.find((p: any) => p.title === planName);
         return plan ? plan.id : "";
       } else {
-        console.log("[getPlanId] Error fetching plan details...");
+        console.error("[getPlanId] Error fetching plan details.");
         return "";
       }
 

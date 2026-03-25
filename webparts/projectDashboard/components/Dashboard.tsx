@@ -43,7 +43,6 @@ const Dashboard: React.FC<DashboardProps> = ({ gates, project, baseURL }) => {
         target="_blank"
       >
         <h3> {project.Title} </h3>
-        {console.log("project.link: " + project.Link.Url)}
         {gates && (
           <div>
             <DoughnutChart gates={gates} tasks={null} complete={GroupByProject(gates).Complete}/>

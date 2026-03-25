@@ -95,7 +95,6 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, onClose, onSave, o
     };
 
     const payload = JSON.stringify(data);
-    console.log("TaskCard handleSave called with values:", payload);
 
     onSave(task.Id, payload);
     onClose?.();
@@ -313,11 +312,9 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, onClose, onSave, o
                       }}
                       onAfterUpload={(success) => {
                         if (!success) {
-                          console.log("Evidence upload failed.");
+                          console.error("Evidence upload failed.");
                           return;
                         }
-                        // On success, handleSave was already called in onEvidenceUpdated — no need to call it again
-                        console.log("Evidence uploaded and task updated successfully.");
                       }}
                       stopRowClick={false}
                     />

@@ -1,0 +1,120 @@
+@import './styles/tokens';
+
+// ─── Card ─────────────────────────────────────────────────────────────────────
+
+.card {
+  background: $c-surface;
+  border: 1px solid $c-border-subtle;
+  border-radius: $r-md;
+  padding: $sp-5;
+  font-family: $f-family;
+  font-size: $f-body;
+}
+
+.title {
+  font-size: $f-base;
+  font-weight: 700;
+  color: $c-text-secondary;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: $sp-4;
+}
+
+// ─── Field grid ───────────────────────────────────────────────────────────────
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: $sp-3 $sp-5;
+}
+
+.fieldFull {
+  grid-column: 1 / -1;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: $sp-1;
+}
+
+.label {
+  font-size: $f-sm;
+  font-weight: 600;
+  color: $c-text-secondary;
+}
+
+.input,
+.select {
+  padding: $sp-1 $sp-3;
+  font-size: $f-body;
+  font-family: $f-family;
+  color: $c-text;
+  background: $c-surface;
+  border: 1px solid $c-border;
+  border-radius: $r-sm;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  outline: none;
+  width: 100%;
+  box-sizing: border-box;
+
+  &:focus {
+    border-color: $c-primary;
+    box-shadow: $shadow-focus;
+  }
+}
+
+.select {
+  cursor: pointer;
+}
+
+// ─── Footer (actions row) ─────────────────────────────────────────────────────
+
+.footer {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: $sp-3;
+  margin-top: $sp-5;
+}
+
+.statusMsg {
+  flex: 1;
+  font-size: $f-sm;
+  color: $c-text-subtle;
+}
+
+.statusError {
+  color: $c-delayed;
+}
+
+.btnSave {
+  padding: $sp-1 $sp-5;
+  font-size: $f-body;
+  font-family: $f-family;
+  font-weight: 600;
+  color: $c-surface;
+  background: $c-primary;
+  border: none;
+  border-radius: $r-sm;
+  cursor: pointer;
+  transition: background 0.15s ease;
+
+  &:hover  { background: $c-primary-hover; }
+  &:active { background: darken(#0078d4, 12%); }
+  &:disabled { opacity: 0.55; cursor: not-allowed; }
+}
+
+.btnCancel {
+  padding: $sp-1 $sp-5;
+  font-size: $f-body;
+  font-family: $f-family;
+  color: $c-text-secondary;
+  background: $c-surface;
+  border: 1px solid $c-border;
+  border-radius: $r-sm;
+  cursor: pointer;
+  transition: $t-fast;
+
+  &:hover { background: $c-surface-soft; border-color: $c-text-secondary; }
+}

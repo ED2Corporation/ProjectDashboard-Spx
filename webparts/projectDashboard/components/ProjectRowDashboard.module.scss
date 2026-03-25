@@ -1,0 +1,94 @@
+@import './styles/tokens';
+
+// ─── Card ─────────────────────────────────────────────────────────────────────
+
+.card {
+  border: 0.5px solid $c-border;
+  border-radius: $r-md;
+  margin-bottom: $sp-3;
+  overflow: hidden;
+  background: $c-surface;
+  transition: box-shadow 0.15s ease;
+
+  &:hover {
+    box-shadow: $shadow-card;
+  }
+}
+
+// ─── Header row ───────────────────────────────────────────────────────────────
+
+.header {
+  display: flex;
+  align-items: center;
+  padding: $sp-3 $sp-5;
+  gap: $sp-5;
+  background: $c-surface-soft;
+}
+
+.headerActive {
+  border-bottom: 0.5px solid $c-border-subtle;
+}
+
+// ─── Project info (left panel) ────────────────────────────────────────────────
+
+.projectInfo {
+  width: 160px;
+  flex-shrink: 0;
+}
+
+.projectNumber {
+  font-size: $f-base;
+  font-weight: 700;
+  color: #2C2C2A;
+}
+
+.projectTitle {
+  font-size: $f-base;
+  font-weight: 500;
+  color: $c-text;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.projectCustomer {
+  font-size: $f-sm;
+  color: $c-text-subtle;
+}
+
+.noGates {
+  font-size: $f-base;
+  color: $c-text-muted;
+  font-style: italic;
+}
+
+// ─── Actions section (gear panel) ─────────────────────────────────────────────
+
+.actionsSection {
+  padding: $sp-2 $sp-5 $sp-4;
+  border-bottom: 0.5px solid $c-border-subtle;
+}
+
+// ─── Task section ─────────────────────────────────────────────────────────────
+
+.taskSection {
+  padding: $sp-4 $sp-5;
+}
+
+.reloadBtn {
+  margin-top: $sp-3;
+  padding: 2px 10px;
+  font-size: $f-base;
+  border: 1px solid $c-border;
+  border-radius: $r-pill;
+  background: $c-surface;
+  cursor: pointer;
+  color: $c-text-subtle;
+  transition: $t-fast;
+
+  &:hover {
+    background: $c-surface-soft;
+    color: $c-primary;
+    border-color: $c-primary;
+  }
+}

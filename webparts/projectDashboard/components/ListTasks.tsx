@@ -111,7 +111,6 @@ const ListTasks = ({
     };
 
     const payload = JSON.stringify(data);
-    console.log("ListTasks handleSave called with:", payload);
     onSave(task.Id, payload);
   };
 
@@ -363,7 +362,7 @@ const ListTasks = ({
                         onAfterUpload={(success) => {
                           if (!success) {
                             // handle error only (log, toast...), do NOT close or save
-                            console.log("Evidence upload failed.");
+                            console.error("Evidence upload failed.");
                           }
                         }}
                       />

@@ -1,0 +1,132 @@
+@import './styles/tokens';
+
+// ─── Outer card ───────────────────────────────────────────────────────────────
+
+.card {
+  border: 1px solid $c-border;
+  border-radius: $r-lg;
+  overflow: hidden;
+  margin-bottom: $sp-6;
+  background: $c-surface;
+  font-family: $f-family;
+}
+
+// ─── Header ───────────────────────────────────────────────────────────────────
+
+.header {
+  background: $c-header-blue;
+  color: $c-surface;
+  padding: $sp-4 $sp-6;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  user-select: none;
+  transition: background 0.15s ease;
+
+  &:hover {
+    background: darken(#56b3fa, 6%);
+  }
+}
+
+.headerTitle {
+  font-weight: 600;
+  font-size: $f-lg;
+}
+
+.headerCount {
+  font-weight: 400;
+  font-size: $f-md;
+  opacity: 0.85;
+  margin-left: $sp-1;
+}
+
+.headerChevron {
+  font-size: $f-base;
+  opacity: 0.9;
+}
+
+// ─── Aggregator row ───────────────────────────────────────────────────────────
+
+.aggregatorRow {
+  display: flex;
+  gap: $sp-4;
+  padding: $sp-4 $sp-6;
+  background: $c-surface-mid;
+  border-bottom: 1px solid $c-border-subtle;
+  flex-wrap: wrap;
+}
+
+// ─── Aggregator badge (base) ──────────────────────────────────────────────────
+
+.badge {
+  display: flex;
+  align-items: center;
+  gap: $sp-3;
+  padding: $sp-2 14px;
+  border-radius: $r-pill;
+  border: 1px solid $c-border;
+  background: $c-surface;
+  cursor: pointer;
+  font-size: $f-md;
+  font-weight: 400;
+  transition: $t-fast;
+}
+
+.badgeCount {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+// ─── Badge variants ───────────────────────────────────────────────────────────
+
+.badgeOntime {
+  color: $c-ontime;
+
+  &:hover         { border-color: $c-ontime; }
+  &.badgeActive   { border: 2px solid $c-ontime; background: $c-ontime-bg; font-weight: 600; }
+}
+
+.badgeDelayed {
+  color: $c-delayed;
+
+  &:hover         { border-color: $c-delayed; }
+  &.badgeActive   { border: 2px solid $c-delayed; background: $c-delayed-bg; font-weight: 600; }
+}
+
+.badgeClosed {
+  color: $c-closed;
+
+  &:hover         { border-color: $c-closed; }
+  &.badgeActive   { border: 2px solid $c-closed; background: $c-closed-bg; font-weight: 600; }
+}
+
+.badgeHidden {
+  color: $c-hidden;
+
+  &:hover       { border-color: $c-hidden; }
+  &.badgeActive { border: 2px solid $c-hidden; background: $c-hidden-bg; font-weight: 600; }
+}
+
+// ─── Project list ─────────────────────────────────────────────────────────────
+
+.projectList {
+  padding: $sp-4 $sp-6;
+  max-height: 720px;
+  overflow-y: auto;
+}
+
+// ─── State messages ───────────────────────────────────────────────────────────
+
+.message {
+  text-align: center;
+  padding: $sp-7 0;
+  font-size: $f-body;
+  color: $c-text-subtle;
+}
+
+.errorMessage {
+  color: $c-delayed;
+  font-size: $f-md;
+  padding: $sp-4 0;
+}

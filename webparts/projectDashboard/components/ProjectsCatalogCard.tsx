@@ -7,10 +7,11 @@ import { SPHttpClient } from '@microsoft/sp-http';
 import { useProjectsCatalog } from '../hooks/useProjectsCatalog';
 import ProjectRowDashboard from './ProjectRowDashboard';
 import { IProjectCatalogItem } from '../../../models/IProjectService';
+import styles from './ProjectsCatalogCard.module.scss';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type StatusFilter = 'all' | 'ontime' | 'delayed' | 'closed';
+type StatusFilter = 'all' | 'ontime' | 'delayed' | 'closed' | 'hidden';
 type StatusKey    = 'ontime' | 'delayed' | 'closed';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -18,29 +19,29 @@ type AnyContext = BaseComponentContext & { spHttpClient: SPHttpClient; msGraphCl
 
 // ─── AggregatorBadge ──────────────────────────────────────────────────────────
 
+type BadgeVariant = StatusKey | 'hidden';
+
 interface AggregatorBadgeProps {
   label: string;
   count: number;
-  color: string;
-  bg: string;
+  variant: BadgeVariant;
   active: boolean;
   onClick: () => void;
 }
 
-const AggregatorBadge: React.FC<AggregatorBadgeProps> = ({ label, count, color, bg, active, onClick }) => (
+const variantClass: Record<BadgeVariant, string> = {
+  ontime:  styles.badgeOntime,
+  delayed: styles.badgeDelayed,
+  closed:  styles.badgeClosed,
+  hidden:  styles.badgeHidden,
+};
+
+const AggregatorBadge: React.FC<AggregatorBadgeProps> = ({ label, count, variant, active, onClick }) => (
   <button
     onClick={(e) => { e.stopPropagation(); onClick(); }}
-    style={{
-      display: 'flex', alignItems: 'center', gap: 6,
-      padding: '4px 14px', borderRadius: 16,
-      border: active ? `2px solid ${color}` : '1px solid #D3D1C7',
-      background: active ? bg : 'white',
-      cursor: 'pointer', fontSize: 12, color,
-      fontWeight: active ? 600 : 400,
-      transition: 'all 0.15s',
-    }}
+    className={`${styles.badge} ${variantClass[variant]} ${active ? styles.badgeActive : ''}`}
   >
-    <span style={{ fontSize: 15, fontWeight: 700 }}>{count}</span>
+    <span className={styles.badgeCount}>{count}</span>
     <span>{label}</span>
   </button>
 );
@@ -56,7 +57,7 @@ export interface IProjectsCatalogCardProps {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 const ProjectsCatalogCard: React.FC<IProjectsCatalogCardProps> = ({ sp, context, onSelectProject }) => {
-  const { projects, isLoading, error } = useProjectsCatalog(sp);
+  const { projects, isLoading, error, reload } = useProjectsCatalog(sp);
 
   const [isCollapsed,  setIsCollapsed]  = useState(false);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
@@ -66,101 +67,97 @@ const ProjectsCatalogCard: React.FC<IProjectsCatalogCardProps> = ({ sp, context,
 
   const handleStatusReady = useCallback((projectId: string, key: StatusKey) => {
     setStatusMap(prev => {
-      if (prev[projectId] === key) return prev; // avoid re-render if same
+      if (prev[projectId] === key) return prev;
       return { ...prev, [projectId]: key };
     });
   }, []);
 
-  // ── Aggregate counts ──────────────────────────────────────────────────────
+  // ── Split hidden vs visible ───────────────────────────────────────────────
+  const { visibleProjects, hiddenCount } = useMemo(() => {
+    const visible = projects.filter(p => p.Status?.toLowerCase() !== 'hidden');
+    return { visibleProjects: visible, hiddenCount: projects.length - visible.length };
+  }, [projects]);
+
+  // ── Aggregate counts (from visible projects only) ─────────────────────────
   const counts = useMemo(() => {
     let onTime = 0, delayed = 0, closed = 0;
-    for (const proj of projects) {
+    for (const proj of visibleProjects) {
       const isClosed = proj.Status?.toLowerCase() === 'closed';
       const key = statusMap[proj.ProjectId ?? proj.Title] ?? (isClosed ? 'closed' : 'ontime');
-      if (key === 'closed')   closed++;
-      else if (key === 'delayed') delayed++;
-      else onTime++;
+      if (key === 'closed')        closed++;
+      else if (key === 'delayed')  delayed++;
+      else                         onTime++;
     }
     return { onTime, delayed, closed };
-  }, [projects, statusMap]);
+  }, [visibleProjects, statusMap]);
 
   // ── Filtered project list ─────────────────────────────────────────────────
+  // When 'hidden' filter is active, show only hidden projects (otherwise they are excluded).
   const filteredProjects = useMemo(() => {
-    if (statusFilter === 'all') return projects;
-    return projects.filter(proj => {
+    if (statusFilter === 'hidden') {
+      return projects.filter(p => p.Status?.toLowerCase() === 'hidden');
+    }
+    if (statusFilter === 'all') return visibleProjects;
+    return visibleProjects.filter(proj => {
       const isClosed = proj.Status?.toLowerCase() === 'closed';
       const key = statusMap[proj.ProjectId ?? proj.Title] ?? (isClosed ? 'closed' : 'ontime');
       return key === statusFilter;
     });
-  }, [projects, statusMap, statusFilter]);
+  }, [projects, visibleProjects, statusMap, statusFilter]);
 
-  const toggleFilter = (f: StatusFilter) => setStatusFilter(prev => prev === f ? 'all' : f);
+  const toggleFilter = (f: StatusFilter): void => setStatusFilter(prev => prev === f ? 'all' : f);
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (
-    <div style={{
-      border: '1px solid #D3D1C7', borderRadius: 10, overflow: 'hidden',
-      marginBottom: 16, background: 'white', fontFamily: 'Segoe UI, sans-serif',
-    }}>
+    <div className={styles.card}>
+
       {/* Header — always visible, controls collapse */}
-      <div
-        onClick={() => setIsCollapsed(c => !c)}
-        style={{
-          background: '#56b3fa', color: 'white', padding: '8px 16px',
-          cursor: 'pointer', display: 'flex', justifyContent: 'space-between',
-          alignItems: 'center', userSelect: 'none',
-        }}
-      >
-        <span style={{ fontWeight: 600, fontSize: 14 }}>
-          Projects Dashboard{' '}
-          <span style={{ fontWeight: 400, fontSize: 12, opacity: 0.85 }}>
-            ({projects.length})
-          </span>
+      <div onClick={() => setIsCollapsed(c => !c)} className={styles.header}>
+        <span className={styles.headerTitle}>
+          Projects Dashboard
+          <span className={styles.headerCount}>({visibleProjects.length})</span>
         </span>
-        <span style={{ fontSize: 11 }}>{isCollapsed ? '▼' : '▲'}</span>
+        <span className={styles.headerChevron}>{isCollapsed ? '▼' : '▲'}</span>
       </div>
 
       {/* Aggregator row — always visible */}
-      <div style={{
-        display: 'flex', gap: 8, padding: '8px 16px',
-        background: '#f3f2f1', borderBottom: '1px solid #e1dfdd', flexWrap: 'wrap',
-      }}>
+      <div className={styles.aggregatorRow}>
         <AggregatorBadge
           label="On Time"  count={counts.onTime}
-          color="#185FA5"  bg="#E6F1FB"
-          active={statusFilter === 'ontime'}
+          variant="ontime" active={statusFilter === 'ontime'}
           onClick={() => toggleFilter('ontime')}
         />
         <AggregatorBadge
           label="Delayed"  count={counts.delayed}
-          color="#A32D2D"  bg="#FCEBEB"
-          active={statusFilter === 'delayed'}
+          variant="delayed" active={statusFilter === 'delayed'}
           onClick={() => toggleFilter('delayed')}
         />
         <AggregatorBadge
           label="Closed"   count={counts.closed}
-          color="#3B6D11"  bg="#EAF3DE"
-          active={statusFilter === 'closed'}
+          variant="closed" active={statusFilter === 'closed'}
           onClick={() => toggleFilter('closed')}
         />
+        {hiddenCount > 0 && (
+          <AggregatorBadge
+            label="Hidden"   count={hiddenCount}
+            variant="hidden" active={statusFilter === 'hidden'}
+            onClick={() => toggleFilter('hidden')}
+          />
+        )}
       </div>
 
       {/* Project rows — collapsible */}
       {!isCollapsed && (
-        <div style={{ padding: '8px 16px', maxHeight: 720, overflowY: 'auto' }}>
+        <div className={styles.projectList}>
           {error && (
-            <div style={{ color: '#A32D2D', fontSize: 12, padding: '8px 0' }}>
+            <div className={styles.errorMessage}>
               Error loading projects: {error}
             </div>
           )}
           {isLoading ? (
-            <div style={{ textAlign: 'center', padding: 28, color: '#888780', fontSize: 13 }}>
-              Loading projects...
-            </div>
+            <div className={styles.message}>Loading projects...</div>
           ) : filteredProjects.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: 20, color: '#B4B2A9', fontSize: 12 }}>
-              No projects match the selected filter.
-            </div>
+            <div className={styles.message}>No projects match the selected filter.</div>
           ) : (
             filteredProjects.map(proj => (
               <ProjectRowDashboard
@@ -169,6 +166,7 @@ const ProjectsCatalogCard: React.FC<IProjectsCatalogCardProps> = ({ sp, context,
                 context={context}
                 sp={sp}
                 onStatusReady={handleStatusReady}
+                onCatalogItemSaved={reload}
               />
             ))
           )}

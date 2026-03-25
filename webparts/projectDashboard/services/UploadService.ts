@@ -25,25 +25,13 @@ export async function uploadEvidenceFile(
         // Server-relative URL of the **parent folder**, no trailing slash
         let parentFolderServerRelative = `${evidenceBasePath.replace(/\/+$/, "")}`;
 
-        if (isRootSite) {
-            console.log(`Root site detected. Using evidence path: ${webUrl}${parentFolderServerRelative}/${folderName}`);
-
-        } else {
-            console.log(`Non-root site detected. Using evidence path: ${webUrl}${parentFolderServerRelative}${folderName}`);
-        }
-
         // Escape single quotes for safety in OData
         const safeParent = parentFolderServerRelative.replace(/'/g, "''");
         const safeFolderName = folderName.replace(/'/g, "''");
 
-        console.log(`[doUpload] Evidence repository : ${webUrl} / ${safeParent} / ${safeFolderName}`);
-
-        ///***  */
         const uploadUrl =
             `${webUrl}/_api/web/GetFolderByServerRelativeUrl('${safeParent}/${safeFolderName}')` +
             `/Files/add(url='${file.name}',overwrite=true)`;
-
-        console.log(`DoUpload uploadUrl: ${uploadUrl}`);
 
         const opts: ISPHttpClientOptions = {
             headers: {
@@ -75,10 +63,7 @@ export async function uploadEvidenceFile(
         // Si es 404 por carpeta inexistente, crea el folder y reintenta
         const msg = String(error?.message || "");
         if (msg.includes("404") && msg.includes("DirectoryNotFoundException")) {
-            console.log("Folder not found, ensuring folder path:", siteUrl + relativePath + folderPath + folderName);
             await ensureFolder(spHttpClient, siteUrl, relativePath, folderPath, folderName);
-            console.log(`DoUpload 2nd Attempt...`);
-            // reintentar upload una vez
             return await doUpload();
         }
 
@@ -93,8 +78,6 @@ export async function ensureFolder(
     folderPath: string,     // /Shared Documents/ProjectsEvidence/
     folderName: string,     // EvidenceRepository
 ): Promise<void> {
-    console.log("[ensureFolder] Ensure folder RAW:", siteUrl + relativePath + folderPath + folderName);
-
     try {
 
         /** Controling Main Page - Production envitronment Root directory */
@@ -111,30 +94,11 @@ export async function ensureFolder(
         // Server-relative URL of the **parent folder**, no trailing slash
         let parentFolderServerRelative = `${evidenceBasePath.replace(/\/+$/, "")}`;
 
-        if (isRootSite) {
-            // // Normalize web URL (no trailing slash)
-            // webUrl = `${siteUrl.replace(/\/+$/, "")}${relativePath.replace(/\/+$/, "")}`;
-
-            // // Server-relative URL of the **parent folder**, no trailing slash
-            // parentFolderServerRelative =
-            //     `${relativePath.replace(/\/+$/, "")}${folderPath}`.replace(/\/+$/, "");
-
-            console.log(`Root site detected. Using evidence path: ${webUrl}${parentFolderServerRelative}/${folderName}`);
-
-        } else {
-            console.log(`Non-root site detected. Using evidence path: ${webUrl}${parentFolderServerRelative}${folderName}`);
-        }
-
-
         // Escape single quotes for safety in OData
         const safeParent = parentFolderServerRelative.replace(/'/g, "''");
         const safeFolderName = folderName.replace(/'/g, "''");
 
-        console.log(`[ensureFolder] Evidence repository : ${webUrl}${safeParent}/${safeFolderName}`);
-
         const addUrl = `${webUrl}/_api/web/GetFolderByServerRelativeUrl('${safeParent}')/folders/add(url='${safeFolderName}')`;
-
-        console.log("Creating folder via:", addUrl);
 
         const res = await spHttpClient.post(
             addUrl,

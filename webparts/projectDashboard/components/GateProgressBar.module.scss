@@ -1,0 +1,174 @@
+@import './styles/tokens';
+
+// ─── Wrapper ────────────────────────────────────────────────────────────────
+
+.wrapper {
+  flex: 1;
+  min-width: 0;
+  font-family: $f-family;
+}
+
+.row {
+  display: flex;
+  gap: 3px;
+  width: 100%;
+  align-items: stretch;
+}
+
+// ─── Gate segment ────────────────────────────────────────────────────────────
+
+.gateSegment {
+  flex: 1;
+  min-width: 0;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: $sp-1;
+}
+
+.gateBar {
+  width: 100%;
+  height: 22px;
+  border-radius: $r-sm;
+  border: 0.5px solid $c-border;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: $f-sm;
+  font-weight: 600;
+  overflow: hidden;
+  padding: 0 $sp-2;
+  transition: border 0.15s ease, box-shadow 0.15s ease;
+
+  &:hover {
+    border-color: $c-primary;
+    border-width: 1px;
+  }
+}
+
+.gateBarActive {
+  border: 2px solid $c-primary !important;
+  box-shadow: $shadow-focus;
+}
+
+.gateLabel {
+  font-size: $f-xs;
+  color: $c-text-muted;
+  font-weight: 400;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+  text-align: center;
+  transition: color 0.15s ease;
+}
+
+.gateLabelActive {
+  color: $c-primary;
+  font-weight: 600;
+}
+
+// ─── Overall badge ────────────────────────────────────────────────────────────
+
+.overallWrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: $sp-1;
+  flex-shrink: 0;
+  margin-left: $sp-3;
+  cursor: pointer;
+}
+
+.overallBar {
+  height: 22px;
+  padding: 0 10px;
+  border-radius: $r-sm;
+  background: $c-surface-mid;
+  border: 0.5px solid $c-border;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: $f-base;
+  font-weight: 700;
+  color: $c-text;
+  white-space: nowrap;
+  transition: $t-fast;
+
+  &:hover {
+    background: $c-primary-bg;
+    border-color: $c-primary;
+    color: $c-primary;
+  }
+}
+
+.overallBarActive {
+  background: $c-primary-bg !important;
+  border: 2px solid $c-primary !important;
+  box-shadow: $shadow-focus;
+  color: $c-primary !important;
+}
+
+.overallLabel {
+  font-size: $f-xs;
+  color: $c-text-muted;
+  font-weight: 400;
+  transition: color 0.15s ease;
+}
+
+.overallLabelActive {
+  color: $c-primary;
+  font-weight: 600;
+}
+
+// ─── Settings (gear) button ──────────────────────────────────────────────────
+
+.settingsWrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: $sp-1;
+  flex-shrink: 0;
+  margin-left: $sp-2;
+}
+
+.settingsBtn {
+  width: 26px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: $r-sm;
+  border: 0.5px solid $c-border;
+  background: $c-surface-mid;
+  color: $c-text-secondary;
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+  transition: $t-fast;
+
+  &:hover {
+    background: $c-primary-bg;
+    border-color: $c-primary;
+    color: $c-primary;
+  }
+}
+
+.settingsBtnActive {
+  border: 2px solid $c-primary !important;
+  background: $c-primary-bg !important;
+  color: $c-primary !important;
+}
+
+.settingsLabel {
+  font-size: $f-xs;
+  color: $c-text-muted;
+  font-weight: 400;
+  transition: color 0.15s ease;
+}
+
+.settingsLabelActive {
+  color: $c-primary;
+  font-weight: 600;
+}

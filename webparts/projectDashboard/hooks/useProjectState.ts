@@ -262,7 +262,6 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
       setShowNewProjectSetup(true);
     }
 
-    console.log("[_loadData] Done. Total tasks:", currentTasks.length);
   }, [_getPlannerListItems, _populateAttachements, _getTaskListItems, _getGateListItems, syncTasks]);
 
   const onReset = useCallback(async (): Promise<void> => {
@@ -338,7 +337,6 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
       folderName.trim(),
       file
     );
-    console.log(`File uploaded: ${fileName} -> ${fileUrl}`);
     return { fileUrl, fileName };
   }, [context, config.repositoryName]);
 
@@ -418,8 +416,7 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
   const _createPlannerTask = useCallback(async (gate: string): Promise<void> => {
     const graphClient: MSGraphClientV3 = await context.msGraphClientFactory.getClient("3");
     const plannerService = new PlannerService(graphClient);
-    const newTaskId = await plannerService.createEmptyTask(projectSelected.Id, gate);
-    console.log("[_createPlannerTask] New planner task:", newTaskId);
+    await plannerService.createEmptyTask(projectSelected.Id, gate);
   }, [context, projectSelected]);
 
   const onNewTask = useCallback(async (gate: string): Promise<void> => {
@@ -607,7 +604,6 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
   }, []);
 
   const _ensureTaskList = useCallback(async (listTitle: string): Promise<void> => {
-    console.log(`[_ensureTaskList] Ensuring list and schema for: ${listTitle}`);
     const web = sp.web;
     const ensureResult = await web.lists.ensure(listTitle, "Project tasks list", 100, true);
     const list: IList = ensureResult.list;
@@ -693,8 +689,6 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
     }
 
     const list = sp.web.lists.getByTitle(listName);
-    let created = 0;
-
     for (const row of rows) {
       const gate = row.Gate || defaultGate || "0. New Gate";
       const taskTitle = row.Task;
@@ -723,9 +717,7 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
         EvidenceOfCompletion: row.EvidenceOfCompletion || null,
         EvidenceDescription: row.EvidenceDescription || null
       });
-      created++;
     }
-    console.log(`Excel import finished. Rows created: ${created}`);
   }, [sp, _getNextWbsForGate]);
 
   const onCreateNewProject = useCallback(async (

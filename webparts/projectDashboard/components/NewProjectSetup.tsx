@@ -71,7 +71,6 @@ const NewProjectSetup: React.FC<NewProjectSetupProps> = ({
         const nextNum = lastNum + 1;
         const nextSeq = String(nextNum);
         setProjectNumber(nextSeq);
-        console.log("[NewProjectSetup-useEffect] Next ProjectNumber:", nextSeq);
       } catch (e) {
         console.error("Error loading last ProjectNumber from catalog:", e);
       }
@@ -126,7 +125,6 @@ const NewProjectSetup: React.FC<NewProjectSetupProps> = ({
         Customer: customer.trim(),
       });
 
-      console.log("New ProjectId:", projectId);
     } finally {
       setIsCreating(false);
     }

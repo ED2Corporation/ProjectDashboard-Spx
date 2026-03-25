@@ -2,6 +2,7 @@ import * as React from "react";
 import { IGateListItem, ITaskListItem } from "../../../models";
 import { GetBucketStatusFromTasks, StatusToColor } from "../utils/GetGateStatus";
 import { GroupByProject } from "../utils/GroupByProject";
+import styles from "./GateProgressBar.module.scss";
 
 // ─── Gear icon (inline SVG — Bootstrap Icons "gear-fill", no external dep) ────
 
@@ -35,10 +36,10 @@ const GateProgressBar: React.FC<GateProgressBarProps> = ({
   const overall = GroupByProject(gates).Complete;
 
   return (
-    <div style={{ flex: 1, minWidth: 0 }}>
-      <div style={{ display: "flex", gap: 3, width: "100%", alignItems: "stretch" }}>
+    <div className={styles.wrapper}>
+      <div className={styles.row}>
 
-        {/* ── Gate segments ───────────────────────────────────────────── */}
+        {/* ── Gate segments ─────────────────────────────────────────────── */}
         {gates.map((gate, idx) => {
           const gateTasks = tasks.filter(t => t.Gate === gate.Gate);
           const status    = GetBucketStatusFromTasks(gateTasks);
@@ -51,78 +52,47 @@ const GateProgressBar: React.FC<GateProgressBarProps> = ({
               key={idx}
               onClick={() => onGateClick(gate.Gate)}
               title={`${gate.Gate} — ${gate.Complete.toFixed(0)}% complete`}
-              style={{ flex: 1, minWidth: 0, cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}
+              className={styles.gateSegment}
             >
-              <div style={{
-                width: "100%", height: 22, borderRadius: 4,
-                background: barColor,
-                border: isActive ? "2px solid #0078d4" : "0.5px solid #D3D1C7",
-                boxShadow: isActive ? "0 0 0 2px #cce5ff" : "none",
-                display: "flex", alignItems: "center", justifyContent: "center",
-                fontSize: 10, fontWeight: 600, color: textColor,
-                overflow: "hidden", padding: "0 4px",
-                transition: "border 0.15s, box-shadow 0.15s",
-              }}>
+              <div
+                className={`${styles.gateBar} ${isActive ? styles.gateBarActive : ""}`}
+                style={{ background: barColor, color: textColor }}
+              >
                 {gate.Complete.toFixed(0)}%
               </div>
-              <span style={{
-                fontSize: 9, color: isActive ? "#0078d4" : "#888780",
-                fontWeight: isActive ? 600 : 400,
-                overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-                maxWidth: "100%", textAlign: "center",
-              }}>
+              <span className={`${styles.gateLabel} ${isActive ? styles.gateLabelActive : ""}`}>
                 {gate.Gate.substring(0, 14)}
               </span>
             </div>
           );
         })}
 
-        {/* ── Overall badge ────────────────────────────────────────────── */}
+        {/* ── Overall badge ──────────────────────────────────────────────── */}
         <div
           onClick={onOverallClick}
           title="Show / hide all tasks"
-          style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2, flexShrink: 0, marginLeft: 6, cursor: "pointer" }}
+          className={styles.overallWrapper}
         >
-          <div style={{
-            height: 22, padding: "0 10px", borderRadius: 4,
-            background: activeGate === "all" ? "#E6F1FB" : "#f3f2f1",
-            border: activeGate === "all" ? "2px solid #0078d4" : "0.5px solid #D3D1C7",
-            boxShadow: activeGate === "all" ? "0 0 0 2px #cce5ff" : "none",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            fontSize: 11, fontWeight: 700,
-            color: activeGate === "all" ? "#0078d4" : "#323130",
-            whiteSpace: "nowrap", transition: "all 0.15s",
-          }}>
+          <div className={`${styles.overallBar} ${activeGate === "all" ? styles.overallBarActive : ""}`}>
             {overall.toFixed(0)}%
           </div>
-          <span style={{ fontSize: 9, color: activeGate === "all" ? "#0078d4" : "#B4B2A9", fontWeight: activeGate === "all" ? 600 : 400 }}>
+          <span className={`${styles.overallLabel} ${activeGate === "all" ? styles.overallLabelActive : ""}`}>
             Overall
           </span>
         </div>
 
-        {/* ── Settings (gear) button — optional ────────────────────────── */}
+        {/* ── Settings (gear) button — optional ─────────────────────────── */}
         {onSettingsClick && (
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2, flexShrink: 0, marginLeft: 4 }}>
+          <div className={styles.settingsWrapper}>
             <button
               type="button"
               onClick={onSettingsClick}
               title={settingsActive ? "Hide project options" : "Show project options"}
-              style={{
-                width: 26, height: 22,
-                display: "flex", alignItems: "center", justifyContent: "center",
-                borderRadius: 4,
-                border: settingsActive ? "2px solid #0078d4" : "0.5px solid #D3D1C7",
-                background: settingsActive ? "#E6F1FB" : "#f3f2f1",
-                color: settingsActive ? "#0078d4" : "#605e5c",
-                cursor: "pointer",
-                padding: 0,
-                transition: "all 0.15s",
-                flexShrink: 0,
-              }}
+              className={`${styles.settingsBtn} ${settingsActive ? styles.settingsBtnActive : ""}`}
             >
               <GearIcon size={13} />
             </button>
-            <span style={{ fontSize: 9, color: settingsActive ? "#0078d4" : "#B4B2A9", fontWeight: settingsActive ? 600 : 400 }}>
+            <span className={`${styles.settingsLabel} ${settingsActive ? styles.settingsLabelActive : ""}`}>
               Options
             </span>
           </div>

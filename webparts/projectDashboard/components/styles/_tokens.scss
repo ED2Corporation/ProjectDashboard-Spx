@@ -1,0 +1,67 @@
+// ─── Design Tokens ─────────────────────────────────────────────────────────
+// Single source of truth for all design values.
+// Usage: @import './styles/tokens';
+
+// ── Colors: Brand ──────────────────────────────────────────────────────────
+$c-primary:        #0078d4;
+$c-primary-hover:  #005a9e;
+$c-primary-bg:     #E6F1FB;
+$c-primary-focus:  #cce5ff;
+$c-header-blue:    #56b3fa;
+
+// ── Colors: Surface ────────────────────────────────────────────────────────
+$c-surface:        #ffffff;
+$c-surface-soft:   #faf9f8;
+$c-surface-mid:    #f3f2f1;
+$c-surface-dark:   #e1dfdd;
+
+// ── Colors: Border ─────────────────────────────────────────────────────────
+$c-border:         #D3D1C7;
+$c-border-subtle:  #e1dfdd;
+
+// ── Colors: Text ───────────────────────────────────────────────────────────
+$c-text:           #323130;
+$c-text-secondary: #605e5c;
+$c-text-subtle:    #888780;
+$c-text-muted:     #B4B2A9;
+
+// ── Colors: Status aggregators ─────────────────────────────────────────────
+$c-ontime:         #185FA5;
+$c-ontime-bg:      #E6F1FB;
+$c-delayed:        #A32D2D;
+$c-delayed-bg:     #FCEBEB;
+$c-closed:         #3B6D11;
+$c-closed-bg:      #EAF3DE;
+$c-hidden:         #605e5c;
+$c-hidden-bg:      #f3f2f1;
+
+// ── Spacing (4px base scale) ───────────────────────────────────────────────
+$sp-1: 2px;   // extra-tight
+$sp-2: 4px;   // tight
+$sp-3: 6px;   // small
+$sp-4: 8px;   // base
+$sp-5: 12px;  // medium
+$sp-6: 16px;  // large
+$sp-7: 24px;  // extra-large
+
+// ── Border Radius ──────────────────────────────────────────────────────────
+$r-sm:   4px;
+$r-md:   8px;
+$r-lg:   10px;
+$r-pill: 16px;
+
+// ── Shadows ────────────────────────────────────────────────────────────────
+$shadow-card:  0 1px 4px rgba(0, 0, 0, 0.10);
+$shadow-focus: 0 0 0 2px #cce5ff;
+
+// ── Typography ─────────────────────────────────────────────────────────────
+$f-xs:     9px;
+$f-sm:     10px;
+$f-base:   11px;
+$f-md:     12px;
+$f-body:   13px;
+$f-lg:     14px;
+$f-family: 'Segoe UI', sans-serif;
+
+// ── Transitions ────────────────────────────────────────────────────────────
+$t-fast: all 0.15s ease;

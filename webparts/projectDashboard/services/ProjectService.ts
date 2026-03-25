@@ -70,7 +70,6 @@ export class ProjectService implements IProjectService {
         projectId: string,
         evidenceFolderServerRelative?: string
     ): Promise<void> {
-        console.log("[deleteProject] listName:", listName, "projectId:", projectId);
 
         // 1) Delete the task list
         const listUrl = `${this.webUrl}/_api/web/lists/GetByTitle('${listName}')`;
@@ -86,7 +85,6 @@ export class ProjectService implements IProjectService {
             }
         );
 
-        console.log("[deleteProject] list delete status:", listResp.status, listResp.ok);
 
         if (!listResp.ok && listResp.status !== 404) {
             const errorText = await listResp.text();
@@ -149,7 +147,6 @@ export class ProjectService implements IProjectService {
         evidenceFolderServerRelative: string,
         projectId?: string
     ): Promise<void> {
-        console.log("[archiveProject] listName:", listName);
 
         const csvBlob = await this.exportProject(listName);
         const reportFolder = `${evidenceFolderServerRelative}`;
@@ -158,7 +155,6 @@ export class ProjectService implements IProjectService {
 
         await this._uploadBlobToReportFolder(reportFolder, fileName, csvBlob);
         await this.deleteProject(listName, projectId ?? "", undefined);
-        console.log("[archiveProject] List deleted:", listName);
     }
 
     private async _uploadBlobToReportFolder(
@@ -242,8 +238,6 @@ export class ProjectService implements IProjectService {
         }
 
         const list = this._sp.web.lists.getByTitle(listName);
-        let created = 0;
-
         for (const row of rows) {
             const gate = row.Gate || defaultGate || "0. New Gate";
             const taskTitle = row.Task;
@@ -267,10 +261,8 @@ export class ProjectService implements IProjectService {
                 EvidenceOfCompletion: row.EvidenceOfCompletion || null,
                 EvidenceDescription: row.EvidenceDescription || null
             });
-            created++;
         }
 
-        console.log(`Excel import finished.\nRows created: ${created}`);
     }
 
     private async _getNextWbsForGate(listName: string, gate: string): Promise<string> {
@@ -342,6 +334,14 @@ export class ProjectService implements IProjectService {
         if (!items.length) return null;
         const item = items[0] as any;
         return { ProjectNumber: item.ProjectNumber as string | undefined };
+    }
+
+    public async updateCatalogItem(projectId: string, patch: Partial<IProjectCatalogItem>): Promise<void> {
+        const found = await this._sp.web.lists.getByTitle(this._catalogListName)
+            .items.select('Id').filter(`ProjectId eq '${projectId.replace(/'/g, "''")}'`).top(1)();
+        if (!found.length) throw new Error(`Catalog item not found: ${projectId}`);
+        const id = (found[0] as any).Id as number; // eslint-disable-line @typescript-eslint/no-explicit-any
+        await this._sp.web.lists.getByTitle(this._catalogListName).items.getById(id).update(patch);
     }
 
     public async addProjectToCatalog(item: IProjectCatalogItem): Promise<string> {

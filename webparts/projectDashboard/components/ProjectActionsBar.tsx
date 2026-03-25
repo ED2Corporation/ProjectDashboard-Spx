@@ -79,7 +79,7 @@ const ProjectActionsBar: React.FC<IProjectActionsBarProps> = ({
               document.body.removeChild(a);
               window.URL.revokeObjectURL(url);
             } catch {
-              console.log("Error downloading file...");
+              console.error("Error downloading file.");
             }
           }}
         >

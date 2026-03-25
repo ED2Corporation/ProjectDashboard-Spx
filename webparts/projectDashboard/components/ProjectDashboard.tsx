@@ -180,13 +180,11 @@ export default class ProjectDashboard extends React.Component<
                 }
                 addProjectToCatalog={async (data: IProjectCatalogItem) => {
                   if (data) {
-                    console.log("addProjectToCatalog:", data.Title, "-", data.ProjectNumber);
                     await this.props.projectService.addProjectToCatalog(data);
                   }
                 }}
                 onProjectCreated={(data) => {
                   if (data) {
-                    console.log("onProjectCreated:", data.projectId, "-", data.projectName);
                     this.props.project.Title        = data.projectId;
                     this.props.project.ListName     = data.listName;
                     this.props.project.RepositoryName = data.repoName;
@@ -209,7 +207,6 @@ export default class ProjectDashboard extends React.Component<
                     tasks={visibleTasks}
                     showDetails={false}
                     onSelectItem={(item, group) => {
-                      console.log("ProgressTasks onSelectItem:", item, group);
                       const task = spTaskListItems.find(t => t.Task === item);
                       if (task) this.setState({ selectedTask: task, showCard: true });
                       this.props.onSelectItem(item, group);
@@ -225,16 +222,13 @@ export default class ProjectDashboard extends React.Component<
                 isPlanner={project.isPlanner || false}
                 onClose={() => this.setState({ showCard: false })}
                 onNew={(task) => {
-                  console.log("TaskCard onNew:", task);
                   this.props.onNewTask?.(task.Gate);
                 }}
                 onDelete={(taskId) => {
-                  console.log("TaskCard onDelete:", taskId);
                   this.props.onDeleteTask?.(taskId);
                 }}
                 onSave={(taskId, payloadJson) => {
                   this.props.onUpdateTask?.(taskId, "full-update", payloadJson);
-                  console.log("Update DB TaskCard:", taskId, "selected:", this.state.selectedTask?.Task);
                   this.setState({ showCard: true });
                 }}
                 onUploadEvidenceFile={async (file, taskTitle) => {
@@ -251,11 +245,9 @@ export default class ProjectDashboard extends React.Component<
                 heading={tasksHeading}
                 showDetails={true}
                 onSave={(taskId, payloadJson) => {
-                  console.log("Update DB ListTasks:", taskId, payloadJson);
                   this.props.onUpdateTask?.(taskId, "quick-complete", payloadJson);
                 }}
-                onSelectItem={(item, group, mode) => {
-                  console.log("ListTasks:", item, group, mode);
+                onSelectItem={(item, _group, mode) => {
                   if (!item || !item.Task) return;
                   switch (mode) {
                     case "list-edit":
