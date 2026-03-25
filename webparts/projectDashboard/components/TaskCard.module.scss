@@ -1,50 +1,121 @@
 @import './styles/tokens';
 
-// ─── TaskCard shell ────────────────────────────────────────────────────────
-
 // stylelint-disable selector-class-pattern
+
+// ─── Card shell ────────────────────────────────────────────────────────────
+
 .task-card {
-  background: $c-surface-soft;
+  background: $c-surface;
   border: 1px solid $c-border;
+  border-left: 3px solid $c-primary;
   border-radius: $r-md;
-  padding: $sp-6;
+  padding: 0;
   width: 100%;
   max-width: 100%;
-  max-height: 450px;
-  box-shadow: $shadow-md;
+  box-shadow: $shadow-card;
   font-family: $f-family;
+  font-size: $f-body;
+  color: $c-text;
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
+  overflow: hidden;
 }
+
+// ─── Header ────────────────────────────────────────────────────────────────
 
 .task-card-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: $sp-4;
-  margin-bottom: $sp-4;
+  padding: $sp-4 $sp-6;
+  background: $c-surface-soft;
+  border-bottom: 1px solid $c-border-subtle;
 }
 
 .task-title {
+  // reset h1 defaults
   margin: 0;
-  color: $c-primary;
-  font-size: $f-title;
-  font-weight: bold;
+  padding: 0;
+  font-size: $f-lg;
+  font-weight: 600;
+  color: $c-text;
+  line-height: 1.3;
   flex: 1;
   word-break: break-word;
 }
+
+// ─── Action button group (header right side) ──────────────────────────────
+
+.task-btn-group {
+  display: flex;
+  align-items: center;
+  gap: $sp-2;
+  flex-shrink: 0;
+}
+
+.task-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid $c-border;
+  border-radius: $r-sm;
+  background: $c-surface;
+  cursor: pointer;
+  transition: $t-fast;
+  padding: 0;
+
+  &:hover {
+    background: $c-primary-bg;
+    border-color: $c-primary;
+  }
+
+  &:active {
+    background: $c-primary-focus;
+  }
+}
+
+.task-card-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid transparent;
+  border-radius: $r-sm;
+  background: transparent;
+  color: $c-text-muted;
+  font-size: 1.2rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+  margin-left: $sp-1;
+  transition: $t-fast;
+
+  &:hover {
+    background: $c-surface-dark;
+    color: $c-text;
+    border-color: $c-border;
+  }
+}
+
+// ─── Body layout ───────────────────────────────────────────────────────────
 
 .task-card-row {
   display: flex;
   flex-direction: row;
   align-items: stretch;
   width: 100%;
-  gap: $sp-5;
+  gap: 0;
 }
 
 .task-card-body {
   flex: 0 0 auto;
+  padding: $sp-4 $sp-5;
+  border-right: 1px solid $c-border-subtle;
   overflow-y: auto;
 }
 
@@ -52,60 +123,76 @@
   flex: 1 1 auto;
   display: flex;
   flex-direction: column;
-  padding-left: $sp-4;
+  gap: $sp-2;
+  padding: $sp-4 $sp-5;
+
+  // "Status:" label inside the column
+  strong {
+    font-size: $f-xs;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: $c-text-subtle;
+    display: block;
+    margin-bottom: $sp-1;
+  }
 
   textarea {
     flex: 1 1 auto;
-    min-height: 0;
+    min-height: 80px;
     width: 100%;
     resize: vertical;
+    font-family: $f-family;
+    font-size: $f-body;
+    color: $c-text;
+    border: 1px solid $c-input-border;
+    border-radius: $r-sm;
+    padding: $sp-2 $sp-3;
+    box-sizing: border-box;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+
+    &:focus {
+      outline: none;
+      border-color: $c-primary;
+      box-shadow: $shadow-focus;
+    }
+
+    &::placeholder { color: $c-text-muted; }
   }
 }
 
-.task-card-close {
-  border: none;
-  background: transparent;
-  color: $c-text-muted;
-  font-size: 1.4rem;
-  line-height: 1;
-  cursor: pointer;
-  padding: 0 $sp-2;
-  align-self: flex-start;
-
-  &:hover { color: $c-text; }
-}
-
-.task-button {
-  display: inline-block;
-  padding: $sp-1;
-  font-size: $f-lg;
-  color: $c-surface;
-  border: none;
-  border-radius: $r-sm;
-  cursor: pointer;
-  transition: border-radius 0.3s ease;
-
-  &:hover { border-radius: $r-md; }
-}
+// ─── Form table ────────────────────────────────────────────────────────────
 
 .task-table {
   border-collapse: collapse;
+  width: 100%;
+
+  tr + tr td { padding-top: $sp-3; }
 
   td {
-    padding: $sp-2 $sp-3;
-    vertical-align: top;
+    padding: $sp-1 $sp-3 $sp-1 0;
+    vertical-align: middle;
 
+    // Label column
     &:first-child {
-      width: 120px;
-      max-width: 120px;
-      white-space: normal;
-      word-wrap: break-word;
+      width: 110px;
+      max-width: 110px;
       text-align: right;
+      padding-right: $sp-4;
+      white-space: nowrap;
+
+      strong {
+        font-size: $f-xs;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: $c-text-subtle;
+      }
     }
 
+    // Input column
     &:nth-child(2) {
-      width: 200px;
-      max-width: 200px;
+      min-width: 180px;
 
       > * {
         width: 100%;
@@ -115,19 +202,49 @@
   }
 }
 
-// ─── Shared inline controls ────────────────────────────────────────────────
-
-.icon-small {
-  width: 18px;
-  height: 15px;
-}
+// ─── Inputs ────────────────────────────────────────────────────────────────
 
 .input-small {
   width: 100%;
-  font-size: $f-md;
-  padding: $sp-1 $sp-2;
+  font-family: $f-family;
+  font-size: $f-body;
+  color: $c-text;
+  border: 1px solid $c-input-border;
+  border-radius: $r-sm;
+  padding: $sp-2 $sp-3;
   box-sizing: border-box;
+  background: $c-surface;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+
+  &:focus {
+    outline: none;
+    border-color: $c-primary;
+    box-shadow: $shadow-focus;
+  }
+
+  &::placeholder { color: $c-text-muted; }
 }
+
+.select-complete {
+  width: 100%;
+  font-family: $f-family;
+  font-size: $f-body;
+  color: $c-text;
+  border: 1px solid $c-input-border;
+  border-radius: $r-sm;
+  padding: $sp-2 $sp-3;
+  box-sizing: border-box;
+  background: $c-surface;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+
+  &:focus {
+    outline: none;
+    border-color: $c-primary;
+    box-shadow: $shadow-focus;
+  }
+}
+
+// ─── Evidence section ──────────────────────────────────────────────────────
 
 .evidence-edit {
   width: 100%;
@@ -136,17 +253,12 @@
   gap: $sp-2;
 }
 
-.select-complete {
-  padding: $sp-2 $sp-4;
-  border: 1px solid $c-input-border;
-  border-radius: $r-sm;
-  font-size: $f-lg;
-  margin-right: $sp-4;
+// ─── Icon ──────────────────────────────────────────────────────────────────
 
-  &:focus {
-    outline: none;
-    border-color: $c-primary;
-    box-shadow: $shadow-focus;
-  }
+.icon-small {
+  width: 16px;
+  height: 16px;
+  display: block;
 }
+
 // stylelint-enable selector-class-pattern

@@ -110,56 +110,18 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, onClose, onSave, o
     <div className={styles["task-card"]}>
       <div className={styles["task-card-header"]}>
         <h1 className={styles["task-title"]}>{task.Task}</h1>
-        <div>
-          {
-            <button
-              type="button"
-              className={styles["task-button"]}
-              onClick={handleSaveClick}
-              title="Accept / Update DB"
-            >
-              <img
-                src={require("../assets/Accept.png")}
-                alt="send"
-                className={styles["icon-small"]}
-              />
-            </button>            
-          }
-                   {
-            <button
-              type="button"
-              className={styles["task-button"]}
-              onClick={handleNew }
-              title="Add / New row"
-            >
-              <img
-                src={require("../assets/Create.png")}
-                alt="send"
-                className={styles["icon-small"]}
-              />
-            </button>            
-          }
-                   {
-            <button
-              type="button"
-              className={styles["task-button"]}
-              onClick={handleDelete }
-              title="Delete / Remove row"
-            >
-              <img
-                src={require("../assets/Delete.png")}
-                alt="send"
-                className={styles["icon-small"]}
-              />
-            </button>            
-          }
+        <div className={styles["task-btn-group"]}>
+          <button type="button" className={styles["task-button"]} onClick={handleSaveClick} title="Save">
+            <img src={require("../assets/Accept.png")} alt="save" className={styles["icon-small"]} />
+          </button>
+          <button type="button" className={styles["task-button"]} onClick={handleNew} title="Add new task">
+            <img src={require("../assets/Create.png")} alt="new" className={styles["icon-small"]} />
+          </button>
+          <button type="button" className={styles["task-button"]} onClick={handleDelete} title="Delete task">
+            <img src={require("../assets/Delete.png")} alt="delete" className={styles["icon-small"]} />
+          </button>
           {onClose && (
-            <button
-              type="button"
-              className={styles["task-card-close"]}
-              onClick={onClose}
-              aria-label="Close task card"
-            >
+            <button type="button" className={styles["task-card-close"]} onClick={onClose} aria-label="Close">
               ×
             </button>
           )}

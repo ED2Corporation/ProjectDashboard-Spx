@@ -12,6 +12,7 @@ interface ListGroupProps {
   projectSiteURL?: string;
   showDetails?: boolean | true;
   isPlanner?: boolean;
+  selectedTaskId?: string;
   onSave: (itemId: string, payload?: string) => void;
   onSelectItem: (
     item: ITaskListItem,
@@ -32,9 +33,9 @@ const ListTasks = ({
   onSelectItem,
   showDetails,
   isPlanner,
+  selectedTaskId,
   onUploadEvidenceFile,
 }: ListGroupProps) => {
-  const [selectedIndex, setSelectedIndex] = useState(-1);
   const [editTaskTitle, setEditTaskTitle] = useState<string>("");
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const [editEvidenceUrl, setEditEvidenceUrl] = useState<string>("");
@@ -142,28 +143,10 @@ const ListTasks = ({
               {sortedTasks.map((item, index) => (
                 <tr
                   key={item.Id}
-                  className={selectedIndex === index ? "table-active" : ""}
-                  onClick={() => setSelectedIndex(index)}
+                  className={item.Id === selectedTaskId ? styles["task-row-active"] : ""}
                 >
                   {/* ACTIONS */}
                   <td className={`${styles.colActions} ${styles.actionsFixed}`}>
-                    {/* Open card */}
-                    <button
-                      type="button"
-                      className={styles["icon-button"]}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onSelectItem(item, "task", "list-edit");
-                      }}
-                      title="Open card"
-                    >
-                      <img
-                        src={require("../assets/View.png")}
-                        alt="open"
-                        className={styles["icon-small"]}
-                      />
-                    </button>
-
                     {/* New in same gate */}
                     <button
                       type="button"
@@ -259,7 +242,10 @@ const ListTasks = ({
                         placeholder="Task title"
                       />
                     ) : (
-                      <span>{item.Task}</span>
+                      <span
+                        className={styles.taskName}
+                        onClick={(e) => { e.stopPropagation(); onSelectItem(item, "task", "list-edit"); }}
+                      >{item.Task}</span>
                     )}
                   </td>
 

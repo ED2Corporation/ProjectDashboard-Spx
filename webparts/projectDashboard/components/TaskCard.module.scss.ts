@@ -1,19 +1,20 @@
 
 require("./TaskCard.module.css");
 const styles = {
-  'task-card': 'task-card_ba76d6a5',
-  'task-card-header': 'task-card-header_ba76d6a5',
-  'task-title': 'task-title_ba76d6a5',
-  'task-card-row': 'task-card-row_ba76d6a5',
-  'task-card-body': 'task-card-body_ba76d6a5',
-  'task-card-column': 'task-card-column_ba76d6a5',
-  'task-card-close': 'task-card-close_ba76d6a5',
-  'task-button': 'task-button_ba76d6a5',
-  'task-table': 'task-table_ba76d6a5',
-  'icon-small': 'icon-small_ba76d6a5',
-  'input-small': 'input-small_ba76d6a5',
-  'evidence-edit': 'evidence-edit_ba76d6a5',
-  'select-complete': 'select-complete_ba76d6a5'
+  'task-card': 'task-card_58c92e0a',
+  'task-card-header': 'task-card-header_58c92e0a',
+  'task-title': 'task-title_58c92e0a',
+  'task-btn-group': 'task-btn-group_58c92e0a',
+  'task-button': 'task-button_58c92e0a',
+  'task-card-close': 'task-card-close_58c92e0a',
+  'task-card-row': 'task-card-row_58c92e0a',
+  'task-card-body': 'task-card-body_58c92e0a',
+  'task-card-column': 'task-card-column_58c92e0a',
+  'task-table': 'task-table_58c92e0a',
+  'input-small': 'input-small_58c92e0a',
+  'select-complete': 'select-complete_58c92e0a',
+  'evidence-edit': 'evidence-edit_58c92e0a',
+  'icon-small': 'icon-small_58c92e0a'
 };
 
 export default styles;

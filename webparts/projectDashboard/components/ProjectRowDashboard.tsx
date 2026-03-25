@@ -207,6 +207,7 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
             isPlanner={false}
             heading={tasksHeading}
             showDetails={true}
+            selectedTaskId={showCard ? selectedTask?.Id : undefined}
             onSave={(taskId, payloadJson) => {
               onUpdateTask?.(taskId, "quick-complete", payloadJson);
             }}
@@ -214,8 +215,13 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
               if (!item?.Task) return;
               switch (mode) {
                 case "list-edit":
-                  setSelectedTask(item); setShowCard(true);
-                  onSelectItem(item.Task, "task");
+                  if (showCard && selectedTask?.Id === item.Id) {
+                    setShowCard(false);
+                  } else {
+                    setSelectedTask(item);
+                    setShowCard(true);
+                    onSelectItem(item.Task, "task");
+                  }
                   break;
                 case "list-create":
                   onNewTask?.(item.Gate);
