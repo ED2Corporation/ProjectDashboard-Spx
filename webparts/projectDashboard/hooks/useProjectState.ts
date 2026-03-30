@@ -28,12 +28,10 @@ export interface UseProjectStateConfig {
   context: AnyContext;
   sp: SPFI;
   projectService: ProjectService;
-  evidenceFolderServerRelative: string;
   // Properties (from WebPart property pane)
   projectName: string;
   sourceName: string;
   isPlanner: boolean;
-  repositoryName: string;
   showLog: boolean;
   projectURL?: string;
   onPatchProperties: (patch: Partial<IProjectDashboardWebPartProps>) => void;
@@ -69,14 +67,13 @@ function buildProjectInfo(
   projectName: string,
   sourceName: string,
   isPlanner: boolean,
-  repositoryName: string,
   projectURL?: string
 ): IProjectListItem {
   return {
     Id: sourceName,
     Title: projectName,
     isPlanner,
-    RepositoryName: repositoryName,
+    RepositoryName: sourceName.replace(/-List$/, '-Evidence'),
     ListName: sourceName,
     Link: { Url: projectURL || "", Description: projectName }
   };
@@ -110,7 +107,7 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
   const [showNewProjectSetup, setShowNewProjectSetup] = useState<boolean>(false);
   const [environmentMessage, setEnvironmentMessage] = useState<string>('');
   const [projectSelected, setProjectSelected] = useState<IProjectListItem>(() =>
-    buildProjectInfo(config.projectName, config.sourceName, config.isPlanner, config.repositoryName, config.projectURL)
+    buildProjectInfo(config.projectName, config.sourceName, config.isPlanner, config.projectURL)
   );
 
   // Ref to always have the latest tasks value available inside async callbacks
@@ -166,7 +163,10 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
           : undefined,
       }));
 
-      return [...loaded].sort((a, b) => b.Gate.localeCompare(a.Gate));
+      return [...loaded].sort((a, b) => {
+        const m = (g: string): string => { const x = g.match(/(\d+(?:\.\d+)*)/); return x ? x[1] : g; };
+        return compareWbs(m(a.Gate), m(b.Gate));
+      });
     } catch (error) {
       if (showLog) console.error("[_getTaskListItems] Error:", error);
       setSysError(true);
@@ -269,19 +269,18 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
       config.projectName,
       config.sourceName,
       config.isPlanner,
-      config.repositoryName,
       config.projectURL
     );
     await _loadData(project, currentGate || "actual");
-  }, [config.projectName, config.sourceName, config.isPlanner, config.repositoryName, config.projectURL, currentGate, _loadData]);
+  }, [config.projectName, config.sourceName, config.isPlanner, config.projectURL, currentGate, _loadData]);
 
   // ── Reload when key properties change ─────────────────────────────────────
   useEffect(() => {
+    if (!config.sourceName) return;   // catalog mode: no single project configured
     const project = buildProjectInfo(
       config.projectName,
       config.sourceName,
       config.isPlanner,
-      config.repositoryName,
       config.projectURL
     );
     void _loadData(project, "actual");
@@ -294,7 +293,7 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
     let currentTasks = tasksRef.current;
     if (currentTasks.length === 0) {
       const project = buildProjectInfo(
-        config.projectName, config.sourceName, config.isPlanner, config.repositoryName, config.projectURL
+        config.projectName, config.sourceName, config.isPlanner, config.projectURL
       );
       currentTasks = await _getTaskListItems(project);
       syncTasks(currentTasks);
@@ -326,7 +325,7 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
   ): Promise<{ fileUrl: string; fileName: string }> => {
     const siteRelativePath = context.pageContext.web.serverRelativeUrl;
     const folderPath = REPOSITORY_URL + "/";
-    const folderName = config.repositoryName || REPOSITORY_NAME_DEFAULT;
+    const folderName = config.sourceName.replace(/-List$/, '-Evidence') || REPOSITORY_NAME_DEFAULT;
 
     const { fileUrl, fileName } = await uploadEvidenceFile(
       context.spHttpClient,
@@ -338,7 +337,7 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
       file
     );
     return { fileUrl, fileName };
-  }, [context, config.repositoryName]);
+  }, [context, config.sourceName]);
 
   // ── Populate attachments (Planner) ─────────────────────────────────────────
   const onPopulateAttachements = useCallback(async (): Promise<void> => {
@@ -743,17 +742,10 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
       const webUrl = context.pageContext.web.absoluteUrl.replace(/\/+$/, "");
       const projectUrl = `${webUrl.replace(context.pageContext.web.serverRelativeUrl, "")}${list.DefaultViewUrl}`;
 
-      // Patch WebPart properties
-      onPatchProperties({
-        sourceName: listName,
-        repositoryName,
-        projectName: projectTitle,
-        isPlanner: false,
-        projectURL: projectUrl
-      });
+      // No WebPart properties to patch — catalog is the source of truth
 
       // Load the new project
-      const newProject = buildProjectInfo(projectTitle, listName, false, repositoryName, projectUrl);
+      const newProject = buildProjectInfo(projectTitle, listName, false, projectUrl);
       setCurrentGate(firstGate);
       await _loadData(newProject, firstGate);
     } catch (error) {

@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { useState } from 'react';
 import { SPFI } from "@pnp/sp";
 import { BaseComponentContext } from "@microsoft/sp-component-base";
 import { SPHttpClient } from '@microsoft/sp-http';
@@ -18,40 +19,34 @@ export interface IProjectDashboardAppProps {
   context: AnyContext;
   sp: SPFI;
   projectService: ProjectService;
-  evidenceFolderServerRelative: string;
   properties: IProjectDashboardWebPartProps;
   onPatchProperties: (patch: Partial<IProjectDashboardWebPartProps>) => void;
 }
 
 // ─── Component ───────────────────────────────────────────────────────────────
 const ProjectDashboardApp: React.FC<IProjectDashboardAppProps> = (props) => {
-  const { context, sp, projectService, evidenceFolderServerRelative, properties, onPatchProperties } = props;
+  const { context, sp, projectService, properties, onPatchProperties } = props;
 
-  const state = useProjectState({
+  const [showSetup, setShowSetup] = useState(false);
+
+  const { onReset, onCreateNewProject } = useProjectState({
     context,
     sp,
     projectService,
-    evidenceFolderServerRelative,
-    projectName: properties.projectName,
-    sourceName: properties.sourceName,
-    isPlanner: properties.isPlanner,
-    repositoryName: properties.repositoryName,
+    projectName: "",
+    sourceName: "",
+    isPlanner: false,
     showLog: properties.showLog,
-    projectURL: properties.projectURL,
     onPatchProperties,
   });
 
-  const {
-    sysError, showNewProjectSetup,
-    onReset, onCreateNewProject,
-  } = state;
-
   // ── New Project Setup view ────────────────────────────────────────────────
-  if (sysError || showNewProjectSetup) {
+  if (showSetup) {
     return (
       <NewProjectSetup
-        defaultProjectName={properties.projectName}
+        defaultProjectName={""}
         onCancel={async () => {
+          setShowSetup(false);
           await onReset();
         }}
         onCreate={async (listName, repoName, projectTitle, firstGate, mode, file) => {
@@ -63,29 +58,18 @@ const ProjectDashboardApp: React.FC<IProjectDashboardAppProps> = (props) => {
         addProjectToCatalog={async (data: IProjectCatalogItem) => {
           if (data) await projectService.addProjectToCatalog(data);
         }}
-        onProjectCreated={(data) => {
-          if (data) {
-            onPatchProperties({
-              projectName: data.projectId,
-              sourceName: data.listName,
-              repositoryName: data.repoName
-            });
-          }
-        }}
+        onProjectCreated={() => { setShowSetup(false); }}
       />
     );
   }
 
   // ── Main Dashboard view ───────────────────────────────────────────────────
-  const handleSelectProject = (proj: IProjectCatalogItem) => {
-    onPatchProperties({
-      sourceName:  proj.ProjectId ?? '',
-      projectName: proj.ProjectId ?? '',
-    });
-  };
-
   return (
-    <ProjectsCatalogCard sp={sp} context={context} onSelectProject={handleSelectProject} />
+    <ProjectsCatalogCard
+      sp={sp}
+      context={context}
+      onNewProject={() => setShowSetup(true)}
+    />
   );
 };
 

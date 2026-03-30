@@ -68,6 +68,78 @@
   cursor: pointer;
 }
 
+// ─── Status card picker ────────────────────────────────────────────────────────
+
+.statusPicker {
+  display: flex;
+  flex-direction: row;
+  gap: $sp-3;
+  flex-wrap: wrap;
+}
+
+.statusCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: $sp-2;
+  padding: $sp-2 $sp-4;
+  min-width: 64px;
+  border: 1.5px solid $c-border;
+  border-radius: $r-sm;
+  background: $c-surface;
+  cursor: pointer;
+  font-family: $f-family;
+  font-size: $f-xs;
+  font-weight: 500;
+  color: $c-text-secondary;
+  transition: $t-fast;
+  user-select: none;
+
+  &:hover { border-color: $c-border-mid; background: $c-surface-mid; }
+}
+
+.statusDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+// variant colors
+.statusActive  { background: $c-primary;   }
+.statusDelayed { background: $c-delayed;    }
+.statusArchived { background: $c-archived;  }
+.statusHidden  { background: $c-hidden;     }
+
+// selected state per variant
+.statusCardActive.statusCardSelected {
+  border-color: $c-primary;
+  background: $c-primary-bg;
+  color: $c-primary;
+  font-weight: 700;
+}
+
+.statusCardDelayed.statusCardSelected {
+  border-color: $c-delayed;
+  background: $c-delayed-bg;
+  color: $c-delayed;
+  font-weight: 700;
+}
+
+.statusCardArchived.statusCardSelected {
+  border-color: $c-archived;
+  background: $c-archived-bg;
+  color: $c-archived;
+  font-weight: 700;
+}
+
+.statusCardHidden.statusCardSelected {
+  border-color: $c-hidden;
+  background: $c-hidden-bg;
+  color: $c-hidden;
+  font-weight: 700;
+}
+
 // ─── Footer (actions row) ─────────────────────────────────────────────────────
 
 .footer {

@@ -1,0 +1,118 @@
+@import './styles/tokens';
+
+// ─── Container ─────────────────────────────────────────────────────────────
+
+.bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $sp-4;
+  padding: $sp-4 $sp-5;
+  background: $c-surface-soft;
+  border: 1px solid $c-border-subtle;
+  border-radius: $r-md;
+}
+
+// ─── Base action button ────────────────────────────────────────────────────
+
+.actionBtn {
+  display: inline-flex;
+  flex-direction: row;
+  align-items: center;
+  gap: $sp-3;
+  padding: $sp-3 $sp-5;
+  border: 1px solid $c-border;
+  border-radius: $r-sm;
+  background: $c-surface;
+  font-family: $f-family;
+  font-size: $f-body;
+  font-weight: 500;
+  cursor: pointer;
+  transition: $t-fast;
+  white-space: nowrap;
+
+  svg {
+    flex-shrink: 0;
+    width: 16px;
+    height: 16px;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+// ─── Archive ───────────────────────────────────────────────────────────────
+
+.btnArchive {
+  composes: actionBtn;
+  color: $c-text-secondary;
+  border-color: $c-border;
+
+  &:hover:not(:disabled) {
+    background: $c-surface-mid;
+    border-color: $c-border-mid;
+    color: $c-text;
+  }
+}
+
+// ─── Export ────────────────────────────────────────────────────────────────
+
+.btnExport {
+  composes: actionBtn;
+  color: $c-primary;
+  border-color: $c-primary;
+
+  &:hover:not(:disabled) {
+    background: $c-primary-bg;
+  }
+}
+
+// ─── Import ────────────────────────────────────────────────────────────────
+
+.btnImport {
+  composes: actionBtn;
+  color: $c-ontime;
+  border-color: $c-ontime;
+
+  &:hover:not(:disabled) {
+    background: $c-ontime-bg;
+  }
+}
+
+// ─── Download template (link-style) ───────────────────────────────────────
+
+.btnTemplate {
+  composes: actionBtn;
+  color: $c-text-secondary;
+  border-color: transparent;
+  background: transparent;
+  font-weight: 400;
+  font-size: $f-md;
+  text-decoration: none;
+  padding: $sp-3 $sp-4;
+
+  &:hover {
+    color: $c-primary;
+    background: $c-primary-bg;
+    border-color: $c-primary-bg;
+    text-decoration: none;
+  }
+}
+
+// ─── Spinner ───────────────────────────────────────────────────────────────
+
+.spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid $c-border;
+  border-top-color: $c-ontime;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}

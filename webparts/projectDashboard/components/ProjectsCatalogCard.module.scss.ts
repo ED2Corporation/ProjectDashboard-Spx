@@ -1,22 +1,23 @@
 
 require("./ProjectsCatalogCard.module.css");
 const styles = {
-  card: 'card_f349ea5e',
-  header: 'header_f349ea5e',
-  headerTitle: 'headerTitle_f349ea5e',
-  headerCount: 'headerCount_f349ea5e',
-  headerChevron: 'headerChevron_f349ea5e',
-  aggregatorRow: 'aggregatorRow_f349ea5e',
-  badge: 'badge_f349ea5e',
-  badgeCount: 'badgeCount_f349ea5e',
-  badgeOntime: 'badgeOntime_f349ea5e',
-  badgeActive: 'badgeActive_f349ea5e',
-  badgeDelayed: 'badgeDelayed_f349ea5e',
-  badgeClosed: 'badgeClosed_f349ea5e',
-  badgeHidden: 'badgeHidden_f349ea5e',
-  projectList: 'projectList_f349ea5e',
-  message: 'message_f349ea5e',
-  errorMessage: 'errorMessage_f349ea5e'
+  card: 'card_08caff43',
+  header: 'header_08caff43',
+  headerTitle: 'headerTitle_08caff43',
+  headerCount: 'headerCount_08caff43',
+  headerChevron: 'headerChevron_08caff43',
+  headerAddBtn: 'headerAddBtn_08caff43',
+  aggregatorRow: 'aggregatorRow_08caff43',
+  badge: 'badge_08caff43',
+  badgeCount: 'badgeCount_08caff43',
+  badgeOntime: 'badgeOntime_08caff43',
+  badgeActive: 'badgeActive_08caff43',
+  badgeDelayed: 'badgeDelayed_08caff43',
+  badgeArchived: 'badgeArchived_08caff43',
+  badgeHidden: 'badgeHidden_08caff43',
+  projectList: 'projectList_08caff43',
+  message: 'message_08caff43',
+  errorMessage: 'errorMessage_08caff43'
 };
 
 export default styles;

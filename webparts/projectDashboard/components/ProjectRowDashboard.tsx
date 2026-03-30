@@ -7,8 +7,8 @@ import { SPHttpClient } from "@microsoft/sp-http";
 import { ITaskListItem } from "../../../models";
 import { IProjectCatalogItem } from "../../../models/IProjectService";
 import { ProjectService } from "../services/ProjectService";
-import { buildRepoRelativeUrl } from "../services/UploadService";
 import { useProjectState } from "../hooks/useProjectState";
+import { buildRepoRelativeUrl } from "../services/UploadService";
 import { GetBucketStatus } from "../utils/GetGateStatus";
 import { IProjectDashboardWebPartProps } from "../../../models";
 
@@ -29,7 +29,7 @@ export interface ProjectRowDashboardProps {
   context: AnyContext;
   sp: SPFI;
   /** Called once gate data is ready so the parent can compute aggregate counts */
-  onStatusReady?: (projectId: string, statusKey: "ontime" | "delayed" | "closed") => void;
+  onStatusReady?: (projectId: string, statusKey: "ontime" | "delayed" | "archived") => void;
   /** Called after a catalog item is saved — use to reload the parent catalog list */
   onCatalogItemSaved?: () => void;
 }
@@ -62,11 +62,9 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
     context,
     sp,
     projectService,
-    evidenceFolderServerRelative,
     projectName:    project.Title,
     sourceName:     listName,
     isPlanner:      false,
-    repositoryName: repoName,
     showLog:        false,
     projectURL,
     onPatchProperties: noop,
@@ -93,9 +91,10 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
   // Report project status to parent once gates are loaded
   useEffect(() => {
     if (!onStatusReady || statusReported || gates.length === 0) return;
-    let key: "ontime" | "delayed" | "closed" = "ontime";
-    if (project.Status?.toLowerCase() === "closed") {
-      key = "closed";
+    let key: "ontime" | "delayed" | "archived" = "ontime";
+    const s = project.Status?.toLowerCase();
+    if (s === "archived" || s === "closed") { // backward compat
+      key = "archived";
     } else {
       const overall = GetBucketStatus(gates);
       key = (overall === "red" || overall === "yellow") ? "delayed" : "ontime";
@@ -136,9 +135,13 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
 
       {/* ── Row header: project info (left) + gate bar (right) ───────── */}
       <div className={`${styles.header} ${activeGate !== null ? styles.headerActive : ""}`}>
-        <div className={styles.projectInfo}>
+        <div className={styles.projectInfo} onClick={handleOverallClick} style={{ cursor: "pointer" }}>
           <div className={styles.projectNumber}>{localProject.ProjectNumber}</div>
-          <div className={styles.projectTitle}>{localProject.Title}</div>
+          <div className={styles.projectTitle}>
+            {localProject.ProjectNumber && localProject.Title?.startsWith(`${localProject.ProjectNumber}-`)
+              ? localProject.Title.slice(localProject.ProjectNumber.length + 1)
+              : localProject.Title}
+          </div>
           <div className={styles.projectCustomer}>{localProject.Customer}</div>
         </div>
 

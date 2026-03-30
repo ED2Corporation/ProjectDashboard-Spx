@@ -6,7 +6,12 @@ import styles from "./ProjectCatalogEditor.module.scss";
 
 // ─── Status options ───────────────────────────────────────────────────────────
 
-const STATUS_OPTIONS = ["Active", "Delayed", "Closed", "Hidden"] as const;
+const STATUS_OPTIONS = [
+  { value: "Active",  variantCard: "statusCardActive",  dot: "statusActive"  },
+  { value: "Delayed", variantCard: "statusCardDelayed", dot: "statusDelayed" },
+  { value: "Archived", variantCard: "statusCardArchived", dot: "statusArchived" },
+  { value: "Hidden",  variantCard: "statusCardHidden",  dot: "statusHidden"  },
+] as const;
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -116,17 +121,28 @@ const ProjectCatalogEditor: React.FC<ProjectCatalogEditorProps> = ({
         </div>
 
         {/* Status */}
-        <div className={styles.field}>
+        <div className={`${styles.field} ${styles.fieldFull}`}>
           <label className={styles.label}>Status</label>
-          <select
-            className={styles.select}
-            value={form.Status ?? "Active"}
-            onChange={e => set("Status", e.target.value)}
-          >
-            {STATUS_OPTIONS.map(opt => (
-              <option key={opt} value={opt}>{opt}</option>
-            ))}
-          </select>
+          <div className={styles.statusPicker}>
+            {STATUS_OPTIONS.map(opt => {
+              const isSelected = (form.Status ?? "Active") === opt.value;
+              return (
+                <button
+                  key={opt.value}
+                  type="button"
+                  className={[
+                    styles.statusCard,
+                    styles[opt.variantCard],
+                    isSelected ? styles.statusCardSelected : "",
+                  ].join(" ")}
+                  onClick={() => set("Status", opt.value)}
+                >
+                  <span className={`${styles.statusDot} ${styles[opt.dot]}`} />
+                  {opt.value}
+                </button>
+              );
+            })}
+          </div>
         </div>
 
       </div>

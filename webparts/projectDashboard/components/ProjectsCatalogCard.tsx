@@ -11,8 +11,8 @@ import styles from './ProjectsCatalogCard.module.scss';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type StatusFilter = 'all' | 'ontime' | 'delayed' | 'closed' | 'hidden';
-type StatusKey    = 'ontime' | 'delayed' | 'closed';
+type StatusFilter = 'all' | 'ontime' | 'delayed' | 'archived' | 'hidden';
+type StatusKey    = 'ontime' | 'delayed' | 'archived';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyContext = BaseComponentContext & { spHttpClient: SPHttpClient; msGraphClientFactory: any };
@@ -30,10 +30,10 @@ interface AggregatorBadgeProps {
 }
 
 const variantClass: Record<BadgeVariant, string> = {
-  ontime:  styles.badgeOntime,
-  delayed: styles.badgeDelayed,
-  closed:  styles.badgeClosed,
-  hidden:  styles.badgeHidden,
+  ontime:   styles.badgeOntime,
+  delayed:  styles.badgeDelayed,
+  archived: styles.badgeArchived,
+  hidden:   styles.badgeHidden,
 };
 
 const AggregatorBadge: React.FC<AggregatorBadgeProps> = ({ label, count, variant, active, onClick }) => (
@@ -52,11 +52,12 @@ export interface IProjectsCatalogCardProps {
   sp: SPFI;
   context: AnyContext;
   onSelectProject?: (project: IProjectCatalogItem) => void;
+  onNewProject?: () => void;
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-const ProjectsCatalogCard: React.FC<IProjectsCatalogCardProps> = ({ sp, context, onSelectProject }) => {
+const ProjectsCatalogCard: React.FC<IProjectsCatalogCardProps> = ({ sp, context, onSelectProject, onNewProject }) => {
   const { projects, isLoading, error, reload } = useProjectsCatalog(sp);
 
   const [isCollapsed,  setIsCollapsed]  = useState(false);
@@ -80,15 +81,16 @@ const ProjectsCatalogCard: React.FC<IProjectsCatalogCardProps> = ({ sp, context,
 
   // ── Aggregate counts (from visible projects only) ─────────────────────────
   const counts = useMemo(() => {
-    let onTime = 0, delayed = 0, closed = 0;
+    let onTime = 0, delayed = 0, archived = 0;
     for (const proj of visibleProjects) {
-      const isClosed = proj.Status?.toLowerCase() === 'closed';
-      const key = statusMap[proj.ProjectId ?? proj.Title] ?? (isClosed ? 'closed' : 'ontime');
-      if (key === 'closed')        closed++;
+      const s = proj.Status?.toLowerCase();
+      const isArchived = s === 'archived' || s === 'closed'; // backward compat
+      const key = statusMap[proj.ProjectId ?? proj.Title] ?? (isArchived ? 'archived' : 'ontime');
+      if (key === 'archived')      archived++;
       else if (key === 'delayed')  delayed++;
       else                         onTime++;
     }
-    return { onTime, delayed, closed };
+    return { onTime, delayed, archived };
   }, [visibleProjects, statusMap]);
 
   // ── Filtered project list ─────────────────────────────────────────────────
@@ -99,8 +101,9 @@ const ProjectsCatalogCard: React.FC<IProjectsCatalogCardProps> = ({ sp, context,
     }
     if (statusFilter === 'all') return visibleProjects;
     return visibleProjects.filter(proj => {
-      const isClosed = proj.Status?.toLowerCase() === 'closed';
-      const key = statusMap[proj.ProjectId ?? proj.Title] ?? (isClosed ? 'closed' : 'ontime');
+      const s = proj.Status?.toLowerCase();
+      const isArchived = s === 'archived' || s === 'closed';
+      const key = statusMap[proj.ProjectId ?? proj.Title] ?? (isArchived ? 'archived' : 'ontime');
       return key === statusFilter;
     });
   }, [projects, visibleProjects, statusMap, statusFilter]);
@@ -117,7 +120,19 @@ const ProjectsCatalogCard: React.FC<IProjectsCatalogCardProps> = ({ sp, context,
           Projects Dashboard
           <span className={styles.headerCount}>({visibleProjects.length})</span>
         </span>
-        <span className={styles.headerChevron}>{isCollapsed ? '▼' : '▲'}</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          {onNewProject && (
+            <button
+              type="button"
+              className={styles.headerAddBtn}
+              title="New project"
+              onClick={e => { e.stopPropagation(); onNewProject(); }}
+            >
+              +
+            </button>
+          )}
+          <span className={styles.headerChevron}>{isCollapsed ? '▼' : '▲'}</span>
+        </div>
       </div>
 
       {/* Aggregator row — always visible */}
@@ -133,9 +148,9 @@ const ProjectsCatalogCard: React.FC<IProjectsCatalogCardProps> = ({ sp, context,
           onClick={() => toggleFilter('delayed')}
         />
         <AggregatorBadge
-          label="Closed"   count={counts.closed}
-          variant="closed" active={statusFilter === 'closed'}
-          onClick={() => toggleFilter('closed')}
+          label="Archived"   count={counts.archived}
+          variant="archived" active={statusFilter === 'archived'}
+          onClick={() => toggleFilter('archived')}
         />
         {hiddenCount > 0 && (
           <AggregatorBadge

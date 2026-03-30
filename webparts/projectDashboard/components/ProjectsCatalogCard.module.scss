@@ -46,6 +46,28 @@
   opacity: 0.9;
 }
 
+.headerAddBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255,255,255,0.6);
+  background: transparent;
+  color: $c-surface;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  transition: $t-fast;
+  flex-shrink: 0;
+
+  &:hover {
+    background: rgba(255,255,255,0.2);
+    border-color: $c-surface;
+  }
+}
+
 // ─── Aggregator row ───────────────────────────────────────────────────────────
 
 .aggregatorRow {
@@ -94,11 +116,11 @@
   &.badgeActive   { border: 2px solid $c-delayed; background: $c-delayed-bg; font-weight: 600; }
 }
 
-.badgeClosed {
-  color: $c-closed;
+.badgeArchived {
+  color: $c-archived;
 
-  &:hover         { border-color: $c-closed; }
-  &.badgeActive   { border: 2px solid $c-closed; background: $c-closed-bg; font-weight: 600; }
+  &:hover         { border-color: $c-archived; }
+  &.badgeActive   { border: 2px solid $c-archived; background: $c-archived-bg; font-weight: 600; }
 }
 
 .badgeHidden {

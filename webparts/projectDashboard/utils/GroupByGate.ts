@@ -1,11 +1,16 @@
 import { ITaskListItem, IGateListItem } from "../../../models";
 import { GetDelay } from "./GetDelay";
+import { compareWbs } from "./ParseWBS";
+
+// Extract the leading WBS numeric token from a gate name, e.g. "Gate 2.1" → "2.1"
+function gateWbsKey(gate: string): string {
+  const m = gate.match(/(\d+(?:\.\d+)*)/);
+  return m ? m[1] : gate;
+}
 
 // Función para agrupar
 export function GroupByGate(tasks: ITaskListItem[]): IGateListItem[] {
-  const sortedItems = [...tasks].sort((b, a) =>
-    b.Gate.substring(0, 1).localeCompare(a.Gate.substring(0, 1))
-  );
+  const sortedItems = [...tasks];
 
   const groups = sortedItems.reduce<Record<string, IGateListItem>>(
     (gate, item) => {
@@ -60,15 +65,17 @@ export function GroupByGate(tasks: ITaskListItem[]): IGateListItem[] {
     {}
   );
 
-  return Object.values(groups).map((group) => ({
-    Gate: group.Gate,
-    Complete: group.Count > 0 ? group.Complete / group.Count : 0,
-    Count: group.Count,
-    Delay: group.Delay,
-    Id: group.Id,
-    Effort: group.Effort,
-    Start: group.Start,
-    Finish: group.Finish,
-    ActualFinish: group.ActualFinish,
-  }));
+  return Object.values(groups)
+    .sort((a, b) => compareWbs(gateWbsKey(a.Gate), gateWbsKey(b.Gate)))
+    .map((group) => ({
+      Gate: group.Gate,
+      Complete: group.Count > 0 ? group.Complete / group.Count : 0,
+      Count: group.Count,
+      Delay: group.Delay,
+      Id: group.Id,
+      Effort: group.Effort,
+      Start: group.Start,
+      Finish: group.Finish,
+      ActualFinish: group.ActualFinish,
+    }));
 }
