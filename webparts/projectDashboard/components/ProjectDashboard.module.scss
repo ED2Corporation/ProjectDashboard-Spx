@@ -78,36 +78,6 @@
   margin-left: $sp-2;
 }
 
-// ─── Project actions bar (used by ProjectActionsBar.tsx) ───────────────────
-
-.actionsBar {
-  display: flex;
-  gap: $sp-4;
-  align-items: center;
-  padding: $sp-2 0;
-  border-bottom: 1px solid $c-border-subtle;
-}
-
-.actionItem {
-  border: none;
-  background: transparent;
-  padding: $sp-3 $sp-5;
-  border-radius: $r-pill;
-  font-size: $f-body;
-  color: $c-text;
-  cursor: pointer;
-  transition: $t-fast;
-
-  &:hover {
-    background: $c-surface-soft;
-    color: $c-primary-hover;
-  }
-
-  &:active {
-    background: $c-surface-dark;
-  }
-}
-
 // ─── ProgressTasks card strip (used by ProgressTasks.tsx) ─────────────────
 
 .cardContainer {
@@ -141,7 +111,7 @@
   box-shadow: $shadow-md;
   width: 50px;
   height: 50px;
-  padding: 10px $sp-1 $sp-1 $sp-1;
+  padding: $sp-5 $sp-1 $sp-1 $sp-1;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -465,117 +435,4 @@
   }
 }
 
-// ─── TaskCard shell + inner layout ────────────────────────────────────────
-
-.task-card {
-  background: $c-surface-soft;
-  border: 1px solid $c-border;
-  border-radius: $r-md;
-  padding: $sp-6;
-  width: 100%;
-  max-width: 100%;
-  max-height: 450px;
-  box-shadow: $shadow-md;
-  font-family: $f-family;
-  display: flex;
-  flex-direction: column;
-  box-sizing: border-box;
-}
-
-.task-card-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: $sp-4;
-  margin-bottom: $sp-4;
-}
-
-.task-title {
-  margin: 0;
-  color: $c-primary;
-  font-size: $f-title;
-  font-weight: bold;
-  flex: 1;
-  word-break: break-word;
-}
-
-.task-card-row {
-  display: flex;
-  flex-direction: row;
-  align-items: stretch;
-  width: 100%;
-  gap: $sp-5;
-}
-
-.task-card-body {
-  flex: 0 0 auto;
-  overflow-y: auto;
-}
-
-.task-card-column {
-  flex: 1 1 auto;
-  display: flex;
-  flex-direction: column;
-  padding-left: $sp-4;
-
-  textarea {
-    flex: 1 1 auto;
-    min-height: 0;
-    width: 100%;
-    resize: vertical;
-  }
-}
-
-.task-card-close {
-  border: none;
-  background: transparent;
-  color: $c-text-muted;
-  font-size: 1.4rem;
-  line-height: 1;
-  cursor: pointer;
-  padding: 0 $sp-2;
-  align-self: flex-start;
-
-  &:hover { color: $c-text; }
-}
-
-.task-button {
-  display: inline-block;
-  padding: $sp-1;
-  font-size: $f-lg;
-  color: $c-surface;
-  border: none;
-  border-radius: $r-sm;
-  cursor: pointer;
-  transition: border-radius 0.3s ease;
-
-  &:hover { border-radius: $r-md; }
-}
-
-.task-table {
-  border-collapse: collapse;
-
-  td {
-    padding: $sp-2 $sp-3;
-    vertical-align: top;
-
-    &:first-child {
-      width: 120px;
-      max-width: 120px;
-      white-space: normal;
-      word-wrap: break-word;
-      text-align: right;
-    }
-
-    &:nth-child(2) {
-      width: 200px;
-      max-width: 200px;
-
-      > * {
-        width: 100%;
-        box-sizing: border-box;
-      }
-    }
-  }
-}
 // stylelint-enable selector-class-pattern
