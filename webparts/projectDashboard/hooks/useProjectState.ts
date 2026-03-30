@@ -61,6 +61,8 @@ export interface UseProjectStateResult {
   onPopulateAttachements: () => Promise<void>;
   onCreateNewProject: (listName: string, repositoryName: string, projectTitle: string, firstGate: string, mode: "empty" | "from-excel", file?: File) => Promise<void>;
   setSelectedTask: (task: ITaskListItem | null) => void;
+  onSaveLogField: (taskId: string, field: 'Notes' | 'Evidence' | 'Approvals', entries: unknown[]) => Promise<void>;
+  onSendEmail: (to: string[], subject: string, body: string) => Promise<void>;
 }
 
 // ─── Resilient JSON field parser ──────────────────────────────────────────────
@@ -124,6 +126,9 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
   // Ref to always have the latest tasks value available inside async callbacks
   const tasksRef = useRef<ITaskListItem[]>([]);
 
+  // null = not yet probed; true = columns exist; false = columns absent in this list
+  const logFieldsAvailableRef = useRef<boolean | null>(null);
+
   const syncTasks = useCallback((newTasks: ITaskListItem[]) => {
     tasksRef.current = newTasks;
     setTasks(newTasks);
@@ -144,10 +149,36 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
 
     try {
       const siteRelativePath = context.pageContext.web.serverRelativeUrl;
-      const querySelect = `Id,Gate,Task,Deliverable,Complete,Start,Finish,ActualFinish,Description,EvidenceOfCompletion,EvidenceDescription,Notes,Evidence,Approvals`;
-      const queryUrl = SITE_URL + siteRelativePath + `/_api/web/lists/getbytitle('` + project.ListName + `')/items?$select=` + querySelect;
+      const LOG_FIELD_NAMES = ['Notes', 'Evidence', 'Approvals'];
+      const baseSelect = `Id,Gate,Task,Deliverable,Complete,Start,Finish,ActualFinish,Description,EvidenceOfCompletion,EvidenceDescription`;
 
-      const response = await context.spHttpClient.get(queryUrl, SPHttpClient.configurations.v1);
+      const buildSelect = (withLog: boolean): string =>
+        withLog ? `${baseSelect},Notes,Evidence,Approvals` : baseSelect;
+
+      const fetchItems = (withLog: boolean) => {
+        const queryUrl = `${SITE_URL}${siteRelativePath}/_api/web/lists/getbytitle('${project.ListName}')/items?$select=${buildSelect(withLog)}`;
+        return context.spHttpClient.get(queryUrl, SPHttpClient.configurations.v1);
+      };
+
+      // If we already know log fields are absent, skip straight to reduced query
+      const tryWithLog = logFieldsAvailableRef.current !== false;
+      let response = await fetchItems(tryWithLog);
+
+      // On 400, check if it's a missing log-field error and retry without them
+      if (!response.ok && response.status === 400 && tryWithLog) {
+        const errText = await response.text();
+        const isLogFieldError = LOG_FIELD_NAMES.some(f => errText.includes(`'${f}'`)) && errText.includes('does not exist');
+        if (isLogFieldError) {
+          logFieldsAvailableRef.current = false;
+          response = await fetchItems(false);
+        } else {
+          console.error("[_getTaskListItems] HTTP error:", response.status, errText);
+          setSysError(true);
+          setEnvironmentMessage(errText);
+          return [];
+        }
+      }
+
       if (!response.ok) {
         const txt = await response.text();
         console.error("[_getTaskListItems] HTTP error:", response.status, txt);
@@ -155,6 +186,10 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
         setEnvironmentMessage(txt);
         return [];
       }
+
+      // Mark log fields as available if we didn't already know they were absent
+      if (logFieldsAvailableRef.current === null) logFieldsAvailableRef.current = true;
+
       const responseJson = await response.json();
       const raw: any[] = Array.isArray(responseJson.value) ? responseJson.value : [];  // eslint-disable-line @typescript-eslint/no-explicit-any
 
@@ -783,6 +818,63 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
     sp, context, onPatchProperties, showLog, _loadData
   ]);
 
+  // ── Log field save ─────────────────────────────────────────────────────────
+  const onSaveLogField = useCallback(async (
+    taskId: string,
+    field: 'Notes' | 'Evidence' | 'Approvals',
+    entries: unknown[]
+  ): Promise<void> => {
+    const listTitle = config.sourceName;
+    const value = JSON.stringify(entries);
+    const tryUpdate = async (): Promise<void> => {
+      await sp.web.lists.getByTitle(listTitle).items.getById(Number(taskId)).update({ [field]: value });
+    };
+    try {
+      await tryUpdate();
+    } catch (err: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
+      // If the column does not exist, create it and retry once
+      if (logFieldsAvailableRef.current === false || String(err?.message ?? err).includes('does not exist')) {
+        const list = sp.web.lists.getByTitle(listTitle);
+        const existing = await list.fields.select('InternalName')();
+        for (const f of ['Notes', 'Evidence', 'Approvals']) {
+          if (!existing.some((x: any) => x.InternalName === f)) { // eslint-disable-line @typescript-eslint/no-explicit-any
+            await list.fields.addMultilineText(f);
+          }
+        }
+        logFieldsAvailableRef.current = true;
+        await tryUpdate();
+      } else {
+        throw err;
+      }
+    }
+    // Update in-memory state so UI reflects the change without reload
+    const patchTask = (t: ITaskListItem): ITaskListItem =>
+      t.Id === taskId ? { ...t, [field]: entries } : t;
+    syncTasks(tasksRef.current.map(patchTask));
+    setSelectedTask(prev => (prev?.Id === taskId ? { ...prev, [field]: entries } : prev));
+  }, [config.sourceName, sp, syncTasks]);
+
+  // ── Send email via Graph ────────────────────────────────────────────────────
+  const onSendEmail = useCallback(async (
+    to: string[],
+    subject: string,
+    body: string
+  ): Promise<void> => {
+    try {
+      const graphClient: MSGraphClientV3 = await context.msGraphClientFactory.getClient('3');
+      await graphClient.api('/me/sendMail').post({
+        message: {
+          subject,
+          body: { contentType: 'HTML', content: body },
+          toRecipients: to.map(address => ({ emailAddress: { address } }))
+        },
+        saveToSentItems: false
+      });
+    } catch (error) {
+      console.error('[onSendEmail] Failed to send email:', error);
+    }
+  }, [context]);
+
   // ── Return ─────────────────────────────────────────────────────────────────
   return {
     tasks,
@@ -804,5 +896,7 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
     onPopulateAttachements,
     onCreateNewProject,
     setSelectedTask,
+    onSaveLogField,
+    onSendEmail,
   };
 }

@@ -1,0 +1,133 @@
+@import './styles/tokens';
+
+// stylelint-disable selector-class-pattern
+
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: $sp-3;
+  height: 100%;
+}
+
+.feed {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: $sp-2;
+}
+
+.empty {
+  font-size: $f-xs;
+  color: $c-text-muted;
+  font-style: italic;
+  margin: 0;
+  text-align: center;
+  padding: $sp-4 0;
+}
+
+.entry {
+  background: $c-surface-soft;
+  border: 1px solid $c-border-subtle;
+  border-radius: $r-sm;
+  padding: $sp-2 $sp-3;
+}
+
+.meta {
+  display: flex;
+  align-items: center;
+  gap: $sp-3;
+  margin-bottom: $sp-1;
+}
+
+.user {
+  font-size: $f-xs;
+  font-weight: 600;
+  color: $c-primary;
+}
+
+.date {
+  font-size: $f-xs;
+  color: $c-text-muted;
+  margin-left: auto;
+}
+
+.fileLink {
+  display: inline-flex;
+  align-items: center;
+  gap: $sp-1;
+  font-size: $f-body;
+  color: $c-primary;
+  text-decoration: none;
+  word-break: break-all;
+
+  &::before {
+    content: '📎';
+    font-size: 0.85em;
+  }
+
+  &:hover { text-decoration: underline; }
+}
+
+.noteText {
+  font-size: $f-body;
+  color: $c-text-subtle;
+  margin: $sp-1 0 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.addForm {
+  display: flex;
+  flex-direction: column;
+  gap: $sp-2;
+  border-top: 1px solid $c-border-subtle;
+  padding-top: $sp-3;
+  flex-shrink: 0;
+}
+
+.fileInput {
+  font-family: $f-family;
+  font-size: $f-xs;
+  color: $c-text;
+}
+
+.textarea {
+  width: 100%;
+  font-family: $f-family;
+  font-size: $f-body;
+  color: $c-text;
+  border: 1px solid $c-input-border;
+  border-radius: $r-sm;
+  padding: $sp-2 $sp-3;
+  box-sizing: border-box;
+  resize: vertical;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+
+  &:focus {
+    outline: none;
+    border-color: $c-primary;
+    box-shadow: $shadow-focus;
+  }
+
+  &::placeholder { color: $c-text-muted; }
+}
+
+.uploadBtn {
+  align-self: flex-end;
+  padding: $sp-2 $sp-5;
+  font-family: $f-family;
+  font-size: $f-body;
+  font-weight: 500;
+  color: $c-surface;
+  background: $c-ontime;
+  border: 1px solid $c-ontime;
+  border-radius: $r-sm;
+  cursor: pointer;
+  transition: $t-fast;
+
+  &:hover:not(:disabled) { filter: brightness(0.9); }
+  &:disabled { opacity: 0.5; cursor: not-allowed; }
+}
+
+// stylelint-enable selector-class-pattern

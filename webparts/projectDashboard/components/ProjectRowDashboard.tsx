@@ -58,6 +58,7 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
     tasks, gates, filteredTasks,
     onReset, onGateFilterChange, onSelectItem,
     onNewTask, onDeleteTask, onUpdateTask, onUploadFile,
+    onSaveLogField, onSendEmail,
   } = useProjectState({
     context,
     sp,
@@ -114,6 +115,12 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
       onSelectItem(next, "gate");
       onGateFilterChange?.(next);
     }
+  };
+
+  const handleTaskCompleted = (): void => {
+    if (!selectedTask) return;
+    const payload = JSON.stringify({ ...selectedTask, Complete: 100, ActualFinish: new Date() });
+    onUpdateTask?.(selectedTask.Id, 'quick-complete', payload);
   };
 
   const handleOverallClick = (): void => {
@@ -192,6 +199,10 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
               task={selectedTask}
               isPlanner={false}
               currentUserEmail={context.pageContext.user.email}
+              currentUserDisplayName={context.pageContext.user.displayName}
+              onSaveLogField={onSaveLogField}
+              onSendEmail={onSendEmail}
+              onTaskCompleted={handleTaskCompleted}
               onClose={() => setShowCard(false)}
               onNew={(task) => onNewTask?.(task.Gate)}
               onDelete={(taskId) => { onDeleteTask?.(taskId); setShowCard(false); }}

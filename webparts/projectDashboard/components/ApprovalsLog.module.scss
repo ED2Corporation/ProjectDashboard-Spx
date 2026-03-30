@@ -1,0 +1,207 @@
+@import './styles/tokens';
+
+// stylelint-disable selector-class-pattern
+
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: $sp-3;
+  height: 100%;
+}
+
+.feed {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: $sp-2;
+}
+
+.empty {
+  font-size: $f-xs;
+  color: $c-text-muted;
+  font-style: italic;
+  margin: 0;
+  text-align: center;
+}
+
+.entry {
+  background: $c-surface-soft;
+  border: 1px solid $c-border-subtle;
+  border-radius: $r-sm;
+  padding: $sp-2 $sp-3;
+}
+
+.meta {
+  display: flex;
+  align-items: center;
+  gap: $sp-3;
+  flex-wrap: wrap;
+}
+
+.user {
+  font-size: $f-xs;
+  font-weight: 600;
+  color: $c-text;
+}
+
+.date {
+  font-size: $f-xs;
+  color: $c-text-muted;
+  margin-left: auto;
+}
+
+// Status badges
+.badgePending {
+  font-size: $f-xs;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 10px;
+  background: #fff3cd;
+  color: #856404;
+  border: 1px solid #ffc107;
+}
+
+.badgeApproved {
+  font-size: $f-xs;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 10px;
+  background: $c-ontime-bg;
+  color: $c-ontime;
+  border: 1px solid $c-ontime;
+}
+
+.badgeRejected {
+  font-size: $f-xs;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 10px;
+  background: #fdecea;
+  color: #b00020;
+  border: 1px solid #f44336;
+}
+
+.commentText {
+  font-size: $f-body;
+  color: $c-text-subtle;
+  margin: $sp-1 0 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+// Init panel (no approvals yet)
+.initPanel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: $sp-3;
+  padding: $sp-4;
+}
+
+.requestBtn {
+  padding: $sp-2 $sp-6;
+  font-family: $f-family;
+  font-size: $f-body;
+  font-weight: 500;
+  color: $c-surface;
+  background: $c-primary;
+  border: 1px solid $c-primary;
+  border-radius: $r-sm;
+  cursor: pointer;
+  transition: $t-fast;
+
+  &:hover:not(:disabled) { background: $c-primary-hover; border-color: $c-primary-hover; }
+  &:disabled { opacity: 0.5; cursor: not-allowed; }
+}
+
+// All-approved banner
+.approvedBanner {
+  text-align: center;
+  font-size: $f-body;
+  font-weight: 600;
+  color: $c-ontime;
+  background: $c-ontime-bg;
+  border: 1px solid $c-ontime;
+  border-radius: $r-sm;
+  padding: $sp-2 $sp-4;
+}
+
+.waitingNote {
+  font-size: $f-xs;
+  color: $c-text-muted;
+  font-style: italic;
+  text-align: center;
+  margin: 0;
+}
+
+// Decision panel
+.decisionPanel {
+  display: flex;
+  flex-direction: column;
+  gap: $sp-2;
+  border-top: 1px solid $c-border-subtle;
+  padding-top: $sp-3;
+  flex-shrink: 0;
+}
+
+.textarea {
+  width: 100%;
+  font-family: $f-family;
+  font-size: $f-body;
+  color: $c-text;
+  border: 1px solid $c-input-border;
+  border-radius: $r-sm;
+  padding: $sp-2 $sp-3;
+  box-sizing: border-box;
+  resize: vertical;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+
+  &:focus {
+    outline: none;
+    border-color: $c-primary;
+    box-shadow: $shadow-focus;
+  }
+
+  &::placeholder { color: $c-text-muted; }
+}
+
+.decisionBtns {
+  display: flex;
+  gap: $sp-2;
+  justify-content: flex-end;
+}
+
+.approveBtn {
+  padding: $sp-2 $sp-5;
+  font-family: $f-family;
+  font-size: $f-body;
+  font-weight: 500;
+  color: $c-surface;
+  background: $c-ontime;
+  border: 1px solid $c-ontime;
+  border-radius: $r-sm;
+  cursor: pointer;
+  transition: $t-fast;
+
+  &:hover:not(:disabled) { filter: brightness(0.9); }
+  &:disabled { opacity: 0.5; cursor: not-allowed; }
+}
+
+.rejectBtn {
+  padding: $sp-2 $sp-5;
+  font-family: $f-family;
+  font-size: $f-body;
+  font-weight: 500;
+  color: #fff;
+  background: #d32f2f;
+  border: 1px solid #d32f2f;
+  border-radius: $r-sm;
+  cursor: pointer;
+  transition: $t-fast;
+
+  &:hover:not(:disabled) { background: #b71c1c; border-color: #b71c1c; }
+  &:disabled { opacity: 0.5; cursor: not-allowed; }
+}
+
+// stylelint-enable selector-class-pattern

@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { ITaskListItem } from "../../../models";
-import { isApprover } from "../../../models/ITaskLogFields";
+import { isApprover, INoteEntry, IEvidenceEntry, IApprovalEntry } from "../../../models/ITaskLogFields";
 import styles from "./TaskCard.module.scss";
 import EvidenceEditor from "./EvidenceEditor";
+import NotesLog from "./NotesLog";
+import EvidenceLog from "./EvidenceLog";
+import ApprovalsLog from "./ApprovalsLog";
 
 type TaskTab = 'fields' | 'notes' | 'evidence' | 'approvals';
 
@@ -10,6 +13,10 @@ interface TaskCardProps {
   task: ITaskListItem;
   isPlanner?: boolean;
   currentUserEmail?: string;
+  currentUserDisplayName?: string;
+  onSaveLogField?: (taskId: string, field: 'Notes' | 'Evidence' | 'Approvals', entries: unknown[]) => Promise<void>;
+  onSendEmail?: (to: string[], subject: string, body: string) => Promise<void>;
+  onTaskCompleted?: () => void;
   onClose?: () => void;
   onDelete: (id: string) => void;
   onNew: (task: ITaskListItem) => void;
@@ -23,7 +30,7 @@ interface TaskCardProps {
   ) => Promise<{ fileUrl: string; fileName: string }>;
 }
 
-const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, currentUserEmail, onClose, onSave, onDelete, onNew, onUploadEvidenceFile }) => {
+const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, currentUserEmail, currentUserDisplayName, onClose, onSave, onDelete, onNew, onUploadEvidenceFile, onSaveLogField, onSendEmail, onTaskCompleted }) => {
   const [activeTab, setActiveTab] = useState<TaskTab>('fields');
   const showApprovals = isApprover(currentUserEmail ?? '');
   const [gate, setGate] = useState(task.Gate ?? "");
@@ -337,21 +344,39 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, currentUserEmail, 
             )}
 
             {activeTab === 'notes' && (
-              <div className={styles["tab-placeholder"]}>
-                <span>Notes log — coming soon</span>
-              </div>
+              <NotesLog
+                notes={task.Notes ?? null}
+                currentUserDisplayName={currentUserDisplayName ?? ''}
+                onSave={async (entries: INoteEntry[]) => {
+                  await onSaveLogField?.(task.Id, 'Notes', entries);
+                }}
+              />
             )}
 
             {activeTab === 'evidence' && (
-              <div className={styles["tab-placeholder"]}>
-                <span>Evidence log — coming soon</span>
-              </div>
+              <EvidenceLog
+                evidence={task.Evidence ?? null}
+                taskTitle={taskTitle || task.Task || 'Task'}
+                currentUserDisplayName={currentUserDisplayName ?? ''}
+                onSave={async (entries: IEvidenceEntry[]) => {
+                  await onSaveLogField?.(task.Id, 'Evidence', entries);
+                }}
+                onUploadFile={onUploadEvidenceFile}
+              />
             )}
 
             {activeTab === 'approvals' && showApprovals && (
-              <div className={styles["tab-placeholder"]}>
-                <span>Approvals log — coming soon</span>
-              </div>
+              <ApprovalsLog
+                taskTitle={taskTitle || task.Task || 'Task'}
+                approvals={task.Approvals ?? null}
+                currentUserEmail={currentUserEmail ?? ''}
+                currentUserDisplayName={currentUserDisplayName ?? ''}
+                onSave={async (entries: IApprovalEntry[]) => {
+                  await onSaveLogField?.(task.Id, 'Approvals', entries);
+                }}
+                onSendEmail={onSendEmail ?? (async () => undefined)}
+                onAllApproved={onTaskCompleted}
+              />
             )}
           </div>
         </div>
