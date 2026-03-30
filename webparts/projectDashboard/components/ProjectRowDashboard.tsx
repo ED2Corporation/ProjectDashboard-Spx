@@ -191,6 +191,7 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
             <TaskCard
               task={selectedTask}
               isPlanner={false}
+              currentUserEmail={context.pageContext.user.email}
               onClose={() => setShowCard(false)}
               onNew={(task) => onNewTask?.(task.Gate)}
               onDelete={(taskId) => { onDeleteTask?.(taskId); setShowCard(false); }}

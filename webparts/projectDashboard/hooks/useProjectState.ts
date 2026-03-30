@@ -5,6 +5,7 @@ import { MSGraphClientV3, SPHttpClient } from '@microsoft/sp-http';
 import { BaseComponentContext } from "@microsoft/sp-component-base";
 import { ITaskListItem, IGateListItem, IProjectListItem } from '../../../models';
 import { IProjectDashboardWebPartProps } from '../../../models';
+import { INoteEntry, IEvidenceEntry, IApprovalEntry } from '../../../models';
 import { GroupByGate } from '../utils/GroupByGate';
 import { FilterTasks } from '../utils/FilterTasks';
 import { PlannerService } from '../services/PlannerService';
@@ -60,6 +61,16 @@ export interface UseProjectStateResult {
   onPopulateAttachements: () => Promise<void>;
   onCreateNewProject: (listName: string, repositoryName: string, projectTitle: string, firstGate: string, mode: "empty" | "from-excel", file?: File) => Promise<void>;
   setSelectedTask: (task: ITaskListItem | null) => void;
+}
+
+// ─── Resilient JSON field parser ──────────────────────────────────────────────
+// Returns null (column missing/empty) or the parsed array.
+// Never throws — malformed JSON is treated as missing.
+function parseLogField<T>(raw: unknown): T[] | null {
+  if (raw === null || raw === undefined || raw === '') return null;
+  if (typeof raw !== 'string') return null;
+  try { return JSON.parse(raw) as T[]; }
+  catch { return null; }
 }
 
 // ─── Pure helpers ─────────────────────────────────────────────────────────────
@@ -133,7 +144,7 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
 
     try {
       const siteRelativePath = context.pageContext.web.serverRelativeUrl;
-      const querySelect = `Id,Gate,Task,Deliverable,Complete,Start,Finish,ActualFinish,Description,EvidenceOfCompletion,EvidenceDescription`;
+      const querySelect = `Id,Gate,Task,Deliverable,Complete,Start,Finish,ActualFinish,Description,EvidenceOfCompletion,EvidenceDescription,Notes,Evidence,Approvals`;
       const queryUrl = SITE_URL + siteRelativePath + `/_api/web/lists/getbytitle('` + project.ListName + `')/items?$select=` + querySelect;
 
       const response = await context.spHttpClient.get(queryUrl, SPHttpClient.configurations.v1);
@@ -161,6 +172,10 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
         EvidenceOfCompletion: r.EvidenceOfCompletion
           ? { Url: r.EvidenceOfCompletion, Description: r.EvidenceDescription ?? "" }
           : undefined,
+        // Log fields — null if column missing or empty (resilient)
+        Notes:     parseLogField<INoteEntry>(r.Notes),
+        Evidence:  parseLogField<IEvidenceEntry>(r.Evidence),
+        Approvals: parseLogField<IApprovalEntry>(r.Approvals),
       }));
 
       return [...loaded].sort((a, b) => {
@@ -591,6 +606,12 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
     if (!exists) await list.fields.addDateTime(name);
   }, []);
 
+  const _ensureMultilineField = useCallback(async (list: IList, name: string) => {
+    const fields = await list.fields.select("InternalName")();
+    const exists = fields.some((f: any) => f.InternalName === name); // eslint-disable-line @typescript-eslint/no-explicit-any
+    if (!exists) await list.fields.addMultilineText(name);
+  }, []);
+
   const _ensureDefaultViewFields = useCallback(async (list: IList, fieldInternalNames: string[]) => {
     const view = await list.defaultView;
     const viewFieldsResult = await view.fields.select("Items")();
@@ -618,8 +639,13 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
     await _ensureTextField(list, "EvidenceOfCompletion");
     await _ensureTextField(list, "EvidenceDescription");
 
+    // Log fields — multiline text storing JSON arrays
+    await _ensureMultilineField(list, "Notes");
+    await _ensureMultilineField(list, "Evidence");
+    await _ensureMultilineField(list, "Approvals");
+
     await _ensureDefaultViewFields(list, ["Title","Gate","Task","Deliverable","Complete","Start","Finish","ActualFinish"]);
-  }, [sp, _ensureTextField, _ensureNumberField, _ensureDateField, _ensureDefaultViewFields]);
+  }, [sp, _ensureTextField, _ensureNumberField, _ensureDateField, _ensureMultilineField, _ensureDefaultViewFields]);
 
   const _ensureEvidenceRepository = useCallback(async (repositoryName: string): Promise<void> => {
     const siteUrl = SITE_URL || context.pageContext.web.absoluteUrl;

@@ -1,16 +1,20 @@
 import React, { useState, useEffect } from "react";
 import { ITaskListItem } from "../../../models";
+import { isApprover } from "../../../models/ITaskLogFields";
 import styles from "./TaskCard.module.scss";
 import EvidenceEditor from "./EvidenceEditor";
+
+type TaskTab = 'fields' | 'notes' | 'evidence' | 'approvals';
 
 interface TaskCardProps {
   task: ITaskListItem;
   isPlanner?: boolean;
+  currentUserEmail?: string;
   onClose?: () => void;
   onDelete: (id: string) => void;
   onNew: (task: ITaskListItem) => void;
   onSave: (
-    item: string,                 
+    item: string,
     payload?: string
   ) => void;
   onUploadEvidenceFile?: (
@@ -19,7 +23,9 @@ interface TaskCardProps {
   ) => Promise<{ fileUrl: string; fileName: string }>;
 }
 
-const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, onClose, onSave, onDelete, onNew, onUploadEvidenceFile }) => {
+const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, currentUserEmail, onClose, onSave, onDelete, onNew, onUploadEvidenceFile }) => {
+  const [activeTab, setActiveTab] = useState<TaskTab>('fields');
+  const showApprovals = isApprover(currentUserEmail ?? '');
   const [gate, setGate] = useState(task.Gate ?? "");
   const [deliverable, setDeliverable] = useState(task.Deliverable ?? "");
   const [taskTitle, setTaskTitle] = useState(task.Task ?? "");
@@ -288,17 +294,66 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, onClose, onSave, o
           </table>
         </div>
         <div className={styles["task-card-column"]}>
-            {/* NOTES / DESCRIPTION */}
-            <strong>Status:</strong>
-            <textarea
-              value={description}
-              onChange={e => setDescription(e.target.value)}
-              className={styles["input-small"]}
-              rows={3}
-              style={{ width: "100%", resize: "vertical" }}
-              placeholder="Add notes or description for this task..."
-            />
-          
+          {/* Tab bar */}
+          <div className={styles["tab-bar"]}>
+            <button
+              type="button"
+              className={`${styles["tab-btn"]} ${activeTab === 'fields' ? styles["tab-active"] : ''}`}
+              onClick={() => setActiveTab('fields')}
+            >Fields</button>
+            <button
+              type="button"
+              className={`${styles["tab-btn"]} ${activeTab === 'notes' ? styles["tab-active"] : ''}`}
+              onClick={() => setActiveTab('notes')}
+            >Notes</button>
+            <button
+              type="button"
+              className={`${styles["tab-btn"]} ${activeTab === 'evidence' ? styles["tab-active"] : ''}`}
+              onClick={() => setActiveTab('evidence')}
+            >Evidence</button>
+            {showApprovals && (
+              <button
+                type="button"
+                className={`${styles["tab-btn"]} ${activeTab === 'approvals' ? styles["tab-active"] : ''}`}
+                onClick={() => setActiveTab('approvals')}
+              >Approvals</button>
+            )}
+          </div>
+
+          {/* Tab content */}
+          <div className={styles["tab-content"]}>
+            {activeTab === 'fields' && (
+              <>
+                <strong>Status / Notes:</strong>
+                <textarea
+                  value={description}
+                  onChange={e => setDescription(e.target.value)}
+                  className={styles["input-small"]}
+                  rows={3}
+                  style={{ width: "100%", resize: "vertical" }}
+                  placeholder="Add notes or description for this task..."
+                />
+              </>
+            )}
+
+            {activeTab === 'notes' && (
+              <div className={styles["tab-placeholder"]}>
+                <span>Notes log — coming soon</span>
+              </div>
+            )}
+
+            {activeTab === 'evidence' && (
+              <div className={styles["tab-placeholder"]}>
+                <span>Evidence log — coming soon</span>
+              </div>
+            )}
+
+            {activeTab === 'approvals' && showApprovals && (
+              <div className={styles["tab-placeholder"]}>
+                <span>Approvals log — coming soon</span>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

@@ -1,3 +1,5 @@
+import { INoteEntry, IEvidenceEntry, IApprovalEntry } from './ITaskLogFields';
+
 export interface ITaskListItem {
   Id: string;
   Title: string; //WBS Task Title
@@ -26,4 +28,9 @@ export interface ITaskListItem {
     title: string,
     orderHint: string
   };
+
+  // ── Log fields (optional — null means the SP column does not exist yet) ──
+  Notes?:     INoteEntry[]     | null;
+  Evidence?:  IEvidenceEntry[] | null;
+  Approvals?: IApprovalEntry[] | null;
 }

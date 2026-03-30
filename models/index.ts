@@ -4,3 +4,4 @@ export * from './IPlannerListItem';
 export * from './ITaskListItem';
 export * from './IGateListItem';
 export * from './IProjectDashboardWebPartProps';
+export * from './ITaskLogFields';

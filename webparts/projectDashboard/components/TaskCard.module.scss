@@ -123,42 +123,8 @@
   flex: 1 1 auto;
   display: flex;
   flex-direction: column;
-  gap: $sp-2;
   padding: $sp-4 $sp-5;
-
-  // "Status:" label inside the column
-  strong {
-    font-size: $f-xs;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: $c-text-subtle;
-    display: block;
-    margin-bottom: $sp-1;
-  }
-
-  textarea {
-    flex: 1 1 auto;
-    min-height: 80px;
-    width: 100%;
-    resize: vertical;
-    font-family: $f-family;
-    font-size: $f-body;
-    color: $c-text;
-    border: 1px solid $c-input-border;
-    border-radius: $r-sm;
-    padding: $sp-2 $sp-3;
-    box-sizing: border-box;
-    transition: border-color 0.15s ease, box-shadow 0.15s ease;
-
-    &:focus {
-      outline: none;
-      border-color: $c-primary;
-      box-shadow: $shadow-focus;
-    }
-
-    &::placeholder { color: $c-text-muted; }
-  }
+  min-width: 0;
 }
 
 // ─── Form table ────────────────────────────────────────────────────────────
@@ -242,6 +208,98 @@
     border-color: $c-primary;
     box-shadow: $shadow-focus;
   }
+}
+
+// ─── Tab bar ────────────────────────────────────────────────────────────────
+
+.tab-bar {
+  display: flex;
+  flex-direction: row;
+  gap: 0;
+  border-bottom: 1px solid $c-border-subtle;
+  margin-bottom: $sp-3;
+  flex-shrink: 0;
+}
+
+.tab-btn {
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: $sp-2 $sp-4;
+  font-family: $f-family;
+  font-size: $f-xs;
+  font-weight: 500;
+  color: $c-text-subtle;
+  cursor: pointer;
+  margin-bottom: -1px;
+  transition: $t-fast;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+
+  &:hover {
+    color: $c-text;
+    background: $c-surface-soft;
+  }
+}
+
+.tab-active {
+  color: $c-primary;
+  border-bottom-color: $c-primary;
+  font-weight: 600;
+}
+
+.tab-content {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: $sp-2;
+  overflow-y: auto;
+
+  strong {
+    font-size: $f-xs;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: $c-text-subtle;
+    display: block;
+    margin-bottom: $sp-1;
+  }
+
+  textarea {
+    flex: 1 1 auto;
+    min-height: 80px;
+    width: 100%;
+    resize: vertical;
+    font-family: $f-family;
+    font-size: $f-body;
+    color: $c-text;
+    border: 1px solid $c-input-border;
+    border-radius: $r-sm;
+    padding: $sp-2 $sp-3;
+    box-sizing: border-box;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+
+    &:focus {
+      outline: none;
+      border-color: $c-primary;
+      box-shadow: $shadow-focus;
+    }
+
+    &::placeholder { color: $c-text-muted; }
+  }
+}
+
+.tab-placeholder {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 80px;
+  color: $c-text-muted;
+  font-size: $f-xs;
+  font-style: italic;
+  border: 1px dashed $c-border-subtle;
+  border-radius: $r-sm;
 }
 
 // ─── Evidence section ──────────────────────────────────────────────────────
