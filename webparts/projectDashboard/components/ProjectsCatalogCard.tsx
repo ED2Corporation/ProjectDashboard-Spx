@@ -9,17 +9,14 @@ import ProjectRowDashboard from './ProjectRowDashboard';
 import { IProjectCatalogItem } from '../../../models/IProjectService';
 import styles from './ProjectsCatalogCard.module.scss';
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-
-type StatusFilter = 'all' | 'ontime' | 'delayed' | 'archived' | 'hidden';
-type StatusKey    = 'ontime' | 'delayed' | 'archived';
+type StatusFilter = 'all' | 'ontime' | 'delayed' | 'archived' | 'hidden' | 'waiting-approval';
+type StatusKey = 'ontime' | 'delayed' | 'archived' | 'waiting-approval';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyContext = BaseComponentContext & { spHttpClient: SPHttpClient; msGraphClientFactory: any };
 
-// ─── AggregatorBadge ──────────────────────────────────────────────────────────
-
 type BadgeVariant = StatusKey | 'hidden';
+type CatalogStatus = 'open' | 'archived' | 'waiting-approval' | 'hidden';
 
 interface AggregatorBadgeProps {
   label: string;
@@ -29,24 +26,77 @@ interface AggregatorBadgeProps {
   onClick: () => void;
 }
 
+const IconPlus: React.FC = () => (
+  <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+    <path d="M10 4v12" strokeLinecap="round" />
+    <path d="M4 10h12" strokeLinecap="round" />
+  </svg>
+);
+
+const IconRotateCw: React.FC = () => (
+  <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+    <path d="M16 10a6 6 0 10-1.76 4.24" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M16 4v4h-4" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
+const IconChevronUp: React.FC = () => (
+  <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+    <path d="M5 12l5-5 5 5" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
+const IconChevronDown: React.FC = () => (
+  <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+    <path d="M5 8l5 5 5-5" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
 const variantClass: Record<BadgeVariant, string> = {
-  ontime:   styles.badgeOntime,
-  delayed:  styles.badgeDelayed,
-  archived: styles.badgeArchived,
-  hidden:   styles.badgeHidden,
+  ontime: styles.badgeOntime,
+  delayed: styles.badgeDelayed,
+  archived: styles.badgeNeutral,
+  hidden: styles.badgeNeutral,
+  'waiting-approval': styles.badgeNeutral,
+};
+
+const normalizeStatus = (status?: string): string =>
+  (status || '').trim().toLowerCase().replace(/[\s_-]+/g, ' ');
+
+const getCatalogStatus = (project: IProjectCatalogItem): CatalogStatus => {
+  const normalizedStatus = normalizeStatus(project.Status);
+
+  if (normalizedStatus === 'archived' || normalizedStatus === 'closed') return 'archived';
+  if (normalizedStatus === 'waiting approval') return 'waiting-approval';
+  if (normalizedStatus === 'hidden') return 'hidden';
+
+  return 'open';
+};
+
+const getProjectStatusKey = (
+  project: IProjectCatalogItem,
+  statusMap: Record<string, StatusKey>
+): StatusKey => {
+  const catalogStatus = getCatalogStatus(project);
+
+  if (catalogStatus === 'waiting-approval') return 'waiting-approval';
+  if (catalogStatus === 'archived') return 'archived';
+
+  return statusMap[project.ProjectId ?? project.Title] ?? 'ontime';
 };
 
 const AggregatorBadge: React.FC<AggregatorBadgeProps> = ({ label, count, variant, active, onClick }) => (
   <button
-    onClick={(e) => { e.stopPropagation(); onClick(); }}
+    onClick={(e) => {
+      e.stopPropagation();
+      onClick();
+    }}
     className={`${styles.badge} ${variantClass[variant]} ${active ? styles.badgeActive : ''}`}
   >
     <span className={styles.badgeCount}>{count}</span>
     <span>{label}</span>
   </button>
 );
-
-// ─── Props ────────────────────────────────────────────────────────────────────
 
 export interface IProjectsCatalogCardProps {
   sp: SPFI;
@@ -55,113 +105,146 @@ export interface IProjectsCatalogCardProps {
   onNewProject?: () => void;
 }
 
-// ─── Component ────────────────────────────────────────────────────────────────
-
 const ProjectsCatalogCard: React.FC<IProjectsCatalogCardProps> = ({ sp, context, onSelectProject, onNewProject }) => {
   const { projects, isLoading, error, reload } = useProjectsCatalog(sp);
 
-  const [isCollapsed,  setIsCollapsed]  = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(false);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
-
-  // statusMap is populated by each ProjectRowDashboard via onStatusReady
   const [statusMap, setStatusMap] = useState<Record<string, StatusKey>>({});
 
   const handleStatusReady = useCallback((projectId: string, key: StatusKey) => {
-    setStatusMap(prev => {
+    setStatusMap((prev) => {
       if (prev[projectId] === key) return prev;
       return { ...prev, [projectId]: key };
     });
   }, []);
 
-  // ── Split hidden vs visible ───────────────────────────────────────────────
-  const { visibleProjects, hiddenCount } = useMemo(() => {
-    const visible = projects.filter(p => p.Status?.toLowerCase() !== 'hidden');
-    return { visibleProjects: visible, hiddenCount: projects.length - visible.length };
+  const { openProjects, archivedProjects, waitingApprovalProjects, hiddenProjects } = useMemo(() => {
+    const open = projects.filter((project) => getCatalogStatus(project) === 'open');
+    const archived = projects.filter((project) => getCatalogStatus(project) === 'archived');
+    const waitingApproval = projects.filter((project) => getCatalogStatus(project) === 'waiting-approval');
+    const hidden = projects.filter((project) => getCatalogStatus(project) === 'hidden');
+
+    return {
+      openProjects: open,
+      archivedProjects: archived,
+      waitingApprovalProjects: waitingApproval,
+      hiddenProjects: hidden,
+    };
   }, [projects]);
 
-  // ── Aggregate counts (from visible projects only) ─────────────────────────
   const counts = useMemo(() => {
-    let onTime = 0, delayed = 0, archived = 0;
-    for (const proj of visibleProjects) {
-      const s = proj.Status?.toLowerCase();
-      const isArchived = s === 'archived' || s === 'closed'; // backward compat
-      const key = statusMap[proj.ProjectId ?? proj.Title] ?? (isArchived ? 'archived' : 'ontime');
-      if (key === 'archived')      archived++;
-      else if (key === 'delayed')  delayed++;
-      else                         onTime++;
-    }
-    return { onTime, delayed, archived };
-  }, [visibleProjects, statusMap]);
+    let onTime = 0;
+    let delayed = 0;
 
-  // ── Filtered project list ─────────────────────────────────────────────────
-  // When 'hidden' filter is active, show only hidden projects (otherwise they are excluded).
+    for (const project of openProjects) {
+      const key = getProjectStatusKey(project, statusMap);
+      if (key === 'delayed') delayed++;
+      else onTime++;
+    }
+
+    return {
+      onTime,
+      delayed,
+      archived: archivedProjects.length,
+      waitingApproval: waitingApprovalProjects.length,
+      hidden: hiddenProjects.length,
+    };
+  }, [openProjects, archivedProjects.length, waitingApprovalProjects.length, hiddenProjects.length, statusMap]);
+
   const filteredProjects = useMemo(() => {
-    if (statusFilter === 'hidden') {
-      return projects.filter(p => p.Status?.toLowerCase() === 'hidden');
-    }
-    if (statusFilter === 'all') return visibleProjects;
-    return visibleProjects.filter(proj => {
-      const s = proj.Status?.toLowerCase();
-      const isArchived = s === 'archived' || s === 'closed';
-      const key = statusMap[proj.ProjectId ?? proj.Title] ?? (isArchived ? 'archived' : 'ontime');
-      return key === statusFilter;
-    });
-  }, [projects, visibleProjects, statusMap, statusFilter]);
+    if (statusFilter === 'all') return openProjects;
+    if (statusFilter === 'hidden') return hiddenProjects;
+    if (statusFilter === 'archived') return archivedProjects;
+    if (statusFilter === 'waiting-approval') return waitingApprovalProjects;
 
-  const toggleFilter = (f: StatusFilter): void => setStatusFilter(prev => prev === f ? 'all' : f);
+    return openProjects.filter((project) => getProjectStatusKey(project, statusMap) === statusFilter);
+  }, [archivedProjects, hiddenProjects, openProjects, waitingApprovalProjects, statusMap, statusFilter]);
 
-  // ── Render ────────────────────────────────────────────────────────────────
+  const toggleFilter = (filter: StatusFilter): void => setStatusFilter((prev) => (prev === filter ? 'all' : filter));
+
   return (
     <div className={styles.card}>
-
-      {/* Header — always visible, controls collapse */}
-      <div onClick={() => setIsCollapsed(c => !c)} className={styles.header}>
+      <div onClick={() => setIsCollapsed((current) => !current)} className={styles.header}>
         <span className={styles.headerTitle}>
           Projects Dashboard
-          <span className={styles.headerCount}>({visibleProjects.length})</span>
+          <span className={styles.headerCount}>({openProjects.length})</span>
         </span>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div className={styles.headerActions}>
           {onNewProject && (
             <button
               type="button"
               className={styles.headerAddBtn}
-              title="New project"
-              onClick={e => { e.stopPropagation(); onNewProject(); }}
+              title="Create project"
+              onClick={(e) => {
+                e.stopPropagation();
+                onNewProject();
+              }}
             >
-              +
+              <IconPlus />
             </button>
           )}
-          <span className={styles.headerChevron}>{isCollapsed ? '▼' : '▲'}</span>
+          <button
+            type="button"
+            className={styles.headerIconBtn}
+            title="Reload projects"
+            onClick={(e) => {
+              e.stopPropagation();
+              reload();
+            }}
+          >
+            <IconRotateCw />
+          </button>
+          <span className={styles.headerChevron}>
+            {isCollapsed ? <IconChevronDown /> : <IconChevronUp />}
+          </span>
         </div>
       </div>
 
-      {/* Aggregator row — always visible */}
       <div className={styles.aggregatorRow}>
-        <AggregatorBadge
-          label="On Time"  count={counts.onTime}
-          variant="ontime" active={statusFilter === 'ontime'}
-          onClick={() => toggleFilter('ontime')}
-        />
-        <AggregatorBadge
-          label="Delayed"  count={counts.delayed}
-          variant="delayed" active={statusFilter === 'delayed'}
-          onClick={() => toggleFilter('delayed')}
-        />
-        <AggregatorBadge
-          label="Archived"   count={counts.archived}
-          variant="archived" active={statusFilter === 'archived'}
-          onClick={() => toggleFilter('archived')}
-        />
-        {hiddenCount > 0 && (
+        <div className={styles.aggregatorCard}>
           <AggregatorBadge
-            label="Hidden"   count={hiddenCount}
-            variant="hidden" active={statusFilter === 'hidden'}
-            onClick={() => toggleFilter('hidden')}
+            label="On Time"
+            count={counts.onTime}
+            variant="ontime"
+            active={statusFilter === 'ontime'}
+            onClick={() => toggleFilter('ontime')}
           />
-        )}
+          <AggregatorBadge
+            label="Delayed"
+            count={counts.delayed}
+            variant="delayed"
+            active={statusFilter === 'delayed'}
+            onClick={() => toggleFilter('delayed')}
+          />
+        </div>
+        <div className={styles.aggregatorCard}>
+          <AggregatorBadge
+            label="Archived"
+            count={counts.archived}
+            variant="archived"
+            active={statusFilter === 'archived'}
+            onClick={() => toggleFilter('archived')}
+          />
+          <AggregatorBadge
+            label="Waiting Approval"
+            count={counts.waitingApproval}
+            variant="waiting-approval"
+            active={statusFilter === 'waiting-approval'}
+            onClick={() => toggleFilter('waiting-approval')}
+          />
+          {counts.hidden > 0 && (
+            <AggregatorBadge
+              label="Hidden"
+              count={counts.hidden}
+              variant="hidden"
+              active={statusFilter === 'hidden'}
+              onClick={() => toggleFilter('hidden')}
+            />
+          )}
+        </div>
       </div>
 
-      {/* Project rows — collapsible */}
       {!isCollapsed && (
         <div className={styles.projectList}>
           {error && (
@@ -174,7 +257,7 @@ const ProjectsCatalogCard: React.FC<IProjectsCatalogCardProps> = ({ sp, context,
           ) : filteredProjects.length === 0 ? (
             <div className={styles.message}>No projects match the selected filter.</div>
           ) : (
-            filteredProjects.map(proj => (
+            filteredProjects.map((proj) => (
               <ProjectRowDashboard
                 key={proj.ProjectId ?? proj.Title}
                 project={proj}

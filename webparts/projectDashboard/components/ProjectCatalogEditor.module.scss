@@ -106,23 +106,16 @@
 }
 
 // variant colors
-.statusActive  { background: $c-primary;   }
-.statusDelayed { background: $c-delayed;    }
+.statusOpen { background: $c-primary; }
 .statusArchived { background: $c-archived;  }
-.statusHidden  { background: $c-hidden;     }
+.statusWaitingApproval { background: #111111; }
+.statusHidden { background: $c-hidden; }
 
 // selected state per variant
-.statusCardActive.statusCardSelected {
+.statusCardOpen.statusCardSelected {
   border-color: $c-primary;
   background: $c-primary-bg;
   color: $c-primary;
-  font-weight: 700;
-}
-
-.statusCardDelayed.statusCardSelected {
-  border-color: $c-delayed;
-  background: $c-delayed-bg;
-  color: $c-delayed;
   font-weight: 700;
 }
 
@@ -130,6 +123,13 @@
   border-color: $c-archived;
   background: $c-archived-bg;
   color: $c-archived;
+  font-weight: 700;
+}
+
+.statusCardWaitingApproval.statusCardSelected {
+  border-color: #111111;
+  background: #f3f4f6;
+  color: #111111;
   font-weight: 700;
 }
 

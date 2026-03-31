@@ -7,11 +7,20 @@ import styles from "./ProjectCatalogEditor.module.scss";
 // ─── Status options ───────────────────────────────────────────────────────────
 
 const STATUS_OPTIONS = [
-  { value: "Active",  variantCard: "statusCardActive",  dot: "statusActive"  },
-  { value: "Delayed", variantCard: "statusCardDelayed", dot: "statusDelayed" },
+  { value: "Open", variantCard: "statusCardOpen", dot: "statusOpen" },
   { value: "Archived", variantCard: "statusCardArchived", dot: "statusArchived" },
-  { value: "Hidden",  variantCard: "statusCardHidden",  dot: "statusHidden"  },
+  { value: "Waiting Approval", variantCard: "statusCardWaitingApproval", dot: "statusWaitingApproval" },
+  { value: "Hidden", variantCard: "statusCardHidden", dot: "statusHidden" },
 ] as const;
+
+const normalizeEditorStatus = (status?: string): "Open" | "Archived" | "Waiting Approval" | "Hidden" => {
+  const normalized = (status || "").trim().toLowerCase().replace(/[\s_-]+/g, " ");
+
+  if (normalized === "archived" || normalized === "closed") return "Archived";
+  if (normalized === "waiting approval") return "Waiting Approval";
+  if (normalized === "hidden") return "Hidden";
+  return "Open";
+};
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -27,7 +36,10 @@ export interface ProjectCatalogEditorProps {
 const ProjectCatalogEditor: React.FC<ProjectCatalogEditorProps> = ({
   project, projectService, onSaved, onCancel,
 }) => {
-  const [form, setForm] = useState<IProjectCatalogItem>({ ...project });
+  const [form, setForm] = useState<IProjectCatalogItem>({
+    ...project,
+    Status: normalizeEditorStatus(project.Status),
+  });
   const [saving,  setSaving]  = useState(false);
   const [error,   setError]   = useState<string | null>(null);
   const [saved,   setSaved]   = useState(false);
@@ -125,7 +137,7 @@ const ProjectCatalogEditor: React.FC<ProjectCatalogEditorProps> = ({
           <label className={styles.label}>Status</label>
           <div className={styles.statusPicker}>
             {STATUS_OPTIONS.map(opt => {
-              const isSelected = (form.Status ?? "Active") === opt.value;
+              const isSelected = normalizeEditorStatus(form.Status) === opt.value;
               return (
                 <button
                   key={opt.value}

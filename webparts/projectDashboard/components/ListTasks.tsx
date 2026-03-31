@@ -41,6 +41,7 @@ const ListTasks = ({
   const [editEvidenceUrl, setEditEvidenceUrl] = useState<string>("");
   const [editEvidenceDesc, setEditEvidenceDesc] = useState<string>("");
   const [editPercentComplete, setEditPercentComplete] = useState<number>(0);
+  const [editStart, setEditStart] = useState<string>("");
   const [editFinish, setEditFinish] = useState<string>("");
 
   // Helper: Date/ISO/string -> YYYY-MM-DD
@@ -101,6 +102,7 @@ const ListTasks = ({
       Gate: task.Gate,
       Task: editTaskTitle || task.Task,
       Complete: editPercentComplete,
+      Start: editStart || null,
       Finish: editFinish || null,
       ActualFinish: actualFinish,
       EvidenceOfCompletion: evidence
@@ -135,6 +137,7 @@ const ListTasks = ({
                 </th>
                 <th className={styles.colText}>Task</th>
                 <th className={styles.colDate}>Completed</th>
+                <th className={styles.colDate}>Start</th>
                 <th className={styles.colDate}>Finish</th>
                 <th className={styles.colURL}>Evidence of Completion</th>
               </tr>
@@ -216,6 +219,7 @@ const ListTasks = ({
                             setEditEvidenceDesc(
                               item.EvidenceOfCompletion?.Description ?? ""
                             );
+                            setEditStart(toDateInputValue(item.Start));
                             setEditFinish(toDateInputValue(item.Finish));
                           }}
                           title="Edit task"
@@ -294,14 +298,45 @@ const ListTasks = ({
                     {editingTaskId === item.Id ? (
                       <input
                         type="date"
+                        value={editStart}
+                        onChange={(e) => {
+                          const newStart = e.target.value;
+                          if (editFinish && newStart) {
+                            const [sy, sm, sd] = newStart.split("-").map(Number);
+                            const [fy, fm, fd] = editFinish.split("-").map(Number);
+                            const startUTC = Date.UTC(sy, sm - 1, sd);
+                            const finishUTC = Date.UTC(fy, fm - 1, fd);
+
+                            if (startUTC > finishUTC) {
+                              alert(
+                                "Start date cannot be later than Finish date."
+                              );
+                              return;
+                            }
+                          }
+                          setEditStart(newStart);
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                        className={styles["input-small"]}
+                      />
+                    ) : (
+                      GetFormatDate(item.Start)
+                    )}
+                  </td>
+
+                  {/* Finish */}
+                  <td className={styles.colDate}>
+                    {editingTaskId === item.Id ? (
+                      <input
+                        type="date"
                         value={editFinish}
                         onChange={(e) => {
                           const newFinish = e.target.value;
-                          if (item.Start && newFinish) {
-                            const startUTC = new Date(item.Start).getTime();
-                            const [fy, fm, fd] = newFinish
-                              .split("-")
-                              .map(Number);
+                          if ((editStart || item.Start) && newFinish) {
+                            const startValue = editStart || toDateInputValue(item.Start);
+                            const [sy, sm, sd] = startValue.split("-").map(Number);
+                            const [fy, fm, fd] = newFinish.split("-").map(Number);
+                            const startUTC = Date.UTC(sy, sm - 1, sd);
                             const finishUTC = Date.UTC(fy, fm - 1, fd);
 
                             if (finishUTC < startUTC) {
