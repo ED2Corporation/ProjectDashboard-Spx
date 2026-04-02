@@ -8,11 +8,15 @@
   margin-bottom: $sp-3;
   overflow: hidden;
   background: $c-surface;
-  transition: box-shadow 0.15s ease;
+  transition: box-shadow 0.15s ease, background 0.15s ease;
 
   &:hover {
     box-shadow: $shadow-card;
   }
+}
+
+.cardActive {
+  background: $c-surface-mid;
 }
 
 // ─── Header row ───────────────────────────────────────────────────────────────
@@ -27,6 +31,7 @@
 
 .headerActive {
   border-bottom: 0.5px solid $c-border-subtle;
+  background: $c-surface-dark;
 }
 
 // ─── Project info (left panel) ────────────────────────────────────────────────
@@ -73,4 +78,5 @@
 
 .taskSection {
   padding: $sp-4 $sp-5;
+  background: $c-surface-soft;
 }

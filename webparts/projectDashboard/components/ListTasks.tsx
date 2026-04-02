@@ -3,7 +3,9 @@ import { useEffect, useState } from "react";
 import { ITaskListItem } from "../../../models";
 import { GetDelay } from "../utils/GetDelay";
 import { GetFormatDate } from "../utils/GetFormatDate";
+import { compareWbs } from "../utils/ParseWBS";
 import styles from "./ProjectDashboard.module.scss";
+
 interface ListGroupProps {
   tasks: ITaskListItem[];
   heading: string;
@@ -22,6 +24,15 @@ interface ListGroupProps {
   ) => void;
 }
 
+type SortCol = "wbs" | "task" | "complete" | "start" | "finish";
+type SortDir = "asc" | "desc";
+
+const SortIcon = ({ col, active, dir }: { col: string; active: boolean; dir: SortDir }) => (
+  <span style={{ marginLeft: 4, opacity: active ? 1 : 0.3, fontSize: 10 }}>
+    {active ? (dir === "asc" ? "▲" : "▼") : "▲"}
+  </span>
+);
+
 const ListTasks = ({
   tasks,
   heading,
@@ -38,6 +49,9 @@ const ListTasks = ({
   const [editPercentComplete, setEditPercentComplete] = useState<number>(0);
   const [editStart, setEditStart] = useState<string>("");
   const [editFinish, setEditFinish] = useState<string>("");
+  const [sortCol, setSortCol] = useState<SortCol>("wbs");
+  const [sortDir, setSortDir] = useState<SortDir>("asc");
+  const [taskFilter, setTaskFilter] = useState<string>("");
 
   // Helper: Date/ISO/string -> YYYY-MM-DD
   const toDateInputValue = (value: any): string => {
@@ -50,7 +64,22 @@ const ListTasks = ({
     return `${yyyy}-${mm}-${dd}`;
   };
 
-  const filteredTasks = showDetails
+  const toMs = (value: any): number => {
+    if (!value) return 0;
+    const d = new Date(value);
+    return isNaN(d.getTime()) ? 0 : d.getTime();
+  };
+
+  const handleColSort = (col: SortCol) => {
+    if (sortCol === col) {
+      setSortDir(d => d === "asc" ? "desc" : "asc");
+    } else {
+      setSortCol(col);
+      setSortDir("asc");
+    }
+  };
+
+  const visibilityFiltered = showDetails
     ? tasks
     : tasks.filter(
         (item) =>
@@ -58,22 +87,32 @@ const ListTasks = ({
           GetDelay(item.Finish, item.ActualFinish) > 0
       );
 
-  const sortedTasks = filteredTasks.slice().sort((a, b) => {
-    const gateA = (a.Gate || "").trim().toLowerCase();
-    const gateB = (b.Gate || "").trim().toLowerCase();
-    if (gateA < gateB) return -1;
-    if (gateA > gateB) return 1;
+  const textFiltered = taskFilter.trim()
+    ? visibilityFiltered.filter((item) =>
+        (item.Task || "").toLowerCase().includes(taskFilter.trim().toLowerCase())
+      )
+    : visibilityFiltered;
 
-    const taskA = (a.Task || "").trim().toLowerCase();
-    const taskB = (b.Task || "").trim().toLowerCase();
-    if (taskA < taskB) return -1;
-    if (taskA > taskB) return 1;
-
-    const ai = Number(a.Title);
-    const bi = Number(b.Title);
-    if (!isNaN(ai) && !isNaN(bi)) return ai - bi;
-
-    return (a.Title || "").localeCompare(b.Title || "");
+  const sortedTasks = textFiltered.slice().sort((a, b) => {
+    let cmp = 0;
+    switch (sortCol) {
+      case "wbs":
+        cmp = compareWbs(a.Title || "", b.Title || "");
+        break;
+      case "task":
+        cmp = (a.Task || "").localeCompare(b.Task || "");
+        break;
+      case "complete":
+        cmp = (a.Complete || 0) - (b.Complete || 0);
+        break;
+      case "start":
+        cmp = toMs(a.Start) - toMs(b.Start);
+        break;
+      case "finish":
+        cmp = toMs(a.Finish) - toMs(b.Finish);
+        break;
+    }
+    return sortDir === "asc" ? cmp : -cmp;
   });
 
   useEffect(() => {
@@ -146,10 +185,53 @@ const ListTasks = ({
           <table className={styles.ed2Table}>
             <thead>
               <tr>
-                <th className={styles.colText}>Task</th>
-                <th className={styles.colDate}>Completed</th>
-                <th className={styles.colDate}>Start</th>
-                <th className={styles.colDate}>Finish</th>
+                <th
+                  className={`${styles.colWbs} ${styles.colSortable}`}
+                  onClick={() => handleColSort("wbs")}
+                  title="Sort by WBS"
+                >
+                  WBS<SortIcon col="wbs" active={sortCol === "wbs"} dir={sortDir} />
+                </th>
+                <th className={styles.colText}>
+                  <div className={styles.colTextHeader}>
+                    <span
+                      className={styles.colSortable}
+                      onClick={() => handleColSort("task")}
+                      title="Sort by Task"
+                    >
+                      Task<SortIcon col="task" active={sortCol === "task"} dir={sortDir} />
+                    </span>
+                    <input
+                      type="text"
+                      value={taskFilter}
+                      onChange={(e) => setTaskFilter(e.target.value)}
+                      placeholder="Filter..."
+                      className={styles["input-filter"]}
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                  </div>
+                </th>
+                <th
+                  className={`${styles.colDate} ${styles.colSortable}`}
+                  onClick={() => handleColSort("complete")}
+                  title="Sort by Completed"
+                >
+                  Completed<SortIcon col="complete" active={sortCol === "complete"} dir={sortDir} />
+                </th>
+                <th
+                  className={`${styles.colDate} ${styles.colSortable}`}
+                  onClick={() => handleColSort("start")}
+                  title="Sort by Start"
+                >
+                  Start<SortIcon col="start" active={sortCol === "start"} dir={sortDir} />
+                </th>
+                <th
+                  className={`${styles.colDate} ${styles.colSortable}`}
+                  onClick={() => handleColSort("finish")}
+                  title="Sort by Finish"
+                >
+                  Finish<SortIcon col="finish" active={sortCol === "finish"} dir={sortDir} />
+                </th>
                 <th className={`${styles.colActions} ${styles.actionsFixed}`}>
                   Action
                 </th>
@@ -164,6 +246,9 @@ const ListTasks = ({
                     item.Id === selectedTaskId ? styles["task-row-active"] : "",
                   ].filter(Boolean).join(" ")}
                 >
+                  {/* WBS */}
+                  <td className={styles.colWbs}>{item.Title}</td>
+
                   {/* Task */}
                   <td className={styles.colText}>
                     {editingTaskId === item.Id ? (
@@ -223,7 +308,7 @@ const ListTasks = ({
                     )}
                   </td>
 
-                  {/* Finish */}
+                  {/* Start */}
                   <td className={styles.colDate}>
                     {editingTaskId === item.Id ? (
                       <input
@@ -369,7 +454,7 @@ const ListTasks = ({
                 </tr>
                 {item.Id === selectedTaskId && expandedContent && (
                   <tr className={styles["task-card-row"]}>
-                    <td colSpan={5} className={styles["task-card-cell"]}>
+                    <td colSpan={6} className={styles["task-card-cell"]}>
                       <div className={styles["task-card-shell"]}>
                         {expandedContent}
                       </div>

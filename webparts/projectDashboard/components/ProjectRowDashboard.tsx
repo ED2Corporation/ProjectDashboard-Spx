@@ -252,7 +252,7 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
   ) : undefined;
 
   return (
-    <div className={styles.card}>
+    <div className={`${styles.card} ${activeGate !== null ? styles.cardActive : ""}`}>
 
       {/* ── Row header: project info (left) + gate bar (right) ───────── */}
       <div className={`${styles.header} ${activeGate !== null ? styles.headerActive : ""}`}>
