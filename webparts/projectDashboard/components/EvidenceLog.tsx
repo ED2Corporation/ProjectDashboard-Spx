@@ -90,16 +90,22 @@ const EvidenceLog: React.FC<EvidenceLogProps> = ({
               onClick={openFileDialog}
               disabled={uploading}
             >
-              {uploading ? 'Uploading...' : 'Upload'}
+              {uploading ? 'Uploading...' : 'Add'}
             </button>
-            <label className={styles.checkRow}>
+            <label
+              className={`${styles.checkRow} ${isCompletion ? styles.checkRowActive : ''}`}
+              title="Is Evidence of Completion"
+            >
               <input
                 type="checkbox"
                 checked={isCompletion}
                 onChange={e => setIsCompletion(e.target.checked)}
                 disabled={uploading}
               />
-              <span>Evidence of completion</span>
+              <span className={styles.switchTrack} aria-hidden="true">
+                <span className={styles.switchThumb} />
+              </span>
+              <span className={styles.checkLabel}>Is Evidence</span>
             </label>
           </div>
         </div>

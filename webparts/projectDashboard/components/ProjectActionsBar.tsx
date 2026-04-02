@@ -32,12 +32,27 @@ const IconTemplate: React.FC = () => (
   </svg>
 );
 
+const IconListLink: React.FC = () => (
+  <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+    <path d="M5 4.5A1.5 1.5 0 016.5 3h7A1.5 1.5 0 0115 4.5v11a1.5 1.5 0 01-1.5 1.5h-7A1.5 1.5 0 015 15.5v-11z" />
+    <path d="M7.5 7h5M7.5 10h5M7.5 13h3" stroke="white" strokeWidth="1.2" strokeLinecap="round" />
+  </svg>
+);
+
+const IconRepoLink: React.FC = () => (
+  <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+    <path d="M10 3.5l6 3.2v6.6L10 16.5l-6-3.2V6.7L10 3.5z" />
+    <path d="M10 3.5v13M4 6.7l6 3.3 6-3.3" stroke="white" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
 // ─── Props ────────────────────────────────────────────────────────────────────
 
 export interface IProjectActionsBarProps {
   project: IProjectListItem;
   projectService: ProjectService;
   evidenceFolderServerRelative: string;
+  repoUrl: string;
   repositoryName: string;
   onReset: () => void;
 }
@@ -48,11 +63,13 @@ const ProjectActionsBar: React.FC<IProjectActionsBarProps> = ({
   project,
   projectService,
   evidenceFolderServerRelative,
+  repoUrl,
   repositoryName,
   onReset,
 }) => {
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const [isImporting, setIsImporting] = React.useState(false);
+  const listUrl = project.Link?.Url || "";
 
   return (
     <div className={styles.bar}>
@@ -144,6 +161,28 @@ const ProjectActionsBar: React.FC<IProjectActionsBarProps> = ({
       >
         <IconTemplate />
         Download template
+      </a>
+
+      <a
+        href={listUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className={styles.btnQuickLink}
+        title="Open the SharePoint task list for this project"
+      >
+        <IconListLink />
+        Open List
+      </a>
+
+      <a
+        href={repoUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className={styles.btnQuickLink}
+        title="Open the evidence repository for this project"
+      >
+        <IconRepoLink />
+        Open Repo
       </a>
 
     </div>

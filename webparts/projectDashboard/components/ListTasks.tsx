@@ -1,5 +1,5 @@
 import * as React from "react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ITaskListItem } from "../../../models";
 import { GetDelay } from "../utils/GetDelay";
 import { GetFormatDate } from "../utils/GetFormatDate";
@@ -11,6 +11,8 @@ interface ListGroupProps {
   showDetails?: boolean | true;
   isPlanner?: boolean;
   selectedTaskId?: string;
+  expandedContent?: React.ReactNode;
+  onReload?: () => void;
   onSave: (itemId: string, payload?: string) => void;
   onSelectItem: (
     item: ITaskListItem,
@@ -28,6 +30,8 @@ const ListTasks = ({
   showDetails,
   isPlanner,
   selectedTaskId,
+  expandedContent,
+  onReload,
 }: ListGroupProps) => {
   const [editTaskTitle, setEditTaskTitle] = useState<string>("");
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
@@ -72,6 +76,23 @@ const ListTasks = ({
     return (a.Title || "").localeCompare(b.Title || "");
   });
 
+  useEffect(() => {
+    console.log("[ListTasks] Rendering WBS column", sortedTasks.map(task => ({
+      Id: task.Id,
+      Gate: task.Gate,
+      Task: task.Task,
+      Title: task.Title,
+    })));
+  }, [sortedTasks]);
+
+  const getDelayClassName = (task: ITaskListItem): string => {
+    if (Math.floor(task.Complete) >= 100) return "";
+    const delayDays = GetDelay(task.Finish);
+    if (delayDays > 15) return styles["task-row-delay-critical"];
+    if (delayDays > 0) return styles["task-row-delay-warning"];
+    return "";
+  };
+
   // handleSave lives inside the component and uses the current editing state
   const handleSave = (task: ITaskListItem) => {
     let actualFinish: Date | null | undefined;
@@ -110,105 +131,39 @@ const ListTasks = ({
               Math.floor(item.Complete) > 0
           ).length) > 0 && (
         <div>
-          <p className={styles.taskSectionHeading}>{heading}</p>
+          <div className={styles.taskSectionHeadingRow}>
+            {onReload && (
+              <button
+                type="button"
+                className={styles.taskSectionReloadBtn}
+                onClick={onReload}
+              >
+                Reload Job
+              </button>
+            )}
+            <p className={styles.taskSectionHeading}>{heading}</p>
+          </div>
           <table className={styles.ed2Table}>
             <thead>
               <tr>
-                <th className={`${styles.colActions} ${styles.actionsFixed}`}>
-                  Action
-                </th>
                 <th className={styles.colText}>Task</th>
                 <th className={styles.colDate}>Completed</th>
                 <th className={styles.colDate}>Start</th>
                 <th className={styles.colDate}>Finish</th>
+                <th className={`${styles.colActions} ${styles.actionsFixed}`}>
+                  Action
+                </th>
               </tr>
             </thead>
             <tbody>
-              {sortedTasks.map((item, index) => (
+              {sortedTasks.map((item) => (
+                <React.Fragment key={item.Id}>
                 <tr
-                  key={item.Id}
-                  className={item.Id === selectedTaskId ? styles["task-row-active"] : ""}
+                  className={[
+                    getDelayClassName(item),
+                    item.Id === selectedTaskId ? styles["task-row-active"] : "",
+                  ].filter(Boolean).join(" ")}
                 >
-                  {/* ACTIONS */}
-                  <td className={`${styles.colActions} ${styles.actionsFixed}`}>
-                    {/* New in same gate */}
-                    <button
-                      type="button"
-                      className={styles["icon-button"]}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onSelectItem(item, "task", "list-create");
-                      }}
-                      title="Add / New row"
-                    >
-                      <img
-                        src={require("../assets/Create.png")}
-                        alt="new"
-                        className={styles["icon-small"]}
-                      />
-                    </button>
-
-                    {/* Delete */}
-                    <button
-                      type="button"
-                      className={styles["icon-button"]}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onSelectItem(item, "task", "list-delete");
-                      }}
-                      title="Delete / Remove row"
-                    >
-                      <img
-                        src={require("../assets/Delete.png")}
-                        alt="delete"
-                        className={styles["icon-small"]}
-                      />
-                    </button>
-
-                    {editingTaskId === item.Id ? (
-                      <>
-                        {/* Save/Accept */}
-                        <button
-                          type="button"
-                          className={styles["icon-button"]}
-                          onClick={() => {
-                            handleSave(item);
-                            setEditingTaskId(null);
-                          }}
-                          title="Accept / Update DB"
-                        >
-                          <img
-                            src={require("../assets/Accept.png")}
-                            alt="send"
-                            className={styles["icon-small"]}
-                          />
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        {/* Enter edit mode */}
-                        <button
-                          type="button"
-                          className={styles["icon-button"]}
-                          onClick={() => {
-                            setEditingTaskId(item.Id);
-                            setEditTaskTitle(item.Task || "");
-                            setEditPercentComplete(item.Complete);
-                            setEditStart(toDateInputValue(item.Start));
-                            setEditFinish(toDateInputValue(item.Finish));
-                          }}
-                          title="Edit task"
-                        >
-                          <img
-                            src={require("../assets/EditRow.png")}
-                            alt="edit"
-                            className={styles["icon-small"]}
-                          />
-                        </button>
-                      </>
-                    )}
-                  </td>
-
                   {/* Task */}
                   <td className={styles.colText}>
                     {editingTaskId === item.Id ? (
@@ -222,7 +177,7 @@ const ListTasks = ({
                       />
                     ) : (
                       <span
-                        className={styles.taskName}
+                        className={`${styles.taskName} ${item.Id === selectedTaskId ? styles["task-name-active"] : ""}`}
                         onClick={(e) => { e.stopPropagation(); onSelectItem(item, "task", "list-edit"); }}
                       >{item.Task}</span>
                     )}
@@ -331,7 +286,97 @@ const ListTasks = ({
                     )}
                   </td>
 
+                  {/* ACTIONS */}
+                  <td className={`${styles.colActions} ${styles.actionsFixed}`}>
+                    {/* New in same gate */}
+                    <button
+                      type="button"
+                      className={styles["icon-button"]}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onSelectItem(item, "task", "list-create");
+                      }}
+                      title="Add / New row"
+                    >
+                      <img
+                        src={require("../assets/Create.png")}
+                        alt="new"
+                        className={styles["icon-small"]}
+                      />
+                    </button>
+
+                    {/* Delete */}
+                    <button
+                      type="button"
+                      className={styles["icon-button"]}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onSelectItem(item, "task", "list-delete");
+                      }}
+                      title="Delete / Remove row"
+                    >
+                      <img
+                        src={require("../assets/Delete.png")}
+                        alt="delete"
+                        className={styles["icon-small"]}
+                      />
+                    </button>
+
+                    {editingTaskId === item.Id ? (
+                      <>
+                        {/* Save/Accept */}
+                        <button
+                          type="button"
+                          className={styles["icon-button"]}
+                          onClick={() => {
+                            handleSave(item);
+                            setEditingTaskId(null);
+                          }}
+                          title="Accept / Update DB"
+                        >
+                          <img
+                            src={require("../assets/Accept.png")}
+                            alt="send"
+                            className={styles["icon-small"]}
+                          />
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        {/* Enter edit mode */}
+                        <button
+                          type="button"
+                          className={styles["icon-button"]}
+                          onClick={() => {
+                            setEditingTaskId(item.Id);
+                            setEditTaskTitle(item.Task || "");
+                            setEditPercentComplete(item.Complete);
+                            setEditStart(toDateInputValue(item.Start));
+                            setEditFinish(toDateInputValue(item.Finish));
+                          }}
+                          title="Edit task"
+                        >
+                          <img
+                            src={require("../assets/EditRow.png")}
+                            alt="edit"
+                            className={styles["icon-small"]}
+                          />
+                        </button>
+                      </>
+                    )}
+                  </td>
+
                 </tr>
+                {item.Id === selectedTaskId && expandedContent && (
+                  <tr className={styles["task-card-row"]}>
+                    <td colSpan={5} className={styles["task-card-cell"]}>
+                      <div className={styles["task-card-shell"]}>
+                        {expandedContent}
+                      </div>
+                    </td>
+                  </tr>
+                )}
+                </React.Fragment>
               ))}
             </tbody>
           </table>

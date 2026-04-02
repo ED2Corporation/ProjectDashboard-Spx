@@ -34,6 +34,26 @@ export interface ProjectRowDashboardProps {
   onCatalogItemSaved?: () => void;
 }
 
+const toAbsoluteSharePointUrl = (baseUrl: string, path: string): string =>
+  new URL(path, baseUrl).toString();
+
+const buildRepoBrowseUrl = (baseUrl: string, folderServerRelative: string): string => {
+  const normalized = folderServerRelative.replace(/\/+$/, "");
+  if (!normalized) return "";
+
+  const lower = normalized.toLowerCase();
+  const sharedDocsToken = "/shared documents";
+  const sharedDocsIndex = lower.indexOf(sharedDocsToken);
+
+  if (sharedDocsIndex >= 0) {
+    const libraryRoot = normalized.slice(0, sharedDocsIndex + sharedDocsToken.length);
+    const libraryViewUrl = toAbsoluteSharePointUrl(baseUrl, `${libraryRoot}/Forms/AllItems.aspx`);
+    return `${libraryViewUrl}?id=${encodeURIComponent(normalized)}`;
+  }
+
+  return toAbsoluteSharePointUrl(baseUrl, normalized);
+};
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
@@ -43,8 +63,14 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
   const repoName   = `${project.ProjectId}-Evidence`;
   const siteUrl    = context.pageContext.web.absoluteUrl;
   const siteRel    = context.pageContext.web.serverRelativeUrl;
-  const projectURL = `${siteUrl}/Lists/${listName}`;
   const evidenceFolderServerRelative = buildRepoRelativeUrl(siteRel, repoName);
+  const [projectListUrl, setProjectListUrl] = useState<string>(
+    `${siteUrl.replace(/\/+$/, "")}/Lists/${encodeURIComponent(listName)}/AllItems.aspx`
+  );
+  const repoBrowseUrl = useMemo(
+    () => buildRepoBrowseUrl(siteUrl, evidenceFolderServerRelative),
+    [siteUrl, evidenceFolderServerRelative]
+  );
 
   const projectService = useMemo(
     () => new ProjectService(sp, listName),
@@ -67,7 +93,7 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
     sourceName:     listName,
     isPlanner:      false,
     showLog:        false,
-    projectURL,
+    projectURL:     projectListUrl,
     onPatchProperties: noop,
   });
 
@@ -106,6 +132,24 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
   // Local copy of catalog fields — updated optimistically after a successful save
   const [localProject,       setLocalProject]       = useState(project);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    void sp.web.lists.getByTitle(listName).select("DefaultViewUrl")()
+      .then((list: { DefaultViewUrl?: string }) => {
+        if (!cancelled && list?.DefaultViewUrl) {
+          setProjectListUrl(toAbsoluteSharePointUrl(siteUrl, list.DefaultViewUrl));
+        }
+      })
+      .catch((error: unknown) => {
+        console.error("[ProjectRowDashboard] Failed to resolve SharePoint list URL", error);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [sp, listName, siteUrl]);
+
   // Minimal IProjectListItem shape required by ProjectActionsBar
   const projectListItem = useMemo(() => ({
     Id:             project.ProjectId ?? project.Title,
@@ -113,8 +157,8 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
     ListName:       listName,
     RepositoryName: repoName,
     isPlanner:      false,
-    Link:           { Url: projectURL, Description: project.Title },
-  }), [project, listName, repoName, projectURL]);
+    Link:           { Url: projectListUrl, Description: project.Title },
+  }), [project, listName, repoName, projectListUrl]);
 
   // Report project status to parent once gates are loaded
   useEffect(() => {
@@ -163,6 +207,49 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
   const tasksHeading = showAllTasks
     ? "All Tasks"
     : filteredTasks[0]?.Gate || activeGate || "";
+  const expandedTaskCard = showCard && selectedTask ? (
+    <TaskCard
+      task={selectedTask}
+      isPlanner={false}
+      currentUserEmail={context.pageContext.user.email}
+      currentUserDisplayName={context.pageContext.user.displayName}
+      projectInfo={{
+        projectNumber: localProject.ProjectNumber ?? '',
+        partNumber: localProject.ProjectNumber && localProject.Title?.startsWith(`${localProject.ProjectNumber}-`)
+          ? localProject.Title.slice(localProject.ProjectNumber.length + 1)
+          : (localProject.Title ?? ''),
+      }}
+      onSaveLogField={onSaveLogField}
+      onSendEmail={onSendEmail}
+      onSearchUsers={onSearchUsers}
+      onTaskCompleted={handleTaskCompleted}
+      onClose={() => setShowCard(false)}
+      onNew={(task) => onNewTask?.(task.Gate)}
+      onDelete={(taskId) => { onDeleteTask?.(taskId); setShowCard(false); }}
+      onSave={(taskId, payloadJson) => {
+        if (payloadJson) {
+          try {
+            const parsed = JSON.parse(payloadJson) as Partial<ITaskListItem>;
+            setSelectedTask(prev => prev?.Id === taskId ? {
+              ...prev,
+              ...parsed,
+              Start: parsed.Start ? new Date(parsed.Start) : prev.Start,
+              Finish: parsed.Finish ? new Date(parsed.Finish) : prev.Finish,
+              ActualFinish: parsed.ActualFinish ? new Date(parsed.ActualFinish) : prev.ActualFinish,
+            } : prev);
+          } catch (error) {
+            console.error("[ProjectRowDashboard] Failed to parse TaskCard save payload", error);
+          }
+        }
+        onUpdateTask?.(taskId, "full-update", payloadJson);
+        setShowCard(true);
+      }}
+      onUploadEvidenceFile={async (file, taskTitle) => {
+        if (!onUploadFile) throw new Error("onUploadFile not provided");
+        return onUploadFile(file, taskTitle);
+      }}
+    />
+  ) : undefined;
 
   return (
     <div className={styles.card}>
@@ -203,6 +290,7 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
             project={projectListItem}
             projectService={projectService}
             evidenceFolderServerRelative={evidenceFolderServerRelative}
+            repoUrl={repoBrowseUrl}
             repositoryName={repoName}
             onReset={onReset}
           />
@@ -221,56 +309,16 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
       {/* ── Task section — visible when a gate is active ──────────────── */}
       {activeGate !== null && tasks.length > 0 && (
         <div className={styles.taskSection}>
-          {showCard && selectedTask && (
-            <TaskCard
-              task={selectedTask}
-              isPlanner={false}
-              currentUserEmail={context.pageContext.user.email}
-              currentUserDisplayName={context.pageContext.user.displayName}
-              projectInfo={{
-                projectNumber: localProject.ProjectNumber ?? '',
-                partNumber: localProject.ProjectNumber && localProject.Title?.startsWith(`${localProject.ProjectNumber}-`)
-                  ? localProject.Title.slice(localProject.ProjectNumber.length + 1)
-                  : (localProject.Title ?? ''),
-              }}
-              onSaveLogField={onSaveLogField}
-              onSendEmail={onSendEmail}
-              onSearchUsers={onSearchUsers}
-              onTaskCompleted={handleTaskCompleted}
-              onClose={() => setShowCard(false)}
-              onNew={(task) => onNewTask?.(task.Gate)}
-              onDelete={(taskId) => { onDeleteTask?.(taskId); setShowCard(false); }}
-              onSave={(taskId, payloadJson) => {
-                if (payloadJson) {
-                  try {
-                    const parsed = JSON.parse(payloadJson) as Partial<ITaskListItem>;
-                    setSelectedTask(prev => prev?.Id === taskId ? {
-                      ...prev,
-                      ...parsed,
-                      Start: parsed.Start ? new Date(parsed.Start) : prev.Start,
-                      Finish: parsed.Finish ? new Date(parsed.Finish) : prev.Finish,
-                      ActualFinish: parsed.ActualFinish ? new Date(parsed.ActualFinish) : prev.ActualFinish,
-                    } : prev);
-                  } catch (error) {
-                    console.error("[ProjectRowDashboard] Failed to parse TaskCard save payload", error);
-                  }
-                }
-                onUpdateTask?.(taskId, "full-update", payloadJson);
-                setShowCard(true);
-              }}
-              onUploadEvidenceFile={async (file, taskTitle) => {
-                if (!onUploadFile) throw new Error("onUploadFile not provided");
-                return onUploadFile(file, taskTitle);
-              }}
-            />
-          )}
-
           <ListTasks
             tasks={visibleTasks}
             isPlanner={false}
             heading={tasksHeading}
             showDetails={true}
+            onReload={() => {
+              void onReset();
+            }}
             selectedTaskId={showCard ? selectedTask?.Id : undefined}
+            expandedContent={expandedTaskCard}
             onSave={(taskId, payloadJson) => {
               onUpdateTask?.(taskId, "quick-complete", payloadJson);
             }}
@@ -299,10 +347,6 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
               }
             }}
           />
-
-          <button type="button" onClick={() => onReset()} className={styles.reloadBtn}>
-            Reload
-          </button>
         </div>
       )}
     </div>

@@ -150,7 +150,7 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
     try {
       const siteRelativePath = context.pageContext.web.serverRelativeUrl;
       const LOG_FIELD_NAMES = ['Notes', 'Evidence', 'Approvals'];
-      const baseSelect = `Id,Gate,Task,Deliverable,Complete,Start,Finish,ActualFinish`;
+      const baseSelect = `Id,Title,Gate,Task,Deliverable,Complete,Start,Finish,ActualFinish`;
 
       const buildSelect = (withLog: boolean): string =>
         withLog ? `${baseSelect},Notes,Evidence,Approvals` : baseSelect;
@@ -197,6 +197,12 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
 
       const responseJson = await response.json();
       const raw: any[] = Array.isArray(responseJson.value) ? responseJson.value : [];  // eslint-disable-line @typescript-eslint/no-explicit-any
+      console.log("[useProjectState] Raw task items from SharePoint", raw.map(r => ({
+        Id: r.Id,
+        Gate: r.Gate,
+        Task: r.Task,
+        Title: r.Title,
+      })));
 
       const loaded: ITaskListItem[] = raw.map(r => ({
         Id: String(r.Id),
@@ -213,6 +219,12 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
         Evidence:  parseLogField<IEvidenceEntry>(r.Evidence),
         Approvals: parseLogField<IApprovalEntry>(r.Approvals),
       }));
+      console.log("[useProjectState] Loaded task items", loaded.map(task => ({
+        Id: task.Id,
+        Gate: task.Gate,
+        Task: task.Task,
+        Title: task.Title,
+      })));
 
       return [...loaded].sort((a, b) => {
         const m = (g: string): string => { const x = g.match(/(\d+(?:\.\d+)*)/); return x ? x[1] : g; };

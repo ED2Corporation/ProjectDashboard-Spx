@@ -137,6 +137,10 @@ export default class ProjectDashboard extends React.Component<
                 project={project}
                 projectService={this.props.projectService}
                 evidenceFolderServerRelative={this.props.evidenceFolderServerRelative}
+                repoUrl={new URL(
+                  this.props.evidenceFolderServerRelative,
+                  this.props.context.pageContext.web.absoluteUrl
+                ).toString()}
                 repositoryName={this.props.repositoryName}
                 onReset={this.props.onReset}
               />

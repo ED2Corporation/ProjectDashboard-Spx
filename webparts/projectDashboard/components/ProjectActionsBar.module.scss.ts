@@ -1,14 +1,15 @@
 
 require("./ProjectActionsBar.module.css");
 const styles = {
-  bar: 'bar_ba6a23aa',
-  actionBtn: 'actionBtn_ba6a23aa',
-  btnArchive: 'btnArchive_ba6a23aa actionBtn_ba6a23aa',
-  btnExport: 'btnExport_ba6a23aa actionBtn_ba6a23aa',
-  btnImport: 'btnImport_ba6a23aa actionBtn_ba6a23aa',
-  btnTemplate: 'btnTemplate_ba6a23aa actionBtn_ba6a23aa',
-  spinner: 'spinner_ba6a23aa',
-  spin: 'spin_ba6a23aa'
+  bar: 'bar_8ce164f6',
+  actionBtn: 'actionBtn_8ce164f6',
+  btnArchive: 'btnArchive_8ce164f6 actionBtn_8ce164f6',
+  btnExport: 'btnExport_8ce164f6 actionBtn_8ce164f6',
+  btnImport: 'btnImport_8ce164f6 actionBtn_8ce164f6',
+  btnTemplate: 'btnTemplate_8ce164f6 actionBtn_8ce164f6',
+  btnQuickLink: 'btnQuickLink_8ce164f6 actionBtn_8ce164f6',
+  spinner: 'spinner_8ce164f6',
+  spin: 'spin_8ce164f6'
 };
 
 export default styles;

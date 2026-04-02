@@ -12,6 +12,8 @@ interface NotesLogProps {
 const NotesLog: React.FC<NotesLogProps> = ({ notes, currentUserDisplayName, onSave }) => {
   const [text, setText] = useState('');
   const [saving, setSaving] = useState(false);
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [editingText, setEditingText] = useState('');
 
   const handleAdd = async (): Promise<void> => {
     const trimmed = text.trim();
@@ -35,7 +37,39 @@ const NotesLog: React.FC<NotesLogProps> = ({ notes, currentUserDisplayName, onSa
     }
   };
 
-  const entries = [...(notes ?? [])].reverse();
+  const handleEditStart = (sourceIndex: number, note: string): void => {
+    setEditingIndex(sourceIndex);
+    setEditingText(note);
+  };
+
+  const handleEditCancel = (): void => {
+    setEditingIndex(null);
+    setEditingText('');
+  };
+
+  const handleEditSave = async (): Promise<void> => {
+    if (editingIndex === null) return;
+    const trimmed = editingText.trim();
+    if (!trimmed) return;
+    setSaving(true);
+    try {
+      const nextEntries = [...(notes ?? [])];
+      const currentEntry = nextEntries[editingIndex];
+      if (!currentEntry) return;
+      nextEntries[editingIndex] = {
+        ...currentEntry,
+        note: trimmed,
+      };
+      await onSave(nextEntries);
+      handleEditCancel();
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const entries = [...(notes ?? [])]
+    .map((entry, sourceIndex) => ({ entry, sourceIndex }))
+    .reverse();
 
   return (
     <div className={styles.container}>
@@ -59,13 +93,54 @@ const NotesLog: React.FC<NotesLogProps> = ({ notes, currentUserDisplayName, onSa
       </div>
       <div className={styles.feed}>
         {entries.length === 0 && <p className={styles.empty}>No notes yet.</p>}
-        {entries.map((n, i) => (
+        {entries.map(({ entry, sourceIndex }, i) => (
           <div key={i} className={styles.entry}>
             <div className={styles.meta}>
-              <span className={styles.user}>{n.user}</span>
-              <span className={styles.date}>{new Date(n.date).toLocaleString()}</span>
+              <span className={styles.user}>{entry.user}</span>
+              <span className={styles.date}>{new Date(entry.date).toLocaleString()}</span>
+              {editingIndex !== sourceIndex && (
+                <button
+                  type="button"
+                  className={styles.editBtn}
+                  onClick={() => handleEditStart(sourceIndex, entry.note)}
+                  title="Edit note"
+                >
+                  <svg viewBox="0 0 16 16" className={styles.editIcon} aria-hidden="true">
+                    <path d="M11.8 2.2a1.4 1.4 0 0 1 2 2L6 12H4v-2z" />
+                    <path d="M9.8 4.2l2 2" />
+                  </svg>
+                </button>
+              )}
             </div>
-            <p className={styles.noteText}>{n.note}</p>
+            {editingIndex === sourceIndex ? (
+              <div className={styles.editRow}>
+                <input
+                  type="text"
+                  value={editingText}
+                  onChange={e => setEditingText(e.target.value)}
+                  className={styles.noteInput}
+                  disabled={saving}
+                />
+                <button
+                  type="button"
+                  className={styles.editActionBtn}
+                  onClick={handleEditSave}
+                  disabled={saving || !editingText.trim()}
+                >
+                  Save
+                </button>
+                <button
+                  type="button"
+                  className={`${styles.editActionBtn} ${styles.cancelBtn}`}
+                  onClick={handleEditCancel}
+                  disabled={saving}
+                >
+                  Cancel
+                </button>
+              </div>
+            ) : (
+              <p className={styles.noteText}>{entry.note}</p>
+            )}
           </div>
         ))}
       </div>

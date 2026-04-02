@@ -106,25 +106,63 @@
 }
 
 .checkRow {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: $sp-1;
+  gap: $sp-2;
   flex: 0 0 auto;
-  font-size: $f-xs;
-  color: $c-text-subtle;
   cursor: pointer;
   user-select: none;
+  color: $c-text-subtle;
+  transition: $t-fast;
+  padding: 0 $sp-1;
 
   input[type='checkbox'] {
-    width: 14px;
-    height: 14px;
-    cursor: pointer;
-    accent-color: $c-primary;
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
   }
 }
 
+.checkRowActive {
+  color: $c-ontime;
+}
+
+.checkLabel {
+  font-size: $f-xs;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.switchTrack {
+  display: inline-flex;
+  align-items: center;
+  width: 30px;
+  height: 18px;
+  padding: 2px;
+  border-radius: 999px;
+  background: $c-border;
+  transition: $t-fast;
+}
+
+.switchThumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  background: $c-surface;
+  box-shadow: $shadow-sm;
+  transition: transform 0.18s ease;
+}
+
+.checkRowActive .switchTrack {
+  background: $c-ontime;
+}
+
+.checkRowActive .switchThumb {
+  transform: translateX(12px);
+}
+
 .noteInput {
-  flex: 1 1 180px;
+  flex: 0 1 70%;
   min-width: 0;
   font-family: $f-family;
   font-size: $f-xs;
@@ -146,10 +184,12 @@
 }
 
 .uploadBtn {
-  flex: 0 0 88px;
-  padding: $sp-1 $sp-4;
+  flex: 0 0 30px;
+  width: 30px;
+  min-width: 30px;
+  padding: $sp-1 0;
   font-family: $f-family;
-  font-size: $f-xs;
+  font-size: 10px;
   font-weight: 500;
   color: $c-primary;
   background: $c-primary-bg;
@@ -213,8 +253,8 @@
   }
 
   .checkRow {
-    width: 100%;
-    justify-content: flex-start;
+    width: auto;
+    align-self: flex-start;
   }
 
   .entryRow {
