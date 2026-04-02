@@ -1,5 +1,5 @@
 import * as React from "react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { ITaskListItem } from "../../../models";
 import { GetDelay } from "../utils/GetDelay";
 import { GetFormatDate } from "../utils/GetFormatDate";
@@ -114,15 +114,6 @@ const ListTasks = ({
     }
     return sortDir === "asc" ? cmp : -cmp;
   });
-
-  useEffect(() => {
-    console.log("[ListTasks] Rendering WBS column", sortedTasks.map(task => ({
-      Id: task.Id,
-      Gate: task.Gate,
-      Task: task.Task,
-      Title: task.Title,
-    })));
-  }, [sortedTasks]);
 
   const getDelayClassName = (task: ITaskListItem): string => {
     if (Math.floor(task.Complete) >= 100) return "";
@@ -248,33 +239,39 @@ const ListTasks = ({
                 >
                   {/* WBS */}
                   <td className={styles.colWbs}>
-                    <span className={styles.wbsCell}>
-                      {item.Title}
-                      {Math.floor(item.Complete) === 100 && item.EvidenceOfCompletion?.Url && (
-                        <a
-                          href={item.EvidenceOfCompletion.Url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          title={item.EvidenceOfCompletion.Description || "Evidence of Completion"}
-                          onClick={(e) => e.stopPropagation()}
-                          className={styles.wbsEvidenceLink}
-                        >
-                          <img
-                            src={require("../assets/Document.png")}
-                            alt="Evidence"
-                            className={styles["icon-small"]}
-                          />
-                        </a>
-                      )}
-                      {Math.floor(item.Complete) === 100 && !item.EvidenceOfCompletion?.Url && (
-                        <span
-                          className={styles.wbsEvidenceAlert}
-                          title="Task is 100% complete but has no Evidence of Completion"
-                        >
-                          ⚠
+                    {(() => {
+                      const completionEvidence = item.Evidence?.find(e => e.isEvidenceOfCompletion);
+                      const isComplete = Math.floor(item.Complete) === 100;
+                      return (
+                        <span className={styles.wbsCell}>
+                          {item.Title}
+                          {isComplete && completionEvidence && (
+                            <a
+                              href={completionEvidence.fileUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              title={completionEvidence.note || completionEvidence.fileName || "Evidence of Completion"}
+                              onClick={(e) => e.stopPropagation()}
+                              className={styles.wbsEvidenceLink}
+                            >
+                              <img
+                                src={require("../assets/Document.png")}
+                                alt="Evidence"
+                                className={styles["icon-small"]}
+                              />
+                            </a>
+                          )}
+                          {isComplete && !completionEvidence && (
+                            <span
+                              className={styles.wbsEvidenceAlert}
+                              title="Task is 100% complete but has no Evidence of Completion"
+                            >
+                              ⚠
+                            </span>
+                          )}
                         </span>
-                      )}
-                    </span>
+                      );
+                    })()}
                   </td>
 
                   {/* Task */}

@@ -219,13 +219,6 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
         Evidence:  parseLogField<IEvidenceEntry>(r.Evidence),
         Approvals: parseLogField<IApprovalEntry>(r.Approvals),
       }));
-      console.log("[useProjectState] Loaded task items", loaded.map(task => ({
-        Id: task.Id,
-        Gate: task.Gate,
-        Task: task.Task,
-        Title: task.Title,
-      })));
-
       return [...loaded].sort((a, b) => {
         const m = (g: string): string => { const x = g.match(/(\d+(?:\.\d+)*)/); return x ? x[1] : g; };
         return compareWbs(m(a.Gate), m(b.Gate));
