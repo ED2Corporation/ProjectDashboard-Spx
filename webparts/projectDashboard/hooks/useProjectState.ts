@@ -554,6 +554,20 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
         Finish: data.Finish,
         ActualFinish: actualFinishValue
       });
+
+      // Rename gate for all other tasks in the same gate
+      if (data.renameGate && data.originalGate && data.Gate !== data.originalGate) {
+        const list = sp.web.lists.getByTitle(listTitle);
+        const siblings: any[] = await list.items // eslint-disable-line @typescript-eslint/no-explicit-any
+          .select("Id")
+          .filter(`Gate eq '${data.originalGate.replace(/'/g, "''")}'`)
+          .top(5000)();
+        await Promise.all(
+          siblings
+            .filter((i: any) => String(i.Id) !== String(data.Id)) // eslint-disable-line @typescript-eslint/no-explicit-any
+            .map((i: any) => list.items.getById(i.Id).update({ Gate: data.Gate })) // eslint-disable-line @typescript-eslint/no-explicit-any
+        );
+      }
     }
 
     const r: any = await itemRef.select( // eslint-disable-line @typescript-eslint/no-explicit-any

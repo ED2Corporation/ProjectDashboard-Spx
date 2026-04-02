@@ -40,6 +40,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, currentUserEmail, 
   const [activeTab, setActiveTab] = useState<TaskTab>('notes');
   const canManageApprovers = isManager(currentUserEmail ?? '');
   const [gate, setGate] = useState(task.Gate ?? "");
+  const [renameAllGateTasks, setRenameAllGateTasks] = useState(true);
   const [deliverable, setDeliverable] = useState(task.Deliverable ?? "");
   const [taskTitle, setTaskTitle] = useState(task.Task ?? "");
   const [complete, setComplete] = useState<number>(task.Complete ?? 0);
@@ -64,6 +65,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, currentUserEmail, 
 
   useEffect(() => {
     setGate(task.Gate ?? "");
+    setRenameAllGateTasks(true);
     setDeliverable(task.Deliverable ?? "");
     setTaskTitle(task.Task ?? "");
     setComplete(task.Complete ?? 0);
@@ -92,6 +94,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, currentUserEmail, 
         ? task.ActualFinish ? new Date(task.ActualFinish) : new Date()
         : null;
 
+    const gateChanged = gate !== task.Gate;
     const data = {
       Id: task.Id,
       Deliverable: deliverable,
@@ -105,6 +108,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, currentUserEmail, 
       Finish: finish ? new Date(finish) : undefined,
       ActualFinish: actualFinish,
       EvidenceOfCompletion: effectiveEvidence,
+      ...(gateChanged && { originalGate: task.Gate, renameGate: renameAllGateTasks }),
     };
 
     onSave(task.Id, JSON.stringify(data));
@@ -309,9 +313,23 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, currentUserEmail, 
                   <input
                     type="text"
                     value={gate}
-                    onChange={e => setGate(e.target.value)}
+                    onChange={e => { setGate(e.target.value); setRenameAllGateTasks(true); }}
                     className={styles["input-small"]}
                   />
+                  {gate !== task.Gate && (
+                    <div className={styles["gate-rename-toggle"]}>
+                      <label className={styles["gate-rename-label"]}>
+                        <input
+                          type="checkbox"
+                          checked={renameAllGateTasks}
+                          onChange={e => setRenameAllGateTasks(e.target.checked)}
+                        />
+                        {renameAllGateTasks
+                          ? "Rename gate for all tasks in this gate"
+                          : "Move only this task to new gate"}
+                      </label>
+                    </div>
+                  )}
                 </td>
               </tr>              
               <tr>

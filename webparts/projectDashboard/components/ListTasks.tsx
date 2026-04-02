@@ -247,7 +247,35 @@ const ListTasks = ({
                   ].filter(Boolean).join(" ")}
                 >
                   {/* WBS */}
-                  <td className={styles.colWbs}>{item.Title}</td>
+                  <td className={styles.colWbs}>
+                    <span className={styles.wbsCell}>
+                      {item.Title}
+                      {Math.floor(item.Complete) === 100 && item.EvidenceOfCompletion?.Url && (
+                        <a
+                          href={item.EvidenceOfCompletion.Url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title={item.EvidenceOfCompletion.Description || "Evidence of Completion"}
+                          onClick={(e) => e.stopPropagation()}
+                          className={styles.wbsEvidenceLink}
+                        >
+                          <img
+                            src={require("../assets/Document.png")}
+                            alt="Evidence"
+                            className={styles["icon-small"]}
+                          />
+                        </a>
+                      )}
+                      {Math.floor(item.Complete) === 100 && !item.EvidenceOfCompletion?.Url && (
+                        <span
+                          className={styles.wbsEvidenceAlert}
+                          title="Task is 100% complete but has no Evidence of Completion"
+                        >
+                          ⚠
+                        </span>
+                      )}
+                    </span>
+                  </td>
 
                   {/* Task */}
                   <td className={styles.colText}>
