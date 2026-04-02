@@ -87,13 +87,18 @@
 }
 
 .fileInput {
-  font-family: $f-family;
-  font-size: $f-xs;
-  color: $c-text;
+  display: none;
 }
 
-.textarea {
-  width: 100%;
+.addRow {
+  display: flex;
+  align-items: center;
+  gap: $sp-2;
+}
+
+.noteInput {
+  flex: 1 1 auto;
+  min-width: 0;
   font-family: $f-family;
   font-size: $f-body;
   color: $c-text;
@@ -101,8 +106,8 @@
   border-radius: $r-sm;
   padding: $sp-2 $sp-3;
   box-sizing: border-box;
-  resize: vertical;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  background: $c-surface;
 
   &:focus {
     outline: none;
@@ -114,7 +119,7 @@
 }
 
 .uploadBtn {
-  align-self: flex-end;
+  flex: 0 0 auto;
   padding: $sp-2 $sp-5;
   font-family: $f-family;
   font-size: $f-body;
@@ -128,6 +133,17 @@
 
   &:hover:not(:disabled) { filter: brightness(0.9); }
   &:disabled { opacity: 0.5; cursor: not-allowed; }
+}
+
+@media (max-width: 640px) {
+  .addRow {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .uploadBtn {
+    width: 100%;
+  }
 }
 
 // stylelint-enable selector-class-pattern

@@ -377,6 +377,15 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
     const folderPath = REPOSITORY_URL + "/";
     const folderName = config.sourceName.replace(/-List$/, '-Evidence') || REPOSITORY_NAME_DEFAULT;
 
+    // Ensure the evidence folder exists before attempting the upload
+    await ensureFolder(
+      context.spHttpClient,
+      SITE_URL || context.pageContext.web.absoluteUrl,
+      siteRelativePath,
+      REPOSITORY_URL,
+      folderName
+    );
+
     const { fileUrl, fileName } = await uploadEvidenceFile(
       context.spHttpClient,
       context,
@@ -826,12 +835,35 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
   ): Promise<void> => {
     const listTitle = config.sourceName;
     const value = JSON.stringify(entries);
+    console.log("[useProjectState] onSaveLogField start", {
+      listTitle,
+      taskId,
+      field,
+      entriesCount: entries.length,
+      value,
+    });
     const tryUpdate = async (): Promise<void> => {
+      console.log("[useProjectState] Updating SharePoint log field", {
+        listTitle,
+        taskId,
+        field,
+      });
       await sp.web.lists.getByTitle(listTitle).items.getById(Number(taskId)).update({ [field]: value });
     };
     try {
       await tryUpdate();
+      console.log("[useProjectState] SharePoint update succeeded", {
+        listTitle,
+        taskId,
+        field,
+      });
     } catch (err: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
+      console.error("[useProjectState] SharePoint update failed", {
+        listTitle,
+        taskId,
+        field,
+        error: err,
+      });
       // If the column does not exist, create it and retry once
       if (logFieldsAvailableRef.current === false || String(err?.message ?? err).includes('does not exist')) {
         const list = sp.web.lists.getByTitle(listTitle);
@@ -842,7 +874,17 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
           }
         }
         logFieldsAvailableRef.current = true;
+        console.log("[useProjectState] Log fields ensured, retrying update", {
+          listTitle,
+          taskId,
+          field,
+        });
         await tryUpdate();
+        console.log("[useProjectState] SharePoint update succeeded after ensuring fields", {
+          listTitle,
+          taskId,
+          field,
+        });
       } else {
         throw err;
       }
@@ -852,6 +894,11 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
       t.Id === taskId ? { ...t, [field]: entries } : t;
     syncTasks(tasksRef.current.map(patchTask));
     setSelectedTask(prev => (prev?.Id === taskId ? { ...prev, [field]: entries } : prev));
+    console.log("[useProjectState] Local task state patched", {
+      taskId,
+      field,
+      entriesCount: entries.length,
+    });
   }, [config.sourceName, sp, syncTasks]);
 
   // ── Send email via Graph ────────────────────────────────────────────────────

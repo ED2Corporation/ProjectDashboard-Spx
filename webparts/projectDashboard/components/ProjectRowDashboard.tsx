@@ -1,5 +1,5 @@
 import * as React from "react";
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { SPFI } from "@pnp/sp";
 import { BaseComponentContext } from "@microsoft/sp-component-base";
 import { SPHttpClient } from "@microsoft/sp-http";
@@ -58,7 +58,7 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
     tasks, gates, filteredTasks,
     onReset, onGateFilterChange, onSelectItem,
     onNewTask, onDeleteTask, onUpdateTask, onUploadFile,
-    onSaveLogField, onSendEmail,
+    onSaveLogField: _onSaveLogField, onSendEmail,
   } = useProjectState({
     context,
     sp,
@@ -70,6 +70,33 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
     projectURL,
     onPatchProperties: noop,
   });
+
+  // Wrap onSaveLogField so the local selectedTask also reflects log changes immediately
+  const onSaveLogField = useCallback(async (
+    taskId: string,
+    field: 'Notes' | 'Evidence' | 'Approvals',
+    entries: unknown[]
+  ): Promise<void> => {
+    console.log("[ProjectRowDashboard] onSaveLogField called", {
+      taskId,
+      field,
+      entriesCount: entries.length,
+      entries,
+    });
+    await _onSaveLogField(taskId, field, entries);
+    console.log("[ProjectRowDashboard] useProjectState onSaveLogField resolved", {
+      taskId,
+      field,
+      entriesCount: entries.length,
+    });
+    setSelectedTask(prev => prev?.Id === taskId ? { ...prev, [field]: entries } : prev);
+    console.log("[ProjectRowDashboard] selectedTask patched locally", {
+      taskId,
+      field,
+      entriesCount: entries.length,
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [_onSaveLogField]);
 
   const [activeGate,         setActiveGate]         = useState<string | null>(null);
   const [showCard,           setShowCard]           = useState(false);
@@ -207,6 +234,20 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
               onNew={(task) => onNewTask?.(task.Gate)}
               onDelete={(taskId) => { onDeleteTask?.(taskId); setShowCard(false); }}
               onSave={(taskId, payloadJson) => {
+                if (payloadJson) {
+                  try {
+                    const parsed = JSON.parse(payloadJson) as Partial<ITaskListItem>;
+                    setSelectedTask(prev => prev?.Id === taskId ? {
+                      ...prev,
+                      ...parsed,
+                      Start: parsed.Start ? new Date(parsed.Start) : prev.Start,
+                      Finish: parsed.Finish ? new Date(parsed.Finish) : prev.Finish,
+                      ActualFinish: parsed.ActualFinish ? new Date(parsed.ActualFinish) : prev.ActualFinish,
+                    } : prev);
+                  } catch (error) {
+                    console.error("[ProjectRowDashboard] Failed to parse TaskCard save payload", error);
+                  }
+                }
                 onUpdateTask?.(taskId, "full-update", payloadJson);
                 setShowCard(true);
               }}

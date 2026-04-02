@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useState, useRef } from 'react';
+import { useRef, useState } from 'react';
 import { IEvidenceEntry } from '../../../models/ITaskLogFields';
 import styles from './EvidenceLog.module.scss';
 
@@ -7,7 +7,7 @@ interface EvidenceLogProps {
   evidence: IEvidenceEntry[] | null;
   taskTitle: string;
   currentUserDisplayName: string;
-  onSave: (entries: IEvidenceEntry[]) => Promise<void>;
+  onSave: (entries: IEvidenceEntry[], uploadedEntry?: IEvidenceEntry) => Promise<void>;
   onUploadFile?: (file: File, taskTitle: string) => Promise<{ fileUrl: string; fileName: string }>;
 }
 
@@ -15,33 +15,48 @@ const EvidenceLog: React.FC<EvidenceLogProps> = ({
   evidence, taskTitle, currentUserDisplayName, onSave, onUploadFile,
 }) => {
   const [note, setNote] = useState('');
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
-    setSelectedFile(e.target.files?.[0] ?? null);
+  const resetFileInput = (): void => {
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
 
-  const handleUpload = async (): Promise<void> => {
-    if (!selectedFile || !onUploadFile) return;
+  const handleUpload = async (file: File): Promise<void> => {
+    if (!onUploadFile) return;
     setUploading(true);
     try {
-      const { fileUrl, fileName } = await onUploadFile(selectedFile, taskTitle);
+      const trimmedNote = note.trim();
+      const { fileUrl, fileName } = await onUploadFile(file, taskTitle);
       const entry: IEvidenceEntry = {
         date: new Date().toISOString(),
         user: currentUserDisplayName,
         fileName,
         fileUrl,
-        note: note.trim() || undefined,
+        note: trimmedNote || undefined,
       };
-      await onSave([...(evidence ?? []), entry]);
-      setSelectedFile(null);
+      await onSave([...(evidence ?? []), entry], entry);
       setNote('');
-      if (fileInputRef.current) fileInputRef.current.value = '';
+      resetFileInput();
+    } catch (error) {
+      console.error('[EvidenceLog] Upload failed', error);
+      resetFileInput();
     } finally {
       setUploading(false);
     }
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>): Promise<void> => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    await handleUpload(file);
+  };
+
+  const openFileDialog = (): void => {
+    if (uploading) return;
+    fileInputRef.current?.click();
   };
 
   const entries = [...(evidence ?? [])].reverse();
@@ -71,21 +86,24 @@ const EvidenceLog: React.FC<EvidenceLogProps> = ({
             onChange={handleFileChange}
             className={styles.fileInput}
           />
-          <textarea
-            value={note}
-            onChange={e => setNote(e.target.value)}
-            placeholder="Optional description…"
-            className={styles.textarea}
-            rows={2}
-          />
-          <button
-            type="button"
-            className={styles.uploadBtn}
-            onClick={handleUpload}
-            disabled={uploading || !selectedFile}
-          >
-            {uploading ? 'Uploading…' : 'Upload'}
-          </button>
+          <div className={styles.addRow}>
+            <input
+              type="text"
+              value={note}
+              onChange={e => setNote(e.target.value)}
+              placeholder="Add note..."
+              className={styles.noteInput}
+              disabled={uploading}
+            />
+            <button
+              type="button"
+              className={styles.uploadBtn}
+              onClick={openFileDialog}
+              disabled={uploading}
+            >
+              {uploading ? 'Uploading...' : 'Upload File'}
+            </button>
+          </div>
         </div>
       )}
     </div>

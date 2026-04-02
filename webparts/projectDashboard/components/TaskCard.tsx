@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { ITaskListItem } from "../../../models";
 import { isApprover, INoteEntry, IEvidenceEntry, IApprovalEntry } from "../../../models/ITaskLogFields";
 import styles from "./TaskCard.module.scss";
@@ -51,6 +51,9 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, currentUserEmail, 
   const [description, setDescription] = useState(task.Description ?? "");
   const [evidenceUrl, setEvidenceUrl] = useState(task.EvidenceOfCompletion?.Url ?? "");
   const [evidenceDesc, setEvidenceDesc] = useState(task.EvidenceOfCompletion?.Description ?? "");
+  const [notesLog, setNotesLog] = useState<INoteEntry[]>(task.Notes ?? []);
+  const [evidenceLog, setEvidenceLog] = useState<IEvidenceEntry[]>(task.Evidence ?? []);
+  const notesLogRef = useRef<INoteEntry[]>(task.Notes ?? []);
   //const [isUploading, setIsUploading] = useState(false);
 
   useEffect(() => {
@@ -66,9 +69,12 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, currentUserEmail, 
     setDescription(task.Description ?? "");
     setEvidenceUrl(task.EvidenceOfCompletion?.Url ?? "");
     setEvidenceDesc(task.EvidenceOfCompletion?.Description ?? "");
+    setNotesLog(task.Notes ?? []);
+    notesLogRef.current = task.Notes ?? [];
+    setEvidenceLog(task.Evidence ?? []);
   }, [task]);
 
-  const handleSave = (evidence?: { url: string; description: string }) => {
+  const handleSave = (evidence?: { url: string; description: string }): void => {
      let actualFinish: Date | null | undefined;
 
     if (complete === 100) {
@@ -110,14 +116,39 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, currentUserEmail, 
     const payload = JSON.stringify(data);
 
     onSave(task.Id, payload);
-    onClose?.();
+  };
+
+  const saveNotesEntries = async (entries: INoteEntry[], shouldSaveTask = false): Promise<void> => {
+    setNotesLog(entries);
+    notesLogRef.current = entries;
+    console.log("[TaskCard] Saving Notes log", {
+      taskId: task.Id,
+      nextCount: entries.length,
+      entries,
+    });
+    await onSaveLogField?.(task.Id, 'Notes', entries);
+    console.log("[TaskCard] onSaveLogField for Notes resolved", {
+      taskId: task.Id,
+      nextCount: entries.length,
+    });
+    if (shouldSaveTask) {
+      handleSave();
+    }
+  };
+
+  const saveEvidenceEntries = async (entries: IEvidenceEntry[], shouldSaveTask = false): Promise<void> => {
+    setEvidenceLog(entries);
+    await onSaveLogField?.(task.Id, 'Evidence', entries);
+    if (shouldSaveTask) {
+      handleSave();
+    }
   };
 
   const handleSaveClick: React.MouseEventHandler<HTMLButtonElement> = () => {
     handleSave(); // uses current state (no explicit evidence)
   };
-  const handleNew = () => onNew(task);
-  const handleDelete = () => onDelete(task.Id);
+  const handleNew = (): void => onNew(task);
+  const handleDelete = (): void => onDelete(task.Id);
 
   return (
     <div className={styles["task-card"]}>
@@ -345,21 +376,38 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, currentUserEmail, 
 
             {activeTab === 'notes' && (
               <NotesLog
-                notes={task.Notes ?? null}
+                notes={notesLog}
                 currentUserDisplayName={currentUserDisplayName ?? ''}
                 onSave={async (entries: INoteEntry[]) => {
-                  await onSaveLogField?.(task.Id, 'Notes', entries);
+                  await saveNotesEntries(entries);
                 }}
               />
             )}
 
             {activeTab === 'evidence' && (
               <EvidenceLog
-                evidence={task.Evidence ?? null}
+                evidence={evidenceLog}
                 taskTitle={taskTitle || task.Task || 'Task'}
                 currentUserDisplayName={currentUserDisplayName ?? ''}
-                onSave={async (entries: IEvidenceEntry[]) => {
-                  await onSaveLogField?.(task.Id, 'Evidence', entries);
+                onSave={async (entries: IEvidenceEntry[], uploadedEntry?: IEvidenceEntry) => {
+                  await saveEvidenceEntries(entries, false);
+
+                  if (uploadedEntry) {
+                    const uploadNote = uploadedEntry.note
+                      ? `File uploaded by ${uploadedEntry.user}: ${uploadedEntry.fileName}. Note: ${uploadedEntry.note}`
+                      : `File uploaded by ${uploadedEntry.user}: ${uploadedEntry.fileName}`;
+                    const nextNotes: INoteEntry[] = [
+                      ...notesLogRef.current,
+                      {
+                        date: uploadedEntry.date,
+                        user: uploadedEntry.user,
+                        note: uploadNote,
+                      },
+                    ];
+                    await saveNotesEntries(nextNotes, false);
+                  }
+
+                  handleSave();
                 }}
                 onUploadFile={onUploadEvidenceFile}
               />
@@ -373,6 +421,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, currentUserEmail, 
                 currentUserDisplayName={currentUserDisplayName ?? ''}
                 onSave={async (entries: IApprovalEntry[]) => {
                   await onSaveLogField?.(task.Id, 'Approvals', entries);
+                  handleSave();
                 }}
                 onSendEmail={onSendEmail ?? (async () => undefined)}
                 onAllApproved={onTaskCompleted}
