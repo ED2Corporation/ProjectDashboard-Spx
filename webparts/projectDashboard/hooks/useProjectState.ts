@@ -63,6 +63,7 @@ export interface UseProjectStateResult {
   setSelectedTask: (task: ITaskListItem | null) => void;
   onSaveLogField: (taskId: string, field: 'Notes' | 'Evidence' | 'Approvals', entries: unknown[]) => Promise<void>;
   onSendEmail: (to: string[], subject: string, body: string) => Promise<void>;
+  onSearchUsers: (query: string) => Promise<{ displayName: string; email: string }[]>;
 }
 
 // ─── Resilient JSON field parser ──────────────────────────────────────────────
@@ -101,7 +102,6 @@ function makeEmptyTask(gate?: string): ITaskListItem {
     Title: "",
     Start: new Date(),
     Finish: new Date(),
-    Description: "",
     Task: "No Task Found..."
   };
 }
@@ -150,7 +150,7 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
     try {
       const siteRelativePath = context.pageContext.web.serverRelativeUrl;
       const LOG_FIELD_NAMES = ['Notes', 'Evidence', 'Approvals'];
-      const baseSelect = `Id,Gate,Task,Deliverable,Complete,Start,Finish,ActualFinish,Description,EvidenceOfCompletion,EvidenceDescription`;
+      const baseSelect = `Id,Gate,Task,Deliverable,Complete,Start,Finish,ActualFinish`;
 
       const buildSelect = (withLog: boolean): string =>
         withLog ? `${baseSelect},Notes,Evidence,Approvals` : baseSelect;
@@ -181,6 +181,11 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
 
       if (!response.ok) {
         const txt = await response.text();
+        // 404 = list not yet created — expected for projects pending setup, show empty silently
+        if (response.status === 404) {
+          console.warn("[_getTaskListItems] List not found (404):", project.ListName);
+          return [];
+        }
         console.error("[_getTaskListItems] HTTP error:", response.status, txt);
         setSysError(true);
         setEnvironmentMessage(txt);
@@ -203,10 +208,6 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
         Start: r.Start ? new Date(r.Start) : undefined,
         Finish: r.Finish ? new Date(r.Finish) : undefined,
         ActualFinish: r.ActualFinish ? new Date(r.ActualFinish) : undefined,
-        Description: r.Description ?? "",
-        EvidenceOfCompletion: r.EvidenceOfCompletion
-          ? { Url: r.EvidenceOfCompletion, Description: r.EvidenceDescription ?? "" }
-          : undefined,
         // Log fields — null if column missing or empty (resilient)
         Notes:     parseLogField<INoteEntry>(r.Notes),
         Evidence:  parseLogField<IEvidenceEntry>(r.Evidence),
@@ -451,7 +452,7 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
     }
 
     const r: any = await sp.web.lists.getByTitle(listTitle).items.getById(addedId) // eslint-disable-line @typescript-eslint/no-explicit-any
-      .select("Id","Gate","Task","Deliverable","Complete","Start","Finish","ActualFinish","Description","EvidenceOfCompletion","EvidenceDescription","Title")();
+      .select("Id","Gate","Task","Deliverable","Complete","Start","Finish","ActualFinish","Title")();
 
     const task: ITaskListItem = {
       Id: String(r.Id),
@@ -462,10 +463,6 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
       Start: r.Start ? new Date(r.Start) : today,
       Finish: r.Finish ? new Date(r.Finish) : today,
       ActualFinish: r.ActualFinish ? new Date(r.ActualFinish) : undefined,
-      Description: r.Description ?? "",
-      EvidenceOfCompletion: r.EvidenceOfCompletion
-        ? { Url: r.EvidenceOfCompletion, Description: r.EvidenceDescription ?? "" }
-        : undefined,
       Title: r.Title ?? nextWbs
     };
     setSelectedTask(task);
@@ -534,26 +531,21 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
         Complete: curr,
         Finish: data.Finish,
         ActualFinish: actualFinishValue,
-        EvidenceOfCompletion: data.EvidenceOfCompletion?.Url,
-        EvidenceDescription: data.EvidenceOfCompletion?.Description
       });
     } else {
       await itemRef.update({
         Deliverable: data.Deliverable,
         Gate: data.Gate,
         Task: data.Task,
-        Description: data.Description,
         Complete: curr,
         Start: data.Start,
         Finish: data.Finish,
-        EvidenceOfCompletion: data.EvidenceOfCompletion?.Url,
-        EvidenceDescription: data.EvidenceOfCompletion?.Description,
         ActualFinish: actualFinishValue
       });
     }
 
     const r: any = await itemRef.select( // eslint-disable-line @typescript-eslint/no-explicit-any
-      "Id","Gate","Task","Deliverable","Complete","Start","Finish","ActualFinish","Description","EvidenceOfCompletion","EvidenceDescription","Title"
+      "Id","Gate","Task","Deliverable","Complete","Start","Finish","ActualFinish","Title"
     )();
 
     const task: ITaskListItem = {
@@ -565,10 +557,6 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
       Start: r.Start ? new Date(r.Start) : undefined,
       Finish: r.Finish ? new Date(r.Finish) : undefined,
       ActualFinish: r.ActualFinish ? new Date(r.ActualFinish) : undefined,
-      Description: r.Description ?? "",
-      EvidenceOfCompletion: r.EvidenceOfCompletion
-        ? { Url: r.EvidenceOfCompletion, Description: r.EvidenceDescription ?? "" }
-        : undefined,
       Title: r.Title ?? undefined
     };
     setSelectedTask(task);
@@ -679,9 +667,6 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
     await _ensureDateField(list, "Start");
     await _ensureDateField(list, "Finish");
     await _ensureDateField(list, "ActualFinish");
-    await _ensureTextField(list, "Description");
-    await _ensureTextField(list, "EvidenceOfCompletion");
-    await _ensureTextField(list, "EvidenceDescription");
 
     // Log fields — multiline text storing JSON arrays
     await _ensureMultilineField(list, "Notes");
@@ -716,7 +701,7 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
     if (!addedId) return;
 
     const r: any = await sp.web.lists.getByTitle(listTitle).items.getById(addedId) // eslint-disable-line @typescript-eslint/no-explicit-any
-      .select("Id","Gate","Task","Deliverable","Complete","Start","Finish","ActualFinish","Description","EvidenceOfCompletion","EvidenceDescription","Title")();
+      .select("Id","Gate","Task","Deliverable","Complete","Start","Finish","ActualFinish","Title")();
 
     const task: ITaskListItem = {
       Id: String(r.Id),
@@ -727,10 +712,6 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
       Start: r.Start ? new Date(r.Start) : today,
       Finish: r.Finish ? new Date(r.Finish) : today,
       ActualFinish: r.ActualFinish ? new Date(r.ActualFinish) : undefined,
-      Description: r.Description ?? "",
-      EvidenceOfCompletion: r.EvidenceOfCompletion
-        ? { Url: r.EvidenceOfCompletion, Description: r.EvidenceDescription ?? "" }
-        : undefined,
       Title: r.Title ?? nextWbs
     };
     setSelectedTask(task);
@@ -778,13 +759,10 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
         Task: taskTitle,
         Title: nextWbs,
         Deliverable: row.Deliverable || "",
-        Description: row.Description || "",
         Complete: complete,
         Start: toIso(row.Start),
         Finish: toIso(row.Finish),
-        ActualFinish: toIso(row.ActualFinish),
-        EvidenceOfCompletion: row.EvidenceOfCompletion || null,
-        EvidenceDescription: row.EvidenceDescription || null
+        ActualFinish: toIso(row.ActualFinish)
       });
     }
   }, [sp, _getNextWbsForGate]);
@@ -922,6 +900,30 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
     }
   }, [context]);
 
+  // ── Search users via Graph ──────────────────────────────────────────────────
+  const onSearchUsers = useCallback(async (
+    query: string
+  ): Promise<{ displayName: string; email: string }[]> => {
+    try {
+      const graphClient: MSGraphClientV3 = await context.msGraphClientFactory.getClient('3');
+      const q = query.replace(/'/g, "''");
+      const response = await graphClient.api('/users')
+        .filter(`startsWith(displayName,'${q}') or startsWith(mail,'${q}')`)
+        .select('displayName,mail')
+        .top(8)
+        .get();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return (response.value || []).map((u: any) => ({
+        displayName: u.displayName || u.mail || '',
+        email: u.mail || ''
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      })).filter((u: any) => !!u.email);
+    } catch (err) {
+      console.error('[onSearchUsers] Failed:', err);
+      return [];
+    }
+  }, [context]);
+
   // ── Return ─────────────────────────────────────────────────────────────────
   return {
     tasks,
@@ -945,5 +947,6 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
     setSelectedTask,
     onSaveLogField,
     onSendEmail,
+    onSearchUsers,
   };
 }

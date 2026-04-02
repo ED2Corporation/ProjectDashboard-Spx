@@ -39,6 +39,24 @@ const NotesLog: React.FC<NotesLogProps> = ({ notes, currentUserDisplayName, onSa
 
   return (
     <div className={styles.container}>
+      <div className={styles.addForm}>
+        <input
+          type="text"
+          value={text}
+          onChange={e => setText(e.target.value)}
+          placeholder="Add a note..."
+          className={styles.noteInput}
+          disabled={saving}
+        />
+        <button
+          type="button"
+          className={styles.addBtn}
+          onClick={handleAdd}
+          disabled={saving || !text.trim()}
+        >
+          {saving ? 'Saving...' : 'Add'}
+        </button>
+      </div>
       <div className={styles.feed}>
         {entries.length === 0 && <p className={styles.empty}>No notes yet.</p>}
         {entries.map((n, i) => (
@@ -51,12 +69,12 @@ const NotesLog: React.FC<NotesLogProps> = ({ notes, currentUserDisplayName, onSa
           </div>
         ))}
       </div>
-      <div className={styles.addForm}>
+      <div style={{ display: 'none' }}>
         <textarea
           value={text}
           onChange={e => setText(e.target.value)}
           placeholder="Add a note..."
-          className={styles.textarea}
+          className={styles.noteInput}
           rows={2}
         />
         <button

@@ -113,10 +113,14 @@
 }
 
 .task-card-body {
-  flex: 0 0 auto;
+  flex: 0 0 350px;
+  width: 350px;
+  min-width: 350px;
+  max-width: 350px;
   padding: $sp-4 $sp-5;
   border-right: 1px solid $c-border-subtle;
   overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .task-card-column {
@@ -125,6 +129,8 @@
   flex-direction: column;
   padding: $sp-4 $sp-5;
   min-width: 0;
+  max-height: 250px;
+  overflow: hidden; // clip column; scroll happens inside tab-content
 }
 
 // ─── Form table ────────────────────────────────────────────────────────────
@@ -208,6 +214,23 @@
     border-color: $c-primary;
     box-shadow: $shadow-focus;
   }
+}
+
+.completion-warning {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  margin-top: $sp-2;
+  padding: 2px $sp-2;
+  font-size: 11px;
+  font-weight: 600;
+  color: #8a5a00;
+  background: #fff4d6;
+  border: 1px solid #f2c66d;
+  border-radius: 999px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 // ─── Tab bar ────────────────────────────────────────────────────────────────

@@ -4,8 +4,6 @@ import { ITaskListItem } from "../../../models";
 import { GetDelay } from "../utils/GetDelay";
 import { GetFormatDate } from "../utils/GetFormatDate";
 import styles from "./ProjectDashboard.module.scss";
-import EvidenceEditor from "./EvidenceEditor";
-
 interface ListGroupProps {
   tasks: ITaskListItem[];
   heading: string;
@@ -20,10 +18,6 @@ interface ListGroupProps {
     mode?: "list" | "list-edit" | "list-save" | "list-delete" | "list-create",
     payload?: string
   ) => void;
-  onUploadEvidenceFile?: (
-    file: File,
-    taskTitle: string
-  ) => Promise<{ fileUrl: string; fileName: string }>;
 }
 
 const ListTasks = ({
@@ -34,12 +28,9 @@ const ListTasks = ({
   showDetails,
   isPlanner,
   selectedTaskId,
-  onUploadEvidenceFile,
 }: ListGroupProps) => {
   const [editTaskTitle, setEditTaskTitle] = useState<string>("");
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
-  const [editEvidenceUrl, setEditEvidenceUrl] = useState<string>("");
-  const [editEvidenceDesc, setEditEvidenceDesc] = useState<string>("");
   const [editPercentComplete, setEditPercentComplete] = useState<number>(0);
   const [editStart, setEditStart] = useState<string>("");
   const [editFinish, setEditFinish] = useState<string>("");
@@ -82,20 +73,17 @@ const ListTasks = ({
   });
 
   // handleSave lives inside the component and uses the current editing state
-  const handleSave = (
-    task: ITaskListItem,
-    evidence?: { url: string; description: string }
-  ) => {
+  const handleSave = (task: ITaskListItem) => {
     let actualFinish: Date | null | undefined;
 
     if (editPercentComplete === 100) {
       if (!task.ActualFinish) {
-        actualFinish = new Date();          // just completed
+        actualFinish = new Date();
       } else {
-        actualFinish = new Date(task.ActualFinish); // already had a date, keep it
+        actualFinish = new Date(task.ActualFinish);
       }
     } else {
-      actualFinish = null;                  // dropped below 100, clear it
+      actualFinish = null;
     }
     const data = {
       Id: task.Id,
@@ -105,12 +93,6 @@ const ListTasks = ({
       Start: editStart || null,
       Finish: editFinish || null,
       ActualFinish: actualFinish,
-      EvidenceOfCompletion: evidence
-        ? {
-            Url: evidence.url,
-            Description: evidence.description,
-          }
-        : undefined,
     };
 
     const payload = JSON.stringify(data);
@@ -139,7 +121,6 @@ const ListTasks = ({
                 <th className={styles.colDate}>Completed</th>
                 <th className={styles.colDate}>Start</th>
                 <th className={styles.colDate}>Finish</th>
-                <th className={styles.colURL}>Evidence of Completion</th>
               </tr>
             </thead>
             <tbody>
@@ -213,12 +194,6 @@ const ListTasks = ({
                             setEditingTaskId(item.Id);
                             setEditTaskTitle(item.Task || "");
                             setEditPercentComplete(item.Complete);
-                            setEditEvidenceUrl(
-                              item.EvidenceOfCompletion?.Url ?? ""
-                            );
-                            setEditEvidenceDesc(
-                              item.EvidenceOfCompletion?.Description ?? ""
-                            );
                             setEditStart(toDateInputValue(item.Start));
                             setEditFinish(toDateInputValue(item.Finish));
                           }}
@@ -356,52 +331,6 @@ const ListTasks = ({
                     )}
                   </td>
 
-                  {/* Evidence of Completion */}
-                  <td className={styles.colURL}>
-                    {editingTaskId === item.Id ? (
-                      <EvidenceEditor
-                        evidenceUrl={editEvidenceUrl}
-                        evidenceDesc={editEvidenceDesc}
-                        onChangeUrl={(v) => {
-                          const cleanValue = v
-                            .trim()
-                            .replace(/[\u200B-\u200D\uFEFF\u00A0]/g, "");
-                          setEditEvidenceUrl(cleanValue);
-                        }}
-                        onChangeDesc={setEditEvidenceDesc}
-                        onUploadEvidenceFile={onUploadEvidenceFile}
-                        taskId={editingTaskId}
-                        taskTitle={editTaskTitle || "CompletionEvidence"}
-                        onEvidenceUpdated={({ taskId, url, description }) => {
-                          // success: update state and save
-                          setEditEvidenceDesc(description);
-                          setEditEvidenceUrl(url);
-
-                          handleSave(item, { url, description });           // builds payload from editing state
-                          setEditingTaskId(null);     // exit edit mode
-                        }}
-                        onAfterUpload={(success) => {
-                          if (!success) {
-                            // handle error only (log, toast...), do NOT close or save
-                            console.error("Evidence upload failed.");
-                          }
-                        }}
-                      />
-
-                    ) : item.EvidenceOfCompletion?.Url ? (
-                      <a
-                        href={item.EvidenceOfCompletion.Url}
-                        target="_blank"
-                        rel="noreferrer"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        {item.EvidenceOfCompletion.Description ||
-                          item.EvidenceOfCompletion.Url}
-                      </a>
-                    ) : (
-                      <span>-</span>
-                    )}
-                  </td>
                 </tr>
               ))}
             </tbody>

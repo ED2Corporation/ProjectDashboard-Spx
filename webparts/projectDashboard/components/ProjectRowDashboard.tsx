@@ -58,7 +58,7 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
     tasks, gates, filteredTasks,
     onReset, onGateFilterChange, onSelectItem,
     onNewTask, onDeleteTask, onUpdateTask, onUploadFile,
-    onSaveLogField: _onSaveLogField, onSendEmail,
+    onSaveLogField: _onSaveLogField, onSendEmail, onSearchUsers,
   } = useProjectState({
     context,
     sp,
@@ -191,7 +191,7 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
           />
         ) : (
           <span className={styles.noGates}>
-            {tasks.length === 0 ? "Loading..." : "No gates defined"}
+            {tasks.length === 0 ? "No task list found — please verify the SharePoint list exists." : "No gates defined"}
           </span>
         )}
       </div>
@@ -227,8 +227,15 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
               isPlanner={false}
               currentUserEmail={context.pageContext.user.email}
               currentUserDisplayName={context.pageContext.user.displayName}
+              projectInfo={{
+                projectNumber: localProject.ProjectNumber ?? '',
+                partNumber: localProject.ProjectNumber && localProject.Title?.startsWith(`${localProject.ProjectNumber}-`)
+                  ? localProject.Title.slice(localProject.ProjectNumber.length + 1)
+                  : (localProject.Title ?? ''),
+              }}
               onSaveLogField={onSaveLogField}
               onSendEmail={onSendEmail}
+              onSearchUsers={onSearchUsers}
               onTaskCompleted={handleTaskCompleted}
               onClose={() => setShowCard(false)}
               onNew={(task) => onNewTask?.(task.Gate)}
@@ -290,10 +297,6 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
                   onSelectItem(item.Task, "task");
                   break;
               }
-            }}
-            onUploadEvidenceFile={async (file, taskTitle) => {
-              if (!onUploadFile) throw new Error("onUploadFile not provided");
-              return onUploadFile(file, taskTitle);
             }}
           />
 

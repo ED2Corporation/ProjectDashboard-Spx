@@ -71,7 +71,7 @@
   width: 26px;
   height: 26px;
   border-radius: 50%;
-  border: 1.5px solid rgba(255,255,255,0.6);
+  border: 1.5px solid rgba(255, 255, 255, 0.6);
   background: transparent;
   color: $c-surface;
   font-size: 18px;
@@ -81,7 +81,7 @@
   flex-shrink: 0;
 
   &:hover {
-    background: rgba(255,255,255,0.2);
+    background: rgba(255, 255, 255, 0.2);
     border-color: $c-surface;
   }
 }
@@ -93,7 +93,7 @@
   width: 26px;
   height: 26px;
   border-radius: 50%;
-  border: 1.5px solid rgba(255,255,255,0.6);
+  border: 1.5px solid rgba(255, 255, 255, 0.6);
   background: transparent;
   color: $c-surface;
   font-size: 16px;
@@ -103,7 +103,7 @@
   flex-shrink: 0;
 
   &:hover {
-    background: rgba(255,255,255,0.2);
+    background: rgba(255, 255, 255, 0.2);
     border-color: $c-surface;
   }
 }
@@ -156,22 +156,43 @@
 .badgeOntime {
   color: $c-ontime;
 
-  &:hover         { border-color: $c-ontime; }
-  &.badgeActive   { border: 2px solid $c-ontime; background: $c-ontime-bg; font-weight: 600; }
+  &:hover {
+    border-color: $c-ontime;
+  }
+
+  &.badgeActive {
+    border: 2px solid $c-ontime;
+    background: $c-ontime-bg;
+    font-weight: 600;
+  }
 }
 
 .badgeDelayed {
   color: $c-delayed;
 
-  &:hover         { border-color: $c-delayed; }
-  &.badgeActive   { border: 2px solid $c-delayed; background: $c-delayed-bg; font-weight: 600; }
+  &:hover {
+    border-color: $c-delayed;
+  }
+
+  &.badgeActive {
+    border: 2px solid $c-delayed;
+    background: $c-delayed-bg;
+    font-weight: 600;
+  }
 }
 
 .badgeNeutral {
   color: #111111;
 
-  &:hover       { border-color: #111111; }
-  &.badgeActive { border: 2px solid #111111; background: #f3f4f6; font-weight: 600; }
+  &:hover {
+    border-color: #111111;
+  }
+
+  &.badgeActive {
+    border: 2px solid #111111;
+    background: #f3f4f6;
+    font-weight: 600;
+  }
 }
 
 // ─── Project list ─────────────────────────────────────────────────────────────

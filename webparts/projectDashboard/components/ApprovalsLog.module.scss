@@ -82,6 +82,29 @@
   border: 1px solid #f44336;
 }
 
+.statusStatic,
+.statusButton {
+  line-height: 1.2;
+}
+
+.statusStatic {
+  cursor: default;
+}
+
+.statusButton {
+  cursor: pointer;
+  transition: $t-fast;
+
+  &:hover:not(:disabled) {
+    filter: brightness(0.96);
+  }
+
+  &:disabled {
+    opacity: 1;
+    cursor: default;
+  }
+}
+
 .commentText {
   font-size: $f-body;
   color: $c-text-subtle;
@@ -95,23 +118,24 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: $sp-3;
+  gap: $sp-2;
   padding: $sp-4;
 }
 
 .requestBtn {
-  padding: $sp-2 $sp-6;
+  align-self: flex-start;
+  padding: $sp-1 $sp-4;
   font-family: $f-family;
-  font-size: $f-body;
+  font-size: $f-xs;
   font-weight: 500;
-  color: $c-surface;
-  background: $c-primary;
+  color: $c-primary;
+  background: $c-primary-bg;
   border: 1px solid $c-primary;
   border-radius: $r-sm;
   cursor: pointer;
   transition: $t-fast;
 
-  &:hover:not(:disabled) { background: $c-primary-hover; border-color: $c-primary-hover; }
+  &:hover:not(:disabled) { background: $c-primary-focus; }
   &:disabled { opacity: 0.5; cursor: not-allowed; }
 }
 
@@ -138,6 +162,89 @@
 // Decision panel
 .decisionPanel {
   display: flex;
+  align-items: center;
+  gap: $sp-2;
+  border-top: 1px solid $c-border-subtle;
+  padding-top: $sp-3;
+  flex-shrink: 0;
+}
+
+.decisionInput {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-family: $f-family;
+  font-size: $f-xs;
+  color: $c-text;
+  border: 1px solid $c-input-border;
+  border-radius: $r-sm;
+  padding: $sp-1 $sp-3;
+  box-sizing: border-box;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  background: $c-surface;
+
+  &:focus {
+    outline: none;
+    border-color: $c-primary;
+    box-shadow: $shadow-focus;
+  }
+
+  &::placeholder { color: $c-text-muted; }
+}
+
+.approveBtn {
+  flex: 0 0 92px;
+  padding: $sp-1 $sp-4;
+  font-family: $f-family;
+  font-size: $f-xs;
+  font-weight: 500;
+  color: $c-ontime;
+  background: $c-ontime-bg;
+  border: 1px solid $c-ontime;
+  border-radius: $r-sm;
+  cursor: pointer;
+  transition: $t-fast;
+
+  &:hover:not(:disabled) { filter: brightness(0.95); }
+  &:disabled { opacity: 0.5; cursor: not-allowed; }
+}
+
+.rejectBtn {
+  flex: 0 0 92px;
+  padding: $sp-1 $sp-4;
+  font-family: $f-family;
+  font-size: $f-xs;
+  font-weight: 500;
+  color: #b00020;
+  background: #fdecea;
+  border: 1px solid #f44336;
+  border-radius: $r-sm;
+  cursor: pointer;
+  transition: $t-fast;
+
+  &:hover:not(:disabled) { background: #fbd5d2; }
+  &:disabled { opacity: 0.5; cursor: not-allowed; }
+}
+
+@media (max-width: 640px) {
+  .decisionPanel {
+    flex-wrap: wrap;
+    align-items: stretch;
+  }
+
+  .decisionInput {
+    flex-basis: 100%;
+  }
+
+  .approveBtn,
+  .rejectBtn {
+    width: 100%;
+    flex-basis: 100%;
+  }
+}
+
+// Manage Approvers section
+.manageSection {
+  display: flex;
   flex-direction: column;
   gap: $sp-2;
   border-top: 1px solid $c-border-subtle;
@@ -145,8 +252,139 @@
   flex-shrink: 0;
 }
 
-.textarea {
-  width: 100%;
+.actionsRow {
+  display: flex;
+  gap: $sp-2;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.manageBtn {
+  padding: $sp-1 $sp-4;
+  font-family: $f-family;
+  font-size: $f-xs;
+  font-weight: 500;
+  color: $c-primary;
+  background: $c-primary-bg;
+  border: 1px solid $c-primary;
+  border-radius: $r-sm;
+  cursor: pointer;
+  transition: $t-fast;
+
+  &:hover { background: $c-primary-focus; }
+}
+
+.manageLabel {
+  font-size: $f-xs;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: $c-text-subtle;
+  margin: 0 0 $sp-1;
+}
+
+.managePanel {
+  display: flex;
+  flex-direction: column;
+  gap: $sp-2;
+}
+
+// ── Approver chips ─────────────────────────────────────────────────────────
+
+.chipList {
+  display: flex;
+  flex-direction: column;
+  gap: $sp-1;
+}
+
+.chip {
+  display: flex;
+  align-items: center;
+  gap: $sp-2;
+  padding: $sp-1 $sp-2;
+  border-radius: $r-sm;
+  border: 1px solid $c-border-subtle;
+  background: $c-surface-soft;
+}
+
+// Status-tinted left border
+.chip-pending  { border-left: 3px solid #ffc107; }
+.chip-approved { border-left: 3px solid $c-ontime; }
+.chip-rejected { border-left: 3px solid #d32f2f; }
+
+.chipAvatar {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: $c-primary;
+  color: #fff;
+  font-size: $f-xs;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.chipInfo {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.chipName {
+  font-size: $f-xs;
+  font-weight: 600;
+  color: $c-text;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.chipStatus {
+  font-size: 10px;
+  color: $c-text-muted;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.chipRemove {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  border: 1px solid $c-border;
+  border-radius: $r-sm;
+  background: transparent;
+  color: $c-text-muted;
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: $t-fast;
+
+  &:hover:not(:disabled) {
+    background: #fdecea;
+    border-color: #d32f2f;
+    color: #d32f2f;
+  }
+
+  &:disabled { opacity: 0.4; cursor: not-allowed; }
+}
+
+.searchRow {
+  display: flex;
+  gap: $sp-2;
+  align-items: center;
+}
+
+.searchInput {
+  flex: 1 1 auto;
   font-family: $f-family;
   font-size: $f-body;
   color: $c-text;
@@ -154,7 +392,7 @@
   border-radius: $r-sm;
   padding: $sp-2 $sp-3;
   box-sizing: border-box;
-  resize: vertical;
+  background: $c-surface;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 
   &:focus {
@@ -166,16 +404,72 @@
   &::placeholder { color: $c-text-muted; }
 }
 
-.decisionBtns {
-  display: flex;
-  gap: $sp-2;
-  justify-content: flex-end;
-}
-
-.approveBtn {
-  padding: $sp-2 $sp-5;
+.searchBtn {
+  flex-shrink: 0;
+  padding: $sp-2 $sp-4;
   font-family: $f-family;
   font-size: $f-body;
+  font-weight: 500;
+  color: $c-surface;
+  background: $c-primary;
+  border: 1px solid $c-primary;
+  border-radius: $r-sm;
+  cursor: pointer;
+  transition: $t-fast;
+
+  &:hover:not(:disabled) { background: $c-primary-hover; border-color: $c-primary-hover; }
+  &:disabled { opacity: 0.5; cursor: not-allowed; }
+}
+
+.resultList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: $sp-1;
+}
+
+.resultItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $sp-3;
+  background: $c-surface-soft;
+  border: 1px solid $c-border-subtle;
+  border-radius: $r-sm;
+  padding: $sp-2 $sp-3;
+}
+
+.resultInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.resultName {
+  font-size: $f-xs;
+  font-weight: 600;
+  color: $c-text;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.resultEmail {
+  font-size: $f-xs;
+  color: $c-text-muted;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.addBtn {
+  flex-shrink: 0;
+  padding: $sp-1 $sp-3;
+  font-family: $f-family;
+  font-size: $f-xs;
   font-weight: 500;
   color: $c-surface;
   background: $c-ontime;
@@ -185,23 +479,14 @@
   transition: $t-fast;
 
   &:hover:not(:disabled) { filter: brightness(0.9); }
-  &:disabled { opacity: 0.5; cursor: not-allowed; }
+  &:disabled { opacity: 0.55; cursor: default; background: $c-text-muted; border-color: $c-text-muted; }
 }
 
-.rejectBtn {
-  padding: $sp-2 $sp-5;
-  font-family: $f-family;
-  font-size: $f-body;
-  font-weight: 500;
-  color: #fff;
-  background: #d32f2f;
-  border: 1px solid #d32f2f;
-  border-radius: $r-sm;
-  cursor: pointer;
-  transition: $t-fast;
-
-  &:hover:not(:disabled) { background: #b71c1c; border-color: #b71c1c; }
-  &:disabled { opacity: 0.5; cursor: not-allowed; }
+.noResults {
+  font-size: $f-xs;
+  color: $c-text-muted;
+  font-style: italic;
+  margin: 0;
 }
 
 // stylelint-enable selector-class-pattern

@@ -8,14 +8,16 @@ interface EvidenceLogProps {
   taskTitle: string;
   currentUserDisplayName: string;
   onSave: (entries: IEvidenceEntry[], uploadedEntry?: IEvidenceEntry) => Promise<void>;
+  onToggleEvidenceOfCompletion?: (entry: IEvidenceEntry) => Promise<void>;
   onUploadFile?: (file: File, taskTitle: string) => Promise<{ fileUrl: string; fileName: string }>;
 }
 
 const EvidenceLog: React.FC<EvidenceLogProps> = ({
-  evidence, taskTitle, currentUserDisplayName, onSave, onUploadFile,
+  evidence, taskTitle, currentUserDisplayName, onSave, onToggleEvidenceOfCompletion, onUploadFile,
 }) => {
-  const [note, setNote] = useState('');
-  const [uploading, setUploading] = useState(false);
+  const [note, setNote]                         = useState('');
+  const [uploading, setUploading]               = useState(false);
+  const [isCompletion, setIsCompletion]         = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const resetFileInput = (): void => {
@@ -36,9 +38,11 @@ const EvidenceLog: React.FC<EvidenceLogProps> = ({
         fileName,
         fileUrl,
         note: trimmedNote || undefined,
+        isEvidenceOfCompletion: isCompletion || undefined,
       };
       await onSave([...(evidence ?? []), entry], entry);
       setNote('');
+      setIsCompletion(false);
       resetFileInput();
     } catch (error) {
       console.error('[EvidenceLog] Upload failed', error);
@@ -63,21 +67,6 @@ const EvidenceLog: React.FC<EvidenceLogProps> = ({
 
   return (
     <div className={styles.container}>
-      <div className={styles.feed}>
-        {entries.length === 0 && <p className={styles.empty}>No evidence uploaded yet.</p>}
-        {entries.map((e, i) => (
-          <div key={i} className={styles.entry}>
-            <div className={styles.meta}>
-              <span className={styles.user}>{e.user}</span>
-              <span className={styles.date}>{new Date(e.date).toLocaleString()}</span>
-            </div>
-            <a href={e.fileUrl} target="_blank" rel="noopener noreferrer" className={styles.fileLink}>
-              {e.fileName}
-            </a>
-            {e.note && <p className={styles.noteText}>{e.note}</p>}
-          </div>
-        ))}
-      </div>
       {onUploadFile && (
         <div className={styles.addForm}>
           <input
@@ -101,11 +90,61 @@ const EvidenceLog: React.FC<EvidenceLogProps> = ({
               onClick={openFileDialog}
               disabled={uploading}
             >
-              {uploading ? 'Uploading...' : 'Upload File'}
+              {uploading ? 'Uploading...' : 'Upload'}
             </button>
+            <label className={styles.checkRow}>
+              <input
+                type="checkbox"
+                checked={isCompletion}
+                onChange={e => setIsCompletion(e.target.checked)}
+                disabled={uploading}
+              />
+              <span>Evidence of completion</span>
+            </label>
           </div>
         </div>
       )}
+      <div className={styles.feed}>
+        {entries.length === 0 && <p className={styles.empty}>No evidence uploaded yet.</p>}
+        {entries.map((e, i) => (
+          <div key={i} className={styles.entry}>
+            <div className={styles.entryRow}>
+              <div className={styles.meta}>
+                <span className={styles.user}>{e.user}</span>
+                <span className={styles.date}>{new Date(e.date).toLocaleString()}</span>
+              </div>
+              <span className={styles.noteInline}>{e.note || '-'}</span>
+            </div>
+            <div className={styles.entryRow}>
+              <button
+                type="button"
+                className={`${styles.flag} ${e.isEvidenceOfCompletion ? styles.flagCompletion : styles.flagRegular}`}
+                onClick={() => {
+                  onToggleEvidenceOfCompletion?.(e).catch(error => {
+                    console.error('[EvidenceLog] Toggle evidence-of-completion failed', error);
+                  });
+                }}
+                title={e.isEvidenceOfCompletion ? 'Unmark as Evidence of Completion' : 'Mark as Evidence of Completion'}
+              >
+                {e.isEvidenceOfCompletion ? (
+                  <svg viewBox="0 0 16 16" className={styles.flagIcon} aria-hidden="true">
+                    <path d="M3 2.5v11" />
+                    <path d="M4 3h7l-1.8 2.5L11 8H4z" />
+                  </svg>
+                ) : (
+                  <svg viewBox="0 0 16 16" className={styles.flagIcon} aria-hidden="true">
+                    <path d="M4 2.5h5l3 3V13.5H4z" />
+                    <path d="M9 2.5v3h3" />
+                  </svg>
+                )}
+              </button>
+              <a href={e.fileUrl} target="_blank" rel="noopener noreferrer" className={styles.fileLink}>
+                {e.fileName}
+              </a>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 };

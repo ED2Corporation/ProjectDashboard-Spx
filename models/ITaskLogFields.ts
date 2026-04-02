@@ -14,28 +14,38 @@ export interface IEvidenceEntry {
   user:     string;
   fileName: string;
   fileUrl:  string;
-  note?:    string;   // optional description
+  note?:    string;
+  isEvidenceOfCompletion?: boolean;
 }
 
 export type ApprovalStatus = 'pending' | 'approved' | 'rejected';
+export type ApproverRole   = 'primary' | 'delegate' | 'additional';
 
 export interface IApprovalEntry {
   date:     string;
   user:     string;   // displayName of the approver
   email:    string;   // email of the approver
   status:   ApprovalStatus;
+  role?:    ApproverRole;
   comment?: string;
 }
 
-// ─── Authorised approvers ─────────────────────────────────────────────────────
-export const APPROVERS_EMAILS = [
+// ─── Roles ────────────────────────────────────────────────────────────────────
+/** Default approver — receives approval request automatically */
+export const PRIMARY_APPROVER = 'joel@ed2corp.com';
+
+/** Managers — can add/remove approvers on any task */
+export const MANAGER_EMAILS = [
   'joel@ed2corp.com',
   'sergio@ed2corp.com',
   'saul@ed2corp.com',
 ] as const;
 
-export type ApproverEmail = typeof APPROVERS_EMAILS[number];
+export type ManagerEmail = typeof MANAGER_EMAILS[number];
 
-export function isApprover(email: string): boolean {
-  return APPROVERS_EMAILS.includes(email.toLowerCase() as ApproverEmail);
+export function isManager(email: string): boolean {
+  return MANAGER_EMAILS.includes(email.toLowerCase() as ManagerEmail);
 }
+
+/** @deprecated use isManager */
+export const isApprover = isManager;

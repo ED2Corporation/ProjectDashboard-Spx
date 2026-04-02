@@ -187,7 +187,7 @@ export class ProjectService implements IProjectService {
         const data = await resp.json();
         const items = data.value as any[];
 
-        const headers = ["Id","Title","Gate","Task","Deliverable","Complete","Start","Finish","ActualFinish","Description","EvidenceOfCompletion","EvidenceDescription"];
+        const headers = ["Id","Title","Gate","Task","Deliverable","Complete","Start","Finish","ActualFinish"];
 
         const formatDate = (value: any): string => {
             if (!value) return "";
@@ -199,7 +199,6 @@ export class ProjectService implements IProjectService {
         const lines = [
             headers.join(","),
             ...items.map(i => {
-                const evidence = i.EvidenceOfCompletion || {};
                 return [
                     i.Id,
                     JSON.stringify(i.Title || ""),
@@ -210,9 +209,6 @@ export class ProjectService implements IProjectService {
                     formatDate(i.Start),
                     formatDate(i.Finish),
                     formatDate(i.ActualFinish),
-                    JSON.stringify(i.Description || ""),
-                    JSON.stringify(evidence.Url || ""),
-                    JSON.stringify(evidence.Description || "")
                 ].join(",");
             })
         ];
@@ -255,11 +251,9 @@ export class ProjectService implements IProjectService {
             const nextWbs = await this._getNextWbsForGate(listName, gate);
             await list.items.add({
                 Gate: gate, Task: taskTitle, Title: nextWbs,
-                Deliverable: row.Deliverable || "", Description: row.Description || "",
+                Deliverable: row.Deliverable || "",
                 Complete: complete, Start: toIso(row.Start), Finish: toIso(row.Finish),
-                ActualFinish: toIso(row.ActualFinish),
-                EvidenceOfCompletion: row.EvidenceOfCompletion || null,
-                EvidenceDescription: row.EvidenceDescription || null
+                ActualFinish: toIso(row.ActualFinish)
             });
         }
 

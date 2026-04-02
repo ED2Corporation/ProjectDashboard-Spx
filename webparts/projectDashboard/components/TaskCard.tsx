@@ -1,21 +1,27 @@
 import React, { useState, useEffect, useRef } from "react";
 import { ITaskListItem } from "../../../models";
-import { isApprover, INoteEntry, IEvidenceEntry, IApprovalEntry } from "../../../models/ITaskLogFields";
+import { isManager, INoteEntry, IEvidenceEntry, IApprovalEntry, PRIMARY_APPROVER } from "../../../models/ITaskLogFields";
 import styles from "./TaskCard.module.scss";
-import EvidenceEditor from "./EvidenceEditor";
 import NotesLog from "./NotesLog";
 import EvidenceLog from "./EvidenceLog";
 import ApprovalsLog from "./ApprovalsLog";
 
-type TaskTab = 'fields' | 'notes' | 'evidence' | 'approvals';
+type TaskTab = 'notes' | 'evidence' | 'approvals';
+
+export interface ITaskCardProjectInfo {
+  projectNumber: string;   // e.g. "1003028"
+  partNumber:    string;   // e.g. "ED2-0030 Rev-B"
+}
 
 interface TaskCardProps {
   task: ITaskListItem;
   isPlanner?: boolean;
   currentUserEmail?: string;
   currentUserDisplayName?: string;
+  projectInfo?: ITaskCardProjectInfo;
   onSaveLogField?: (taskId: string, field: 'Notes' | 'Evidence' | 'Approvals', entries: unknown[]) => Promise<void>;
   onSendEmail?: (to: string[], subject: string, body: string) => Promise<void>;
+  onSearchUsers?: (query: string) => Promise<{ displayName: string; email: string }[]>;
   onTaskCompleted?: () => void;
   onClose?: () => void;
   onDelete: (id: string) => void;
@@ -30,9 +36,9 @@ interface TaskCardProps {
   ) => Promise<{ fileUrl: string; fileName: string }>;
 }
 
-const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, currentUserEmail, currentUserDisplayName, onClose, onSave, onDelete, onNew, onUploadEvidenceFile, onSaveLogField, onSendEmail, onTaskCompleted }) => {
-  const [activeTab, setActiveTab] = useState<TaskTab>('fields');
-  const showApprovals = isApprover(currentUserEmail ?? '');
+const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, currentUserEmail, currentUserDisplayName, projectInfo, onClose, onSave, onDelete, onNew, onUploadEvidenceFile, onSaveLogField, onSendEmail, onSearchUsers, onTaskCompleted }) => {
+  const [activeTab, setActiveTab] = useState<TaskTab>('notes');
+  const canManageApprovers = isManager(currentUserEmail ?? '');
   const [gate, setGate] = useState(task.Gate ?? "");
   const [deliverable, setDeliverable] = useState(task.Deliverable ?? "");
   const [taskTitle, setTaskTitle] = useState(task.Task ?? "");
@@ -48,13 +54,13 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, currentUserEmail, 
   );
   const [barriers, setBarriers] = useState(task.Barriers ?? "");
   const [actionableStatus, setActionableStatus] = useState(task.ActionableStatus ?? "");
-  const [description, setDescription] = useState(task.Description ?? "");
-  const [evidenceUrl, setEvidenceUrl] = useState(task.EvidenceOfCompletion?.Url ?? "");
-  const [evidenceDesc, setEvidenceDesc] = useState(task.EvidenceOfCompletion?.Description ?? "");
+  const [evidenceOfCompletion, setEvidenceOfCompletion] = useState<ITaskListItem["EvidenceOfCompletion"]>(task.EvidenceOfCompletion);
   const [notesLog, setNotesLog] = useState<INoteEntry[]>(task.Notes ?? []);
   const [evidenceLog, setEvidenceLog] = useState<IEvidenceEntry[]>(task.Evidence ?? []);
-  const notesLogRef = useRef<INoteEntry[]>(task.Notes ?? []);
-  //const [isUploading, setIsUploading] = useState(false);
+  const notesLogRef        = useRef<INoteEntry[]>(task.Notes ?? []);
+  const approvalPendingRef = useRef(false);
+  const previousCompleteRef = useRef<number>(task.Complete ?? 0);
+  const skipNextCompleteEffectRef = useRef(false);
 
   useEffect(() => {
     setGate(task.Gate ?? "");
@@ -66,56 +72,96 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, currentUserEmail, 
     setEffort(task.Effort !== undefined ? task.Effort.toString() : "");
     setBarriers(task.Barriers ?? "");
     setActionableStatus(task.ActionableStatus ?? "");
-    setDescription(task.Description ?? "");
-    setEvidenceUrl(task.EvidenceOfCompletion?.Url ?? "");
-    setEvidenceDesc(task.EvidenceOfCompletion?.Description ?? "");
+    setEvidenceOfCompletion(task.EvidenceOfCompletion);
     setNotesLog(task.Notes ?? []);
     notesLogRef.current = task.Notes ?? [];
     setEvidenceLog(task.Evidence ?? []);
+    previousCompleteRef.current = task.Complete ?? 0;
   }, [task]);
 
-  const handleSave = (evidence?: { url: string; description: string }): void => {
-     let actualFinish: Date | null | undefined;
-
-    if (complete === 100) {
-      if (!task.ActualFinish) {
-        actualFinish = new Date();          // just completed
-      } else {
-        actualFinish = new Date(task.ActualFinish); // already had a date, keep it
-      }
-    } else {
-      actualFinish = null;                  // dropped below 100, clear it
-    }
+  const handleSave = (overrides?: {
+    complete?: number;
+    evidenceOfCompletion?: ITaskListItem["EvidenceOfCompletion"];
+  }): void => {
+    const effectiveComplete = overrides?.complete ?? complete;
+    const effectiveEvidence = overrides && Object.prototype.hasOwnProperty.call(overrides, 'evidenceOfCompletion')
+      ? overrides.evidenceOfCompletion
+      : evidenceOfCompletion;
+    const actualFinish: Date | null =
+      effectiveComplete === 100
+        ? task.ActualFinish ? new Date(task.ActualFinish) : new Date()
+        : null;
 
     const data = {
       Id: task.Id,
       Deliverable: deliverable,
       Gate: gate,
       Task: taskTitle,
-      Complete: complete,
+      Complete: effectiveComplete,
       Effort: effort ? Number(effort) : undefined,
       Barriers: barriers,
       ActionableStatus: actionableStatus,
-      Description: description,
       Start: start ? new Date(start) : undefined,
       Finish: finish ? new Date(finish) : undefined,
       ActualFinish: actualFinish,
-      EvidenceOfCompletion: evidence
-        ? {
-            Url: evidence.url,
-            Description: evidence.description,
-          }
-        : evidenceUrl || evidenceDesc
-        ? {
-            Url: evidenceUrl,
-            Description: evidenceDesc,
-          }
-        : undefined,
+      EvidenceOfCompletion: effectiveEvidence,
     };
 
-    const payload = JSON.stringify(data);
+    onSave(task.Id, JSON.stringify(data));
+  };
 
-    onSave(task.Id, payload);
+  const buildApprovalEmail = (requestedBy: string): { subject: string; body: string } => {
+    const jobNumber  = projectInfo?.projectNumber ?? '';
+    const partNumber = projectInfo?.partNumber    ?? '';
+    const subject = `Approval requested: ${task.Task}`;
+    const body = `
+<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;color:#1a1a1a;">
+  <h2 style="color:#0078d4;margin-bottom:4px;">Task Approval Required</h2>
+  <p style="margin:0 0 16px;">Task <strong>${task.Task}</strong> requires your approval.</p>
+
+  <div style="background:#f3f8fd;border-left:4px solid #0078d4;border-radius:4px;padding:16px 20px;margin-bottom:16px;">
+    <p style="margin:0 0 12px;font-weight:600;color:#0078d4;">How to find this task</p>
+    <ol style="margin:0;padding-left:20px;line-height:2;">
+      <li>Go to the <a href="https://ed2corp.sharepoint.com/" style="color:#0078d4;">Jobs Management page</a></li>
+      ${jobNumber ? `<li>Find Job <strong>${jobNumber}</strong> in the Jobs table${partNumber ? ` (Part Number: <strong>${partNumber}</strong>)` : ''}</li>` : ''}
+      <li>Click on gate <strong>${task.Gate}</strong> to expand its tasks</li>
+      <li>Click on task name <strong>${task.Task}</strong> to open its detail panel</li>
+      <li>In the right column, open the <strong>Approvals</strong> tab</li>
+    </ol>
+  </div>
+
+  <p style="color:#444;">Review the task and <strong>approve or reject</strong> based on your assessment.</p>
+  <p style="color:#999;font-size:12px;margin-top:20px;">Requested by: <strong>${requestedBy}</strong></p>
+</div>`.trim();
+    return { subject, body };
+  };
+
+  const triggerApprovalRequest = async (): Promise<void> => {
+    if (approvalPendingRef.current) return;
+    approvalPendingRef.current = true;
+    try {
+      const currentApprovals = task.Approvals ?? [];
+      const nextApprovals = currentApprovals.length > 0
+        ? currentApprovals
+        : [{
+            date:   new Date().toISOString(),
+            user:   'Joel',
+            email:  PRIMARY_APPROVER,
+            status: 'pending',
+            role:   'primary',
+          } as IApprovalEntry];
+
+      if (currentApprovals.length === 0) {
+        await onSaveLogField?.(task.Id, 'Approvals', nextApprovals);
+      }
+
+      const recipients = nextApprovals.map(approval => approval.email);
+      const { subject, body } = buildApprovalEmail(currentUserDisplayName ?? '');
+      await onSendEmail?.(recipients, subject, body);
+      await appendAuditNote(`Approval request sent to: ${recipients.join(', ')} by ${currentUserDisplayName ?? 'system'}`);
+    } finally {
+      approvalPendingRef.current = false;
+    }
   };
 
   const saveNotesEntries = async (entries: INoteEntry[], shouldSaveTask = false): Promise<void> => {
@@ -144,9 +190,89 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, currentUserEmail, 
     }
   };
 
-  const handleSaveClick: React.MouseEventHandler<HTMLButtonElement> = () => {
-    handleSave(); // uses current state (no explicit evidence)
+  const appendAuditNote = async (text: string): Promise<void> => {
+    const entry: INoteEntry = {
+      date: new Date().toISOString(),
+      user: currentUserDisplayName ?? '',
+      note: text,
+    };
+    await saveNotesEntries([...notesLogRef.current, entry]);
   };
+
+  const handleToggleEvidenceOfCompletion = async (entry: IEvidenceEntry): Promise<void> => {
+    const nextEntries = evidenceLog.map(current => {
+      const isTarget =
+        current.date === entry.date &&
+        current.fileUrl === entry.fileUrl &&
+        current.fileName === entry.fileName;
+
+      if (isTarget) {
+        return {
+          ...current,
+          isEvidenceOfCompletion: !current.isEvidenceOfCompletion,
+        };
+      }
+
+      if (!entry.isEvidenceOfCompletion) {
+        return {
+          ...current,
+          isEvidenceOfCompletion: false,
+        };
+      }
+
+      return current;
+    });
+
+    const activeEvidence = nextEntries.find(current => current.isEvidenceOfCompletion);
+    const nextEvidenceOfCompletion = activeEvidence
+      ? {
+          Url: activeEvidence.fileUrl,
+          Description: activeEvidence.note || activeEvidence.fileName,
+        }
+      : undefined;
+
+    setEvidenceOfCompletion(nextEvidenceOfCompletion);
+    await saveEvidenceEntries(nextEntries, false);
+    handleSave({ evidenceOfCompletion: nextEvidenceOfCompletion });
+    await appendAuditNote(
+      activeEvidence && activeEvidence.fileUrl === entry.fileUrl && activeEvidence.date === entry.date
+        ? `Evidence of completion marked for file ${entry.fileName} by ${currentUserDisplayName ?? 'system'}`
+        : `Evidence of completion removed for file ${entry.fileName} by ${currentUserDisplayName ?? 'system'}`
+    );
+  };
+
+  const handleSaveClick: React.MouseEventHandler<HTMLButtonElement> = () => {
+    handleSave();
+    if (complete === 100) {
+      triggerApprovalRequest().catch(error => {
+        console.error("[TaskCard] Failed to trigger approval request", error);
+      });
+    }
+  };
+
+  useEffect(() => {
+    if (skipNextCompleteEffectRef.current) {
+      skipNextCompleteEffectRef.current = false;
+      previousCompleteRef.current = complete;
+      return;
+    }
+
+    const crossedToComplete = previousCompleteRef.current < 100 && complete === 100;
+    previousCompleteRef.current = complete;
+
+    if (!crossedToComplete) {
+      return;
+    }
+
+    handleSave({ complete: 100 });
+    appendAuditNote(`Task marked as 100% complete by ${currentUserDisplayName ?? 'system'}`).catch(error => {
+      console.error("[TaskCard] Failed to append completion note", error);
+    });
+    triggerApprovalRequest().catch(error => {
+      console.error("[TaskCard] Failed to trigger approval request", error);
+    });
+  }, [complete]); // eslint-disable-line react-hooks/exhaustive-deps
+  const hasCompletionEvidence = evidenceLog.some(entry => entry.isEvidenceOfCompletion);
   const handleNew = (): void => onNew(task);
   const handleDelete = (): void => onDelete(task.Id);
 
@@ -226,6 +352,11 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, currentUserEmail, 
                       onClick={(e) => e.stopPropagation()}
                     />
                   )}              
+                  {complete === 100 && !hasCompletionEvidence && (
+                    <div className={styles["completion-warning"]}>
+                      No file is marked as Evidence of Completion.
+                    </div>
+                  )}
                 </td>
               </tr>
 
@@ -289,56 +420,12 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, currentUserEmail, 
                 </td>
               </tr>
 
-              {/* EVIDENCE OF COMPLETION */}
-              <tr>
-                <td>    
-                  <strong>Evidence of Completion:</strong>              
-
-                </td>
-                <td>              
-                  <div className={styles["evidence-edit"]}>
-                    <EvidenceEditor
-                      evidenceUrl={evidenceUrl}
-                      evidenceDesc={evidenceDesc}
-                      onChangeUrl={(v) => {
-                        const cleanValue = v.trim().replace(/[\u200B-\u200D\uFEFF\u00A0]/g, "");
-                        setEvidenceUrl(cleanValue);
-                      }}
-                      onChangeDesc={setEvidenceDesc}
-                      onUploadEvidenceFile={onUploadEvidenceFile}
-                      taskId={task.Id}
-                      taskTitle={taskTitle || task.Task || "CompletionEvidence"}
-                      onEvidenceUpdated={({ taskId, url, description }) => {
-                        // Update state so the UI reflects the new file
-                        setEvidenceDesc(description);
-                        setEvidenceUrl(url);
-
-                        // Save using the new evidence
-                        handleSave({ url, description });
-                      }}
-                      onAfterUpload={(success) => {
-                        if (!success) {
-                          console.error("Evidence upload failed.");
-                          return;
-                        }
-                      }}
-                      stopRowClick={false}
-                    />
-                
-                  </div>
-                </td>
-              </tr>
             </tbody>
           </table>
         </div>
         <div className={styles["task-card-column"]}>
           {/* Tab bar */}
           <div className={styles["tab-bar"]}>
-            <button
-              type="button"
-              className={`${styles["tab-btn"]} ${activeTab === 'fields' ? styles["tab-active"] : ''}`}
-              onClick={() => setActiveTab('fields')}
-            >Fields</button>
             <button
               type="button"
               className={`${styles["tab-btn"]} ${activeTab === 'notes' ? styles["tab-active"] : ''}`}
@@ -349,31 +436,15 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, currentUserEmail, 
               className={`${styles["tab-btn"]} ${activeTab === 'evidence' ? styles["tab-active"] : ''}`}
               onClick={() => setActiveTab('evidence')}
             >Evidence</button>
-            {showApprovals && (
-              <button
-                type="button"
-                className={`${styles["tab-btn"]} ${activeTab === 'approvals' ? styles["tab-active"] : ''}`}
-                onClick={() => setActiveTab('approvals')}
-              >Approvals</button>
-            )}
+            <button
+              type="button"
+              className={`${styles["tab-btn"]} ${activeTab === 'approvals' ? styles["tab-active"] : ''}`}
+              onClick={() => setActiveTab('approvals')}
+            >Approvals</button>
           </div>
 
           {/* Tab content */}
           <div className={styles["tab-content"]}>
-            {activeTab === 'fields' && (
-              <>
-                <strong>Status / Notes:</strong>
-                <textarea
-                  value={description}
-                  onChange={e => setDescription(e.target.value)}
-                  className={styles["input-small"]}
-                  rows={3}
-                  style={{ width: "100%", resize: "vertical" }}
-                  placeholder="Add notes or description for this task..."
-                />
-              </>
-            )}
-
             {activeTab === 'notes' && (
               <NotesLog
                 notes={notesLog}
@@ -396,35 +467,52 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, currentUserEmail, 
                     const uploadNote = uploadedEntry.note
                       ? `File uploaded by ${uploadedEntry.user}: ${uploadedEntry.fileName}. Note: ${uploadedEntry.note}`
                       : `File uploaded by ${uploadedEntry.user}: ${uploadedEntry.fileName}`;
-                    const nextNotes: INoteEntry[] = [
+                    await saveNotesEntries([
                       ...notesLogRef.current,
-                      {
-                        date: uploadedEntry.date,
-                        user: uploadedEntry.user,
-                        note: uploadNote,
-                      },
-                    ];
-                    await saveNotesEntries(nextNotes, false);
+                      { date: uploadedEntry.date, user: uploadedEntry.user, note: uploadNote },
+                    ], false);
                   }
 
-                  handleSave();
+                  if (uploadedEntry?.isEvidenceOfCompletion) {
+                    const nextEvidenceOfCompletion = {
+                      Url: uploadedEntry.fileUrl,
+                      Description: uploadedEntry.note || uploadedEntry.fileName,
+                    };
+                    setEvidenceOfCompletion(nextEvidenceOfCompletion);
+                    skipNextCompleteEffectRef.current = true;
+                    previousCompleteRef.current = 100;
+                    setComplete(100);
+                    handleSave({
+                      complete: 100,
+                      evidenceOfCompletion: nextEvidenceOfCompletion,
+                    });
+                    await appendAuditNote(`Evidence of completion uploaded by ${uploadedEntry.user}: ${uploadedEntry.fileName}`);
+                    await triggerApprovalRequest();
+                  } else {
+                    handleSave();
+                  }
                 }}
+                onToggleEvidenceOfCompletion={handleToggleEvidenceOfCompletion}
                 onUploadFile={onUploadEvidenceFile}
               />
             )}
 
-            {activeTab === 'approvals' && showApprovals && (
+            {activeTab === 'approvals' && (
               <ApprovalsLog
                 taskTitle={taskTitle || task.Task || 'Task'}
                 approvals={task.Approvals ?? null}
                 currentUserEmail={currentUserEmail ?? ''}
                 currentUserDisplayName={currentUserDisplayName ?? ''}
+                canManageApprovers={canManageApprovers}
                 onSave={async (entries: IApprovalEntry[]) => {
                   await onSaveLogField?.(task.Id, 'Approvals', entries);
                   handleSave();
                 }}
                 onSendEmail={onSendEmail ?? (async () => undefined)}
                 onAllApproved={onTaskCompleted}
+                onSearchUsers={canManageApprovers ? onSearchUsers : undefined}
+                onSaveNote={appendAuditNote}
+                buildApprovalEmail={buildApprovalEmail}
               />
             )}
           </div>

@@ -1,25 +1,26 @@
 
 require("./TaskCard.module.css");
 const styles = {
-  'task-card': 'task-card_b83c9723',
-  'task-card-header': 'task-card-header_b83c9723',
-  'task-title': 'task-title_b83c9723',
-  'task-btn-group': 'task-btn-group_b83c9723',
-  'task-button': 'task-button_b83c9723',
-  'task-card-close': 'task-card-close_b83c9723',
-  'task-card-row': 'task-card-row_b83c9723',
-  'task-card-body': 'task-card-body_b83c9723',
-  'task-card-column': 'task-card-column_b83c9723',
-  'task-table': 'task-table_b83c9723',
-  'input-small': 'input-small_b83c9723',
-  'select-complete': 'select-complete_b83c9723',
-  'tab-bar': 'tab-bar_b83c9723',
-  'tab-btn': 'tab-btn_b83c9723',
-  'tab-active': 'tab-active_b83c9723',
-  'tab-content': 'tab-content_b83c9723',
-  'tab-placeholder': 'tab-placeholder_b83c9723',
-  'evidence-edit': 'evidence-edit_b83c9723',
-  'icon-small': 'icon-small_b83c9723'
+  'task-card': 'task-card_9b19d5dd',
+  'task-card-header': 'task-card-header_9b19d5dd',
+  'task-title': 'task-title_9b19d5dd',
+  'task-btn-group': 'task-btn-group_9b19d5dd',
+  'task-button': 'task-button_9b19d5dd',
+  'task-card-close': 'task-card-close_9b19d5dd',
+  'task-card-row': 'task-card-row_9b19d5dd',
+  'task-card-body': 'task-card-body_9b19d5dd',
+  'task-card-column': 'task-card-column_9b19d5dd',
+  'task-table': 'task-table_9b19d5dd',
+  'input-small': 'input-small_9b19d5dd',
+  'select-complete': 'select-complete_9b19d5dd',
+  'completion-warning': 'completion-warning_9b19d5dd',
+  'tab-bar': 'tab-bar_9b19d5dd',
+  'tab-btn': 'tab-btn_9b19d5dd',
+  'tab-active': 'tab-active_9b19d5dd',
+  'tab-content': 'tab-content_9b19d5dd',
+  'tab-placeholder': 'tab-placeholder_9b19d5dd',
+  'evidence-edit': 'evidence-edit_9b19d5dd',
+  'icon-small': 'icon-small_9b19d5dd'
 };
 
 export default styles;

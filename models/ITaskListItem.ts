@@ -10,15 +10,9 @@ export interface ITaskListItem {
   Start?: Date;
   Finish?: Date;
   ActualFinish?: Date;
+  // Planner-only fields (not used in SP lists)
   Description?: string;
-  Responsible?: {
-    Url: string,
-    Description: string
-  };
-  EvidenceOfCompletion?: {
-    Url: string,
-    Description: string
-  };
+  EvidenceOfCompletion?: { Url: string; Description: string };
   Barriers?: string;
   Effort?: number;
   ActionableStatus?: string;

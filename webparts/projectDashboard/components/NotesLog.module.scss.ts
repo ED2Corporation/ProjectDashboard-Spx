@@ -1,17 +1,17 @@
 
 require("./NotesLog.module.css");
 const styles = {
-  container: 'container_4fa48318',
-  feed: 'feed_4fa48318',
-  empty: 'empty_4fa48318',
-  entry: 'entry_4fa48318',
-  meta: 'meta_4fa48318',
-  user: 'user_4fa48318',
-  date: 'date_4fa48318',
-  noteText: 'noteText_4fa48318',
-  addForm: 'addForm_4fa48318',
-  textarea: 'textarea_4fa48318',
-  addBtn: 'addBtn_4fa48318'
+  container: 'container_1850a85f',
+  feed: 'feed_1850a85f',
+  empty: 'empty_1850a85f',
+  entry: 'entry_1850a85f',
+  meta: 'meta_1850a85f',
+  user: 'user_1850a85f',
+  date: 'date_1850a85f',
+  noteText: 'noteText_1850a85f',
+  addForm: 'addForm_1850a85f',
+  noteInput: 'noteInput_1850a85f',
+  addBtn: 'addBtn_1850a85f'
 };
 
 export default styles;
