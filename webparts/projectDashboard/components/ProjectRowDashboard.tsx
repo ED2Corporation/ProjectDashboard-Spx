@@ -257,11 +257,12 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
       {/* ── Row header: project info (left) + gate bar (right) ───────── */}
       <div className={`${styles.header} ${activeGate !== null ? styles.headerActive : ""}`}>
         <div className={styles.projectInfo} onClick={handleOverallClick} style={{ cursor: "pointer" }}>
-          <div className={styles.projectNumber}>{localProject.ProjectNumber}</div>
-          <div className={styles.projectTitle}>
-            {localProject.ProjectNumber && localProject.Title?.startsWith(`${localProject.ProjectNumber}-`)
-              ? localProject.Title.slice(localProject.ProjectNumber.length + 1)
-              : localProject.Title}
+          <div className={styles.projectTitle}>{localProject.PartNumber}</div>
+          <div className={styles.projectSubtitle}>
+            {localProject.ProjectNumber}
+            {!!localProject.Units && (
+              <> (<strong>{localProject.Units} units</strong>)</>
+            )}
           </div>
           <div className={styles.projectCustomer}>{localProject.Customer}</div>
         </div>

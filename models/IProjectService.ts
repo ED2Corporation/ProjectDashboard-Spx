@@ -17,4 +17,8 @@ export interface IProjectCatalogItem {
     Status?: string;
     Customer?: string;
     BoardView?: boolean;
+    /** Part identifier extracted from Title after the first dash (e.g. "ED2-0030 Rev-B" from "1003028-ED2-0030 Rev-B") */
+    PartNumber?: string;
+    /** Number of units from PO — default 0 until sourced from SP */
+    Units?: number;
 }

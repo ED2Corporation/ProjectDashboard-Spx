@@ -29,10 +29,18 @@ export function useProjectsCatalog(sp: SPFI): IProjectsCatalogState {
     try {
       const items = await sp.web.lists
         .getByTitle('ED2-Projects')
-        .items.select('Id', 'Title', 'ProjectNumber', 'ProjectId', 'Year', 'Team', 'Status', 'Customer', 'BoardView')
+        .items.select('Id', 'Title', 'ProjectNumber', 'ProjectId', 'Year', 'Team', 'Status', 'Customer', 'BoardView', 'Units')
         .top(500)();
 
-      setProjects(items as IProjectCatalogItem[]);
+      const enriched = (items as IProjectCatalogItem[]).map(item => {
+        const num = item.ProjectNumber ?? '';
+        item.PartNumber = num && item.Title?.startsWith(`${num}-`)
+          ? item.Title.slice(num.length + 1)
+          : item.Title;
+        item.Units = item.Units ?? 0;
+        return item;
+      });
+      setProjects(enriched);
     } catch (e: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
       setError(e.message ?? 'Failed to load projects catalog');
     } finally {

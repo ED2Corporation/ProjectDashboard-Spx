@@ -1,17 +1,18 @@
 
 require("./ProjectRowDashboard.module.css");
 const styles = {
-  card: 'card_d6dedd96',
-  cardActive: 'cardActive_d6dedd96',
-  header: 'header_d6dedd96',
-  headerActive: 'headerActive_d6dedd96',
-  projectInfo: 'projectInfo_d6dedd96',
-  projectNumber: 'projectNumber_d6dedd96',
-  projectTitle: 'projectTitle_d6dedd96',
-  projectCustomer: 'projectCustomer_d6dedd96',
-  noGates: 'noGates_d6dedd96',
-  actionsSection: 'actionsSection_d6dedd96',
-  taskSection: 'taskSection_d6dedd96'
+  card: 'card_c8ff7065',
+  cardActive: 'cardActive_c8ff7065',
+  header: 'header_c8ff7065',
+  headerActive: 'headerActive_c8ff7065',
+  projectInfo: 'projectInfo_c8ff7065',
+  projectNumber: 'projectNumber_c8ff7065',
+  projectTitle: 'projectTitle_c8ff7065',
+  projectSubtitle: 'projectSubtitle_c8ff7065',
+  projectCustomer: 'projectCustomer_c8ff7065',
+  noGates: 'noGates_c8ff7065',
+  actionsSection: 'actionsSection_c8ff7065',
+  taskSection: 'taskSection_c8ff7065'
 };
 
 export default styles;

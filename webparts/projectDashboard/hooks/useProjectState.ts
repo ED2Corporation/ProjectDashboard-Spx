@@ -197,13 +197,6 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
 
       const responseJson = await response.json();
       const raw: any[] = Array.isArray(responseJson.value) ? responseJson.value : [];  // eslint-disable-line @typescript-eslint/no-explicit-any
-      console.log("[useProjectState] Raw task items from SharePoint", raw.map(r => ({
-        Id: r.Id,
-        Gate: r.Gate,
-        Task: r.Task,
-        Title: r.Title,
-      })));
-
       const loaded: ITaskListItem[] = raw.map(r => ({
         Id: String(r.Id),
         Gate: r.Gate ?? "",

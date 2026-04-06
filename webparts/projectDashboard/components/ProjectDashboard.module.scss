@@ -574,3 +574,22 @@
 }
 
 // stylelint-enable selector-class-pattern
+
+// ─── Gate rename toggle (ListTasks inline edit) ────────────────────────────
+.gate-rename-toggle {
+  margin-top: $sp-2;
+}
+
+.gate-rename-label {
+  display: inline-flex;
+  align-items: center;
+  gap: $sp-2;
+  font-size: $f-sm;
+  color: $c-text-secondary;
+  cursor: pointer;
+
+  input[type='checkbox'] {
+    cursor: pointer;
+    accent-color: $c-primary;
+  }
+}

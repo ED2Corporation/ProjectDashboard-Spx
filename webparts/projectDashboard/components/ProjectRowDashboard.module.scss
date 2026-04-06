@@ -49,11 +49,16 @@
 
 .projectTitle {
   font-size: $f-base;
-  font-weight: 500;
+  font-weight: 700;
   color: $c-text;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.projectSubtitle {
+  font-size: $f-sm;
+  color: $c-text-secondary;
 }
 
 .projectCustomer {

@@ -197,7 +197,7 @@ export default class ProjectDashboard extends React.Component<
               />
             )} 
           </div>
-        )}
+        )} 
 
         {/* ── Task section — visible only when a gate is active ────────── */}
         {showDashboard && tasksVisible && (

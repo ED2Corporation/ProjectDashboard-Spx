@@ -11,7 +11,7 @@ import "@pnp/sp/fields";
 import "@pnp/sp/views";
 
 export class ProjectService implements IProjectService {
-    private readonly _context: BaseComponentContext;
+    private readonly _context!: BaseComponentContext;
     private readonly _listName: string;
     private readonly _catalogListName = "ED2-Projects";
 
@@ -298,27 +298,37 @@ export class ProjectService implements IProjectService {
         return this.createProject({ Title: `${src.Title} (Copy)`, Status: src.Status || "Active" });
     }
 
+    private _enrichCatalogItem(raw: any): IProjectCatalogItem { // eslint-disable-line @typescript-eslint/no-explicit-any
+        const item = raw as IProjectCatalogItem;
+        const num = item.ProjectNumber ?? "";
+        item.PartNumber = num && item.Title?.startsWith(`${num}-`)
+            ? item.Title.slice(num.length + 1)
+            : item.Title;
+        item.Units = item.Units ?? 0;
+        return item;
+    }
+
     public async getProjectCatalog(listName: string = "ProjectCatalog"): Promise<IProjectCatalogItem[]> {
         const items = await this._sp.web.lists.getByTitle(listName)
-            .items.select("Id","Title","ProjectNumber","ProjectId","Year","Team","Status","Customer")
+            .items.select("Id","Title","ProjectNumber","ProjectId","Year","Team","Status","Customer","Units")
             .top(5000)();
-        return items as IProjectCatalogItem[];
+        return (items as IProjectCatalogItem[]).map(i => this._enrichCatalogItem(i));
     }
 
     public async getProjectByProjectId(projectId: string, listName: string = "ProjectCatalog"): Promise<IProjectCatalogItem | null> {
         const items = await this._sp.web.lists.getByTitle(listName)
-            .items.select("Id","Title","ProjectNumber","ProjectId","Year","Team","Status","Customer")
+            .items.select("Id","Title","ProjectNumber","ProjectId","Year","Team","Status","Customer","Units")
             .filter(`ProjectId eq '${projectId.replace(/'/g, "''")}'`)();
-        return items.length ? items[0] as IProjectCatalogItem : null;
+        return items.length ? this._enrichCatalogItem(items[0]) : null;
     }
 
     public async getProjectsByYearAndStatus(year: number, status?: string, listName: string = "ProjectCatalog"): Promise<IProjectCatalogItem[]> {
         let filter = `Year eq ${year}`;
         if (status) filter += ` and Status eq '${status.replace(/'/g, "''")}'`;
         const items = await this._sp.web.lists.getByTitle(listName)
-            .items.select("Id","Title","ProjectNumber","ProjectId","Year","Team","Status","Customer")
+            .items.select("Id","Title","ProjectNumber","ProjectId","Year","Team","Status","Customer","Units")
             .filter(filter)();
-        return items as IProjectCatalogItem[];
+        return (items as IProjectCatalogItem[]).map(i => this._enrichCatalogItem(i));
     }
 
     public async getLastProjectFromCatalog(): Promise<{ ProjectNumber?: string } | null> {
