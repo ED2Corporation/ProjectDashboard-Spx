@@ -59,14 +59,14 @@ const buildRepoBrowseUrl = (baseUrl: string, folderServerRelative: string): stri
 const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
   project, context, sp, onStatusReady, onCatalogItemSaved,
 }) => {
-  const listName   = `${project.ProjectId}-List`;
-  const repoName   = `${project.ProjectId}-Evidence`;
+  // Title = ProjectNumber + "-" + ProjectId  (e.g. "1003006-ED2-0033-Rev-A")
+  const _prefix  = project.Title ?? project.ProjectNumber;
+  const listName = `${_prefix}-List`;
+  const repoName = `${_prefix}-Evidence`;
   const siteUrl    = context.pageContext.web.absoluteUrl;
   const siteRel    = context.pageContext.web.serverRelativeUrl;
   const evidenceFolderServerRelative = buildRepoRelativeUrl(siteRel, repoName);
-  const [projectListUrl, setProjectListUrl] = useState<string>(
-    `${siteUrl.replace(/\/+$/, "")}/Lists/${encodeURIComponent(listName)}/AllItems.aspx`
-  );
+  const projectListUrl = `${siteUrl.replace(/\/+$/, "")}/Lists/${encodeURIComponent(listName)}/AllItems.aspx`;
   const repoBrowseUrl = useMemo(
     () => buildRepoBrowseUrl(siteUrl, evidenceFolderServerRelative),
     [siteUrl, evidenceFolderServerRelative]
@@ -132,23 +132,6 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
   // Local copy of catalog fields — updated optimistically after a successful save
   const [localProject,       setLocalProject]       = useState(project);
 
-  useEffect(() => {
-    let cancelled = false;
-
-    void sp.web.lists.getByTitle(listName).select("DefaultViewUrl")()
-      .then((list: { DefaultViewUrl?: string }) => {
-        if (!cancelled && list?.DefaultViewUrl) {
-          setProjectListUrl(toAbsoluteSharePointUrl(siteUrl, list.DefaultViewUrl));
-        }
-      })
-      .catch((error: unknown) => {
-        console.error("[ProjectRowDashboard] Failed to resolve SharePoint list URL", error);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [sp, listName, siteUrl]);
 
   // Minimal IProjectListItem shape required by ProjectActionsBar
   const projectListItem = useMemo(() => ({
@@ -323,7 +306,7 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
             onSave={(taskId, payloadJson) => {
               onUpdateTask?.(taskId, "quick-complete", payloadJson);
             }}
-            onSelectItem={(item, group, mode) => {
+            onSelectItem={(item, _group, mode) => {
               if (!item?.Task) return;
               switch (mode) {
                 case "list-edit":

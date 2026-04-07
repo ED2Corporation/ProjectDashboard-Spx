@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { ITaskListItem } from "../../../models";
-import { isManager, INoteEntry, IEvidenceEntry, IApprovalEntry, PRIMARY_APPROVER } from "../../../models/ITaskLogFields";
+import { INoteEntry, IEvidenceEntry, IApprovalEntry, PRIMARY_APPROVER } from "../../../models/ITaskLogFields";
 import styles from "./TaskCard.module.scss";
 import NotesLog from "./NotesLog";
 import EvidenceLog from "./EvidenceLog";
@@ -38,7 +38,7 @@ interface TaskCardProps {
 
 const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, currentUserEmail, currentUserDisplayName, projectInfo, onClose, onSave, onDelete, onNew, onUploadEvidenceFile, onSaveLogField, onSendEmail, onSearchUsers, onTaskCompleted }) => {
   const [activeTab, setActiveTab] = useState<TaskTab>('notes');
-  const canManageApprovers = isManager(currentUserEmail ?? '');
+  const canManageApprovers = true; // All users can manage approvers
   const [gate, setGate] = useState(task.Gate ?? "");
   const [renameAllGateTasks, setRenameAllGateTasks] = useState(true);
   const [deliverable, setDeliverable] = useState(task.Deliverable ?? "");
@@ -528,7 +528,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, currentUserEmail, 
                 }}
                 onSendEmail={onSendEmail ?? (async () => undefined)}
                 onAllApproved={onTaskCompleted}
-                onSearchUsers={canManageApprovers ? onSearchUsers : undefined}
+                onSearchUsers={onSearchUsers}
                 onSaveNote={appendAuditNote}
                 buildApprovalEmail={buildApprovalEmail}
               />
