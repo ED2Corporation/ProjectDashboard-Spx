@@ -181,6 +181,20 @@
   }
 }
 
+.badgeStalled {
+  color: $c-stalled;
+
+  &:hover {
+    border-color: $c-stalled;
+  }
+
+  &.badgeActive {
+    border: 2px solid $c-stalled;
+    background: $c-stalled-bg;
+    font-weight: 600;
+  }
+}
+
 .badgeNeutral {
   color: #111111;
 
@@ -193,6 +207,76 @@
     background: #f3f4f6;
     font-weight: 600;
   }
+}
+
+// ─── Search + sort bar ────────────────────────────────────────────────────────
+
+.searchSortBar {
+  display: flex;
+  flex-direction: column;
+  gap: $sp-2;
+  padding: $sp-3 $sp-6;
+  border-bottom: 1px solid $c-border;
+}
+
+.searchInput {
+  width: 100%;
+  padding: $sp-2 $sp-3;
+  border: 1px solid $c-border;
+  border-radius: $r-md;
+  font-size: $f-md;
+  color: $c-text;
+  background: $c-surface;
+  box-sizing: border-box;
+
+  &:focus {
+    outline: none;
+    border-color: $c-primary;
+    box-shadow: $shadow-focus;
+  }
+}
+
+.sortPills {
+  display: flex;
+  align-items: center;
+  gap: $sp-2;
+  flex-wrap: wrap;
+}
+
+.sortLabel {
+  font-size: $f-sm;
+  color: $c-text-secondary;
+  margin-right: $sp-1;
+}
+
+.sortPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px 10px;
+  border-radius: $r-pill;
+  border: 1px solid $c-border;
+  background: $c-surface;
+  font-size: $f-sm;
+  color: $c-text-secondary;
+  cursor: pointer;
+  transition: $t-fast;
+
+  &:hover {
+    border-color: $c-primary;
+    color: $c-primary;
+  }
+
+  &.sortPillActive {
+    border-color: $c-primary;
+    background: $c-primary-bg;
+    color: $c-primary;
+    font-weight: 600;
+  }
+}
+
+.sortArrow {
+  font-size: 10px;
 }
 
 // ─── Project list ─────────────────────────────────────────────────────────────

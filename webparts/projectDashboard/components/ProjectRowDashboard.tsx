@@ -29,7 +29,7 @@ export interface ProjectRowDashboardProps {
   context: AnyContext;
   sp: SPFI;
   /** Called once gate data is ready so the parent can compute aggregate counts */
-  onStatusReady?: (projectId: string, statusKey: "ontime" | "delayed" | "archived") => void;
+  onStatusReady?: (projectId: string, statusKey: "ontime" | "stalled" | "delayed" | "archived") => void;
   /** Called after a catalog item is saved — use to reload the parent catalog list */
   onCatalogItemSaved?: () => void;
 }
@@ -103,24 +103,8 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
     field: 'Notes' | 'Evidence' | 'Approvals',
     entries: unknown[]
   ): Promise<void> => {
-    console.log("[ProjectRowDashboard] onSaveLogField called", {
-      taskId,
-      field,
-      entriesCount: entries.length,
-      entries,
-    });
     await _onSaveLogField(taskId, field, entries);
-    console.log("[ProjectRowDashboard] useProjectState onSaveLogField resolved", {
-      taskId,
-      field,
-      entriesCount: entries.length,
-    });
     setSelectedTask(prev => prev?.Id === taskId ? { ...prev, [field]: entries } : prev);
-    console.log("[ProjectRowDashboard] selectedTask patched locally", {
-      taskId,
-      field,
-      entriesCount: entries.length,
-    });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [_onSaveLogField]);
 
@@ -146,13 +130,15 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
   // Report project status to parent once gates are loaded
   useEffect(() => {
     if (!onStatusReady || statusReported || gates.length === 0) return;
-    let key: "ontime" | "delayed" | "archived" = "ontime";
+    let key: "ontime" | "stalled" | "delayed" | "archived" = "ontime";
     const s = project.Status?.toLowerCase();
-    if (s === "archived" || s === "closed") { // backward compat
+    if (s === "archived" || s === "closed") {
       key = "archived";
     } else {
       const overall = GetBucketStatus(gates);
-      key = (overall === "red" || overall === "yellow") ? "delayed" : "ontime";
+      if (overall === "red")    key = "delayed";
+      else if (overall === "yellow") key = "stalled";
+      else key = "ontime";
     }
     onStatusReady(project.ProjectId ?? project.Title, key);
     setStatusReported(true);

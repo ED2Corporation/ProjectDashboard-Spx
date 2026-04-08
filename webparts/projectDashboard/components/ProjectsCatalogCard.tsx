@@ -9,13 +9,15 @@ import ProjectRowDashboard from './ProjectRowDashboard';
 import { IProjectCatalogItem } from '../../../models/IProjectService';
 import styles from './ProjectsCatalogCard.module.scss';
 
-type StatusFilter = 'all' | 'ontime' | 'delayed' | 'archived' | 'hidden' | 'waiting-approval';
-type StatusKey = 'ontime' | 'delayed' | 'archived' | 'waiting-approval';
+type StatusFilter = 'all' | 'ontime' | 'stalled' | 'delayed' | 'archived' | 'hidden' | 'waiting-approval';
+type StatusKey = 'ontime' | 'stalled' | 'delayed' | 'archived' | 'waiting-approval';
+type SortField = 'partNumber' | 'jobId';
+type SortDir   = 'asc' | 'desc';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyContext = BaseComponentContext & { spHttpClient: SPHttpClient; msGraphClientFactory: any };
 
-type BadgeVariant = StatusKey | 'hidden';
+type BadgeVariant = StatusKey | 'hidden' | 'stalled';
 type CatalogStatus = 'open' | 'archived' | 'waiting-approval' | 'hidden';
 
 interface AggregatorBadgeProps {
@@ -53,10 +55,11 @@ const IconChevronDown: React.FC = () => (
 );
 
 const variantClass: Record<BadgeVariant, string> = {
-  ontime: styles.badgeOntime,
-  delayed: styles.badgeDelayed,
-  archived: styles.badgeNeutral,
-  hidden: styles.badgeNeutral,
+  ontime:            styles.badgeOntime,
+  stalled:           styles.badgeStalled,
+  delayed:           styles.badgeDelayed,
+  archived:          styles.badgeNeutral,
+  hidden:            styles.badgeNeutral,
   'waiting-approval': styles.badgeNeutral,
 };
 
@@ -108,11 +111,14 @@ export interface IProjectsCatalogCardProps {
 const ProjectsCatalogCard: React.FC<IProjectsCatalogCardProps> = ({ sp, context, onSelectProject, onNewProject }) => {
   const { projects, isLoading, error, reload } = useProjectsCatalog(sp);
 
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isCollapsed, setIsCollapsed]   = useState(false);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
-  const [statusMap, setStatusMap] = useState<Record<string, StatusKey>>({});
+  const [statusMap, setStatusMap]       = useState<Record<string, StatusKey>>({});
+  const [searchText, setSearchText]     = useState('');
+  const [sortField, setSortField]       = useState<SortField | null>(null);
+  const [sortDir, setSortDir]           = useState<SortDir>('asc');
 
-  const handleStatusReady = useCallback((projectId: string, key: StatusKey) => {
+  const handleStatusReady = useCallback((projectId: string, key: "ontime" | "stalled" | "delayed" | "archived") => {
     setStatusMap((prev) => {
       if (prev[projectId] === key) return prev;
       return { ...prev, [projectId]: key };
@@ -134,34 +140,71 @@ const ProjectsCatalogCard: React.FC<IProjectsCatalogCardProps> = ({ sp, context,
   }, [projects]);
 
   const counts = useMemo(() => {
-    let onTime = 0;
-    let delayed = 0;
+    let onTime = 0, stalled = 0, delayed = 0;
 
     for (const project of openProjects) {
       const key = getProjectStatusKey(project, statusMap);
-      if (key === 'delayed') delayed++;
-      else onTime++;
+      if (key === 'delayed')      delayed++;
+      else if (key === 'stalled') stalled++;
+      else                        onTime++;
     }
 
     return {
-      onTime,
-      delayed,
-      archived: archivedProjects.length,
+      onTime, stalled, delayed,
+      archived:        archivedProjects.length,
       waitingApproval: waitingApprovalProjects.length,
-      hidden: hiddenProjects.length,
+      hidden:          hiddenProjects.length,
     };
   }, [openProjects, archivedProjects.length, waitingApprovalProjects.length, hiddenProjects.length, statusMap]);
 
   const filteredProjects = useMemo(() => {
-    if (statusFilter === 'all') return openProjects;
-    if (statusFilter === 'hidden') return hiddenProjects;
-    if (statusFilter === 'archived') return archivedProjects;
-    if (statusFilter === 'waiting-approval') return waitingApprovalProjects;
+    // 1. Pick base list by status filter
+    let base: IProjectCatalogItem[];
+    if (statusFilter === 'hidden')           base = hiddenProjects;
+    else if (statusFilter === 'archived')    base = archivedProjects;
+    else if (statusFilter === 'waiting-approval') base = waitingApprovalProjects;
+    else if (statusFilter === 'all')         base = openProjects;
+    else base = openProjects.filter(p => getProjectStatusKey(p, statusMap) === statusFilter);
 
-    return openProjects.filter((project) => getProjectStatusKey(project, statusMap) === statusFilter);
-  }, [archivedProjects, hiddenProjects, openProjects, waitingApprovalProjects, statusMap, statusFilter]);
+    // 2. Text search across PartNumber, ProjectId/JobId, Customer
+    const q = searchText.trim().toLowerCase();
+    if (q) {
+      base = base.filter(p =>
+        (p.PartNumber  ?? '').toLowerCase().includes(q) ||
+        (p.ProjectId   ?? '').toLowerCase().includes(q) ||
+        (p.ProjectNumber ?? '').toLowerCase().includes(q) ||
+        (p.Customer    ?? '').toLowerCase().includes(q)
+      );
+    }
 
-  const toggleFilter = (filter: StatusFilter): void => setStatusFilter((prev) => (prev === filter ? 'all' : filter));
+    // 3. Sort
+    if (sortField) {
+      base = [...base].sort((a, b) => {
+        const va = sortField === 'partNumber'
+          ? (a.PartNumber ?? a.Title ?? '').toLowerCase()
+          : (a.ProjectNumber ?? a.ProjectId ?? '').toLowerCase();
+        const vb = sortField === 'partNumber'
+          ? (b.PartNumber ?? b.Title ?? '').toLowerCase()
+          : (b.ProjectNumber ?? b.ProjectId ?? '').toLowerCase();
+        const cmp = va.localeCompare(vb);
+        return sortDir === 'asc' ? cmp : -cmp;
+      });
+    }
+
+    return base;
+  }, [archivedProjects, hiddenProjects, openProjects, waitingApprovalProjects, statusMap, statusFilter, searchText, sortField, sortDir]);
+
+  const toggleFilter = (filter: StatusFilter): void => setStatusFilter(prev => prev === filter ? 'all' : filter);
+
+  const handleSort = (field: SortField): void => {
+    if (sortField === field) {
+      if (sortDir === 'asc') setSortDir('desc');
+      else { setSortField(null); setSortDir('asc'); }
+    } else {
+      setSortField(field);
+      setSortDir('asc');
+    }
+  };
 
   return (
     <div className={styles.card}>
@@ -211,6 +254,13 @@ const ProjectsCatalogCard: React.FC<IProjectsCatalogCardProps> = ({ sp, context,
             onClick={() => toggleFilter('ontime')}
           />
           <AggregatorBadge
+            label="Stalled"
+            count={counts.stalled}
+            variant="stalled"
+            active={statusFilter === 'stalled'}
+            onClick={() => toggleFilter('stalled')}
+          />
+          <AggregatorBadge
             label="Delayed"
             count={counts.delayed}
             variant="delayed"
@@ -244,6 +294,39 @@ const ProjectsCatalogCard: React.FC<IProjectsCatalogCardProps> = ({ sp, context,
           )}
         </div>
       </div>
+
+      {!isCollapsed && (
+        <div className={styles.searchSortBar}>
+          {/* Search */}
+          <input
+            type="text"
+            className={styles.searchInput}
+            placeholder="Search part number, job ID, customer…"
+            value={searchText}
+            onChange={e => setSearchText(e.target.value)}
+          />
+
+          {/* Sort pills */}
+          <div className={styles.sortPills}>
+            <span className={styles.sortLabel}>Sort:</span>
+            {(['partNumber', 'jobId'] as SortField[]).map(field => {
+              const active = sortField === field;
+              const label  = field === 'partNumber' ? 'Part Number' : 'Job ID';
+              return (
+                <button
+                  key={field}
+                  type="button"
+                  className={`${styles.sortPill} ${active ? styles.sortPillActive : ''}`}
+                  onClick={() => handleSort(field)}
+                >
+                  {label}
+                  {active && <span className={styles.sortArrow}>{sortDir === 'asc' ? ' ▲' : ' ▼'}</span>}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {!isCollapsed && (
         <div className={styles.projectList}>
