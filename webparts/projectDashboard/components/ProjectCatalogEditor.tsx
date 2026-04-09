@@ -97,7 +97,7 @@ const serializeProjectDetailsFields = (fields: IProjectDetailsField[]): string |
 };
 
 // ─── Props ────────────────────────────────────────────────────────────────────
-
+ 
 export interface ProjectCatalogEditorProps {
   project: IProjectCatalogItem;
   projectService: ProjectService;
@@ -151,6 +151,7 @@ const ProjectCatalogEditor: React.FC<ProjectCatalogEditorProps> = ({
         ProjectId:     form.ProjectId,
         Status:        form.Status,
         Customer:      form.Customer,
+        Units:         form.Units,
         ProjectDetails: normalizedProjectDetails,
       };
       await projectService.updateCatalogItem(project.Title, patch);
@@ -221,14 +222,25 @@ const ProjectCatalogEditor: React.FC<ProjectCatalogEditorProps> = ({
           />
         </div>
 
-        {/* Customer — full width */}
-        <div className={`${styles.field} ${styles.fieldFull}`}>
+        {/* Customer */}
+        <div className={styles.field}>
           <label className={styles.label}>Customer</label>
           <input
             className={styles.input}
             type="text"
             value={form.Customer ?? ""}
             onChange={e => set("Customer", e.target.value)}
+          />
+        </div>
+
+        {/* Units */}
+        <div className={styles.field}>
+          <label className={styles.label}>Units</label>
+          <input
+            className={styles.input}
+            type="number"
+            value={form.Units ?? ""}
+            onChange={e => set("Units", e.target.value === "" ? 0 : Number(e.target.value))}
           />
         </div>
 
