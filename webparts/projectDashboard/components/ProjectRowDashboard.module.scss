@@ -61,6 +61,27 @@
   color: $c-text-secondary;
 }
 
+.woTag {
+  font-size: $f-sm;
+  font-weight: 600;
+  color: $c-primary;
+}
+
+.storageAlert {
+  margin-right: $sp-1;
+  font-size: $f-xs;
+  color: $c-text-muted;
+  cursor: default;
+  vertical-align: middle;
+  opacity: 0.6;
+}
+
+.unitsTag {
+  font-size: $f-sm;
+  font-weight: 400;
+  color: $c-text-secondary;
+}
+
 .projectCustomer {
   font-size: $f-sm;
   color: $c-text-subtle;

@@ -1,8 +1,10 @@
 import * as React from "react";
 import { useState, useMemo, useEffect, useCallback } from "react";
-import { SPFI } from "@pnp/sp";
+import { SPFI, spfi } from "@pnp/sp";
+import { SPFx } from "@pnp/sp/presets/all";
 import { BaseComponentContext } from "@microsoft/sp-component-base";
 import { SPHttpClient } from "@microsoft/sp-http";
+import { getStorageEndpoint, getProjectWebUrl, parseWorkOrder, buildListName, buildRepoName } from "../utils/StorageVersionResolver";
 
 import { ITaskListItem } from "../../../models";
 import { IProjectCatalogItem } from "../../../models/IProjectService";
@@ -59,12 +61,36 @@ const buildRepoBrowseUrl = (baseUrl: string, folderServerRelative: string): stri
 const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
   project, context, sp, onStatusReady, onCatalogItemSaved,
 }) => {
-  // Title = ProjectNumber + "-" + ProjectId  (e.g. "1003006-ED2-0033-Rev-A")
-  const _prefix  = project.Title ?? project.ProjectNumber;
-  const listName = `${_prefix}-List`;
-  const repoName = `${_prefix}-Evidence`;
-  const siteUrl    = context.pageContext.web.absoluteUrl;
-  const siteRel    = context.pageContext.web.serverRelativeUrl;
+  // ── Storage version resolution ─────────────────────────────────────────────
+  const storageVersion = project.resolvedStorageVersion ?? 'v1';
+  const fallbackWebUrl = context.pageContext.web.absoluteUrl;
+  const fallbackRelPath = context.pageContext.web.serverRelativeUrl;
+
+  // SPFI bound to the correct web (v2 → WO-Plans, v1 → current site)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const projectSp = useMemo(() => {
+    const targetWebUrl = getProjectWebUrl(storageVersion, fallbackWebUrl);
+    return storageVersion === 'v2'
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ? spfi(targetWebUrl).using(SPFx(context as any))
+      : sp;
+  }, [storageVersion, fallbackWebUrl, sp]);
+
+  // Storage endpoint (siteRelPath, evidenceLibrary, evidenceBasePath)
+  const storageEndpoint = useMemo(
+    () => getStorageEndpoint(storageVersion, fallbackRelPath),
+    [storageVersion, fallbackRelPath]
+  );
+
+  // ── List / repo names — same convention for v1 and v2 ────────────────────
+  const _prefix  = project.Title ?? project.ProjectNumber ?? '';
+  const listName = buildListName(_prefix);
+  const repoName = buildRepoName(_prefix);
+
+  // For v1 use the current web URL; for v2 use the resolved web URL
+  const siteUrl = getProjectWebUrl(storageVersion, fallbackWebUrl);
+  const siteRel = storageEndpoint.siteRelPath;
+
   const evidenceFolderServerRelative = buildRepoRelativeUrl(siteRel, repoName);
   const projectListUrl = `${siteUrl.replace(/\/+$/, "")}/Lists/${encodeURIComponent(listName)}/AllItems.aspx`;
   const repoBrowseUrl = useMemo(
@@ -72,9 +98,11 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
     [siteUrl, evidenceFolderServerRelative]
   );
 
+  // projectSp → task lists (may target WO-Plans for v2)
+  // sp        → catalog (ED2-Projects always lives in ED2-Team)
   const projectService = useMemo(
-    () => new ProjectService(sp, listName),
-    [sp, listName]
+    () => new ProjectService(projectSp, listName, sp),
+    [projectSp, listName, sp]
   );
 
   // no-op: properties are fixed per catalog row
@@ -87,7 +115,7 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
     onSaveLogField: _onSaveLogField, onSendEmail, onSearchUsers,
   } = useProjectState({
     context,
-    sp,
+    sp:             projectSp,
     projectService,
     projectName:    project.Title,
     sourceName:     listName,
@@ -95,6 +123,7 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
     showLog:        false,
     projectURL:     projectListUrl,
     onPatchProperties: noop,
+    storageEndpoint,
   });
 
   // Wrap onSaveLogField so the local selectedTask also reflects log changes immediately
@@ -226,12 +255,21 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
       {/* ── Row header: project info (left) + gate bar (right) ───────── */}
       <div className={`${styles.header} ${activeGate !== null ? styles.headerActive : ""}`}>
         <div className={styles.projectInfo} onClick={handleOverallClick} style={{ cursor: "pointer" }}>
-          <div className={styles.projectTitle}>{localProject.PartNumber}</div>
-          <div className={styles.projectSubtitle}>
-            {localProject.ProjectNumber}
-            {!!localProject.Units && (
-              <> (<strong>{localProject.Units} units</strong>)</>
+          <div className={styles.projectTitle}>
+            {storageVersion === 'v1' && (
+              <span className={styles.storageAlert} title="Legacy storage v1">⚠</span>
             )}
+            {localProject.PartNumber}
+            {!!localProject.Units && (
+              <span className={styles.unitsTag}> ({localProject.Units} units)</span>
+            )}
+          </div>
+          <div className={styles.projectSubtitle}>
+            {(() => {
+              const wo = parseWorkOrder(localProject);
+              return wo ? <><span className={styles.woTag}>WO# {wo}</span>{' '}</> : null;
+            })()}
+            {localProject.ProjectNumber}
           </div>
           <div className={styles.projectCustomer}>{localProject.Customer}</div>
         </div>

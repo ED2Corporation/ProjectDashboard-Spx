@@ -3,21 +3,24 @@ import { SPHttpClient, ISPHttpClientOptions } from "@microsoft/sp-http";
 export async function uploadEvidenceFile(
     spHttpClient: SPHttpClient,
     context: any,
-    siteUrl: string,        // siteUrl : https://ed2corp.sharepoint.com/ 
-    relativePath: string,   // siteRelativePath : / 
-    folderPath: string,     // /Shared Documents/ProjectsEvidence/
-    folderName: string,     // EvidenceRepository
-    file: File              // file : ProjectDashboardAll.png 
+    siteUrl: string,            // siteUrl : https://ed2corp.sharepoint.com/
+    relativePath: string,       // siteRelativePath : /
+    folderPath: string,         // /Shared Documents/ProjectsEvidence/
+    folderName: string,         // EvidenceRepository
+    file: File,                 // file : ProjectDashboardAll.png
+    overrideBasePath?: string   // when set, bypasses isRootSite logic (e.g. '/WO-Plans/WODocs' for v2)
 ): Promise<{ fileUrl: string; fileName: string }> {
     const doUpload = async (): Promise<{ fileUrl: string; fileName: string }> => {
 
         /** Controling Main Page - Production envitronment Root directory */
         const isRootSite = relativePath === "/"; // true if at tenant root, false if in a site collection (e.g. /sites/ED2-Team)
 
-        // For root: prepend webServerRelativeUrl when the path starts directly with a library name
-        const evidenceBasePath = isRootSite
-            ? `${relativePath}ED2 Repository Internal/Engineering/ProjectDashboard/${folderPath}`
-            : `${relativePath}Shared Documents/${folderPath}`;
+        // overrideBasePath bypasses the isRootSite branching (used for v2 storage)
+        const evidenceBasePath = overrideBasePath
+            ? overrideBasePath
+            : isRootSite
+                ? `${relativePath}ED2 Repository Internal/Engineering/ProjectDashboard/${folderPath}`
+                : `${relativePath}Shared Documents/${folderPath}`;
 
         // Normalize web URL (no trailing slash)
         let webUrl = `${siteUrl.replace(/\/+$/, "")}${relativePath.replace(/\/+$/, "")}`;
@@ -63,7 +66,7 @@ export async function uploadEvidenceFile(
         // Si es 404 por carpeta inexistente, crea el folder y reintenta
         const msg = String(error?.message || "");
         if (msg.includes("404") && msg.includes("DirectoryNotFoundException")) {
-            await ensureFolder(spHttpClient, siteUrl, relativePath, folderPath, folderName);
+            await ensureFolder(spHttpClient, siteUrl, relativePath, folderPath, folderName, overrideBasePath);
             return await doUpload();
         }
 
@@ -73,20 +76,23 @@ export async function uploadEvidenceFile(
 
 export async function ensureFolder(
     spHttpClient: SPHttpClient,
-    siteUrl: string,        // siteUrl : https://ed2corp.sharepoint.com/ 
-    relativePath: string,   // siteRelativePath : / || /sites/ED2-Team
-    folderPath: string,     // /Shared Documents/ProjectsEvidence/
-    folderName: string,     // EvidenceRepository
+    siteUrl: string,            // siteUrl : https://ed2corp.sharepoint.com/
+    relativePath: string,       // siteRelativePath : / || /sites/ED2-Team
+    folderPath: string,         // /Shared Documents/ProjectsEvidence/
+    folderName: string,         // EvidenceRepository
+    overrideBasePath?: string   // when set, bypasses isRootSite logic (e.g. '/WO-Plans/WODocs' for v2)
 ): Promise<void> {
     try {
 
         /** Controling Main Page - Production envitronment Root directory */
         const isRootSite = relativePath === "/"; // true if at tenant root, false if in a site collection (e.g. /sites/ED2-Team)
 
-        // For root: prepend webServerRelativeUrl when the path starts directly with a library name
-        const evidenceBasePath = isRootSite
-            ? `${relativePath}ED2 Repository Internal/Engineering/ProjectDashboard/${folderPath}`
-            : `${relativePath}Shared Documents/${folderPath}`;
+        // overrideBasePath bypasses the isRootSite branching (used for v2 storage)
+        const evidenceBasePath = overrideBasePath
+            ? overrideBasePath
+            : isRootSite
+                ? `${relativePath}ED2 Repository Internal/Engineering/ProjectDashboard/${folderPath}`
+                : `${relativePath}Shared Documents/${folderPath}`;
 
         // Normalize web URL (no trailing slash)
         let webUrl = `${siteUrl.replace(/\/+$/, "")}${relativePath.replace(/\/+$/, "")}`;

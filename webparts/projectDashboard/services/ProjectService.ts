@@ -16,15 +16,20 @@ export class ProjectService implements IProjectService {
     private readonly _catalogListName = "ED2-Projects";
 
     private _sp: SPFI;
+    /** Always points to the ED2-Team site — used for ED2-Projects catalog operations. */
+    private _catalogSp: SPFI;
 
-    constructor(contextOrSp: BaseComponentContext | SPFI, listName: string = "Projects") {
+    constructor(contextOrSp: BaseComponentContext | SPFI, listName: string = "Projects", catalogSp?: SPFI) {
         if ((contextOrSp as any).pageContext) {
             this._context = contextOrSp as BaseComponentContext;
             this._listName = listName;
             this._sp = spfi().using(SPFx(this._context));
+            this._catalogSp = this._sp;
         } else {
             this._sp = contextOrSp as SPFI;
             this._listName = listName;
+            // catalogSp must target the parent site (ED2-Team); fall back to _sp if not provided
+            this._catalogSp = catalogSp ?? this._sp;
         }
     }
 
@@ -332,7 +337,7 @@ export class ProjectService implements IProjectService {
     }
 
     public async getLastProjectFromCatalog(): Promise<{ ProjectNumber?: string } | null> {
-        const items = await this._sp.web.lists.getByTitle(this._catalogListName)
+        const items = await this._catalogSp.web.lists.getByTitle(this._catalogListName)
             .items.select("ID","Title","ProjectNumber","ProjectId","Year","Team","Status","Customer")
             .orderBy("ProjectNumber", false).top(1)();
         if (!items.length) return null;
@@ -341,16 +346,16 @@ export class ProjectService implements IProjectService {
     }
 
     public async updateCatalogItem(projectId: string, patch: Partial<IProjectCatalogItem>): Promise<void> {
-        const found = await this._sp.web.lists.getByTitle(this._catalogListName)
+        const found = await this._catalogSp.web.lists.getByTitle(this._catalogListName)
             .items.select('Id').filter(`ProjectId eq '${projectId.replace(/'/g, "''")}'`).top(1)();
         if (!found.length) throw new Error(`Catalog item not found: ${projectId}`);
         const id = (found[0] as any).Id as number; // eslint-disable-line @typescript-eslint/no-explicit-any
-        await this._sp.web.lists.getByTitle(this._catalogListName).items.getById(id).update(patch);
+        await this._catalogSp.web.lists.getByTitle(this._catalogListName).items.getById(id).update(patch);
     }
 
     public async addProjectToCatalog(item: IProjectCatalogItem): Promise<string> {
         try {
-            const res = await this._sp.web.lists.getByTitle(this._catalogListName).items.add({
+            const res = await this._catalogSp.web.lists.getByTitle(this._catalogListName).items.add({
                 Title: item.Title, ProjectNumber: item.ProjectNumber, ProjectId: item.ProjectId,
                 Year: item.Year, Team: item.Team, Status: item.Status, Customer: item.Customer
             });

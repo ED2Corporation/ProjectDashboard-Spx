@@ -49,9 +49,6 @@ const ListTasks = ({
   const [editPercentComplete, setEditPercentComplete] = useState<number>(0);
   const [editStart, setEditStart] = useState<string>("");
   const [editFinish, setEditFinish] = useState<string>("");
-  const [editGate, setEditGate] = useState<string>("");
-  const [editGateOriginal, setEditGateOriginal] = useState<string>("");
-  const [editRenameAllGateTasks, setEditRenameAllGateTasks] = useState<boolean>(true);
   const [sortCol, setSortCol] = useState<SortCol>("wbs");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
   const [taskFilter, setTaskFilter] = useState<string>("");
@@ -139,16 +136,14 @@ const ListTasks = ({
     } else {
       actualFinish = null;
     }
-    const gateChanged = editGate !== editGateOriginal;
     const data = {
       Id: task.Id,
-      Gate: editGate || task.Gate,
+      Gate: task.Gate,
       Task: editTaskTitle || task.Task,
       Complete: editPercentComplete,
       Start: editStart || null,
       Finish: editFinish || null,
       ActualFinish: actualFinish,
-      ...(gateChanged && { originalGate: editGateOriginal, renameGate: editRenameAllGateTasks }),
     };
 
     const payload = JSON.stringify(data);
@@ -282,40 +277,14 @@ const ListTasks = ({
                   {/* Task */}
                   <td className={styles.colText}>
                     {editingTaskId === item.Id ? (
-                      <>
-                        <input
-                          type="text"
-                          value={editTaskTitle}
-                          onChange={(e) => setEditTaskTitle(e.target.value)}
-                          className={styles["input-small"]}
-                          onClick={(e) => e.stopPropagation()}
-                          placeholder="Task title"
-                        />
-                        <input
-                          type="text"
-                          value={editGate}
-                          onChange={(e) => { setEditGate(e.target.value); setEditRenameAllGateTasks(true); }}
-                          className={styles["input-small"]}
-                          onClick={(e) => e.stopPropagation()}
-                          placeholder="Gate"
-                          style={{ marginTop: 4 }}
-                        />
-                        {editGate !== editGateOriginal && (
-                          <div className={styles["gate-rename-toggle"]}>
-                            <label className={styles["gate-rename-label"]}>
-                              <input
-                                type="checkbox"
-                                checked={editRenameAllGateTasks}
-                                onChange={(e) => setEditRenameAllGateTasks(e.target.checked)}
-                                onClick={(e) => e.stopPropagation()}
-                              />
-                              {editRenameAllGateTasks
-                                ? "Rename gate for all tasks in this gate"
-                                : "Move only this task to new gate"}
-                            </label>
-                          </div>
-                        )}
-                      </>
+                      <input
+                        type="text"
+                        value={editTaskTitle}
+                        onChange={(e) => setEditTaskTitle(e.target.value)}
+                        className={styles["input-small"]}
+                        onClick={(e) => e.stopPropagation()}
+                        placeholder="Task title"
+                      />
                     ) : (
                       <span
                         className={`${styles.taskName} ${item.Id === selectedTaskId ? styles["task-name-active"] : ""}`}
@@ -494,9 +463,6 @@ const ListTasks = ({
                             setEditPercentComplete(item.Complete);
                             setEditStart(toDateInputValue(item.Start));
                             setEditFinish(toDateInputValue(item.Finish));
-                            setEditGate(item.Gate || "");
-                            setEditGateOriginal(item.Gate || "");
-                            setEditRenameAllGateTasks(true);
                           }}
                           title="Edit task"
                         >

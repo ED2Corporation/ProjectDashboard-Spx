@@ -4,6 +4,7 @@ import '@pnp/sp/webs';
 import '@pnp/sp/lists';
 import '@pnp/sp/items';
 import { IProjectCatalogItem } from '../../../models/IProjectService';
+import { resolveStorageVersion } from '../utils/StorageVersionResolver';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -29,7 +30,7 @@ export function useProjectsCatalog(sp: SPFI): IProjectsCatalogState {
     try {
       const items = await sp.web.lists
         .getByTitle('ED2-Projects')
-        .items.select('Id', 'Title', 'ProjectNumber', 'ProjectId', 'Year', 'Team', 'Status', 'Customer', 'BoardView', 'Units')
+        .items.select('Id', 'Title', 'ProjectNumber', 'ProjectId', 'Year', 'Team', 'Status', 'Customer', 'BoardView', 'Units', 'ProjectDetails')
         .top(500)();
 
       const enriched = (items as IProjectCatalogItem[]).map(item => {
@@ -38,6 +39,7 @@ export function useProjectsCatalog(sp: SPFI): IProjectsCatalogState {
           ? item.Title.slice(num.length + 1)
           : item.Title;
         item.Units = item.Units ?? 0;
+        item.resolvedStorageVersion = resolveStorageVersion(item);
         return item;
       });
       setProjects(enriched);

@@ -21,4 +21,8 @@ export interface IProjectCatalogItem {
     PartNumber?: string;
     /** Number of units from PO — default 0 until sourced from SP */
     Units?: number;
+    /** Raw JSON blob from ED2-Projects.ProjectDetails — may contain storageVersion and other metadata */
+    ProjectDetails?: string;
+    /** Resolved at catalog load time from ProjectDetails.storageVersion. Defaults to 'v1'. */
+    resolvedStorageVersion?: 'v1' | 'v2';
 }

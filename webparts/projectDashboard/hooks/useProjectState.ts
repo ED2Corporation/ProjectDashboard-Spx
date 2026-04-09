@@ -13,6 +13,7 @@ import { ProjectService } from '../services/ProjectService';
 import { MessageLog } from '../utils/MessageLog';
 import { compareWbs } from '../utils/ParseWBS';
 import { ensureFolder, uploadEvidenceFile } from '../services/UploadService';
+import { StorageEndpoint } from '../utils/StorageVersionResolver';
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 const MSG_INFO = 0;
@@ -36,6 +37,11 @@ export interface UseProjectStateConfig {
   showLog: boolean;
   projectURL?: string;
   onPatchProperties: (patch: Partial<IProjectDashboardWebPartProps>) => void;
+  /**
+   * Storage endpoint resolved per-project from ProjectDetails.storageVersion.
+   * When omitted, falls back to legacy v1 constants (SITE_URL + REPOSITORY_URL).
+   */
+  storageEndpoint?: StorageEndpoint;
 }
 
 export interface UseProjectStateResult {
@@ -148,7 +154,8 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
     }
 
     try {
-      const siteRelativePath = context.pageContext.web.serverRelativeUrl;
+      const siteRelativePath = config.storageEndpoint?.siteRelPath ?? context.pageContext.web.serverRelativeUrl;
+      const effectiveSiteUrl = config.storageEndpoint?.siteUrl ?? SITE_URL;
       const LOG_FIELD_NAMES = ['Notes', 'Evidence', 'Approvals'];
       const baseSelect = `Id,Title,Gate,Task,Deliverable,Complete,Start,Finish,ActualFinish`;
 
@@ -156,7 +163,7 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
         withLog ? `${baseSelect},Notes,Evidence,Approvals` : baseSelect;
 
       const fetchItems = (withLog: boolean) => {
-        const queryUrl = `${SITE_URL}${siteRelativePath}/_api/web/lists/getbytitle('${project.ListName}')/items?$select=${buildSelect(withLog)}`;
+        const queryUrl = `${effectiveSiteUrl}${siteRelativePath}/_api/web/lists/getbytitle('${project.ListName}')/items?$select=${buildSelect(withLog)}`;
         return context.spHttpClient.get(queryUrl, SPHttpClient.configurations.v1);
       };
 
@@ -372,27 +379,32 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
     file: File,
     taskTitle: string
   ): Promise<{ fileUrl: string; fileName: string }> => {
-    const siteRelativePath = context.pageContext.web.serverRelativeUrl;
-    const folderPath = REPOSITORY_URL + "/";
-    const folderName = config.sourceName.replace(/-List$/, '-Evidence') || REPOSITORY_NAME_DEFAULT;
+    const siteRelativePath = config.storageEndpoint?.siteRelPath ?? context.pageContext.web.serverRelativeUrl;
+    const effectiveSiteUrl = config.storageEndpoint?.siteUrl ?? SITE_URL;
+    const evidenceLib      = config.storageEndpoint?.evidenceLibrary ?? REPOSITORY_URL;
+    const evidenceBase     = config.storageEndpoint?.evidenceBasePath ?? undefined;
+    const folderPath       = evidenceLib + "/";
+    const folderName       = config.sourceName.replace(/-List$/, '-Evidence') || REPOSITORY_NAME_DEFAULT;
 
     // Ensure the evidence folder exists before attempting the upload
     await ensureFolder(
       context.spHttpClient,
-      SITE_URL || context.pageContext.web.absoluteUrl,
+      effectiveSiteUrl,
       siteRelativePath,
-      REPOSITORY_URL,
-      folderName
+      evidenceLib,
+      folderName,
+      evidenceBase
     );
 
     const { fileUrl, fileName } = await uploadEvidenceFile(
       context.spHttpClient,
       context,
-      SITE_URL.trim(),
+      effectiveSiteUrl.trim(),
       siteRelativePath.trim(),
       folderPath.trim(),
       folderName.trim(),
-      file
+      file,
+      evidenceBase
     );
     return { fileUrl, fileName };
   }, [context, config.sourceName]);
@@ -689,11 +701,13 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
   }, [sp, _ensureTextField, _ensureNumberField, _ensureDateField, _ensureMultilineField, _ensureDefaultViewFields]);
 
   const _ensureEvidenceRepository = useCallback(async (repositoryName: string): Promise<void> => {
-    const siteUrl = SITE_URL || context.pageContext.web.absoluteUrl;
-    const siteRelativePath = context.pageContext.web.serverRelativeUrl;
-    const folderName = repositoryName || REPOSITORY_NAME_DEFAULT;
-    await ensureFolder(context.spHttpClient, siteUrl, siteRelativePath, REPOSITORY_URL, folderName);
-  }, [context]);
+    const siteUrl          = config.storageEndpoint?.siteUrl ?? SITE_URL;
+    const siteRelativePath = config.storageEndpoint?.siteRelPath ?? context.pageContext.web.serverRelativeUrl;
+    const evidenceLib      = config.storageEndpoint?.evidenceLibrary ?? REPOSITORY_URL;
+    const evidenceBase     = config.storageEndpoint?.evidenceBasePath ?? undefined;
+    const folderName       = repositoryName || REPOSITORY_NAME_DEFAULT;
+    await ensureFolder(context.spHttpClient, siteUrl, siteRelativePath, evidenceLib, folderName, evidenceBase);
+  }, [context, config.storageEndpoint]);
 
   const _createInitialTask = useCallback(async (listTitle: string, gate: string): Promise<void> => {
     const today = new Date();
