@@ -2,15 +2,15 @@ import * as React from "react";
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { SPFI, spfi } from "@pnp/sp";
 import { SPFx } from "@pnp/sp/presets/all";
+import "@pnp/sp/lists";
 import { BaseComponentContext } from "@microsoft/sp-component-base";
 import { SPHttpClient } from "@microsoft/sp-http";
-import { getStorageEndpoint, getProjectWebUrl, parseWorkOrder, buildListName, buildRepoName } from "../utils/StorageVersionResolver";
+import { getStorageEndpoint, getProjectWebUrl, parseWorkOrder, buildListName, buildRepoName, resolveStorageVersion } from "../utils/StorageVersionResolver";
 
 import { ITaskListItem } from "../../../models";
 import { IProjectCatalogItem } from "../../../models/IProjectService";
 import { ProjectService } from "../services/ProjectService";
 import { useProjectState } from "../hooks/useProjectState";
-import { buildRepoRelativeUrl } from "../services/UploadService";
 import { GetBucketStatus } from "../utils/GetGateStatus";
 import { IProjectDashboardWebPartProps } from "../../../models";
 
@@ -39,9 +39,33 @@ export interface ProjectRowDashboardProps {
 const toAbsoluteSharePointUrl = (baseUrl: string, path: string): string =>
   new URL(path, baseUrl).toString();
 
-const buildRepoBrowseUrl = (baseUrl: string, folderServerRelative: string): string => {
+const buildEvidenceLibraryRootServerRelative = (
+  siteRel: string,
+  evidenceLibrary: string,
+  evidenceBasePath?: string | null
+): string => {
+  if (evidenceBasePath) return evidenceBasePath.replace(/\/+$/, "");
+
+  if (siteRel === "/") {
+    return `/ED2 Repository Internal/Engineering/ProjectDashboard/${evidenceLibrary}`.replace(/\/+$/, "");
+  }
+
+  return `${siteRel.replace(/\/+$/, "")}/Shared Documents/${evidenceLibrary}`.replace(/\/+$/, "");
+};
+
+const buildRepoBrowseUrl = (
+  baseUrl: string,
+  folderServerRelative: string,
+  libraryRootServerRelative?: string
+): string => {
   const normalized = folderServerRelative.replace(/\/+$/, "");
   if (!normalized) return "";
+
+  const normalizedLibraryRoot = (libraryRootServerRelative || "").replace(/\/+$/, "");
+  if (normalizedLibraryRoot) {
+    const libraryViewUrl = toAbsoluteSharePointUrl(baseUrl, `${normalizedLibraryRoot}/Forms/AllItems.aspx`);
+    return `${libraryViewUrl}?id=${encodeURIComponent(normalized)}`;
+  }
 
   const lower = normalized.toLowerCase();
   const sharedDocsToken = "/shared documents";
@@ -61,8 +85,9 @@ const buildRepoBrowseUrl = (baseUrl: string, folderServerRelative: string): stri
 const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
   project, context, sp, onStatusReady, onCatalogItemSaved,
 }) => {
+  const [localProject, setLocalProject] = useState(project);
   // ── Storage version resolution ─────────────────────────────────────────────
-  const storageVersion = project.resolvedStorageVersion ?? 'v1';
+  const storageVersion = localProject.resolvedStorageVersion ?? resolveStorageVersion(localProject);
   const fallbackWebUrl = context.pageContext.web.absoluteUrl;
   const fallbackRelPath = context.pageContext.web.serverRelativeUrl;
 
@@ -83,20 +108,57 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
   );
 
   // ── List / repo names — same convention for v1 and v2 ────────────────────
-  const _prefix  = project.Title ?? project.ProjectNumber ?? '';
-  const listName = buildListName(_prefix);
-  const repoName = buildRepoName(_prefix);
+  const listName = buildListName(localProject.Title ?? localProject.ProjectNumber ?? '');
+  const repoName = buildRepoName(localProject.Title ?? localProject.ProjectNumber ?? '');
 
   // For v1 use the current web URL; for v2 use the resolved web URL
   const siteUrl = getProjectWebUrl(storageVersion, fallbackWebUrl);
   const siteRel = storageEndpoint.siteRelPath;
 
-  const evidenceFolderServerRelative = buildRepoRelativeUrl(siteRel, repoName);
-  const projectListUrl = `${siteUrl.replace(/\/+$/, "")}/Lists/${encodeURIComponent(listName)}/AllItems.aspx`;
-  const repoBrowseUrl = useMemo(
-    () => buildRepoBrowseUrl(siteUrl, evidenceFolderServerRelative),
-    [siteUrl, evidenceFolderServerRelative]
+  const evidenceLibraryRootServerRelative = buildEvidenceLibraryRootServerRelative(
+    siteRel,
+    storageEndpoint.evidenceLibrary,
+    storageEndpoint.evidenceBasePath
   );
+  const evidenceFolderServerRelative = `${evidenceLibraryRootServerRelative}/${repoName}`.replace(/\/{2,}/g, "/");
+  const projectListUrlFallback = `${siteUrl.replace(/\/+$/, "")}/Lists/${encodeURIComponent(listName)}/AllItems.aspx`;
+  const [resolvedProjectListUrl, setResolvedProjectListUrl] = useState(projectListUrlFallback);
+  const repoBrowseUrl = useMemo(
+    () => buildRepoBrowseUrl(siteUrl, evidenceFolderServerRelative, evidenceLibraryRootServerRelative),
+    [siteUrl, evidenceFolderServerRelative, evidenceLibraryRootServerRelative]
+  );
+
+  useEffect(() => {
+    setLocalProject(project);
+  }, [project]);
+
+  useEffect(() => {
+    let disposed = false;
+
+    const resolveProjectListUrl = async (): Promise<void> => {
+      try {
+        const data = await projectSp.web.lists
+          .getByTitle(listName)
+          .select("DefaultViewUrl", "RootFolder/ServerRelativeUrl")
+          .expand("RootFolder")();
+
+        const defaultViewUrl =
+          (data.DefaultViewUrl as string | undefined) ||
+          `${data.RootFolder?.ServerRelativeUrl || ""}/AllItems.aspx`;
+
+        if (!disposed) {
+          setResolvedProjectListUrl(
+            defaultViewUrl ? toAbsoluteSharePointUrl(siteUrl, defaultViewUrl) : projectListUrlFallback
+          );
+        }
+      } catch {
+        if (!disposed) setResolvedProjectListUrl(projectListUrlFallback);
+      }
+    };
+
+    void resolveProjectListUrl();
+    return () => { disposed = true; };
+  }, [projectSp, siteUrl, listName, projectListUrlFallback]);
 
   // projectSp → task lists (may target WO-Plans for v2)
   // sp        → catalog (ED2-Projects always lives in ED2-Team)
@@ -117,11 +179,11 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
     context,
     sp:             projectSp,
     projectService,
-    projectName:    project.Title,
+    projectName:    localProject.Title,
     sourceName:     listName,
     isPlanner:      false,
     showLog:        false,
-    projectURL:     projectListUrl,
+    projectURL:     resolvedProjectListUrl,
     onPatchProperties: noop,
     storageEndpoint,
   });
@@ -143,24 +205,23 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
   const [statusReported,     setStatusReported]     = useState(false);
   const [showProjectActions, setShowProjectActions] = useState(false);
   // Local copy of catalog fields — updated optimistically after a successful save
-  const [localProject,       setLocalProject]       = useState(project);
 
 
   // Minimal IProjectListItem shape required by ProjectActionsBar
   const projectListItem = useMemo(() => ({
-    Id:             project.ProjectId ?? project.Title,
-    Title:          project.Title,
+    Id:             localProject.ProjectId ?? localProject.Title,
+    Title:          localProject.Title,
     ListName:       listName,
     RepositoryName: repoName,
     isPlanner:      false,
-    Link:           { Url: projectListUrl, Description: project.Title },
-  }), [project, listName, repoName, projectListUrl]);
+    Link:           { Url: resolvedProjectListUrl, Description: localProject.Title },
+  }), [localProject, listName, repoName, resolvedProjectListUrl]);
 
   // Report project status to parent once gates are loaded
   useEffect(() => {
     if (!onStatusReady || statusReported || gates.length === 0) return;
     let key: "ontime" | "stalled" | "delayed" | "archived" = "ontime";
-    const s = project.Status?.toLowerCase();
+    const s = localProject.Status?.toLowerCase();
     if (s === "archived" || s === "closed") {
       key = "archived";
     } else {
@@ -169,9 +230,9 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
       else if (overall === "yellow") key = "stalled";
       else key = "ontime";
     }
-    onStatusReady(project.ProjectId ?? project.Title, key);
+    onStatusReady(localProject.ProjectId ?? localProject.Title, key);
     setStatusReported(true);
-  }, [gates, project, onStatusReady, statusReported]);
+  }, [gates, localProject, onStatusReady, statusReported]);
 
   const handleGateClick = (gate: string): void => {
     const next = activeGate === gate ? null : gate;
@@ -297,7 +358,7 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
           <ProjectActionsBar
             project={projectListItem}
             projectService={projectService}
-            evidenceFolderServerRelative={evidenceFolderServerRelative}
+            evidenceFolderServerRelative={evidenceLibraryRootServerRelative}
             repoUrl={repoBrowseUrl}
             repositoryName={repoName}
             onReset={onReset}

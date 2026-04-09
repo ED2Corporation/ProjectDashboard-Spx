@@ -64,6 +64,14 @@
   }
 }
 
+.textarea {
+  min-height: 160px;
+  resize: vertical;
+  font-family: Consolas, "Courier New", monospace;
+  line-height: 1.45;
+  @extend .input;
+}
+
 .select {
   cursor: pointer;
 }

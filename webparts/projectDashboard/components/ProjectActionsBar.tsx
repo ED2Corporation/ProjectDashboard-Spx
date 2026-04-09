@@ -171,7 +171,7 @@ const ProjectActionsBar: React.FC<IProjectActionsBarProps> = ({
         title="Open the SharePoint task list for this project"
       >
         <IconListLink />
-        Open List
+        List
       </a>
 
       <a
@@ -182,7 +182,7 @@ const ProjectActionsBar: React.FC<IProjectActionsBarProps> = ({
         title="Open the evidence repository for this project"
       >
         <IconRepoLink />
-        Open Repo
+        Repo
       </a>
 
     </div>

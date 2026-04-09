@@ -52,7 +52,24 @@
   display: flex;
   align-items: center;
   gap: $sp-2;
-  flex-shrink: 0;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.task-actions-card {
+  display: inline-flex;
+  align-items: center;
+  gap: $sp-2;
+  padding: $sp-1;
+  border: 1px solid $c-border-subtle;
+  border-radius: $r-md;
+  background: $c-surface;
+  box-shadow: $shadow-sm;
+}
+
+.task-btn-spacer {
+  flex: 1 1 48px;
+  min-width: 48px;
 }
 
 .task-button {
@@ -76,6 +93,21 @@
   &:active {
     background: $c-primary-focus;
   }
+}
+
+.task-button-save {
+  width: auto;
+  min-width: 48px;
+  padding: 0 $sp-3;
+}
+
+.task-button-label {
+  font-size: $f-xs;
+  font-weight: 600;
+  color: $c-primary;
+  line-height: 1;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 .task-card-close {

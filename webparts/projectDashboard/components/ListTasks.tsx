@@ -45,7 +45,7 @@ const ListTasks = ({
   onReload,
 }: ListGroupProps) => {
   const [editTaskTitle, setEditTaskTitle] = useState<string>("");
-  const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
+  const editingTaskId: string | null = null;
   const [editPercentComplete, setEditPercentComplete] = useState<number>(0);
   const [editStart, setEditStart] = useState<string>("");
   const [editFinish, setEditFinish] = useState<string>("");
@@ -123,34 +123,6 @@ const ListTasks = ({
     return "";
   };
 
-  // handleSave lives inside the component and uses the current editing state
-  const handleSave = (task: ITaskListItem) => {
-    let actualFinish: Date | null | undefined;
-
-    if (editPercentComplete === 100) {
-      if (!task.ActualFinish) {
-        actualFinish = new Date();
-      } else {
-        actualFinish = new Date(task.ActualFinish);
-      }
-    } else {
-      actualFinish = null;
-    }
-    const data = {
-      Id: task.Id,
-      Gate: task.Gate,
-      Task: editTaskTitle || task.Task,
-      Complete: editPercentComplete,
-      Start: editStart || null,
-      Finish: editFinish || null,
-      ActualFinish: actualFinish,
-    };
-
-    const payload = JSON.stringify(data);
-    onSave(task.Id, payload);
-  };
-
-
   return (
     <>
       {(showDetails
@@ -173,70 +145,71 @@ const ListTasks = ({
             )}
             <p className={styles.taskSectionHeading}>{heading}</p>
           </div>
-          <table className={styles.ed2Table}>
-            <thead>
-              <tr>
-                <th
-                  className={`${styles.colWbs} ${styles.colSortable}`}
-                  onClick={() => handleColSort("wbs")}
-                  title="Sort by WBS"
-                >
-                  WBS<SortIcon col="wbs" active={sortCol === "wbs"} dir={sortDir} />
-                </th>
-                <th className={styles.colText}>
-                  <div className={styles.colTextHeader}>
-                    <span
-                      className={styles.colSortable}
-                      onClick={() => handleColSort("task")}
-                      title="Sort by Task"
-                    >
-                      Task<SortIcon col="task" active={sortCol === "task"} dir={sortDir} />
-                    </span>
-                    <input
-                      type="text"
-                      value={taskFilter}
-                      onChange={(e) => setTaskFilter(e.target.value)}
-                      placeholder="Filter..."
-                      className={styles["input-filter"]}
-                      onClick={(e) => e.stopPropagation()}
-                    />
-                  </div>
-                </th>
-                <th
-                  className={`${styles.colDate} ${styles.colSortable}`}
-                  onClick={() => handleColSort("complete")}
-                  title="Sort by Completed"
-                >
-                  Completed<SortIcon col="complete" active={sortCol === "complete"} dir={sortDir} />
-                </th>
-                <th
-                  className={`${styles.colDate} ${styles.colSortable}`}
-                  onClick={() => handleColSort("start")}
-                  title="Sort by Start"
-                >
-                  Start<SortIcon col="start" active={sortCol === "start"} dir={sortDir} />
-                </th>
-                <th
-                  className={`${styles.colDate} ${styles.colSortable}`}
-                  onClick={() => handleColSort("finish")}
-                  title="Sort by Finish"
-                >
-                  Finish<SortIcon col="finish" active={sortCol === "finish"} dir={sortDir} />
-                </th>
-                <th className={`${styles.colActions} ${styles.actionsFixed}`}>
-                  Action
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {sortedTasks.map((item) => (
-                <React.Fragment key={item.Id}>
-                <tr
-                  className={[
-                    getDelayClassName(item),
-                    item.Id === selectedTaskId ? styles["task-row-active"] : "",
-                  ].filter(Boolean).join(" ")}
-                >
+          <div className={styles.tableViewport}>
+            <table className={styles.ed2Table}>
+              <thead>
+                <tr>
+                  <th
+                    className={`${styles.colWbs} ${styles.colSortable}`}
+                    onClick={() => handleColSort("wbs")}
+                    title="Sort by WBS"
+                  >
+                    WBS<SortIcon col="wbs" active={sortCol === "wbs"} dir={sortDir} />
+                  </th>
+                  <th className={styles.colText}>
+                    <div className={styles.colTextHeader}>
+                      <span
+                        className={styles.colSortable}
+                        onClick={() => handleColSort("task")}
+                        title="Sort by Task"
+                      >
+                        Task<SortIcon col="task" active={sortCol === "task"} dir={sortDir} />
+                      </span>
+                      <input
+                        type="text"
+                        value={taskFilter}
+                        onChange={(e) => setTaskFilter(e.target.value)}
+                        placeholder="Filter..."
+                        className={styles["input-filter"]}
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                    </div>
+                  </th>
+                  <th
+                    className={`${styles.colDate} ${styles.colSortable}`}
+                    onClick={() => handleColSort("complete")}
+                    title="Sort by Completed"
+                  >
+                    Completed<SortIcon col="complete" active={sortCol === "complete"} dir={sortDir} />
+                  </th>
+                  <th
+                    className={`${styles.colDate} ${styles.colSortable}`}
+                    onClick={() => handleColSort("start")}
+                    title="Sort by Start"
+                  >
+                    Start<SortIcon col="start" active={sortCol === "start"} dir={sortDir} />
+                  </th>
+                  <th
+                    className={`${styles.colDate} ${styles.colSortable}`}
+                    onClick={() => handleColSort("finish")}
+                    title="Sort by Finish"
+                  >
+                    Finish<SortIcon col="finish" active={sortCol === "finish"} dir={sortDir} />
+                  </th>
+                  <th className={`${styles.colActions} ${styles.actionsFixed}`}>
+                    
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {sortedTasks.map((item) => (
+                  <React.Fragment key={item.Id}>
+                  <tr
+                    className={[
+                      getDelayClassName(item),
+                      item.Id === selectedTaskId ? styles["task-row-active"] : "",
+                    ].filter(Boolean).join(" ")}
+                  >
                   {/* WBS */}
                   <td className={styles.colWbs}>
                     {(() => {
@@ -414,82 +387,23 @@ const ListTasks = ({
                         className={styles["icon-small"]}
                       />
                     </button>
-
-                    {/* Delete */}
-                    <button
-                      type="button"
-                      className={styles["icon-button"]}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onSelectItem(item, "task", "list-delete");
-                      }}
-                      title="Delete / Remove row"
-                    >
-                      <img
-                        src={require("../assets/Delete.png")}
-                        alt="delete"
-                        className={styles["icon-small"]}
-                      />
-                    </button>
-
-                    {editingTaskId === item.Id ? (
-                      <>
-                        {/* Save/Accept */}
-                        <button
-                          type="button"
-                          className={styles["icon-button"]}
-                          onClick={() => {
-                            handleSave(item);
-                            setEditingTaskId(null);
-                          }}
-                          title="Accept / Update DB"
-                        >
-                          <img
-                            src={require("../assets/Accept.png")}
-                            alt="send"
-                            className={styles["icon-small"]}
-                          />
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        {/* Enter edit mode */}
-                        <button
-                          type="button"
-                          className={styles["icon-button"]}
-                          onClick={() => {
-                            setEditingTaskId(item.Id);
-                            setEditTaskTitle(item.Task || "");
-                            setEditPercentComplete(item.Complete);
-                            setEditStart(toDateInputValue(item.Start));
-                            setEditFinish(toDateInputValue(item.Finish));
-                          }}
-                          title="Edit task"
-                        >
-                          <img
-                            src={require("../assets/EditRow.png")}
-                            alt="edit"
-                            className={styles["icon-small"]}
-                          />
-                        </button>
-                      </>
-                    )}
                   </td>
 
-                </tr>
-                {item.Id === selectedTaskId && expandedContent && (
-                  <tr className={styles["task-card-row"]}>
-                    <td colSpan={6} className={styles["task-card-cell"]}>
-                      <div className={styles["task-card-shell"]}>
-                        {expandedContent}
-                      </div>
-                    </td>
                   </tr>
-                )}
-                </React.Fragment>
-              ))}
-            </tbody>
-          </table>
+                  {item.Id === selectedTaskId && expandedContent && (
+                    <tr className={styles["task-card-row"]}>
+                      <td colSpan={6} className={styles["task-card-cell"]}>
+                        <div className={styles["task-card-shell"]}>
+                          {expandedContent}
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                  </React.Fragment>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
     </>

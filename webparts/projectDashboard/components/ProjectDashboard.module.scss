@@ -177,7 +177,13 @@
 .wbsCell {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
   gap: 4px;
+  width: 100%;
+  white-space: normal;
+  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 .wbsEvidenceLink {
@@ -206,11 +212,15 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  width: 100%;
+  min-width: 0;
 }
 
 .input-filter {
-  flex: 1;
+  flex: 1 1 120px;
   min-width: 0;
+  width: 100%;
+  max-width: 180px;
   font-size: 11px;
   padding: 2px 6px;
   border: 1px solid #ccc;
@@ -220,7 +230,7 @@
 }
 
 .colText {
-  width: 250px;
+  width: auto;
   text-align: left;
   vertical-align: top;
   white-space: normal;
@@ -235,13 +245,13 @@
 }
 
 .colActions {
-  width: 80px;
+  width: 44px;
   text-align: center;
   vertical-align: top;
 }
 
 .colDate {
-  width: 100px;
+  width: 92px;
   text-align: center;
   vertical-align: top;
 }
@@ -363,8 +373,13 @@
 // ─── Task list row (used by ListTasks.tsx) ────────────────────────────────
 
 .taskName {
+  display: block;
+  width: 100%;
   cursor: pointer;
   color: $c-primary;
+  white-space: normal;
+  word-break: break-word;
+  overflow-wrap: anywhere;
   transition: color 0.15s ease;
 
   &:hover {
@@ -414,12 +429,20 @@
 
 // ─── ed2Table (used by ListTasks.tsx) ─────────────────────────────────────
 
-.actionsFixed { width: 80px; }
+.actionsFixed { width: 44px; }
+
+.tableViewport {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
 
 .ed2Table {
   width: 100%;
+  max-width: 100%;
   border-collapse: collapse;
-  table-layout: auto;
+  table-layout: fixed;
 
   thead, tbody {
     border: 1px solid $c-surface-mid;
@@ -433,8 +456,10 @@
     vertical-align: top;
     text-align: center;
     font-size: $f-md;
+    line-height: 1.35;
     background-color: $c-surface-mid;
     font-weight: bold;
+    box-sizing: border-box;
   }
 
   td {
@@ -443,10 +468,30 @@
     vertical-align: top;
     text-align: left;
     font-size: $f-sm;
+    line-height: 1.35;
+    box-sizing: border-box;
+    min-width: 0;
     transition: background-color 0.18s ease, color 0.18s ease, box-shadow 0.18s ease;
   }
 
   tr:hover { background-color: $c-table-hover; }
+}
+
+.ed2Table th.colWbs,
+.ed2Table td.colWbs {
+  width: 64px;
+}
+
+.ed2Table th.colDate,
+.ed2Table td.colDate {
+  width: 92px;
+}
+
+.ed2Table th.colActions,
+.ed2Table td.colActions,
+.ed2Table th.actionsFixed,
+.ed2Table td.actionsFixed {
+  width: 44px;
 }
 
 // ─── Shared inline controls (kebab-case — accessed via styles["name"]) ─────
@@ -527,10 +572,14 @@
 }
 
 .cell-complete {
-  display: flex;
-  align-items: center;
-  gap: $sp-2;
-  justify-content: flex-start;
+  text-align: center !important;
+  vertical-align: middle !important;
+
+  input,
+  select {
+    max-width: 72px;
+    margin-right: $sp-1;
+  }
 }
 
 .icon-button {

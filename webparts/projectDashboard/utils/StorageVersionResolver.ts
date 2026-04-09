@@ -10,9 +10,16 @@ export const STORAGE_CONFIG = {
     evidenceBasePath: null as null,        // null → let UploadService compute via isRootSite logic
   },
   v2: {
-    siteRelPath:     '/sites/ED2-Team/WO-Plans',
-    evidenceLibrary: 'WODocs',
-    evidenceBasePath: '/sites/ED2-Team/WO-Plans/WODocs',
+    staging: {
+      siteRelPath: '/sites/ED2-Team/WO-Plans',
+      evidenceLibrary: 'WODocs',
+      evidenceBasePath: '/sites/ED2-Team/WO-Plans/WODocs',
+    },
+    production: {
+      siteRelPath: '/WO-Plans',
+      evidenceLibrary: 'WODocs',
+      evidenceBasePath: '/WO-Plans/WODocs',
+    },
   },
 } as const;
 
@@ -50,6 +57,11 @@ function parseProjectDetails(raw: unknown): Record<string, unknown> | null {
   catch { return null; }
 }
 
+function resolveEnvironmentFromPath(value: string): 'staging' | 'production' {
+  const normalized = (value || '').toLowerCase();
+  return normalized.includes('/sites/ed2-team') ? 'staging' : 'production';
+}
+
 export function resolveStorageVersion(project: IProjectCatalogItem): 'v1' | 'v2' {
   const details = parseProjectDetails(project.ProjectDetails);
   return details?.storageVersion === 'v2' ? 'v2' : 'v1';
@@ -72,11 +84,13 @@ export function getStorageEndpoint(
   fallbackRelPath: string
 ): StorageEndpoint {
   if (version === 'v2') {
+    const env = resolveEnvironmentFromPath(fallbackRelPath);
+    const config = STORAGE_CONFIG.v2[env];
     return {
       siteUrl:          TENANT_ROOT,
-      siteRelPath:      STORAGE_CONFIG.v2.siteRelPath,
-      evidenceLibrary:  STORAGE_CONFIG.v2.evidenceLibrary,
-      evidenceBasePath: STORAGE_CONFIG.v2.evidenceBasePath,
+      siteRelPath:      config.siteRelPath,
+      evidenceLibrary:  config.evidenceLibrary,
+      evidenceBasePath: config.evidenceBasePath,
     };
   }
   return {
@@ -89,7 +103,7 @@ export function getStorageEndpoint(
 
 /** Returns the absolute web URL for creating a storage-version-specific SPFI instance. */
 export function getProjectWebUrl(version: 'v1' | 'v2', fallbackWebUrl: string): string {
-  return version === 'v2'
-    ? `${TENANT_ROOT}${STORAGE_CONFIG.v2.siteRelPath}`
-    : fallbackWebUrl;
+  if (version !== 'v2') return fallbackWebUrl;
+  const env = resolveEnvironmentFromPath(fallbackWebUrl);
+  return `${TENANT_ROOT}${STORAGE_CONFIG.v2[env].siteRelPath}`;
 }

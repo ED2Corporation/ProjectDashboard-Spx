@@ -195,7 +195,7 @@ export default class ProjectDashboard extends React.Component<
                   }
                 }}
               />
-            )} 
+            )}  
           </div>
         )} 
  

@@ -285,14 +285,22 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, currentUserEmail, 
       <div className={styles["task-card-header"]}>
         <h1 className={styles["task-title"]}>{task.Task}</h1>
         <div className={styles["task-btn-group"]}>
-          <button type="button" className={styles["task-button"]} onClick={handleSaveClick} title="Save">
-            <img src={require("../assets/Accept.png")} alt="save" className={styles["icon-small"]} />
-          </button>
-          <button type="button" className={styles["task-button"]} onClick={handleNew} title="Add new task">
-            <img src={require("../assets/Create.png")} alt="new" className={styles["icon-small"]} />
-          </button>
-          <button type="button" className={styles["task-button"]} onClick={handleDelete} title="Delete task">
-            <img src={require("../assets/Delete.png")} alt="delete" className={styles["icon-small"]} />
+          <div className={styles["task-actions-card"]}>
+            <button type="button" className={styles["task-button"]} onClick={handleDelete} title="Delete task">
+              <img src={require("../assets/Delete.png")} alt="delete" className={styles["icon-small"]} />
+            </button>
+            <button type="button" className={styles["task-button"]} onClick={handleNew} title="Add new task">
+              <img src={require("../assets/Create.png")} alt="new" className={styles["icon-small"]} />
+            </button>
+          </div>
+          <div className={styles["task-btn-spacer"]} />
+          <button
+            type="button"
+            className={`${styles["task-button"]} ${styles["task-button-save"]}`}
+            onClick={handleSaveClick}
+            title="Save"
+          >
+            <span className={styles["task-button-label"]}>Save</span>
           </button>
           {onClose && (
             <button type="button" className={styles["task-card-close"]} onClick={onClose} aria-label="Close">

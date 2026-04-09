@@ -22,6 +22,15 @@ const normalizeEditorStatus = (status?: string): "Open" | "Archived" | "Waiting 
   return "Open";
 };
 
+const formatProjectDetails = (raw?: string): string => {
+  if (!raw || !raw.trim()) return "";
+  try {
+    return JSON.stringify(JSON.parse(raw), null, 2);
+  } catch {
+    return raw;
+  }
+};
+
 // ─── Props ────────────────────────────────────────────────────────────────────
 
 export interface ProjectCatalogEditorProps {
@@ -39,6 +48,7 @@ const ProjectCatalogEditor: React.FC<ProjectCatalogEditorProps> = ({
   const [form, setForm] = useState<IProjectCatalogItem>({
     ...project,
     Status: normalizeEditorStatus(project.Status),
+    ProjectDetails: formatProjectDetails(project.ProjectDetails),
   });
   const [saving,  setSaving]  = useState(false);
   const [error,   setError]   = useState<string | null>(null);
@@ -53,17 +63,32 @@ const ProjectCatalogEditor: React.FC<ProjectCatalogEditorProps> = ({
     setError(null);
     setSaved(false);
     try {
+      let normalizedProjectDetails: string | undefined;
+      const rawProjectDetails = (form.ProjectDetails || "").trim();
+      if (rawProjectDetails) {
+        try {
+          normalizedProjectDetails = JSON.stringify(JSON.parse(rawProjectDetails));
+        } catch {
+          throw new Error("ProjectDetails must contain valid JSON.");
+        }
+      }
+
       const patch: Partial<IProjectCatalogItem> = {
         Title:         form.Title,
         ProjectNumber: form.ProjectNumber,
-        Year:          form.Year   ? Number(form.Year)   : undefined,
-        Team:          form.Team,
+        ProjectId:     form.ProjectId,
         Status:        form.Status,
         Customer:      form.Customer,
+        ProjectDetails: normalizedProjectDetails,
       };
       await projectService.updateCatalogItem(project.ProjectId, patch);
+      const updated: IProjectCatalogItem = {
+        ...form,
+        ProjectDetails: normalizedProjectDetails ? JSON.stringify(JSON.parse(normalizedProjectDetails), null, 2) : "",
+      };
+      setForm(updated);
       setSaved(true);
-      onSaved?.({ ...form });
+      onSaved?.(updated);
     } catch (e: unknown) {
       setError((e as Error).message ?? "Error saving changes.");
     } finally {
@@ -97,16 +122,16 @@ const ProjectCatalogEditor: React.FC<ProjectCatalogEditorProps> = ({
             value={form.ProjectNumber ?? ""}
             onChange={e => set("ProjectNumber", e.target.value)}
           />
-        </div>
+        </div> 
 
-        {/* Year */}
+        {/* Part name / ProjectId */}
         <div className={styles.field}>
-          <label className={styles.label}>Year</label>
+          <label className={styles.label}>Part name (ProjectId)</label>
           <input
             className={styles.input}
-            type="number"
-            value={form.Year ?? ""}
-            onChange={e => set("Year", e.target.value)}
+            type="text"
+            value={form.ProjectId ?? ""}
+            onChange={e => set("ProjectId", e.target.value)}
           />
         </div>
 
@@ -118,17 +143,6 @@ const ProjectCatalogEditor: React.FC<ProjectCatalogEditorProps> = ({
             type="text"
             value={form.Customer ?? ""}
             onChange={e => set("Customer", e.target.value)}
-          />
-        </div>
-
-        {/* Team */}
-        <div className={styles.field}>
-          <label className={styles.label}>Team</label>
-          <input
-            className={styles.input}
-            type="text"
-            value={form.Team ?? ""}
-            onChange={e => set("Team", e.target.value)}
           />
         </div>
 
@@ -155,6 +169,17 @@ const ProjectCatalogEditor: React.FC<ProjectCatalogEditorProps> = ({
               );
             })}
           </div>
+        </div>
+
+        {/* Project details JSON */}
+        <div className={`${styles.field} ${styles.fieldFull}`}>
+          <label className={styles.label}>ProjectDetails (JSON)</label>
+          <textarea
+            className={styles.textarea}
+            value={form.ProjectDetails ?? ""}
+            onChange={e => set("ProjectDetails", e.target.value)}
+            spellCheck={false}
+          />
         </div>
 
       </div>
