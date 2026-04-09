@@ -1,7 +1,7 @@
 
 export interface IProjectService {
     createProject(baseData: any): Promise<string>;          // returns the new project Id
-    deleteProject(listName: string, projectId: string, evidenceFolderServerRelative?: string): Promise<void>;
+    deleteProject(listName: string, projectTitle: string, evidenceFolderServerRelative?: string): Promise<void>;
     archiveProject(listName: string, evidenceFolderServerRelative: string, projectId?: string): Promise<void>;
     exportProject(projectId: string): Promise<Blob>;        // or string with URL
     importProject(projectId: string, file: File): Promise<string>;             // returns the new project Id

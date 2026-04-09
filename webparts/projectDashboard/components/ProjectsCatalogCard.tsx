@@ -85,7 +85,7 @@ const getProjectStatusKey = (
   if (catalogStatus === 'waiting-approval') return 'waiting-approval';
   if (catalogStatus === 'archived') return 'archived';
 
-  return statusMap[project.ProjectId ?? project.Title] ?? 'ontime';
+  return statusMap[project.Title] ?? 'ontime';
 };
 
 const AggregatorBadge: React.FC<AggregatorBadgeProps> = ({ label, count, variant, active, onClick }) => (
@@ -342,7 +342,7 @@ const ProjectsCatalogCard: React.FC<IProjectsCatalogCardProps> = ({ sp, context,
           ) : (
             filteredProjects.map((proj) => (
               <ProjectRowDashboard
-                key={proj.ProjectId ?? proj.Title}
+                key={proj.Title}
                 project={proj}
                 context={context}
                 sp={sp}

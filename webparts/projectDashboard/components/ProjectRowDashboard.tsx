@@ -80,6 +80,12 @@ const buildRepoBrowseUrl = (
   return toAbsoluteSharePointUrl(baseUrl, normalized);
 };
 
+const SettingsIcon: React.FC = () => (
+  <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+    <path d="M9.405 1.05c-.413-1.4-2.397-1.4-2.81 0l-.1.34a1.464 1.464 0 0 1-2.105.872l-.31-.17c-1.283-.698-2.686.705-1.987 1.987l.169.311c.446.82.023 1.841-.872 2.105l-.34.1c-1.4.413-1.4 2.397 0 2.81l.34.1a1.464 1.464 0 0 1 .872 2.105l-.17.31c-.698 1.283.705 2.686 1.987 1.987l.311-.169a1.464 1.464 0 0 1 2.105.872l.1.34c.413 1.4 2.397 1.4 2.81 0l.1-.34a1.464 1.464 0 0 1 2.105-.872l.31.17c1.283.698 2.686-.705 1.987-1.987l-.169-.311a1.464 1.464 0 0 1 .872-2.105l.34-.1c1.4-.413 1.4-2.397 0-2.81l-.34-.1a1.464 1.464 0 0 1-.872-2.105l.17-.31c.698-1.283-.705-2.686-1.987-1.987l-.311.169a1.464 1.464 0 0 1-2.105-.872l-.1-.34zM8 10.93a2.929 2.929 0 1 1 0-5.86 2.929 2.929 0 0 1 0 5.858z"/>
+  </svg>
+);
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
@@ -209,7 +215,7 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
 
   // Minimal IProjectListItem shape required by ProjectActionsBar
   const projectListItem = useMemo(() => ({
-    Id:             localProject.ProjectId ?? localProject.Title,
+    Id:             localProject.Title,
     Title:          localProject.Title,
     ListName:       listName,
     RepositoryName: repoName,
@@ -230,7 +236,7 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
       else if (overall === "yellow") key = "stalled";
       else key = "ontime";
     }
-    onStatusReady(localProject.ProjectId ?? localProject.Title, key);
+    onStatusReady(localProject.Title, key);
     setStatusReported(true);
   }, [gates, localProject, onStatusReady, statusReported]);
 
@@ -346,9 +352,20 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
             settingsActive={showProjectActions}
           />
         ) : (
-          <span className={styles.noGates}>
-            {tasks.length === 0 ? "No task list found — please verify the SharePoint list exists." : "No gates defined"}
-          </span>
+          <div className={styles.noGatesRow}>
+            <span className={styles.noGates}>
+              {tasks.length === 0 ? "No task list found — please verify the SharePoint list exists." : "No gates defined"}
+            </span>
+            <button
+              type="button"
+              className={`${styles.settingsFallbackBtn} ${showProjectActions ? styles.settingsFallbackBtnActive : ""}`}
+              onClick={() => setShowProjectActions(prev => !prev)}
+              title={showProjectActions ? "Hide project options" : "Show project options"}
+            >
+              <SettingsIcon />
+              <span>Options</span>
+            </button>
+          </div>
         )}
       </div>
 

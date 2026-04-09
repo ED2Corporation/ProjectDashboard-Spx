@@ -22,13 +22,78 @@ const normalizeEditorStatus = (status?: string): "Open" | "Archived" | "Waiting 
   return "Open";
 };
 
-const formatProjectDetails = (raw?: string): string => {
-  if (!raw || !raw.trim()) return "";
+type ProjectDetailsFieldKind = "string" | "number" | "boolean" | "json" | "null";
+
+interface IProjectDetailsField {
+  key: string;
+  value: string;
+  kind: ProjectDetailsFieldKind;
+}
+
+const parseProjectDetailsFields = (raw?: string): IProjectDetailsField[] => {
+  if (!raw || !raw.trim()) return [];
+
   try {
-    return JSON.stringify(JSON.parse(raw), null, 2);
+    const parsed = JSON.parse(raw);
+    if (!parsed || Array.isArray(parsed) || typeof parsed !== "object") return [];
+
+    return Object.keys(parsed).map((key) => {
+      const value = (parsed as Record<string, unknown>)[key];
+
+      if (value === null) {
+        return { key, value: "", kind: "null" };
+      }
+
+      if (typeof value === "string") {
+        return { key, value, kind: "string" };
+      }
+
+      if (typeof value === "number") {
+        return { key, value: String(value), kind: "number" };
+      }
+
+      if (typeof value === "boolean") {
+        return { key, value: value ? "true" : "false", kind: "boolean" };
+      }
+
+      return { key, value: JSON.stringify(value, null, 2), kind: "json" };
+    });
   } catch {
-    return raw;
+    return [];
   }
+};
+
+const serializeProjectDetailsFields = (fields: IProjectDetailsField[]): string | undefined => {
+  if (!fields.length) return undefined;
+
+  const serialized = fields.reduce<Record<string, unknown>>((acc, field) => {
+    const trimmedValue = field.value.trim();
+
+    if (field.kind === "number") {
+      acc[field.key] = trimmedValue === "" ? null : Number(trimmedValue);
+      return acc;
+    }
+
+    if (field.kind === "boolean") {
+      acc[field.key] = trimmedValue.toLowerCase() === "true";
+      return acc;
+    }
+
+    if (field.kind === "json") {
+      acc[field.key] = trimmedValue ? JSON.parse(trimmedValue) : null;
+      return acc;
+    }
+
+    if (field.kind === "null") {
+      acc[field.key] = trimmedValue === "" ? null : trimmedValue;
+      return acc;
+    }
+
+    acc[field.key] = field.value;
+    return acc;
+  }, {});
+
+  return JSON.stringify(serialized);
 };
 
 // ─── Props ────────────────────────────────────────────────────────────────────
@@ -48,29 +113,36 @@ const ProjectCatalogEditor: React.FC<ProjectCatalogEditorProps> = ({
   const [form, setForm] = useState<IProjectCatalogItem>({
     ...project,
     Status: normalizeEditorStatus(project.Status),
-    ProjectDetails: formatProjectDetails(project.ProjectDetails),
+    ProjectDetails: project.ProjectDetails,
   });
   const [saving,  setSaving]  = useState(false);
   const [error,   setError]   = useState<string | null>(null);
   const [saved,   setSaved]   = useState(false);
+  const [allowTitleEdit, setAllowTitleEdit] = useState(false);
+  const [projectDetailsFields, setProjectDetailsFields] = useState<IProjectDetailsField[]>(
+    () => parseProjectDetailsFields(project.ProjectDetails)
+  );
 
   const set = (field: keyof IProjectCatalogItem, value: string | number): void =>
     setForm(prev => ({ ...prev, [field]: value }));
 
+  const setProjectDetailsValue = (key: string, value: string): void => {
+    setProjectDetailsFields(prev =>
+      prev.map(field => (field.key === key ? { ...field, value } : field))
+    );
+  };
+
   const handleSave = async (): Promise<void> => {
-    if (!project.ProjectId) return;
+    if (!project.Title) return;
     setSaving(true);
     setError(null);
     setSaved(false);
     try {
       let normalizedProjectDetails: string | undefined;
-      const rawProjectDetails = (form.ProjectDetails || "").trim();
-      if (rawProjectDetails) {
-        try {
-          normalizedProjectDetails = JSON.stringify(JSON.parse(rawProjectDetails));
-        } catch {
-          throw new Error("ProjectDetails must contain valid JSON.");
-        }
+      try {
+        normalizedProjectDetails = serializeProjectDetailsFields(projectDetailsFields);
+      } catch {
+        throw new Error("ProjectDetails contains an invalid JSON value.");
       }
 
       const patch: Partial<IProjectCatalogItem> = {
@@ -81,10 +153,10 @@ const ProjectCatalogEditor: React.FC<ProjectCatalogEditorProps> = ({
         Customer:      form.Customer,
         ProjectDetails: normalizedProjectDetails,
       };
-      await projectService.updateCatalogItem(project.ProjectId, patch);
+      await projectService.updateCatalogItem(project.Title, patch);
       const updated: IProjectCatalogItem = {
         ...form,
-        ProjectDetails: normalizedProjectDetails ? JSON.stringify(JSON.parse(normalizedProjectDetails), null, 2) : "",
+        ProjectDetails: normalizedProjectDetails ?? "",
       };
       setForm(updated);
       setSaved(true);
@@ -104,13 +176,27 @@ const ProjectCatalogEditor: React.FC<ProjectCatalogEditorProps> = ({
 
         {/* Title — full width */}
         <div className={`${styles.field} ${styles.fieldFull}`}>
-          <label className={styles.label}>Project name</label>
+          <div className={styles.labelRow}>
+            <label className={styles.label}>Project name (Title)</label>
+            <label className={styles.sensitiveToggle}>
+              <input
+                type="checkbox"
+                checked={allowTitleEdit}
+                onChange={e => setAllowTitleEdit(e.target.checked)}
+              />
+              Sensitive field
+            </label>
+          </div>
           <input
-            className={styles.input}
+            className={`${styles.input} ${!allowTitleEdit ? styles.inputLocked : ""}`}
             type="text"
             value={form.Title}
             onChange={e => set("Title", e.target.value)}
+            disabled={!allowTitleEdit || saving}
           />
+          <span className={styles.fieldHint}>
+            Title is the stable key used to resolve SharePoint List and Repo names. Edit only for manual correction.
+          </span>
         </div>
 
         {/* Project number */}
@@ -126,7 +212,7 @@ const ProjectCatalogEditor: React.FC<ProjectCatalogEditorProps> = ({
 
         {/* Part name / ProjectId */}
         <div className={styles.field}>
-          <label className={styles.label}>Part name (ProjectId)</label>
+          <label className={styles.label}>Part name / report label (ProjectId)</label>
           <input
             className={styles.input}
             type="text"
@@ -171,15 +257,29 @@ const ProjectCatalogEditor: React.FC<ProjectCatalogEditorProps> = ({
           </div>
         </div>
 
-        {/* Project details JSON */}
+        {/* Project details */}
         <div className={`${styles.field} ${styles.fieldFull}`}>
-          <label className={styles.label}>ProjectDetails (JSON)</label>
-          <textarea
-            className={styles.textarea}
-            value={form.ProjectDetails ?? ""}
-            onChange={e => set("ProjectDetails", e.target.value)}
-            spellCheck={false}
-          />
+          <label className={styles.label}>ProjectDetails</label>
+          {projectDetailsFields.length > 0 ? (
+            <div className={styles.detailsGrid}>
+              {projectDetailsFields.map(field => (
+                <div key={field.key} className={styles.detailsField}>
+                  <label className={styles.label}>{field.key}</label>
+                  <input
+                    className={styles.input}
+                    type="text"
+                    value={field.value}
+                    onChange={e => setProjectDetailsValue(field.key, e.target.value)}
+                    spellCheck={false}
+                  />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <span className={styles.fieldHint}>
+              No ProjectDetails fields were found for this project.
+            </span>
+          )}
         </div>
 
       </div>

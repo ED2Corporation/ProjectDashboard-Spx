@@ -44,6 +44,27 @@
   color: $c-text-secondary;
 }
 
+.labelRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $sp-3;
+}
+
+.sensitiveToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: $sp-2;
+  font-size: $f-xs;
+  font-weight: 600;
+  color: $c-delayed;
+
+  input[type="checkbox"] {
+    accent-color: $c-delayed;
+    cursor: pointer;
+  }
+}
+
 .input,
 .select {
   padding: $sp-1 $sp-3;
@@ -64,16 +85,31 @@
   }
 }
 
-.textarea {
-  min-height: 160px;
-  resize: vertical;
-  font-family: Consolas, "Courier New", monospace;
-  line-height: 1.45;
-  @extend .input;
+.inputLocked {
+  background: $c-surface-soft;
+  color: $c-text-subtle;
+}
+
+.fieldHint {
+  font-size: $f-xs;
+  color: $c-text-subtle;
+  line-height: 1.4;
 }
 
 .select {
   cursor: pointer;
+}
+
+.detailsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: $sp-3;
+}
+
+.detailsField {
+  display: flex;
+  flex-direction: column;
+  gap: $sp-1;
 }
 
 // ─── Status card picker ────────────────────────────────────────────────────────

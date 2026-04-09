@@ -72,7 +72,7 @@ export class ProjectService implements IProjectService {
 
     public async deleteProject(
         listName: string,
-        projectId: string,
+        projectTitle: string,
         evidenceFolderServerRelative?: string
     ): Promise<void> {
 
@@ -114,10 +114,10 @@ export class ProjectService implements IProjectService {
             }
         }
 
-        // 3) Delete the catalog entry (ED2-Projects) by ProjectId
+        // 3) Delete the catalog entry (ED2-Projects) by Title
         const getItemUrl =
             `${this.webUrl}/_api/web/lists/GetByTitle('${this._catalogListName}')/items` +
-            `?$select=Id,ProjectId&$filter=ProjectId eq '${projectId.replace(/'/g, "''")}'`;
+            `?$select=Id,Title&$filter=Title eq '${projectTitle.replace(/'/g, "''")}'`;
 
         const getResp = await this._context.spHttpClient.get(getItemUrl, SPHttpClient.configurations.v1);
 
@@ -150,7 +150,7 @@ export class ProjectService implements IProjectService {
     public async archiveProject(
         listName: string,
         evidenceFolderServerRelative: string,
-        projectId?: string
+        projectTitle?: string
     ): Promise<void> {
 
         const csvBlob = await this.exportProject(listName);
@@ -159,7 +159,7 @@ export class ProjectService implements IProjectService {
         const fileName = `${listName}-${timeStamp}-Archived.csv`;
 
         await this._uploadBlobToReportFolder(reportFolder, fileName, csvBlob);
-        await this.deleteProject(listName, projectId ?? "", undefined);
+        await this.deleteProject(listName, projectTitle ?? "", undefined);
     }
 
     private async _uploadBlobToReportFolder(
@@ -345,10 +345,10 @@ export class ProjectService implements IProjectService {
         return { ProjectNumber: item.ProjectNumber as string | undefined };
     }
 
-    public async updateCatalogItem(projectId: string, patch: Partial<IProjectCatalogItem>): Promise<void> {
+    public async updateCatalogItem(title: string, patch: Partial<IProjectCatalogItem>): Promise<void> {
         const found = await this._catalogSp.web.lists.getByTitle(this._catalogListName)
-            .items.select('Id').filter(`ProjectId eq '${projectId.replace(/'/g, "''")}'`).top(1)();
-        if (!found.length) throw new Error(`Catalog item not found: ${projectId}`);
+            .items.select('Id').filter(`Title eq '${title.replace(/'/g, "''")}'`).top(1)();
+        if (!found.length) throw new Error(`Catalog item not found: ${title}`);
         const id = (found[0] as any).Id as number; // eslint-disable-line @typescript-eslint/no-explicit-any
         await this._catalogSp.web.lists.getByTitle(this._catalogListName).items.getById(id).update(patch);
     }

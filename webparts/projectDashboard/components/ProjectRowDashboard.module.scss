@@ -93,6 +93,47 @@
   font-style: italic;
 }
 
+.noGatesRow {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $sp-3;
+}
+
+.settingsFallbackBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: $sp-2;
+  padding: $sp-1 $sp-3;
+  border: 1px solid $c-border;
+  border-radius: $r-sm;
+  background: $c-surface;
+  color: $c-text-secondary;
+  cursor: pointer;
+  font-size: $f-sm;
+  font-weight: 600;
+  transition: $t-fast;
+
+  svg {
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+  }
+
+  &:hover {
+    border-color: $c-primary;
+    color: $c-primary;
+    background: $c-surface-mid;
+  }
+}
+
+.settingsFallbackBtnActive {
+  border-color: $c-primary;
+  color: $c-primary;
+  background: $c-primary-bg;
+}
+
 // ─── Actions section (gear panel) ─────────────────────────────────────────────
 
 .actionsSection {
