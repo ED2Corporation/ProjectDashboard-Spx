@@ -475,9 +475,9 @@
 
 .task-row-delay-warning {
   td {
-    background: linear-gradient(90deg, rgba($c-status-yellow, 0.18) 0%, rgba($c-status-yellow, 0.08) 100%);
-    border-top-color: rgba($c-status-yellow, 0.4);
-    border-bottom-color: rgba($c-status-yellow, 0.4);
+    background: linear-gradient(90deg, rgba($c-stalled-bg, 0.85) 0%, rgba($c-stalled-bg, 0.4) 100%);
+    border-top-color: rgba($c-stalled, 0.5);
+    border-bottom-color: rgba($c-stalled, 0.5);
   }
 }
 
@@ -547,7 +547,7 @@
 
 .input-small {
   width: 100%;
-  font-size: $f-md;
+  font-size: $f-sm;
   padding: $sp-1 $sp-2;
   box-sizing: border-box;
 }
