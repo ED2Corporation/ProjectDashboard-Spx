@@ -319,59 +319,97 @@
 .archivedDynamicReport {
   display: flex;
   flex-direction: column;
-  gap: $sp-4;
+  gap: $sp-3;
 }
 
-.archivedReportSection {
-  padding: $sp-4;
-  border: 1px solid rgba($c-border, 0.85);
-  border-radius: $r-md;
-  background: $c-surface;
-  box-shadow: 0 6px 16px rgba(17, 24, 39, 0.04);
-
-  h3 {
-    margin: 0;
-    color: $c-text;
-    font-size: $f-lg;
-  }
-}
-
-.archivedReportSectionHeader {
+// ── Cover / project header ─────────────────────────────────────────────────
+.archivedReportCover {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: $sp-3;
-  margin-bottom: $sp-3;
-
-  > span {
-    color: $c-text-subtle;
-    font-size: $f-xs;
-    white-space: nowrap;
-  }
+  gap: $sp-4;
+  padding: $sp-4 $sp-5;
+  border: 1px solid rgba($c-archived, 0.22);
+  border-left: 4px solid $c-archived;
+  border-radius: $r-md;
+  background: $c-surface;
+  box-shadow: 0 2px 8px rgba(17,24,39,0.05);
 }
 
-.archivedReportEyebrow {
-  margin-bottom: $sp-1;
-  color: $c-text-subtle;
-  font-size: $f-xs;
+.archivedReportCoverLeft {
+  display: flex;
+  flex-direction: column;
+  gap: $sp-1;
+  min-width: 0;
+}
+
+.archivedReportCoverEyebrow {
+  color: $c-archived;
+  font-size: 10px;
   font-weight: 700;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
 }
 
-.archivedReportSummaryGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+.archivedReportCoverTitle {
+  margin: 0;
+  color: $c-text;
+  font-size: $f-lg;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.archivedReportCoverMeta {
+  display: flex;
+  align-items: center;
+  gap: $sp-3;
+  margin-top: $sp-1;
+  color: $c-text-subtle;
+  font-size: $f-xs;
+}
+
+.archivedReportCoverRight {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
   gap: $sp-2;
+  flex-shrink: 0;
+}
+
+.archivedStamp {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  border: 2px solid rgba($c-archived, 0.45);
+  border-radius: $r-sm;
+  color: $c-archived;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  opacity: 0.85;
+  transform: rotate(-2deg);
+}
+
+.archivedReportSummaryGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0;
+  margin-top: $sp-3;
+  border: 1px solid $c-border-subtle;
+  border-radius: $r-sm;
+  background: $c-surface-soft;
+  overflow: hidden;
 
   div {
+    flex: 1 1 auto;
     padding: $sp-2 $sp-3;
-    border: 1px solid $c-border-subtle;
-    border-radius: $r-sm;
-    background: $c-surface-soft;
     color: $c-text;
     font-size: $f-sm;
     font-weight: 600;
+    border-right: 1px solid $c-border-subtle;
+
+    &:last-child { border-right: none; }
   }
 
   span {
@@ -385,51 +423,189 @@
   }
 }
 
+// ── Gate sections ─────────────────────────────────────────────────────────
+.archivedReportSection {
+  border: 1px solid $c-border-subtle;
+  border-radius: $r-md;
+  background: $c-surface;
+  overflow: hidden;
+  box-shadow: 0 1px 4px rgba(17,24,39,0.04);
+}
+
+.archivedGateHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $sp-3;
+  padding: $sp-2 $sp-4;
+  background: linear-gradient(90deg, rgba($c-primary, 0.06) 0%, $c-surface 100%);
+  border-bottom: 1px solid $c-border-subtle;
+  border-left: 3px solid $c-primary;
+}
+
+.archivedGateName {
+  margin: 0;
+  color: $c-text;
+  font-size: $f-sm;
+  font-weight: 700;
+}
+
+.archivedGateStat {
+  display: flex;
+  align-items: center;
+  gap: $sp-2;
+  flex-shrink: 0;
+}
+
+.archivedGateProgress {
+  width: 80px;
+  height: 5px;
+  background: $c-border-subtle;
+  border-radius: $r-pill;
+  overflow: hidden;
+
+  > div {
+    height: 100%;
+    background: $c-primary;
+    border-radius: $r-pill;
+    transition: width 0.3s ease;
+  }
+}
+
+.archivedGateStatLabel {
+  color: $c-text-subtle;
+  font-size: 10px;
+  white-space: nowrap;
+}
+
+// ── Task table ─────────────────────────────────────────────────────────────
+.archivedReportSectionHeader {
+  display: none; // replaced by archivedGateHeader
+}
+
+.archivedReportEyebrow {
+  display: none; // replaced
+}
+
 .archivedTableWrap {
-  overflow-x: auto;
+  overflow-x: visible;
 }
 
 .archivedReportTable {
   width: 100%;
-  min-width: 760px;
   border-collapse: collapse;
   font-size: $f-xs;
 
   th {
-    padding: $sp-2;
-    border: 1px solid $c-border-subtle;
-    background: $c-surface-mid;
-    color: $c-text-secondary;
+    padding: 6px $sp-3;
+    background: $c-surface-soft;
+    color: $c-text-subtle;
     text-align: left;
+    font-size: 10px;
     font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    border-bottom: 2px solid $c-border-subtle;
+    white-space: nowrap;
   }
 
   td {
-    padding: $sp-2;
-    border: 1px solid $c-border-subtle;
+    padding: 6px $sp-3;
     color: $c-text-secondary;
+    border-bottom: 1px solid $c-border-subtle;
     vertical-align: top;
+  }
+
+  // WBS, Complete, Start, Finish — compact, no wrap
+  td:nth-child(1), th:nth-child(1),
+  td:nth-child(3), th:nth-child(3),
+  td:nth-child(4), th:nth-child(4),
+  td:nth-child(5), th:nth-child(5) {
+    white-space: nowrap;
+    width: 1%;
+  }
+
+  // Task column — min 250px, wraps
+  td:nth-child(2), th:nth-child(2) {
+    min-width: 250px;
+    white-space: normal;
+    word-break: break-word;
+  }
+
+  // Evidence column — wraps
+  td:nth-child(6), th:nth-child(6) {
+    white-space: normal;
+    word-break: break-word;
+    min-width: 100px;
+  }
+
+  // Zebra rows
+  tbody tr:nth-child(even) td {
+    background: rgba($c-primary, 0.02);
+  }
+
+  tbody tr:last-child td {
+    border-bottom: none;
   }
 
   a {
     color: $c-primary;
-    font-weight: 700;
+    font-weight: 600;
     text-decoration: none;
-
-    &:hover {
-      text-decoration: underline;
-    }
+    &:hover { text-decoration: underline; }
   }
 }
 
-.archivedLogGate {
-  margin-top: $sp-4;
+// Complete badge inside table
+.archivedCompleteBadge {
+  display: inline-block;
+  padding: 1px 7px;
+  border-radius: $r-pill;
+  font-size: 10px;
+  font-weight: 700;
 
-  h4 {
-    margin: 0 0 $sp-2;
-    color: $c-primary;
-    font-size: $f-base;
+  &[data-level="done"]    { background: #dcfce7; color: #15803d; }
+  &[data-level="high"]    { background: #dbeafe; color: #1d4ed8; }
+  &[data-level="mid"]     { background: #fef9c3; color: #92400e; }
+  &[data-level="low"]     { background: #fee2e2; color: #b91c1c; }
+}
+
+.archivedLogSection {
+  border: 1px solid $c-border-subtle;
+  border-radius: $r-md;
+  background: $c-surface;
+  overflow: hidden;
+  box-shadow: 0 1px 4px rgba(17,24,39,0.04);
+}
+
+.archivedLogSectionHeader {
+  padding: $sp-2 $sp-4;
+  background: $c-surface-soft;
+  border-bottom: 1px solid $c-border-subtle;
+}
+
+.archivedLogSectionTitle {
+  margin: 0;
+  color: $c-text-subtle;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.archivedLogGate {
+  padding: $sp-3 $sp-4;
+
+  & + & {
+    border-top: 1px solid $c-border-subtle;
   }
+}
+
+.archivedLogGateName {
+  margin: 0 0 $sp-2;
+  color: $c-text;
+  font-size: $f-xs;
+  font-weight: 700;
 }
 
 .archivedLogGrid {
@@ -439,49 +615,63 @@
 
   > div {
     min-width: 0;
-    padding: $sp-3;
-    border: 1px solid $c-border-subtle;
-    border-radius: $r-sm;
-    background: $c-surface-soft;
   }
+}
 
-  strong {
-    display: block;
-    margin-bottom: $sp-2;
-    color: $c-text;
-    font-size: $f-xs;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-  }
+.archivedLogColumnTitle {
+  display: flex;
+  align-items: center;
+  gap: $sp-1;
+  margin-bottom: $sp-2;
+  padding-bottom: $sp-1;
+  border-bottom: 2px solid $c-border-subtle;
+  color: $c-text;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
 
-  p {
-    margin: 0 0 $sp-2;
-    color: $c-text-secondary;
-    font-size: $f-xs;
-    line-height: 1.35;
-  }
+.archivedLogEntry {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: $sp-2 $sp-2 $sp-2 $sp-3;
+  margin-bottom: $sp-2;
+  border-left: 2px solid $c-border-subtle;
+  border-radius: 0 $r-sm $r-sm 0;
+  background: $c-surface-soft;
 
-  span {
-    display: block;
-    margin-bottom: 2px;
-    color: $c-text-subtle;
-    font-size: 10px;
-  }
+  &[data-type="note"]     { border-left-color: #60a5fa; }
+  &[data-type="evidence"] { border-left-color: #34d399; }
+  &[data-type="approval"][data-status="approved"] { border-left-color: #34d399; }
+  &[data-type="approval"][data-status="pending"]  { border-left-color: #fbbf24; }
+  &[data-type="approval"][data-status="rejected"] { border-left-color: #f87171; }
+}
 
-  em {
-    color: $c-text-subtle;
-    font-size: $f-xs;
-  }
+.archivedLogEntryMeta {
+  color: $c-text-subtle;
+  font-size: 10px;
+  line-height: 1.3;
+}
+
+.archivedLogEntryContent {
+  color: $c-text-secondary;
+  font-size: $f-xs;
+  line-height: 1.4;
 
   a {
     color: $c-primary;
-    font-weight: 700;
+    font-weight: 600;
     text-decoration: none;
-
-    &:hover {
-      text-decoration: underline;
-    }
+    &:hover { text-decoration: underline; }
   }
+}
+
+.archivedLogEmpty {
+  color: $c-text-subtle;
+  font-size: $f-xs;
+  font-style: italic;
 }
 
 .noArchivedReport {

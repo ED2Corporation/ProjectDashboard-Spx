@@ -21,9 +21,21 @@ interface ArchivedProjectReportTask {
   start?: string;
   actualFinish?: string;
   evidenceOfCompletion?: {
+    date?: string;
+    user?: string;
     fileName?: string;
     fileUrl?: string;
+    isEvidenceOfCompletion?: boolean;
   } | null;
+  /** Flat fallback fields — used when evidenceOfCompletion is absent */
+  EvidenceDescription?: string;
+  EvidenceOfCompletion?: string;
+  /** Raw SP list item — contains EvidenceOfCompletion/EvidenceDescription as flat SP columns */
+  raw?: {
+    EvidenceOfCompletion?: string | null;
+    EvidenceDescription?: string | null;
+    [key: string]: unknown;
+  };
   notes?: Array<{
     date?: string;
     user?: string;
@@ -34,6 +46,8 @@ interface ArchivedProjectReportTask {
     user?: string;
     fileName?: string;
     fileUrl?: string;
+    note?: string;
+    isEvidenceOfCompletion?: boolean;
   }>;
   approvals?: Array<{
     date?: string;
@@ -106,6 +120,30 @@ const htmlEscape = (value: unknown): string =>
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
 
+/** Resolves the evidence-of-completion link for a task.
+ *  V2: evidence[] entry with isEvidenceOfCompletion === true
+ *  V1 legacy: evidenceOfCompletion object
+ *  Flat fallback: EvidenceOfCompletion URL + EvidenceDescription label
+ */
+const resolveTaskEvidence = (task: ArchivedProjectReportTask): { url: string; label: string } | null => {
+  // V2 — evidence array
+  const v2 = task.evidence?.find(e => e.isEvidenceOfCompletion);
+  if (v2?.fileUrl) {
+    return { url: v2.fileUrl, label: v2.fileName || "Evidence" };
+  }
+  // V1 legacy — evidenceOfCompletion object
+  if (task.evidenceOfCompletion?.fileUrl) {
+    return { url: task.evidenceOfCompletion.fileUrl, label: task.evidenceOfCompletion.fileName || "Evidence" };
+  }
+  // Flat field fallback (top-level or raw SP item)
+  const flatUrl = task.EvidenceOfCompletion || (task.raw?.EvidenceOfCompletion ?? undefined);
+  const flatLabel = task.EvidenceDescription || (task.raw?.EvidenceDescription ?? undefined);
+  if (flatUrl) {
+    return { url: flatUrl, label: flatLabel || "Evidence" };
+  }
+  return null;
+};
+
 const ProjectRowArchived: React.FC<ProjectRowArchivedProps> = ({ project }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [reportView, setReportView] = useState<ArchivedReportView>("json");
@@ -154,9 +192,23 @@ const ProjectRowArchived: React.FC<ProjectRowArchivedProps> = ({ project }) => {
       group.tasks.push(task);
     }
 
-    const taskSections = sections.tasks ? grouped.map(group => `
-      <section>
-        <h2>${htmlEscape(group.gate)}</h2>
+    const badgeClass = (pct: number): string => {
+      if (pct >= 100) return "badge badge-done";
+      if (pct >= 50)  return "badge badge-high";
+      if (pct >= 25)  return "badge badge-mid";
+      return "badge badge-low";
+    };
+
+    const taskSections = sections.tasks ? grouped.map(group => {
+      const gTotal = group.tasks.length;
+      const gDone  = group.tasks.filter(t => (t.complete ?? 0) >= 100).length;
+      const gPct   = gTotal ? Math.round(group.tasks.reduce((s, t) => s + (t.complete ?? 0), 0) / gTotal) : 0;
+      return `
+      <div class="gate-section">
+        <div class="gate-header">
+          <span class="gate-name">${htmlEscape(group.gate)}</span>
+          <span class="gate-stat">${gDone}/${gTotal} · ${gPct}%</span>
+        </div>
         <table>
           <thead>
             <tr>
@@ -164,104 +216,175 @@ const ProjectRowArchived: React.FC<ProjectRowArchivedProps> = ({ project }) => {
             </tr>
           </thead>
           <tbody>
-            ${group.tasks.map(task => `
+            ${group.tasks.map(task => {
+              const pct = task.complete ?? 0;
+              const ev  = resolveTaskEvidence(task);
+              return `
               <tr>
                 <td>${htmlEscape(task.wbs)}</td>
                 <td>${htmlEscape(task.task)}</td>
-                <td>${htmlEscape(task.complete ?? 0)}%</td>
+                <td><span class="${badgeClass(pct)}">${htmlEscape(pct)}%</span></td>
                 <td>${htmlEscape(formatDate(task.start))}</td>
                 <td>${htmlEscape(formatDate(task.actualFinish))}</td>
-                ${sections.evidence ? `<td>${task.evidenceOfCompletion?.fileUrl
-                  ? `<a href="${htmlEscape(task.evidenceOfCompletion.fileUrl)}">${htmlEscape(task.evidenceOfCompletion.fileName || "Evidence")}</a>`
-                  : "-"}</td>` : ""}
-              </tr>
-            `).join("")}
+                ${sections.evidence ? `<td>${ev ? `<a href="${htmlEscape(ev.url)}">${htmlEscape(ev.label)}</a>` : "<em>—</em>"}</td>` : ""}
+              </tr>`;
+            }).join("")}
           </tbody>
         </table>
-      </section>
-    `).join("") : "";
+      </div>`;
+    }).join("") : "";
 
     const logColumns = Number(sections.notes) + Number(sections.evidence) + Number(sections.approvals);
-    const logSections = logColumns > 0 ? grouped.map(group => `
-      <section>
-        <h2>${htmlEscape(group.gate)} Log</h2>
-        <div class="log-grid columns-${logColumns}">
-          ${sections.notes ? `<div>
-            <h3>Notes</h3>
-            ${group.tasks.reduce<string[]>((rows, task) => {
-              (task.notes ?? []).forEach(entry => rows.push(
-                `<p><span>${htmlEscape(formatDate(entry.date, true))} - ${htmlEscape(entry.user || "User")} - ${htmlEscape(task.wbs)}</span>${htmlEscape(entry.note)}</p>`
-              ));
-              return rows;
-            }, []).join("") || "<em>No notes.</em>"}
-          </div>` : ""}
-          ${sections.evidence ? `<div>
-            <h3>Evidence</h3>
-            ${group.tasks.reduce<string[]>((rows, task) => {
-              (task.evidence ?? []).forEach(entry => rows.push(
-                `<p><span>${htmlEscape(formatDate(entry.date, true))} - ${htmlEscape(entry.user || "User")} - ${htmlEscape(task.wbs)}</span>${entry.fileUrl
-                  ? `<a href="${htmlEscape(entry.fileUrl)}">${htmlEscape(entry.fileName || "File")}</a>`
-                  : htmlEscape(entry.fileName)}</p>`
-              ));
-              return rows;
-            }, []).join("") || "<em>No evidence.</em>"}
-          </div>` : ""}
-          ${sections.approvals ? `<div>
-            <h3>Approvals</h3>
-            ${group.tasks.reduce<string[]>((rows, task) => {
-              (task.approvals ?? []).forEach(entry => rows.push(
-                `<p><span>${htmlEscape(formatDate(entry.date, true))} - ${htmlEscape(task.wbs)}</span>${htmlEscape(entry.user || entry.email || "Approver")} ${entry.status ? `- ${htmlEscape(entry.status)}` : ""}</p>`
-              ));
-              return rows;
-            }, []).join("") || "<em>No approvals.</em>"}
-          </div>` : ""}
-        </div>
-      </section>
-    `).join("") : "";
+    const logSections = logColumns > 0 ? `
+      <div class="log-section">
+        <p class="log-section-title">Project Log — Notes · Evidence · Approvals</p>
+        ${grouped.map(group => `
+          <div class="log-gate">
+            <p class="log-gate-name">${htmlEscape(group.gate)}</p>
+            <div class="log-grid columns-${logColumns}">
+              ${sections.notes ? `<div>
+                <div class="log-col-title">Notes</div>
+                ${group.tasks.reduce<string[]>((rows, task) => {
+                  (task.notes ?? []).forEach(entry => rows.push(
+                    `<div class="log-entry log-entry-note">
+                      <div class="log-meta">${htmlEscape(formatDate(entry.date, true))} · ${htmlEscape(entry.user || "User")} · ${htmlEscape(task.wbs)}</div>
+                      <div class="log-content">${htmlEscape(entry.note)}</div>
+                    </div>`
+                  ));
+                  return rows;
+                }, []).join("") || "<em>No notes.</em>"}
+              </div>` : ""}
+              ${sections.evidence ? `<div>
+                <div class="log-col-title">Evidence</div>
+                ${group.tasks.reduce<string[]>((rows, task) => {
+                  (task.evidence ?? []).forEach(entry => rows.push(
+                    `<div class="log-entry log-entry-evidence">
+                      <div class="log-meta">${htmlEscape(formatDate(entry.date, true))} · ${htmlEscape(entry.user || "User")} · ${htmlEscape(task.wbs)}</div>
+                      <div class="log-content">${entry.fileUrl
+                        ? `<a href="${htmlEscape(entry.fileUrl)}">${htmlEscape(entry.fileName || "File")}</a>`
+                        : htmlEscape(entry.fileName)}${entry.note ? ` — ${htmlEscape(entry.note)}` : ""}</div>
+                    </div>`
+                  ));
+                  return rows;
+                }, []).join("") || "<em>No evidence.</em>"}
+              </div>` : ""}
+              ${sections.approvals ? `<div>
+                <div class="log-col-title">Approvals</div>
+                ${group.tasks.reduce<string[]>((rows, task) => {
+                  (task.approvals ?? []).forEach(entry => rows.push(
+                    `<div class="log-entry log-entry-approval-${htmlEscape(entry.status || "pending")}">
+                      <div class="log-meta">${htmlEscape(formatDate(entry.date, true))} · ${htmlEscape(task.wbs)}</div>
+                      <div class="log-content">${htmlEscape(entry.user || entry.email || "Approver")}${entry.status ? ` · <strong>${htmlEscape(entry.status)}</strong>` : ""}</div>
+                    </div>`
+                  ));
+                  return rows;
+                }, []).join("") || "<em>No approvals.</em>"}
+              </div>` : ""}
+            </div>
+          </div>
+        `).join("")}
+      </div>` : "";
+
+    const allTasks2  = report.tasks ?? [];
+    const totalPrint = allTasks2.length;
+    const donePrint  = allTasks2.filter(t => (t.complete ?? 0) >= 100).length;
+    const avgPrint   = totalPrint ? Math.round(allTasks2.reduce((s, t) => s + (t.complete ?? 0), 0) / totalPrint) : 0;
 
     return `<!doctype html>
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>${htmlEscape(reportProject?.Title || project.Title)} Archived Report</title>
+  <title>${htmlEscape(reportProject?.PartNumber || reportProject?.Title || project.Title)} — Archived Report</title>
   <style>
-    @page { margin: 18mm; }
-    body { color: #1f2937; font-family: "Segoe UI", Arial, sans-serif; font-size: 12px; }
-    header, section { margin-bottom: 18px; padding: 14px; border: 1px solid #dbe5f0; border-radius: 10px; page-break-inside: avoid; }
-    h1 { margin: 0 0 4px; color: #0f172a; font-size: 22px; }
-    h2 { margin: 0 0 10px; color: #075985; font-size: 16px; }
-    h3 { margin: 0 0 8px; color: #334155; font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; }
-    .meta { color: #64748b; font-size: 11px; }
-    .summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 12px; }
-    .summary div { padding: 8px; border: 1px solid #e2e8f0; border-radius: 8px; background: #f8fafc; }
-    .summary span, .log-grid span { display: block; color: #64748b; font-size: 10px; font-weight: 700; }
-    table { width: 100%; border-collapse: collapse; }
-    th, td { padding: 6px; border: 1px solid #e2e8f0; text-align: left; vertical-align: top; }
-    th { background: #edf4fb; color: #334155; }
-    a { color: #0369a1; text-decoration: none; }
+    @page { margin: 14mm 16mm; }
+    * { box-sizing: border-box; }
+    body { color: #1e293b; font-family: "Segoe UI", Arial, sans-serif; font-size: 11px; background: #f8fafc; margin: 0; padding: 16px; }
+
+    /* Cover */
+    .cover { display: flex; justify-content: space-between; align-items: flex-start; padding: 18px 20px; margin-bottom: 14px; background: #fff; border: 1px solid #cbd5e1; border-left: 5px solid #475569; border-radius: 10px; }
+    .cover-left { flex: 1; min-width: 0; }
+    .cover-eyebrow { font-size: 9px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: #64748b; margin-bottom: 4px; }
+    .cover-title { font-size: 20px; font-weight: 700; color: #0f172a; margin: 0 0 4px; }
+    .cover-meta { font-size: 10px; color: #64748b; margin-bottom: 12px; }
+    .cover-right { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; flex-shrink: 0; padding-left: 16px; }
+    .stamp { display: inline-block; padding: 4px 12px; border: 2px solid #94a3b8; border-radius: 4px; color: #64748b; font-size: 10px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; transform: rotate(-2deg); }
+    .gen-date { font-size: 9px; color: #94a3b8; }
+
+    /* Summary grid */
+    .summary { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; margin-top: 10px; }
+    .summary div { padding: 6px 8px; border: 1px solid #e2e8f0; border-radius: 6px; background: #f8fafc; }
+    .summary span { display: block; font-size: 9px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: #94a3b8; margin-bottom: 2px; }
+
+    /* Gate section */
+    .gate-section { margin-bottom: 12px; background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; page-break-inside: avoid; }
+    .gate-header { display: flex; align-items: center; justify-content: space-between; padding: 7px 14px; background: linear-gradient(90deg, #f0f6ff 0%, #fff 100%); border-bottom: 1px solid #e2e8f0; border-left: 3px solid #3b82f6; }
+    .gate-name { font-size: 11px; font-weight: 700; color: #1e293b; margin: 0; }
+    .gate-stat { font-size: 10px; color: #64748b; }
+
+    /* Table */
+    table { width: 100%; border-collapse: collapse; font-size: 10px; }
+    th { padding: 5px 10px; background: #f8fafc; color: #94a3b8; text-align: left; font-size: 9px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; border-bottom: 2px solid #e2e8f0; white-space: nowrap; }
+    td { padding: 5px 10px; color: #475569; border-bottom: 1px solid #f1f5f9; vertical-align: top; word-break: break-word; }
+    tr:nth-child(even) td { background: #fafbfd; }
+    tr:last-child td { border-bottom: none; }
+    td:nth-child(1), td:nth-child(3), td:nth-child(4), td:nth-child(5), td:nth-child(6) { white-space: nowrap; width: 1%; }
+    td:nth-child(2) { min-width: 200px; }
+    a { color: #2563eb; text-decoration: none; }
+
+    /* Badge */
+    .badge { display: inline-block; padding: 1px 6px; border-radius: 999px; font-size: 9px; font-weight: 700; }
+    .badge-done { background: #dcfce7; color: #15803d; }
+    .badge-high { background: #dbeafe; color: #1d4ed8; }
+    .badge-mid  { background: #fef9c3; color: #92400e; }
+    .badge-low  { background: #fee2e2; color: #b91c1c; }
+
+    /* Log */
+    .log-section { background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; margin-bottom: 12px; page-break-inside: avoid; }
+    .log-section-title { padding: 6px 14px; background: #f8fafc; border-bottom: 1px solid #e2e8f0; font-size: 9px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: #94a3b8; margin: 0; }
+    .log-gate { padding: 10px 14px; }
+    .log-gate + .log-gate { border-top: 1px solid #f1f5f9; }
+    .log-gate-name { font-size: 10px; font-weight: 700; color: #334155; margin: 0 0 8px; }
     .log-grid { display: grid; gap: 10px; }
+    .log-col-title { font-size: 9px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: #64748b; border-bottom: 2px solid #e2e8f0; padding-bottom: 4px; margin-bottom: 6px; }
+    .log-entry { padding: 5px 8px 5px 10px; margin-bottom: 5px; border-left: 2px solid #cbd5e1; border-radius: 0 4px 4px 0; background: #f8fafc; }
+    .log-entry-note     { border-left-color: #60a5fa; }
+    .log-entry-evidence { border-left-color: #34d399; }
+    .log-entry-approval-pending  { border-left-color: #fbbf24; }
+    .log-entry-approval-approved { border-left-color: #34d399; }
+    .log-entry-approval-rejected { border-left-color: #f87171; }
+    .log-meta { font-size: 9px; color: #94a3b8; margin-bottom: 2px; }
+    .log-content { font-size: 10px; color: #475569; }
+    em { color: #94a3b8; font-size: 10px; }
+
     .columns-1 { grid-template-columns: 1fr; }
     .columns-2 { grid-template-columns: repeat(2, 1fr); }
     .columns-3 { grid-template-columns: repeat(3, 1fr); }
-    p { margin: 0 0 8px; line-height: 1.35; }
     @media print { button { display: none; } }
   </style>
 </head>
 <body>
-  <header>
-    <h1>${htmlEscape(reportProject?.Title || project.Title)} Archived Report</h1>
-    <div class="meta">Generated ${htmlEscape(formatDate(report.generatedAt, true))}</div>
-    <div class="summary">
-      <div><span>Project Number</span>${htmlEscape(reportProject?.ProjectNumber || "-")}</div>
-      <div><span>Part Number</span>${htmlEscape(reportProject?.PartNumber || project.PartNumber || "-")}</div>
-      <div><span>Customer</span>${htmlEscape(reportProject?.Customer || "-")}</div>
-      <div><span>Units</span>${htmlEscape(reportProject?.Units ?? "-")}</div>
-      <div><span>Year</span>${htmlEscape(reportProject?.Year ?? "-")}</div>
-      <div><span>Status</span>${htmlEscape(reportProject?.Status || "Archived")}</div>
+  <div class="cover">
+    <div class="cover-left">
+      <div class="cover-eyebrow">Archived Project Report</div>
+      <div class="cover-title">${htmlEscape(reportProject?.PartNumber || reportProject?.Title || project.Title)}</div>
+      <div class="cover-meta">${[reportProject?.Customer, reportProject?.ProjectNumber].filter(Boolean).map(htmlEscape).join(' · ')}</div>
+      <div class="summary">
+        <div><span>Project #</span>${htmlEscape(reportProject?.ProjectNumber || "-")}</div>
+        <div><span>Customer</span>${htmlEscape(reportProject?.Customer || "-")}</div>
+        <div><span>Units</span>${htmlEscape(reportProject?.Units ?? "-")}</div>
+        <div><span>Year</span>${htmlEscape(reportProject?.Year ?? "-")}</div>
+        <div><span>Tasks done</span>${htmlEscape(donePrint)} / ${htmlEscape(totalPrint)}</div>
+        <div><span>Avg. complete</span>${htmlEscape(avgPrint)}%</div>
+      </div>
     </div>
-  </header>
-  ${taskSections || "<section><h2>Tasks</h2><em>Tasks section excluded.</em></section>"}
-  ${logSections || "<section><h2>Project Log</h2><em>Log sections excluded.</em></section>"}
+    <div class="cover-right">
+      <div class="stamp">Archived</div>
+      <div class="gen-date">${htmlEscape(formatDate(report.generatedAt, true))}</div>
+    </div>
+  </div>
+
+  ${taskSections || ""}
+  ${logSections || ""}
 </body>
 </html>`;
   };
@@ -316,6 +439,33 @@ const ProjectRowArchived: React.FC<ProjectRowArchivedProps> = ({ project }) => {
         setReportError((error as Error).message || "Unable to open the PDF print dialog.");
       }
     }, 350);
+  };
+
+  const handleDownloadHtml = async (): Promise<void> => {
+    let json = reportJson;
+    if (!json && archivedReport?.jsonFileUrl) {
+      try {
+        const response = await fetch(archivedReport.jsonFileUrl, { credentials: "include" });
+        if (!response.ok) throw new Error(`Unable to load JSON (${response.status})`);
+        json = await response.json() as ArchivedProjectReportJson;
+        setReportJson(json);
+      } catch (error) {
+        setReportError((error as Error).message || "Unable to prepare HTML report.");
+        return;
+      }
+    }
+    if (!json) { setReportError("No JSON report available to generate HTML."); return; }
+
+    const html = buildPrintableReportHtml(json, includedSections);
+    const blob = new Blob([html], { type: "text/html;charset=utf-8" });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement("a");
+    a.href     = url;
+    a.download = `${project.Title || "archived-report"}.html`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   };
 
   useEffect(() => {
@@ -385,143 +535,205 @@ const ProjectRowArchived: React.FC<ProjectRowArchivedProps> = ({ project }) => {
     };
   }, [archivedReport?.fileUrl, archivedReport?.jsonFileUrl, isOpen, reportHtml, reportJson, reportView]);
 
-  const renderLogNotes = (group: { tasks: ArchivedProjectReportTask[] }): React.ReactNode => {
-    const entries = group.tasks.reduce<React.ReactNode[]>((nodes, task) => {
-      (task.notes ?? []).forEach((entry, index) => {
-        nodes.push(
-          <p key={`${task.id}-note-${index}`}>
-            <span>{formatDate(entry.date, true)} · {entry.user || "User"} · {task.wbs}</span>
-            {entry.note}
-          </p>
-        );
-      });
-      return nodes;
-    }, []);
-    return entries.length ? entries : <em>No notes.</em>;
-  };
-
-  const renderLogEvidence = (group: { tasks: ArchivedProjectReportTask[] }): React.ReactNode => {
-    const entries = group.tasks.reduce<React.ReactNode[]>((nodes, task) => {
-      (task.evidence ?? []).forEach((entry, index) => {
-        nodes.push(
-          <p key={`${task.id}-evidence-${index}`}>
-            <span>{formatDate(entry.date, true)} · {entry.user || "User"} · {task.wbs}</span>
-            {entry.fileUrl ? (
-              <a href={entry.fileUrl} target="_blank" rel="noopener noreferrer">{entry.fileName || "File"}</a>
-            ) : entry.fileName}
-          </p>
-        );
-      });
-      return nodes;
-    }, []);
-    return entries.length ? entries : <em>No evidence.</em>;
-  };
-
-  const renderLogApprovals = (group: { tasks: ArchivedProjectReportTask[] }): React.ReactNode => {
-    const entries = group.tasks.reduce<React.ReactNode[]>((nodes, task) => {
-      (task.approvals ?? []).forEach((entry, index) => {
-        nodes.push(
-          <p key={`${task.id}-approval-${index}`}>
-            <span>{formatDate(entry.date, true)} · {task.wbs}</span>
-            {(entry.user || entry.email || "Approver")} {entry.status ? `- ${entry.status}` : ""}
-          </p>
-        );
-      });
-      return nodes;
-    }, []);
-    return entries.length ? entries : <em>No approvals.</em>;
+  const completeBadgeLevel = (pct: number): string => {
+    if (pct >= 100) return "done";
+    if (pct >= 50)  return "high";
+    if (pct >= 25)  return "mid";
+    return "low";
   };
 
   const renderDynamicReport = (): React.ReactElement => {
     const reportProject = reportJson?.project ?? project;
+    const allTasks = reportJson?.tasks ?? [];
+    const totalTasks = allTasks.length;
+    const doneTasks  = allTasks.filter(t => (t.complete ?? 0) >= 100).length;
+    const avgPct     = totalTasks ? Math.round(allTasks.reduce((s, t) => s + (t.complete ?? 0), 0) / totalTasks) : 0;
+
     return (
       <div className={styles.archivedDynamicReport}>
-        <section className={styles.archivedReportSection}>
-          <div className={styles.archivedReportSectionHeader}>
-            <div>
-              <div className={styles.archivedReportEyebrow}>Archived project</div>
-              <h3>{reportProject?.Title || project.Title}</h3>
-            </div>
-            <span>{reportJson?.generatedAt ? formatDate(reportJson.generatedAt, true) : ""}</span>
-          </div>
-          <div className={styles.archivedReportSummaryGrid}>
-            <div><span>Project Number</span>{reportProject?.ProjectNumber || "-"}</div>
-            <div><span>Part Number</span>{reportProject?.PartNumber || project.PartNumber || "-"}</div>
-            <div><span>Customer</span>{reportProject?.Customer || "-"}</div>
-            <div><span>Units</span>{reportProject?.Units ?? "-"}</div>
-            <div><span>Year</span>{reportProject?.Year ?? "-"}</div>
-            <div><span>Status</span>{reportProject?.Status || "Archived"}</div>
-          </div>
-        </section>
 
-        {includedSections.tasks && tasksByGate.map(group => (
-          <section className={styles.archivedReportSection} key={group.gate}>
-            <h3>{group.gate}</h3>
-            <div className={styles.archivedTableWrap}>
-              <table className={styles.archivedReportTable}>
-                <thead>
-                  <tr>
-                    <th>WBS</th>
-                    <th>Task</th>
-                    <th>Complete</th>
-                    <th>Start</th>
-                    <th>Actual Finish</th>
-                    {includedSections.evidence && <th>Evidence</th>}
-                  </tr>
-                </thead>
-                <tbody>
-                  {group.tasks.map(task => (
-                    <tr key={`${group.gate}-${task.id ?? task.wbs ?? task.task}`}>
-                      <td>{task.wbs}</td>
-                      <td>{task.task}</td>
-                      <td>{task.complete ?? 0}%</td>
-                      <td>{formatDate(task.start)}</td>
-                      <td>{formatDate(task.actualFinish)}</td>
-                      {includedSections.evidence && (
-                        <td>
-                          {task.evidenceOfCompletion?.fileUrl ? (
-                            <a href={task.evidenceOfCompletion.fileUrl} target="_blank" rel="noopener noreferrer">
-                              {task.evidenceOfCompletion.fileName || "Evidence"}
-                            </a>
-                          ) : "-"}
-                        </td>
-                      )}
+        {/* ── Cover ──────────────────────────────────────────────── */}
+        <div className={styles.archivedReportCover}>
+          <div className={styles.archivedReportCoverLeft}>
+            <div className={styles.archivedReportCoverEyebrow}>Archived Project Report</div>
+            <h2 className={styles.archivedReportCoverTitle}>
+              {reportProject?.PartNumber || project.PartNumber || reportProject?.Title || project.Title}
+            </h2>
+            <div className={styles.archivedReportCoverMeta}>
+              {reportProject?.Customer && <span>{reportProject.Customer}</span>}
+              {reportProject?.ProjectNumber && <><span>·</span><span>{reportProject.ProjectNumber}</span></>}
+              {reportProject?.Units ? <><span>·</span><span>{reportProject.Units} units</span></> : null}
+            </div>
+            <div className={styles.archivedReportSummaryGrid}>
+              <div><span>Project #</span>{reportProject?.ProjectNumber || "-"}</div>
+              <div><span>Customer</span>{reportProject?.Customer || "-"}</div>
+              <div><span>Units</span>{reportProject?.Units ?? "-"}</div>
+              <div><span>Year</span>{reportProject?.Year ?? "-"}</div>
+              <div><span>Tasks done</span>{doneTasks} / {totalTasks}</div>
+              <div><span>Avg. complete</span>{avgPct}%</div>
+            </div>
+          </div>
+          <div className={styles.archivedReportCoverRight}>
+            <div className={styles.archivedStamp}>Archived</div>
+            {reportJson?.generatedAt && (
+              <span style={{ fontSize: 10, color: '#94a3b8' }}>
+                {formatDate(reportJson.generatedAt, true)}
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* ── Task sections by gate ───────────────────────────────── */}
+        {includedSections.tasks && tasksByGate.map(group => {
+          const gTotal = group.tasks.length;
+          const gDone  = group.tasks.filter(t => (t.complete ?? 0) >= 100).length;
+          const gPct   = gTotal ? Math.round(group.tasks.reduce((s, t) => s + (t.complete ?? 0), 0) / gTotal) : 0;
+          return (
+            <div className={styles.archivedReportSection} key={group.gate}>
+              <div className={styles.archivedGateHeader}>
+                <h3 className={styles.archivedGateName}>{group.gate}</h3>
+                <div className={styles.archivedGateStat}>
+                  <div className={styles.archivedGateProgress}>
+                    <div style={{ width: `${gPct}%` }} />
+                  </div>
+                  <span className={styles.archivedGateStatLabel}>{gDone}/{gTotal} · {gPct}%</span>
+                </div>
+              </div>
+              <div className={styles.archivedTableWrap}>
+                <table className={styles.archivedReportTable}>
+                  <thead>
+                    <tr>
+                      <th>WBS</th>
+                      <th>Task</th>
+                      <th>Complete</th>
+                      <th>Start</th>
+                      <th>Actual Finish</th>
+                      {includedSections.evidence && <th>Evidence</th>}
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </section>
-        ))}
-
-        {(includedSections.notes || includedSections.evidence || includedSections.approvals) && (
-        <section className={styles.archivedReportSection}>
-          <div className={styles.archivedReportSectionHeader}>
-            <div>
-              <div className={styles.archivedReportEyebrow}>Project log</div>
-              <h3>Notes, evidence and approvals</h3>
-            </div>
-          </div>
-          {tasksByGate.map(group => (
-            <div className={styles.archivedLogGate} key={`${group.gate}-log`}>
-              <h4>{group.gate}</h4>
-              <div className={styles.archivedLogGrid}>
-                {includedSections.notes && <div>
-                  <strong>Notes</strong>
-                  {renderLogNotes(group)}
-                </div>}
-                {includedSections.evidence && <div>
-                  <strong>Evidence</strong>
-                  {renderLogEvidence(group)}
-                </div>}
-                {includedSections.approvals && <div>
-                  <strong>Approvals</strong>
-                  {renderLogApprovals(group)}
-                </div>}
+                  </thead>
+                  <tbody>
+                    {group.tasks.map(task => {
+                      const pct = task.complete ?? 0;
+                      const ev  = resolveTaskEvidence(task);
+                      return (
+                        <tr key={`${group.gate}-${task.id ?? task.wbs ?? task.task}`}>
+                          <td>{task.wbs}</td>
+                          <td>{task.task}</td>
+                          <td>
+                            <span
+                              className={styles.archivedCompleteBadge}
+                              data-level={completeBadgeLevel(pct)}
+                            >{pct}%</span>
+                          </td>
+                          <td>{formatDate(task.start)}</td>
+                          <td>{formatDate(task.actualFinish)}</td>
+                          {includedSections.evidence && (
+                            <td>
+                              {ev
+                                ? <a href={ev.url} target="_blank" rel="noopener noreferrer">{ev.label}</a>
+                                : <span style={{ color: '#cbd5e1' }}>—</span>}
+                            </td>
+                          )}
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
               </div>
             </div>
-          ))}
-        </section>
+          );
+        })}
+
+        {/* ── Log section ─────────────────────────────────────────── */}
+        {(includedSections.notes || includedSections.evidence || includedSections.approvals) && (
+          <div className={styles.archivedLogSection}>
+            <div className={styles.archivedLogSectionHeader}>
+              <p className={styles.archivedLogSectionTitle}>Project Log — Notes · Evidence · Approvals</p>
+            </div>
+            {tasksByGate.map(group => {
+              const hasNotes     = includedSections.notes     && group.tasks.some(t => (t.notes     ?? []).length > 0);
+              const hasEvidence  = includedSections.evidence  && group.tasks.some(t => (t.evidence  ?? []).length > 0);
+              const hasApprovals = includedSections.approvals && group.tasks.some(t => (t.approvals ?? []).length > 0);
+              if (!hasNotes && !hasEvidence && !hasApprovals) return null;
+              return (
+                <div className={styles.archivedLogGate} key={`${group.gate}-log`}>
+                  <p className={styles.archivedLogGateName}>{group.gate}</p>
+                  <div className={styles.archivedLogGrid}>
+                    {includedSections.notes && (
+                      <div>
+                        <div className={styles.archivedLogColumnTitle}>Notes</div>
+                        {group.tasks.reduce<React.ReactNode[]>((nodes, task, ti) => {
+                          (task.notes ?? []).forEach((entry, ni) => nodes.push(
+                            <div key={`n-${ti}-${ni}`} className={styles.archivedLogEntry} data-type="note">
+                              <span className={styles.archivedLogEntryMeta}>
+                                {formatDate(entry.date, true)} · {entry.user || "User"} · {task.wbs}
+                              </span>
+                              <span className={styles.archivedLogEntryContent}>{entry.note}</span>
+                            </div>
+                          ));
+                          return nodes;
+                        }, [])}
+                        {!group.tasks.some(t => (t.notes ?? []).length > 0) && (
+                          <span className={styles.archivedLogEmpty}>No notes.</span>
+                        )}
+                      </div>
+                    )}
+                    {includedSections.evidence && (
+                      <div>
+                        <div className={styles.archivedLogColumnTitle}>Evidence</div>
+                        {group.tasks.reduce<React.ReactNode[]>((nodes, task, ti) => {
+                          (task.evidence ?? []).forEach((entry, ei) => nodes.push(
+                            <div key={`e-${ti}-${ei}`} className={styles.archivedLogEntry} data-type="evidence">
+                              <span className={styles.archivedLogEntryMeta}>
+                                {formatDate(entry.date, true)} · {entry.user || "User"} · {task.wbs}
+                              </span>
+                              <span className={styles.archivedLogEntryContent}>
+                                {entry.fileUrl
+                                  ? <a href={entry.fileUrl} target="_blank" rel="noopener noreferrer">{entry.fileName || "File"}</a>
+                                  : entry.fileName}
+                                {entry.note && <> — {entry.note}</>}
+                              </span>
+                            </div>
+                          ));
+                          return nodes;
+                        }, [])}
+                        {!group.tasks.some(t => (t.evidence ?? []).length > 0) && (
+                          <span className={styles.archivedLogEmpty}>No evidence.</span>
+                        )}
+                      </div>
+                    )}
+                    {includedSections.approvals && (
+                      <div>
+                        <div className={styles.archivedLogColumnTitle}>Approvals</div>
+                        {group.tasks.reduce<React.ReactNode[]>((nodes, task, ti) => {
+                          (task.approvals ?? []).forEach((entry, ai) => nodes.push(
+                            <div
+                              key={`a-${ti}-${ai}`}
+                              className={styles.archivedLogEntry}
+                              data-type="approval"
+                              data-status={entry.status || "pending"}
+                            >
+                              <span className={styles.archivedLogEntryMeta}>
+                                {formatDate(entry.date, true)} · {task.wbs}
+                              </span>
+                              <span className={styles.archivedLogEntryContent}>
+                                {entry.user || entry.email || "Approver"}
+                                {entry.status && <> · <strong>{entry.status}</strong></>}
+                              </span>
+                            </div>
+                          ));
+                          return nodes;
+                        }, [])}
+                        {!group.tasks.some(t => (t.approvals ?? []).length > 0) && (
+                          <span className={styles.archivedLogEmpty}>No approvals.</span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         )}
       </div>
     );
@@ -600,15 +812,14 @@ const ProjectRowArchived: React.FC<ProjectRowArchivedProps> = ({ project }) => {
                     Download PDF
                   </button>
                 )}
-                {archivedReport.fileUrl && (
-                  <a
-                    href={archivedReport.fileUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                {archivedReport.jsonFileUrl && (
+                  <button
+                    type="button"
                     className={styles.archivedReportLink}
+                    onClick={handleDownloadHtml}
                   >
                     Download HTML
-                  </a>
+                  </button>
                 )}
               </div>
               {isLoadingReport ? (
