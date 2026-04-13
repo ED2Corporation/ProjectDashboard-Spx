@@ -51,7 +51,7 @@ const ListTasks = ({
   onReload,
 }: ListGroupProps) => {
   const [editTaskTitle, setEditTaskTitle] = useState<string>("");
-  const editingTaskId: string | null = null;
+  const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const [editPercentComplete, setEditPercentComplete] = useState<number>(0);
   const [editStart, setEditStart] = useState<string>("");
   const [editFinish, setEditFinish] = useState<string>("");
@@ -134,6 +134,45 @@ const ListTasks = ({
     if (delayDays > 15) return styles["task-row-delay-critical"];
     if (delayDays > 0) return styles["task-row-delay-warning"];
     return "";
+  };
+
+  const startQuickEdit = (task: ITaskListItem): void => {
+    setEditingTaskId(task.Id);
+    setEditTaskTitle(task.Task || "");
+    setEditPercentComplete(task.Complete || 0);
+    setEditStart(toDateInputValue(task.Start));
+    setEditFinish(toDateInputValue(task.Finish));
+  };
+
+  const cancelQuickEdit = (): void => {
+    setEditingTaskId(null);
+    setEditTaskTitle("");
+    setEditPercentComplete(0);
+    setEditStart("");
+    setEditFinish("");
+  };
+
+  const handleQuickSave = (task: ITaskListItem): void => {
+    let actualFinish: Date | null | undefined;
+
+    if (editPercentComplete === 100) {
+      actualFinish = task.ActualFinish ? new Date(task.ActualFinish) : new Date();
+    } else {
+      actualFinish = null;
+    }
+
+    const payload = JSON.stringify({
+      Id: task.Id,
+      Gate: task.Gate,
+      Task: editTaskTitle || task.Task,
+      Complete: editPercentComplete,
+      Start: editStart || null,
+      Finish: editFinish || null,
+      ActualFinish: actualFinish,
+    });
+
+    onSave(task.Id, payload);
+    cancelQuickEdit();
   };
 
   return (
@@ -410,6 +449,78 @@ const ListTasks = ({
                         </svg>
                       )}
                     </button>
+                    <div className={styles.actionContextMenu}>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onSelectItem(item, "task", "list-create");
+                        }}
+                        disabled={!!creatingTaskId}
+                      >
+                        Add
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (window.confirm(`Delete task "${item.Task}"?`)) {
+                            onSelectItem(item, "task", "list-delete");
+                          }
+                        }}
+                        disabled={!!creatingTaskId || !!deletingTaskId}
+                      >
+                        Remove
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          startQuickEdit(item);
+                        }}
+                      >
+                        Complete
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onSelectItem(item, "task", "list-edit");
+                        }}
+                      >
+                        Edit
+                      </button>
+                    </div>
+                    {editingTaskId === item.Id && (
+                      <div className={styles.quickEditActions}>
+                        <button
+                          type="button"
+                          title="Save quick edit"
+                          aria-label="Save quick edit"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleQuickSave(item);
+                          }}
+                        >
+                          <svg viewBox="0 0 16 16" aria-hidden="true">
+                            <path d="M3 8.4 6.4 12 13 4" />
+                          </svg>
+                        </button>
+                        <button
+                          type="button"
+                          title="Cancel quick edit"
+                          aria-label="Cancel quick edit"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            cancelQuickEdit();
+                          }}
+                        >
+                          <svg viewBox="0 0 16 16" aria-hidden="true">
+                            <path d="M4 4 12 12M12 4 4 12" />
+                          </svg>
+                        </button>
+                      </div>
+                    )}
                     {/* Delete row */}
                     <button
                       type="button"
