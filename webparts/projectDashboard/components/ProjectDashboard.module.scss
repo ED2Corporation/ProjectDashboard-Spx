@@ -657,6 +657,44 @@
   }
 }
 
+.actionSubmenuWrap {
+  position: relative;
+}
+
+.actionSubmenu {
+  display: none;
+  position: absolute;
+  top: 0;
+  right: 100%;
+  z-index: 25;
+  min-width: 180px;
+  max-width: 260px;
+  padding: $sp-1;
+  background: $c-surface;
+  border: 1px solid $c-border-subtle;
+  border-radius: $r-sm;
+  box-shadow: $shadow-sm;
+
+  &::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: -8px;
+    width: 8px;
+    height: 100%;
+  }
+
+  button {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+.actionSubmenuWrap:hover .actionSubmenu,
+.actionSubmenu:hover {
+  display: block;
+}
+
 .colActions:hover .actionContextMenu,
 .actionContextMenu:hover {
   display: block;

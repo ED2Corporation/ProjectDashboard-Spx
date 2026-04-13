@@ -519,6 +519,48 @@ const ListTasks = ({
                       >
                         Complete
                       </button>
+                      {(() => {
+                        const files = item.Evidence?.filter(file => !!file.fileUrl) ?? [];
+                        const completionEvidence = files.find(file => file.isEvidenceOfCompletion);
+                        return (
+                          <>
+                            {completionEvidence && (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  window.open(completionEvidence.fileUrl, "_blank", "noopener,noreferrer");
+                                }}
+                              >
+                                Evidence
+                              </button>
+                            )}
+                            {files.length > 0 && (
+                              <div className={styles.actionSubmenuWrap}>
+                                <button type="button" onClick={(e) => e.stopPropagation()}>
+                                  Files
+                                </button>
+                                <div className={styles.actionSubmenu}>
+                                  {files.map((file, index) => (
+                                    <button
+                                      key={`${file.fileUrl}-${index}`}
+                                      type="button"
+                                      title={file.fileName || file.fileUrl}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        window.open(file.fileUrl, "_blank", "noopener,noreferrer");
+                                      }}
+                                    >
+                                      {file.isEvidenceOfCompletion ? "Evidence: " : ""}
+                                      {file.fileName || `File ${index + 1}`}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </>
+                        );
+                      })()}
                       <button
                         type="button"
                         onClick={(e) => {
