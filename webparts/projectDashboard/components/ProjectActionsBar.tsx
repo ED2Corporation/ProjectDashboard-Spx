@@ -84,7 +84,7 @@ const ProjectActionsBar: React.FC<IProjectActionsBarProps> = ({
           if (!confirm(`Archive "${project.Title}"?\n\nThis will export the task list to Excel, save it to the evidence repository, and delete the SharePoint list.`)) return;
           await projectService.archiveProject(
             project.ListName,
-            evidenceFolderServerRelative + project.RepositoryName,
+            `${evidenceFolderServerRelative.replace(/\/+$/, "")}/${project.RepositoryName}`,
             project.Title
           );
           onReset();
@@ -111,8 +111,8 @@ const ProjectActionsBar: React.FC<IProjectActionsBarProps> = ({
             a.click();
             document.body.removeChild(a);
             window.URL.revokeObjectURL(url);
-          } catch {
-            console.error("Error downloading file.");
+          } catch (error) {
+            console.error("Error downloading file.", error);
           }
         }}
       >

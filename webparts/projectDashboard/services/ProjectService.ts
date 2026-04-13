@@ -181,16 +181,7 @@ export class ProjectService implements IProjectService {
 
     /** EXPORT: returns a CSV Blob for the given task list */
     public async exportProject(listName: string): Promise<Blob> {
-        const url = `${this.webUrl}/_api/web/lists/getbytitle('${listName}')/items?$top=5000`;
-        const resp = await this._context.spHttpClient.get(url, SPHttpClient.configurations.v1);
-
-        if (!resp.ok) {
-            const errorText = await resp.text();
-            throw new Error(`exportProject failed: ${resp.status} - ${errorText}`);
-        }
-
-        const data = await resp.json();
-        const items = data.value as any[];
+        const items = await this._sp.web.lists.getByTitle(listName).items.top(5000)();
 
         const headers = ["Id","Title","Gate","Task","Deliverable","Complete","Start","Finish","ActualFinish"];
 

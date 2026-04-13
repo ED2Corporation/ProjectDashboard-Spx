@@ -62,18 +62,27 @@ const buildRepoBrowseUrl = (
   if (!normalized) return "";
 
   const normalizedLibraryRoot = (libraryRootServerRelative || "").replace(/\/+$/, "");
-  if (normalizedLibraryRoot) {
-    const libraryViewUrl = toAbsoluteSharePointUrl(baseUrl, `${normalizedLibraryRoot}/Forms/AllItems.aspx`);
-    return `${libraryViewUrl}?id=${encodeURIComponent(normalized)}`;
-  }
-
   const lower = normalized.toLowerCase();
   const sharedDocsToken = "/shared documents";
   const sharedDocsIndex = lower.indexOf(sharedDocsToken);
 
+  let documentLibraryRoot = "";
   if (sharedDocsIndex >= 0) {
-    const libraryRoot = normalized.slice(0, sharedDocsIndex + sharedDocsToken.length);
-    const libraryViewUrl = toAbsoluteSharePointUrl(baseUrl, `${libraryRoot}/Forms/AllItems.aspx`);
+    documentLibraryRoot = normalized.slice(0, sharedDocsIndex + sharedDocsToken.length);
+  } else if (normalizedLibraryRoot && !normalizedLibraryRoot.toLowerCase().includes(`${sharedDocsToken}/`)) {
+    documentLibraryRoot = normalizedLibraryRoot;
+  } else {
+    const parts = normalized.split("/").filter(Boolean);
+    if (parts.length > 0) {
+      documentLibraryRoot = `/${parts[0]}`;
+      if (parts[0].toLowerCase() === "sites" && parts.length > 2) {
+        documentLibraryRoot = `/${parts.slice(0, 3).join("/")}`;
+      }
+    }
+  }
+
+  if (documentLibraryRoot) {
+    const libraryViewUrl = toAbsoluteSharePointUrl(baseUrl, `${documentLibraryRoot}/Forms/AllItems.aspx`);
     return `${libraryViewUrl}?id=${encodeURIComponent(normalized)}`;
   }
 
@@ -366,7 +375,7 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
   ) : undefined;
 
   return (
-    <div className={`${styles.card} ${activeGate !== null ? styles.cardActive : ""}`}>
+    <div className={`${styles.card} ${activeGate !== null ? styles.cardActive : ""} ${showProjectActions ? styles.cardActionsOpen : ""}`}>
 
       {/* ── Row header: project info (left) + gate bar (right) ───────── */}
       <div className={`${styles.header} ${activeGate !== null ? styles.headerActive : ""}`}>

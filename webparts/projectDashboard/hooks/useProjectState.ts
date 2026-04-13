@@ -956,15 +956,25 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
       value,
     });
     const tryUpdate = async (): Promise<void> => {
-      console.log("[useProjectState] Updating SharePoint log field", {
-        listTitle,
-        taskId,
-        field,
-      });
       await sp.web.lists.getByTitle(listTitle).items.getById(Number(taskId)).update({ [field]: value });
     };
+    const wait = (ms: number): Promise<void> => new Promise(resolve => setTimeout(resolve, ms));
     try {
-      await tryUpdate();
+      try {
+        await tryUpdate();
+      } catch (err: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
+        if (String(err?.message ?? err).includes("409")) {
+          console.warn("[useProjectState] Save conflict detected, retrying log field update", {
+            listTitle,
+            taskId,
+            field,
+          });
+          await wait(450);
+          await tryUpdate();
+        } else {
+          throw err;
+        }
+      }
       console.log("[useProjectState] SharePoint update succeeded", {
         listTitle,
         taskId,

@@ -1,24 +1,25 @@
 
 require("./ProjectRowDashboard.module.css");
 const styles = {
-  card: 'card_753e63e6',
-  cardActive: 'cardActive_753e63e6',
-  header: 'header_753e63e6',
-  headerActive: 'headerActive_753e63e6',
-  projectInfo: 'projectInfo_753e63e6',
-  projectNumber: 'projectNumber_753e63e6',
-  projectTitle: 'projectTitle_753e63e6',
-  projectSubtitle: 'projectSubtitle_753e63e6',
-  woTag: 'woTag_753e63e6',
-  storageAlert: 'storageAlert_753e63e6',
-  unitsTag: 'unitsTag_753e63e6',
-  projectCustomer: 'projectCustomer_753e63e6',
-  noGates: 'noGates_753e63e6',
-  noGatesRow: 'noGatesRow_753e63e6',
-  settingsFallbackBtn: 'settingsFallbackBtn_753e63e6',
-  settingsFallbackBtnActive: 'settingsFallbackBtnActive_753e63e6',
-  actionsSection: 'actionsSection_753e63e6',
-  taskSection: 'taskSection_753e63e6'
+  card: 'card_ea44de10',
+  cardActive: 'cardActive_ea44de10',
+  cardActionsOpen: 'cardActionsOpen_ea44de10',
+  header: 'header_ea44de10',
+  headerActive: 'headerActive_ea44de10',
+  projectInfo: 'projectInfo_ea44de10',
+  projectNumber: 'projectNumber_ea44de10',
+  projectTitle: 'projectTitle_ea44de10',
+  projectSubtitle: 'projectSubtitle_ea44de10',
+  woTag: 'woTag_ea44de10',
+  storageAlert: 'storageAlert_ea44de10',
+  unitsTag: 'unitsTag_ea44de10',
+  projectCustomer: 'projectCustomer_ea44de10',
+  noGates: 'noGates_ea44de10',
+  noGatesRow: 'noGatesRow_ea44de10',
+  settingsFallbackBtn: 'settingsFallbackBtn_ea44de10',
+  settingsFallbackBtnActive: 'settingsFallbackBtnActive_ea44de10',
+  actionsSection: 'actionsSection_ea44de10',
+  taskSection: 'taskSection_ea44de10'
 };
 
 export default styles;
