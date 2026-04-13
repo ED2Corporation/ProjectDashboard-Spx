@@ -266,12 +266,17 @@ const ListTasks = ({
                   {/* WBS */}
                   <td className={styles.colWbs}>
                     {(() => {
-                      const completionEvidence = item.Evidence?.find(e => e.isEvidenceOfCompletion);
+                      const completionEvidence = item.Evidence?.find(e => e.isEvidenceOfCompletion) || {
+                        fileUrl: "",
+                        fileName: "",
+                        note: "",
+                        isEvidenceOfCompletion: false,
+                      };
                       const isComplete = Math.floor(item.Complete) === 100;
                       return (
                         <span className={styles.wbsCell}>
                           {item.Title}
-                          {isComplete && completionEvidence && (
+                          {false && isComplete && completionEvidence && (
                             <a
                               href={completionEvidence.fileUrl}
                               target="_blank"
@@ -287,7 +292,7 @@ const ListTasks = ({
                               />
                             </a>
                           )}
-                          {isComplete && !completionEvidence && (
+                          {false && isComplete && !completionEvidence && (
                             <span
                               className={styles.wbsEvidenceAlert}
                               title="Task is 100% complete but has no Evidence of Completion"
@@ -449,6 +454,39 @@ const ListTasks = ({
                         </svg>
                       )}
                     </button>
+                    {(() => {
+                      const completionEvidence = item.Evidence?.find(e => e.isEvidenceOfCompletion);
+                      const isComplete = Math.floor(item.Complete) === 100;
+                      if (isComplete && completionEvidence) {
+                        return (
+                          <a
+                            href={completionEvidence.fileUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            title={completionEvidence.note || completionEvidence.fileName || "Evidence of Completion"}
+                            onClick={(e) => e.stopPropagation()}
+                            className={styles.wbsEvidenceLink}
+                          >
+                            <img
+                              src={require("../assets/Document.png")}
+                              alt="Evidence"
+                              className={styles["icon-small"]}
+                            />
+                          </a>
+                        );
+                      }
+                      if (isComplete && !completionEvidence) {
+                        return (
+                          <span
+                            className={styles.wbsEvidenceAlert}
+                            title="Task is 100% complete but has no Evidence of Completion"
+                          >
+                            !
+                          </span>
+                        );
+                      }
+                      return null;
+                    })()}
                     <div className={styles.actionContextMenu}>
                       <button
                         type="button"

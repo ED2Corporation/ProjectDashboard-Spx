@@ -181,6 +181,41 @@
   color: $c-text-secondary;
 }
 
+.archivedSectionToggles {
+  display: inline-flex;
+  align-items: center;
+  gap: $sp-1;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+
+  button {
+    padding: 3px 8px;
+    border: 1px solid rgba($c-text-secondary, 0.18);
+    border-radius: $r-pill;
+    background: $c-surface;
+    color: $c-text-subtle;
+    cursor: pointer;
+    font-family: $f-family;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    transition: $t-fast;
+
+    &:hover {
+      border-color: rgba($c-primary, 0.28);
+      color: $c-primary;
+      background: $c-primary-bg;
+    }
+  }
+}
+
+.archivedSectionToggleActive {
+  border-color: rgba($c-primary, 0.35) !important;
+  background: $c-primary-bg !important;
+  color: $c-primary !important;
+}
+
 .archivedBadge {
   display: inline-flex;
   align-items: center;
@@ -241,6 +276,8 @@
   border-radius: $r-pill;
   background: $c-surface;
   color: $c-primary;
+  cursor: pointer;
+  font-family: $f-family;
   font-size: $f-xs;
   font-weight: 700;
   text-decoration: none;
