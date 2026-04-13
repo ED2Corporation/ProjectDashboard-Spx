@@ -208,6 +208,9 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
   const [activeGate,         setActiveGate]         = useState<string | null>(null);
   const [showCard,           setShowCard]           = useState(false);
   const [selectedTask,       setSelectedTask]       = useState<ITaskListItem | null>(null);
+  const [creatingId,         setCreatingId]         = useState<string | null>(null);
+  const [deletingId,         setDeletingId]         = useState<string | null>(null);
+  const [navTasks,           setNavTasks]           = useState<ITaskListItem[]>([]);
   const [statusReported,     setStatusReported]     = useState(false);
   const [showProjectActions, setShowProjectActions] = useState(false);
   // Local copy of catalog fields — updated optimistically after a successful save
@@ -272,6 +275,24 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
   const tasksHeading = showAllTasks
     ? "All Tasks"
     : filteredTasks[0]?.Gate || activeGate || "";
+
+  // ── Task navigation (prev / next in the visible sorted list) ───────────────
+  const currentNavIdx = selectedTask ? navTasks.findIndex(t => t.Id === selectedTask.Id) : -1;
+  const prevNavTask   = currentNavIdx > 0 ? navTasks[currentNavIdx - 1] : null;
+  const nextNavTask   = currentNavIdx >= 0 && currentNavIdx < navTasks.length - 1 ? navTasks[currentNavIdx + 1] : null;
+
+  const handleNavigate = useCallback((dir: 'prev' | 'next'): void => {
+    const target = dir === 'prev' ? prevNavTask : nextNavTask;
+    if (!target) return;
+    setSelectedTask(target);
+    setShowCard(true);
+    // Scroll to the target row after render
+    setTimeout(() => {
+      document.querySelector<HTMLElement>(`[data-task-id="${target.Id}"]`)
+        ?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }, 60);
+  }, [prevNavTask, nextNavTask]);
+
   const expandedTaskCard = showCard && selectedTask ? (
     <TaskCard
       task={selectedTask}
@@ -289,8 +310,36 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
       onSearchUsers={onSearchUsers}
       onTaskCompleted={handleTaskCompleted}
       onClose={() => setShowCard(false)}
-      onNew={(task) => onNewTask?.(task.Gate)}
-      onDelete={(taskId) => { onDeleteTask?.(taskId); setShowCard(false); }}
+      hasPrev={!!prevNavTask}
+      hasNext={!!nextNavTask}
+      onNavigate={handleNavigate}
+      onNew={(task) => {
+        if (creatingId) return;
+        setCreatingId(task.Id);
+        void (async () => {
+          try {
+            const newTask = await (onNewTask?.(task.Gate, task.Title || undefined) ?? Promise.resolve(null));
+            if (newTask) { setSelectedTask(newTask); setShowCard(true); }
+          } finally {
+            setCreatingId(null);
+          }
+        })();
+      }}
+      isCreating={!!creatingId}
+      isDeleting={!!deletingId}
+      onDelete={(taskId) => {
+        if (deletingId) return;
+        setDeletingId(taskId);
+        void (async () => {
+          try {
+            const nextTask = await onDeleteTask?.(taskId, selectedTask?.Gate, selectedTask?.Title || undefined);
+            if (nextTask) { setSelectedTask(nextTask); setShowCard(true); }
+            else { setShowCard(false); }
+          } finally {
+            setDeletingId(null);
+          }
+        })();
+      }}
       onSave={(taskId, payloadJson) => {
         if (payloadJson) {
           try {
@@ -405,6 +454,9 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
             }}
             selectedTaskId={showCard ? selectedTask?.Id : undefined}
             expandedContent={expandedTaskCard}
+            creatingTaskId={creatingId ?? undefined}
+            deletingTaskId={deletingId ?? undefined}
+            onSortedTasksChange={setNavTasks}
             onSave={(taskId, payloadJson) => {
               onUpdateTask?.(taskId, "quick-complete", payloadJson);
             }}
@@ -421,10 +473,29 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
                   }
                   break;
                 case "list-create":
-                  onNewTask?.(item.Gate);
+                  if (creatingId) break;
+                  setCreatingId(item.Id);
+                  void (async () => {
+                    try {
+                      const newTask = await (onNewTask?.(item.Gate, item.Title || undefined) ?? Promise.resolve(null));
+                      if (newTask) { setSelectedTask(newTask); setShowCard(true); }
+                    } finally {
+                      setCreatingId(null);
+                    }
+                  })();
                   break;
                 case "list-delete":
-                  onDeleteTask?.(item.Id);
+                  if (deletingId) break;
+                  setDeletingId(item.Id);
+                  void (async () => {
+                    try {
+                      const nextTask = await onDeleteTask?.(item.Id, item.Gate, item.Title || undefined);
+                      if (nextTask) { setSelectedTask(nextTask); setShowCard(true); }
+                      else { setShowCard(false); }
+                    } finally {
+                      setDeletingId(null);
+                    }
+                  })();
                   break;
                 default:
                   setSelectedTask(item); setShowCard(true);

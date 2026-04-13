@@ -56,6 +56,18 @@
   min-width: 0;
 }
 
+.task-nav-arrows {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-right: $sp-2;
+
+  button:disabled {
+    opacity: 0.25;
+    cursor: default;
+  }
+}
+
 .task-actions-card {
   display: inline-flex;
   align-items: center;
@@ -110,27 +122,21 @@
   letter-spacing: 0.04em;
 }
 
-.task-card-close {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  border: 1px solid transparent;
-  border-radius: $r-sm;
-  background: transparent;
-  color: $c-text-muted;
-  font-size: 1.2rem;
-  line-height: 1;
-  cursor: pointer;
-  padding: 0;
+.task-button-close {
+  color: $c-text-subtle;
+  background: $c-surface;
+  border-color: $c-border;
   margin-left: $sp-1;
-  transition: $t-fast;
 
-  &:hover {
+  .task-button-label {
+    color: $c-text-subtle;
+  }
+
+  &:hover:not(:disabled) {
     background: $c-surface-dark;
-    color: $c-text;
     border-color: $c-border;
+
+    .task-button-label { color: $c-text; }
   }
 }
 
@@ -145,11 +151,11 @@
 }
 
 .task-card-body {
-  flex: 0 0 350px;
-  width: 350px;
-  min-width: 350px;
-  max-width: 350px;
-  padding: $sp-4 $sp-5;
+  flex: 0 0 380px;
+  width: 380px;
+  min-width: 380px;
+  max-width: 380px;
+  padding: $sp-4 $sp-5 20px;
   border-right: 1px solid $c-border-subtle;
   overflow-y: auto;
   overflow-x: hidden;
@@ -165,45 +171,118 @@
   overflow: hidden; // clip column; scroll happens inside tab-content
 }
 
-// ─── Form table ────────────────────────────────────────────────────────────
+// ─── Modern form layout ────────────────────────────────────────────────────
 
-.task-table {
-  border-collapse: collapse;
-  width: 100%;
+.task-form {
+  display: flex;
+  flex-direction: column;
+  gap: $sp-3;
 
-  tr + tr td { padding-top: $sp-3; }
-
-  td {
-    padding: $sp-1 $sp-3 $sp-1 0;
-    vertical-align: middle;
-
-    // Label column
-    &:first-child {
-      width: 110px;
-      max-width: 110px;
-      text-align: right;
-      padding-right: $sp-4;
-      white-space: nowrap;
-
-      strong {
-        font-size: $f-xs;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        color: $c-text-subtle;
-      }
-    }
-
-    // Input column
-    &:nth-child(2) {
-      min-width: 180px;
-
-      > * {
-        width: 100%;
-        box-sizing: border-box;
-      }
-    }
+  input, select {
+    font-size: 11px;
   }
+}
+
+.form-row {
+  display: flex;
+  gap: $sp-3;
+  align-items: center;
+}
+
+.field {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: $sp-2;
+  flex: 1 1 auto;
+  min-width: 0;
+
+  > span {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: $c-text-subtle;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  > input,
+  > select,
+  > .field-unit-wrap {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+}
+
+// Size variants
+.field-xs   { flex: 0 0 64px;  input, select { min-width: 50px; } }
+.field-pct  { flex: 0 0 96px;  input, select { min-width: 50px; } }
+.field-half { flex: 1 1 0;     min-width: 0;  input, select { min-width: 50px; } }
+.field-full { flex: 1 1 100%;  }
+
+// Row 3 right-side group: Duration label + input + WBS label + input
+.field-right-group {
+  flex: 1 1 0;
+  display: flex;
+  align-items: center;
+  gap: $sp-2;
+  min-width: 0;
+}
+
+.field-group-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: $c-text-subtle;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.input-fixed {
+  width: 40px;
+  min-width: 40px;
+  max-width: 40px;
+  flex: 0 0 40px;
+
+  &.input-fixed-50 {
+    width: 50px;
+    min-width: 50px;
+    max-width: 50px;
+    flex: 0 0 50px;
+  }
+  font-family: $f-family;
+  font-size: 11px;
+  color: $c-text;
+  border: 1px solid $c-input-border;
+  border-radius: $r-sm;
+  padding: $sp-2 $sp-3;
+  box-sizing: border-box;
+  background: $c-surface;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+
+  &:focus {
+    outline: none;
+    border-color: $c-primary;
+    box-shadow: $shadow-focus;
+  }
+}
+
+// Duration: input + "days" unit label side-by-side
+.field-unit-wrap {
+  display: flex;
+  align-items: center;
+  gap: $sp-2;
+
+  input { flex: 1 1 auto; min-width: 0; }
+}
+
+.field-unit {
+  font-size: $f-xs;
+  color: $c-text-muted;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 // ─── Inputs ────────────────────────────────────────────────────────────────
@@ -227,6 +306,13 @@
   }
 
   &::placeholder { color: $c-text-muted; }
+
+  &:disabled {
+    color: $c-text-subtle;
+    background: $c-surface-soft;
+    border-color: $c-border-subtle;
+    cursor: default;
+  }
 }
 
 .select-complete {
@@ -236,7 +322,7 @@
   color: $c-text;
   border: 1px solid $c-input-border;
   border-radius: $r-sm;
-  padding: $sp-2 $sp-3;
+  padding: $sp-2 3px;
   box-sizing: border-box;
   background: $c-surface;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
@@ -246,6 +332,63 @@
     border-color: $c-primary;
     box-shadow: $shadow-focus;
   }
+}
+
+// ─── Gate edit toggle switch ───────────────────────────────────────────────
+
+.gate-edit-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: $sp-2;
+  cursor: pointer;
+  flex-shrink: 0;
+  user-select: none;
+
+  input[type="checkbox"] {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    pointer-events: none;
+  }
+}
+
+.gate-edit-track {
+  width: 28px;
+  height: 16px;
+  background: $c-border;
+  border-radius: 999px;
+  position: relative;
+  transition: background $t-fast;
+  flex-shrink: 0;
+
+  input:checked ~ & {
+    background: $c-primary;
+  }
+}
+
+.gate-edit-thumb {
+  width: 12px;
+  height: 12px;
+  background: white;
+  border-radius: 50%;
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  transition: left $t-fast;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+
+  input:checked ~ .gate-edit-track & {
+    left: 14px;
+  }
+}
+
+.gate-edit-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: $c-text-subtle;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 .gate-rename-toggle {
@@ -390,6 +533,16 @@
   width: 16px;
   height: 16px;
   display: block;
+}
+
+@keyframes tc-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+.spinning {
+  animation: tc-spin 0.7s linear infinite;
+  transform-origin: center;
 }
 
 // stylelint-enable selector-class-pattern

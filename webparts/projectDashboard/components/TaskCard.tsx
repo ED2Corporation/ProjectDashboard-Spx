@@ -23,6 +23,11 @@ interface TaskCardProps {
   onSendEmail?: (to: string[], subject: string, body: string) => Promise<void>;
   onSearchUsers?: (query: string) => Promise<{ displayName: string; email: string }[]>;
   onTaskCompleted?: () => void;
+  isCreating?: boolean;
+  isDeleting?: boolean;
+  hasPrev?: boolean;
+  hasNext?: boolean;
+  onNavigate?: (dir: 'prev' | 'next') => void;
   onClose?: () => void;
   onDelete: (id: string) => void;
   onNew: (task: ITaskListItem) => void;
@@ -36,10 +41,12 @@ interface TaskCardProps {
   ) => Promise<{ fileUrl: string; fileName: string }>;
 }
 
-const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, currentUserEmail, currentUserDisplayName, projectInfo, onClose, onSave, onDelete, onNew, onUploadEvidenceFile, onSaveLogField, onSendEmail, onSearchUsers, onTaskCompleted }) => {
+const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDeleting, hasPrev, hasNext, onNavigate, currentUserEmail, currentUserDisplayName, projectInfo, onClose, onSave, onDelete, onNew, onUploadEvidenceFile, onSaveLogField, onSendEmail, onSearchUsers, onTaskCompleted }) => {
   const [activeTab, setActiveTab] = useState<TaskTab>('notes');
   const canManageApprovers = true; // All users can manage approvers
-  const [gate, setGate] = useState(task.Gate ?? "");
+  const [wbs,             setWbs]             = useState(task.Title ?? "");
+  const [gate,            setGate]            = useState(task.Gate ?? "");
+  const [gateEditEnabled, setGateEditEnabled] = useState(false);
   const [renameAllGateTasks, setRenameAllGateTasks] = useState(true);
   const [deliverable, setDeliverable] = useState(task.Deliverable ?? "");
   const [taskTitle, setTaskTitle] = useState(task.Task ?? "");
@@ -50,6 +57,21 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, currentUserEmail, 
   const [finish, setFinish] = useState<string>(
     task.Finish ? new Date(task.Finish).toISOString().slice(0, 10) : ""
   );
+
+  // Duration (days) derived from start/finish; editing it adjusts finish
+  const durationDays = (s: string, f: string): number => {
+    if (!s || !f) return 0;
+    const [sy, sm, sd] = s.split("-").map(Number);
+    const [fy, fm, fd] = f.split("-").map(Number);
+    return Math.max(0, Math.round((Date.UTC(fy, fm - 1, fd) - Date.UTC(sy, sm - 1, sd)) / 86400000));
+  };
+  const duration = durationDays(start, finish);
+  const handleDurationChange = (days: number): void => {
+    if (!start || days < 0) return;
+    const [sy, sm, sd] = start.split("-").map(Number);
+    const d = new Date(Date.UTC(sy, sm - 1, sd) + days * 86400000);
+    setFinish(d.toISOString().slice(0, 10));
+  };
   const [effort, setEffort] = useState<string>(
     task.Effort !== undefined ? task.Effort.toString() : ""
   );
@@ -64,7 +86,9 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, currentUserEmail, 
   const skipNextCompleteEffectRef = useRef(false);
 
   useEffect(() => {
+    setWbs(task.Title ?? "");
     setGate(task.Gate ?? "");
+    setGateEditEnabled(false);
     setRenameAllGateTasks(true);
     setDeliverable(task.Deliverable ?? "");
     setTaskTitle(task.Task ?? "");
@@ -97,6 +121,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, currentUserEmail, 
     const gateChanged = gate !== task.Gate;
     const data = {
       Id: task.Id,
+      Title: wbs,
       Deliverable: deliverable,
       Gate: gate,
       Task: taskTitle,
@@ -285,12 +310,52 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, currentUserEmail, 
       <div className={styles["task-card-header"]}>
         <h1 className={styles["task-title"]}>{task.Task}</h1>
         <div className={styles["task-btn-group"]}>
-          <div className={styles["task-actions-card"]}>
-            <button type="button" className={styles["task-button"]} onClick={handleDelete} title="Delete task">
-              <img src={require("../assets/Delete.png")} alt="delete" className={styles["icon-small"]} />
+          <div className={styles["task-nav-arrows"]}>
+            <button
+              type="button"
+              className={styles["task-button"]}
+              onClick={() => onNavigate?.('prev')}
+              disabled={!hasPrev}
+              title={hasPrev ? "Previous task" : "No previous task"}
+            >
+              <svg className={styles["icon-small"]} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M4 10l4-5 4 5"/>
+              </svg>
             </button>
-            <button type="button" className={styles["task-button"]} onClick={handleNew} title="Add new task">
-              <img src={require("../assets/Create.png")} alt="new" className={styles["icon-small"]} />
+            <button
+              type="button"
+              className={styles["task-button"]}
+              onClick={() => onNavigate?.('next')}
+              disabled={!hasNext}
+              title={hasNext ? "Next task" : "No next task"}
+            >
+              <svg className={styles["icon-small"]} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M4 6l4 5 4-5"/>
+              </svg>
+            </button>
+          </div>
+          <div className={styles["task-actions-card"]}>
+            <button type="button" className={styles["task-button"]} onClick={handleDelete} title={isDeleting ? "Deleting…" : "Delete task"} disabled={isDeleting}>
+              {isDeleting ? (
+                <svg className={`${styles["icon-small"]} ${styles.spinning}`} viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                  <circle cx="8" cy="8" r="5.5" stroke="currentColor" strokeWidth="2" strokeDasharray="20 15" strokeLinecap="round"/>
+                </svg>
+              ) : (
+                <svg className={styles["icon-small"]} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M3 5h10M6 5V3h4v2M4.5 5l.7 8h6.6l.7-8"/>
+                </svg>
+              )}
+            </button>
+            <button type="button" className={styles["task-button"]} onClick={handleNew} title={isCreating ? "Creating…" : "Add new task"} disabled={isCreating}>
+              {isCreating ? (
+                <svg className={`${styles["icon-small"]} ${styles.spinning}`} viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                  <circle cx="8" cy="8" r="5.5" stroke="currentColor" strokeWidth="2" strokeDasharray="20 15" strokeLinecap="round"/>
+                </svg>
+              ) : (
+                <svg className={styles["icon-small"]} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+                  <path d="M8 3v10M3 8h10"/>
+                </svg>
+              )}
             </button>
           </div>
           <div className={styles["task-btn-spacer"]} />
@@ -303,151 +368,138 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, currentUserEmail, 
             <span className={styles["task-button-label"]}>Save</span>
           </button>
           {onClose && (
-            <button type="button" className={styles["task-card-close"]} onClick={onClose} aria-label="Close">
-              ×
+            <button type="button" className={`${styles["task-button"]} ${styles["task-button-save"]} ${styles["task-button-close"]}`} onClick={onClose} title="Close">
+              <span className={styles["task-button-label"]}>Close</span>
             </button>
           )}
         </div>
       </div>
       <div className={styles["task-card-row"]}>
         <div className={styles["task-card-body"]}>
-          <table className={styles["task-table"]}>
-            <tbody>
-              <tr>
-                <td>
-                  <strong>Gate:</strong>
-                </td>
-                <td>
-                  <input
-                    type="text"
-                    value={gate}
-                    onChange={e => { setGate(e.target.value); setRenameAllGateTasks(true); }}
-                    className={styles["input-small"]}
-                  />
-                  {gate !== task.Gate && (
-                    <div className={styles["gate-rename-toggle"]}>
-                      <label className={styles["gate-rename-label"]}>
-                        <input
-                          type="checkbox"
-                          checked={renameAllGateTasks}
-                          onChange={e => setRenameAllGateTasks(e.target.checked)}
-                        />
-                        {renameAllGateTasks
-                          ? "Rename gate for all tasks in this gate"
-                          : "Move only this task to new gate"}
-                      </label>
-                    </div>
-                  )}
-                </td>
-              </tr>              
-              <tr>
-                <td>
-                  <strong>Task:</strong>
-                </td>
-                <td>
-                  <input
-                    type="text"
-                    value={taskTitle}
-                    onChange={e => setTaskTitle(e.target.value)}
-                    className={styles["input-small"]}
-                  />
-                </td>
-              </tr>
-              <tr>
-                <td>
-                  <strong>% Complete:</strong>
-                </td>
-                <td >
-                  {isPlanner ? (
-                    <select
-                      value={complete}
-                      onChange={(e) => setComplete(Number(e.target.value) || 0)}
-                      className={styles["select-complete"]}
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <option value={0}>0%</option>
-                      <option value={50}>50%</option>
-                      <option value={100}>100%</option>
-                    </select>
-                  ) : (
-                    <input
-                      type="number"
-                      value={complete}
-                      onChange={(e) => setComplete(Number(e.target.value) || 0)}
-                      className={styles["input-small"]}
-                      onClick={(e) => e.stopPropagation()}
-                    />
-                  )}              
-                  {complete === 100 && !hasCompletionEvidence && (
-                    <div className={styles["completion-warning"]}>
-                      No file is marked as Evidence of Completion.
-                    </div>
-                  )}
-                </td>
-              </tr>
+          <div className={styles["task-form"]}>
 
-              <tr>
-                <td>
-                  <strong>Start:</strong>
-                </td>
-                <td>
-                  <input
-                    type="date"
-                    value={start}
-                    onChange={(e) => {
-                      const newStart = e.target.value;
-                      // Skip validation if start has no value yet
-                      if (newStart && finish) {
-                        // Convertimos ambas a fechas UTC para comparar correctamente
-                        const [sy, sm, sd] = newStart.split("-").map(Number);
-                        const [fy, fm, fd] = finish.split("-").map(Number);
-                        const startUTC = Date.UTC(sy, sm - 1, sd);
-                        const finishUTC = Date.UTC(fy, fm - 1, fd);
+            {/* Row 1: Gate */}
+            <div className={styles["form-row"]}>
+              <label className={`${styles.field} ${styles["field-full"]}`}>
+                <span>Gate</span>
+                <input
+                  type="text"
+                  value={gate}
+                  onChange={e => { setGate(e.target.value); setRenameAllGateTasks(true); }}
+                  className={styles["input-small"]}
+                  disabled={!gateEditEnabled}
+                />
+              </label>
+              <label className={styles["gate-edit-toggle"]}>
+                <input
+                  type="checkbox"
+                  checked={gateEditEnabled}
+                  onChange={e => setGateEditEnabled(e.target.checked)}
+                />
+                <span className={styles["gate-edit-track"]}>
+                  <span className={styles["gate-edit-thumb"]} />
+                </span>
+                <span className={styles["gate-edit-label"]}>Edit</span>
+              </label>
+            </div>
 
-                        if (finishUTC < startUTC) {
-                          alert("Finish date cannot be earlier than Start date.");
-                          return; // Do not update state
-                        }
-                      }
-                      setStart(newStart);
-                    }}
-                    className={styles["input-small"]}
-                  />
-                </td>
-              </tr>
+            {/* Gate rename checkbox — always visible when editing */}
+            {gateEditEnabled && (
+              <div className={styles["gate-rename-toggle"]}>
+                <label className={styles["gate-rename-label"]}>
+                  <input type="checkbox" checked={renameAllGateTasks} onChange={e => setRenameAllGateTasks(e.target.checked)} />
+                  {renameAllGateTasks ? "Rename gate for all tasks in this gate" : "Move only this task to new gate"}
+                </label>
+              </div>
+            )}
 
-              <tr>
-                <td>
-                  <strong>Finish:</strong>
-                </td>
-                <td>
-                  <input
-                    type="date"
-                    value={finish}
-                    onChange={(e) => {
-                      const newFinish = e.target.value;
-                      // Skip validation if start has no value yet
-                      if (start && newFinish) {
-                        // Convertimos ambas a fechas UTC para comparar correctamente
-                        const [sy, sm, sd] = start.split("-").map(Number);
-                        const [fy, fm, fd] = newFinish.split("-").map(Number);
-                        const startUTC = Date.UTC(sy, sm - 1, sd);
-                        const finishUTC = Date.UTC(fy, fm - 1, fd);
+            {/* Row 2: Task */}
+            <div className={styles["form-row"]}>
+              <label className={`${styles.field} ${styles["field-full"]}`}>
+                <span>Task</span>
+                <input type="text" value={taskTitle} onChange={e => setTaskTitle(e.target.value)} className={styles["input-small"]} />
+              </label>
+            </div>
 
-                        if (finishUTC < startUTC) {
-                          alert("Finish date cannot be earlier than Start date.");
-                          return; // Do not update state
-                        }
-                      }
-                      setFinish(newFinish);
-                    }}
-                    className={styles["input-small"]}
-                  />
-                </td>
-              </tr>
+            {/* Row 3: Left=% Complete  |  Right=Duration+WBS */}
+            <div className={styles["form-row"]}>
+              {/* Left half: % Complete label + input */}
+              <label className={`${styles.field} ${styles["field-half"]}`}>
+                <span>% Complete</span>
+                {isPlanner ? (
+                  <select value={complete} onChange={e => setComplete(Number(e.target.value) || 0)} className={styles["select-complete"]} onClick={e => e.stopPropagation()}>
+                    <option value={0}>0%</option>
+                    <option value={50}>50%</option>
+                    <option value={100}>100%</option>
+                  </select>
+                ) : (
+                  <input type="number" min={0} max={100} value={complete} onChange={e => setComplete(Number(e.target.value) || 0)} className={styles["input-small"]} onClick={e => e.stopPropagation()} />
+                )}
+              </label>
+              {/* Right half: Duration label + input + WBS label + input */}
+              <div className={styles["field-right-group"]}>
+                <span className={styles["field-group-label"]}>Duration</span>
+                <input
+                  type="number" min={0}
+                  value={start && finish ? duration : ""}
+                  onChange={e => handleDurationChange(Number(e.target.value) || 0)}
+                  className={`${styles["input-fixed"]} ${styles["input-fixed-50"]}`}
+                  disabled={!start}
+                />
+                <span className={styles["field-group-label"]}>WBS</span>
+                <input
+                  type="text"
+                  value={wbs}
+                  onChange={e => setWbs(e.target.value)}
+                  className={styles["input-fixed"]}
+                />
+              </div>
+            </div>
 
-            </tbody>
-          </table>
+            {/* Row 4: Start · Finish */}
+            <div className={styles["form-row"]}>
+              <label className={styles.field}>
+                <span>Start</span>
+                <input
+                  type="date" value={start}
+                  onChange={e => {
+                    const v = e.target.value;
+                    if (v && finish) {
+                      const [sy,sm,sd] = v.split("-").map(Number);
+                      const [fy,fm,fd] = finish.split("-").map(Number);
+                      if (Date.UTC(fy,fm-1,fd) < Date.UTC(sy,sm-1,sd)) { alert("Finish date cannot be earlier than Start date."); return; }
+                    }
+                    setStart(v);
+                  }}
+                  className={styles["input-small"]}
+                />
+              </label>
+              <label className={styles.field}>
+                <span>Finish</span>
+                <input
+                  type="date" value={finish}
+                  onChange={e => {
+                    const v = e.target.value;
+                    if (start && v) {
+                      const [sy,sm,sd] = start.split("-").map(Number);
+                      const [fy,fm,fd] = v.split("-").map(Number);
+                      if (Date.UTC(fy,fm-1,fd) < Date.UTC(sy,sm-1,sd)) { alert("Finish date cannot be earlier than Start date."); return; }
+                    }
+                    setFinish(v);
+                  }}
+                  className={styles["input-small"]}
+                />
+              </label>
+            </div>
+
+            {/* Completion warning */}
+            {complete === 100 && !hasCompletionEvidence && (
+              <div className={styles["completion-warning"]}>
+                No file is marked as Evidence of Completion.
+              </div>
+            )}
+
+          </div>
         </div>
         <div className={styles["task-card-column"]}>
           {/* Tab bar */}

@@ -226,7 +226,7 @@ export default class ProjectDashboard extends React.Component<
                 isPlanner={project.isPlanner || false}
                 onClose={() => this.setState({ showCard: false })}
                 onNew={(task) => {
-                  this.props.onNewTask?.(task.Gate);
+                  this.props.onNewTask?.(task.Gate, task.Title || undefined);
                 }}
                 onDelete={(taskId) => {
                   this.props.onDeleteTask?.(taskId);
@@ -255,7 +255,7 @@ export default class ProjectDashboard extends React.Component<
                       this.props.onSelectItem(item.Task, "task");
                       break;
                     case "list-create":
-                      this.props.onNewTask?.(item.Gate);
+                      this.props.onNewTask?.(item.Gate, item.Title || undefined);
                       break;
                     case "list-delete":
                       this.props.onDeleteTask?.(item.Id);

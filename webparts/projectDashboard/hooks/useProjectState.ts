@@ -11,7 +11,7 @@ import { FilterTasks } from '../utils/FilterTasks';
 import { PlannerService } from '../services/PlannerService';
 import { ProjectService } from '../services/ProjectService';
 import { MessageLog } from '../utils/MessageLog';
-import { compareWbs } from '../utils/ParseWBS';
+import { compareWbs, computeShiftedWbs, computeUnshiftedWbs, nextWbsAfterInsert } from '../utils/ParseWBS';
 import { ensureFolder, uploadEvidenceFile } from '../services/UploadService';
 import { StorageEndpoint } from '../utils/StorageVersionResolver';
 
@@ -60,8 +60,8 @@ export interface UseProjectStateResult {
   onReset: () => Promise<void>;
   onGateFilterChange: (gate: string) => Promise<void>;
   onSelectItem: (item: string, group: string) => void;
-  onNewTask: (gate: string) => Promise<void>;
-  onDeleteTask: (taskId: string) => Promise<void>;
+  onNewTask: (gate: string, sourceWbs?: string) => Promise<ITaskListItem | null>;
+  onDeleteTask: (taskId: string, gate?: string, wbs?: string) => Promise<ITaskListItem | null>;
   onUpdateTask: (taskName: string, action: "quick-complete" | "full-update", payloadJson?: string) => Promise<void>;
   onUploadFile: (file: File, taskTitle: string) => Promise<{ fileUrl: string; fileName: string }>;
   onPopulateAttachements: () => Promise<void>;
@@ -439,7 +439,7 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
   }, [sp]);
 
   // ── Create task ────────────────────────────────────────────────────────────
-  const _createListTask = useCallback(async (gate: string): Promise<void> => {
+  const _createListTask = useCallback(async (gate: string): Promise<ITaskListItem | null> => {
     const listTitle = config.sourceName;
     const today = new Date();
 
@@ -449,17 +449,14 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
       Gate: gate,
       Title: nextWbs,
       Deliverable: gate + ". Deliverable",
-      Task: gate + ". Task",
+      Task: "New task...",
       Start: today.toISOString(),
       Finish: today.toISOString(),
       Complete: 0
     });
 
     const addedId = addResult.Id as number | undefined;
-    if (!addedId) {
-      setSelectedTask(makeEmptyTask());
-      return;
-    }
+    if (!addedId) { setSelectedTask(makeEmptyTask()); return null; }
 
     const r: any = await sp.web.lists.getByTitle(listTitle).items.getById(addedId) // eslint-disable-line @typescript-eslint/no-explicit-any
       .select("Id","Gate","Task","Deliverable","Complete","Start","Finish","ActualFinish","Title")();
@@ -467,7 +464,7 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
     const task: ITaskListItem = {
       Id: String(r.Id),
       Gate: r.Gate ?? gate,
-      Task: r.Task ?? "New task",
+      Task: r.Task ?? "New task...",
       Deliverable: r.Deliverable ?? "",
       Complete: typeof r.Complete === "number" ? r.Complete : Number(r.Complete) || 0,
       Start: r.Start ? new Date(r.Start) : today,
@@ -476,7 +473,58 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
       Title: r.Title ?? nextWbs
     };
     setSelectedTask(task);
+    return task;
   }, [config.sourceName, sp, _getNextWbsForGate]);
+
+  // ── Insert task after a specific WBS (with cascade shift) ─────────────────
+  const _insertTaskAfter = useCallback(async (gate: string, sourceWbs: string): Promise<ITaskListItem | null> => {
+    const listTitle = config.sourceName;
+    const today = new Date();
+    const newWbs = nextWbsAfterInsert(sourceWbs);
+
+    // Identify tasks that need to shift, using the in-memory list (avoids extra SP query)
+    const toShift = tasksRef.current
+      .filter(t => t.Gate === gate && !!t.Title)
+      .map(t => ({ id: t.Id, wbs: t.Title as string, newWbs: computeShiftedWbs(sourceWbs, t.Title as string) }))
+      .filter((t): t is { id: string; wbs: string; newWbs: string } => t.newWbs !== null);
+
+    // Patch from highest WBS to lowest to avoid transient collisions in SP
+    toShift.sort((a, b) => -compareWbs(a.wbs, b.wbs));
+    for (const t of toShift) {
+      await sp.web.lists.getByTitle(listTitle).items.getById(Number(t.id)).update({ Title: t.newWbs }); // eslint-disable-line @typescript-eslint/no-explicit-any
+    }
+
+    // Create the new task at the freed WBS slot
+    const addResult: any = await sp.web.lists.getByTitle(listTitle).items.add({ // eslint-disable-line @typescript-eslint/no-explicit-any
+      Gate: gate,
+      Title: newWbs,
+      Deliverable: gate + ". Deliverable",
+      Task: "New task...",
+      Start: today.toISOString(),
+      Finish: today.toISOString(),
+      Complete: 0
+    });
+
+    const addedId = addResult.Id as number | undefined;
+    if (!addedId) { setSelectedTask(makeEmptyTask()); return null; }
+
+    const r: any = await sp.web.lists.getByTitle(listTitle).items.getById(addedId) // eslint-disable-line @typescript-eslint/no-explicit-any
+      .select("Id","Gate","Task","Deliverable","Complete","Start","Finish","ActualFinish","Title")();
+
+    const newTask: ITaskListItem = {
+      Id: String(r.Id),
+      Gate: r.Gate ?? gate,
+      Task: r.Task ?? "New task...",
+      Deliverable: r.Deliverable ?? "",
+      Complete: typeof r.Complete === "number" ? r.Complete : Number(r.Complete) || 0,
+      Start: r.Start ? new Date(r.Start) : today,
+      Finish: r.Finish ? new Date(r.Finish) : today,
+      ActualFinish: r.ActualFinish ? new Date(r.ActualFinish) : undefined,
+      Title: r.Title ?? newWbs
+    };
+    setSelectedTask(newTask);
+    return newTask;
+  }, [config.sourceName, sp, tasksRef]);
 
   const _createPlannerTask = useCallback(async (gate: string): Promise<void> => {
     const graphClient: MSGraphClientV3 = await context.msGraphClientFactory.getClient("3");
@@ -484,19 +532,24 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
     await plannerService.createEmptyTask(projectSelected.Id, gate);
   }, [context, projectSelected]);
 
-  const onNewTask = useCallback(async (gate: string): Promise<void> => {
+  const onNewTask = useCallback(async (gate: string, sourceWbs?: string): Promise<ITaskListItem | null> => {
     try {
+      let created: ITaskListItem | null = null;
       if (config.isPlanner) {
         await _createPlannerTask(gate);
+      } else if (sourceWbs) {
+        created = await _insertTaskAfter(gate, sourceWbs);
       } else {
-        await _createListTask(gate);
+        created = await _createListTask(gate);
       }
       await onReset();
+      return created;
     } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
       console.error("[onNewTask] Error:", error);
       MessageLog(`[onNewTask] Error: ${error.message}`, "error");
+      return null;
     }
-  }, [config.isPlanner, _createPlannerTask, _createListTask, onReset]);
+  }, [config.isPlanner, _createPlannerTask, _createListTask, _insertTaskAfter, onReset]);
 
   // ── Delete task ────────────────────────────────────────────────────────────
   const _deleteListTask = useCallback(async (itemId: string): Promise<void> => {
@@ -509,20 +562,76 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
     await plannerService.deleteTask(taskId);
   }, [context]);
 
-  const onDeleteTask = useCallback(async (taskId: string): Promise<void> => {
-    if (!taskId) return;
+  /**
+   * Deletes a task by WBS, cascade-deletes its children, then shifts all subsequent
+   * sibling tasks (and their children) down by one to close the WBS gap.
+   * Returns the task that now occupies the deleted slot (previously the next sibling),
+   * or null if there was no following sibling.
+   */
+  const _deleteTaskAndShift = useCallback(async (
+    taskId: string, gate: string, wbs: string
+  ): Promise<ITaskListItem | null> => {
+    const listTitle = config.sourceName;
+    const depth = wbs.split(".").length;
+
+    // Children of the deleted task (deeper WBS under the same prefix)
+    const children = tasksRef.current.filter(t =>
+      t.Gate === gate &&
+      t.Id !== taskId &&
+      (t.Title || "").startsWith(wbs + ".")
+    );
+
+    // Tasks to shift: same gate, strictly after sourceWbs, excluding children of deleted task
+    const childIds = new Set(children.map(c => c.Id));
+    const toShift = tasksRef.current
+      .filter(t => t.Gate === gate && !!t.Title && t.Id !== taskId && !childIds.has(t.Id))
+      .map(t => ({ id: t.Id, origWbs: t.Title as string, newWbs: computeUnshiftedWbs(wbs, t.Title as string) }))
+      .filter((t): t is { id: string; origWbs: string; newWbs: string } => t.newWbs !== null);
+
+    // Identify the immediate next sibling (lowest WBS > sourceWbs at same depth)
+    const immediateNext = toShift
+      .filter(t => t.origWbs.split(".").length === depth)
+      .sort((a, b) => compareWbs(a.origWbs, b.origWbs))[0] ?? null;
+
+    // 1. Delete the source task
+    await sp.web.lists.getByTitle(listTitle).items.getById(Number(taskId)).delete();
+
+    // 2. Delete its children (cascade)
+    for (const child of children) {
+      await sp.web.lists.getByTitle(listTitle).items.getById(Number(child.Id)).delete();
+    }
+
+    // 3. Shift subsequent tasks LOW → HIGH (ascending) to avoid collisions
+    toShift.sort((a, b) => compareWbs(a.origWbs, b.origWbs));
+    for (const t of toShift) {
+      await sp.web.lists.getByTitle(listTitle).items.getById(Number(t.id)).update({ Title: t.newWbs });
+    }
+
+    // 4. Return the task that now occupies the deleted slot (was immediateNext, now has newWbs = wbs)
+    if (!immediateNext) return null;
+    const nextTask = tasksRef.current.find(t => t.Id === immediateNext.id);
+    if (!nextTask) return null;
+    return { ...nextTask, Title: immediateNext.newWbs };
+  }, [config.sourceName, sp, tasksRef]);
+
+  const onDeleteTask = useCallback(async (taskId: string, gate?: string, wbs?: string): Promise<ITaskListItem | null> => {
+    if (!taskId) return null;
     try {
+      let nextTask: ITaskListItem | null = null;
       if (config.isPlanner) {
         await _deletePlannerTask(taskId);
+      } else if (gate && wbs) {
+        nextTask = await _deleteTaskAndShift(taskId, gate, wbs);
       } else {
         await _deleteListTask(taskId);
       }
       await onReset();
-      setSelectedTask(null);
+      return nextTask;
     } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
       MessageLog(`[onDeleteTask] Error: ${error.message}`, "error");
+      return null;
     }
-  }, [config.isPlanner, _deletePlannerTask, _deleteListTask, onReset]);
+  }, [config.isPlanner, _deletePlannerTask, _deleteListTask, _deleteTaskAndShift, onReset]);
 
   // ── Update task ────────────────────────────────────────────────────────────
   const _updateListTask = useCallback(async (

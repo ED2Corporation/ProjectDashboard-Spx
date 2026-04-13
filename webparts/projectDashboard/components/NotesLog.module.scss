@@ -93,6 +93,15 @@
   margin: 0;
   white-space: pre-wrap;
   word-break: break-word;
+  cursor: pointer;
+  border-radius: $r-sm;
+  padding: 1px 2px;
+  transition: background $t-fast;
+
+  &:hover {
+    background: rgba($c-primary, 0.07);
+    color: $c-primary;
+  }
 }
 
 .editRow {

@@ -98,19 +98,6 @@ const NotesLog: React.FC<NotesLogProps> = ({ notes, currentUserDisplayName, onSa
             <div className={styles.meta}>
               <span className={styles.user}>{entry.user}</span>
               <span className={styles.date}>{new Date(entry.date).toLocaleString()}</span>
-              {editingIndex !== sourceIndex && (
-                <button
-                  type="button"
-                  className={styles.editBtn}
-                  onClick={() => handleEditStart(sourceIndex, entry.note)}
-                  title="Edit note"
-                >
-                  <svg viewBox="0 0 16 16" className={styles.editIcon} aria-hidden="true">
-                    <path d="M11.8 2.2a1.4 1.4 0 0 1 2 2L6 12H4v-2z" />
-                    <path d="M9.8 4.2l2 2" />
-                  </svg>
-                </button>
-              )}
             </div>
             {editingIndex === sourceIndex ? (
               <div className={styles.editRow}>
@@ -118,8 +105,13 @@ const NotesLog: React.FC<NotesLogProps> = ({ notes, currentUserDisplayName, onSa
                   type="text"
                   value={editingText}
                   onChange={e => setEditingText(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') void handleEditSave();
+                    if (e.key === 'Escape') handleEditCancel();
+                  }}
                   className={styles.noteInput}
                   disabled={saving}
+                  autoFocus
                 />
                 <button
                   type="button"
@@ -139,7 +131,13 @@ const NotesLog: React.FC<NotesLogProps> = ({ notes, currentUserDisplayName, onSa
                 </button>
               </div>
             ) : (
-              <p className={styles.noteText}>{entry.note}</p>
+              <p
+                className={styles.noteText}
+                onClick={() => handleEditStart(sourceIndex, entry.note)}
+                title="Click to edit"
+              >
+                {entry.note}
+              </p>
             )}
           </div>
         ))}

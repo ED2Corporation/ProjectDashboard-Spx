@@ -17,7 +17,7 @@ export interface IProjectDashboardProps {
   onSelectItem: (item: string, group: string) => void;
   onNewTask?: (
     Gate: string,
-    payloadJson?: string
+    sourceWbs?: string
   ) => void;
   onDeleteTask?: (
     taskId: string

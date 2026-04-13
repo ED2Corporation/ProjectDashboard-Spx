@@ -539,6 +539,11 @@
   color: $c-primary-hover;
 }
 
+.task-name-new {
+  color: #2e7d32;
+  font-style: italic;
+}
+
 .taskWbs {
   color: $c-text-secondary;
   font-size: $f-xs;
@@ -587,11 +592,26 @@
   background: transparent;
   padding: 1px;
   cursor: pointer;
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.45;
+  }
 }
 
 .icon-small {
   width: 18px;
   height: 15px;
+}
+
+@keyframes pd-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+.spinning {
+  animation: pd-spin 0.7s linear infinite;
+  transform-origin: center;
 }
 
 .input-small {

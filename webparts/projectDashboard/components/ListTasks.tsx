@@ -1,5 +1,5 @@
 import * as React from "react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ITaskListItem } from "../../../models";
 import { GetDelay } from "../utils/GetDelay";
 import { GetFormatDate } from "../utils/GetFormatDate";
@@ -14,6 +14,9 @@ interface ListGroupProps {
   isPlanner?: boolean;
   selectedTaskId?: string;
   expandedContent?: React.ReactNode;
+  creatingTaskId?: string;
+  deletingTaskId?: string;
+  onSortedTasksChange?: (tasks: ITaskListItem[]) => void;
   onReload?: () => void;
   onSave: (itemId: string, payload?: string) => void;
   onSelectItem: (
@@ -42,6 +45,9 @@ const ListTasks = ({
   isPlanner,
   selectedTaskId,
   expandedContent,
+  creatingTaskId,
+  deletingTaskId,
+  onSortedTasksChange,
   onReload,
 }: ListGroupProps) => {
   const [editTaskTitle, setEditTaskTitle] = useState<string>("");
@@ -114,6 +120,13 @@ const ListTasks = ({
     }
     return sortDir === "asc" ? cmp : -cmp;
   });
+
+  // Report sorted order to parent for navigation (prev/next)
+  const sortedTaskIds = sortedTasks.map(t => t.Id).join(',');
+  useEffect(() => {
+    onSortedTasksChange?.(sortedTasks);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sortedTaskIds]);
 
   const getDelayClassName = (task: ITaskListItem): string => {
     if (Math.floor(task.Complete) >= 100) return "";
@@ -205,6 +218,7 @@ const ListTasks = ({
                 {sortedTasks.map((item) => (
                   <React.Fragment key={item.Id}>
                   <tr
+                    data-task-id={item.Id}
                     className={[
                       getDelayClassName(item),
                       item.Id === selectedTaskId ? styles["task-row-active"] : "",
@@ -260,7 +274,11 @@ const ListTasks = ({
                       />
                     ) : (
                       <span
-                        className={`${styles.taskName} ${item.Id === selectedTaskId ? styles["task-name-active"] : ""}`}
+                        className={[
+                          styles.taskName,
+                          item.Id === selectedTaskId ? styles["task-name-active"] : "",
+                          (item.Task || "").startsWith("New task...") ? styles["task-name-new"] : "",
+                        ].filter(Boolean).join(" ")}
                         onClick={(e) => { e.stopPropagation(); onSelectItem(item, "task", "list-edit"); }}
                       >{item.Task}</span>
                     )}
@@ -371,7 +389,7 @@ const ListTasks = ({
 
                   {/* ACTIONS */}
                   <td className={`${styles.colActions} ${styles.actionsFixed}`}>
-                    {/* New in same gate */}
+                    {/* Add row */}
                     <button
                       type="button"
                       className={styles["icon-button"]}
@@ -379,13 +397,41 @@ const ListTasks = ({
                         e.stopPropagation();
                         onSelectItem(item, "task", "list-create");
                       }}
-                      title="Add / New row"
+                      title={creatingTaskId === item.Id ? "Creating…" : "Add / New row"}
+                      disabled={!!creatingTaskId}
                     >
-                      <img
-                        src={require("../assets/Create.png")}
-                        alt="new"
-                        className={styles["icon-small"]}
-                      />
+                      {creatingTaskId === item.Id ? (
+                        <svg className={`${styles["icon-small"]} ${styles.spinning}`} viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                          <circle cx="8" cy="8" r="5.5" stroke="currentColor" strokeWidth="2" strokeDasharray="20 15" strokeLinecap="round"/>
+                        </svg>
+                      ) : (
+                        <svg className={styles["icon-small"]} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+                          <path d="M8 3v10M3 8h10"/>
+                        </svg>
+                      )}
+                    </button>
+                    {/* Delete row */}
+                    <button
+                      type="button"
+                      className={styles["icon-button"]}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (window.confirm(`Delete task "${item.Task}"?`)) {
+                          onSelectItem(item, "task", "list-delete");
+                        }
+                      }}
+                      title={deletingTaskId === item.Id ? "Deleting…" : "Delete task"}
+                      disabled={!!creatingTaskId || !!deletingTaskId}
+                    >
+                      {deletingTaskId === item.Id ? (
+                        <svg className={`${styles["icon-small"]} ${styles.spinning}`} viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                          <circle cx="8" cy="8" r="5.5" stroke="currentColor" strokeWidth="2" strokeDasharray="20 15" strokeLinecap="round"/>
+                        </svg>
+                      ) : (
+                        <svg className={styles["icon-small"]} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                          <path d="M3 5h10M6 5V3h4v2M4.5 5l.7 8h6.6l.7-8"/>
+                        </svg>
+                      )}
                     </button>
                   </td>
 
