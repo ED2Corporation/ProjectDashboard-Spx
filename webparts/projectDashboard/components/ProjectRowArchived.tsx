@@ -263,17 +263,26 @@ const ProjectRowArchived: React.FC<ProjectRowArchivedProps> = ({ project }) => {
   </header>
   ${taskSections || "<section><h2>Tasks</h2><em>Tasks section excluded.</em></section>"}
   ${logSections || "<section><h2>Project Log</h2><em>Log sections excluded.</em></section>"}
-  <script>window.addEventListener("load", function () { window.print(); });</script>
 </body>
 </html>`;
   };
 
   const handleDownloadPdf = async (): Promise<void> => {
-    const printWindow = window.open("", "_blank", "noopener,noreferrer");
+    const printWindow = window.open("", "_blank");
     if (!printWindow) {
       setReportError("Unable to open the PDF print window. Please allow pop-ups for this site.");
       return;
     }
+
+    printWindow.document.open();
+    printWindow.document.write(`<!doctype html>
+<html>
+<head><title>Preparing PDF...</title></head>
+<body style="font-family: Segoe UI, Arial, sans-serif; padding: 24px; color: #334155;">
+  Preparing archived report PDF...
+</body>
+</html>`);
+    printWindow.document.close();
 
     let json = reportJson;
     if (!json && archivedReport?.jsonFileUrl) {
@@ -300,6 +309,14 @@ const ProjectRowArchived: React.FC<ProjectRowArchivedProps> = ({ project }) => {
     printWindow.document.open();
     printWindow.document.write(buildPrintableReportHtml(json, includedSections));
     printWindow.document.close();
+    window.setTimeout(() => {
+      try {
+        printWindow.focus();
+        printWindow.print();
+      } catch (error) {
+        setReportError((error as Error).message || "Unable to open the PDF print dialog.");
+      }
+    }, 350);
   };
 
   useEffect(() => {
