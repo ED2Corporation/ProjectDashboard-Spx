@@ -2,7 +2,7 @@
 export interface IProjectService {
     createProject(baseData: any): Promise<string>;          // returns the new project Id
     deleteProject(listName: string, projectTitle: string, evidenceFolderServerRelative?: string): Promise<void>;
-    archiveProject(listName: string, evidenceFolderServerRelative: string, projectId?: string): Promise<void>;
+    archiveProject(listName: string, evidenceFolderServerRelative: string, projectId?: string, projectMetadata?: IProjectCatalogItem): Promise<void>;
     exportProject(projectId: string): Promise<Blob>;        // or string with URL
     importProject(projectId: string, file: File): Promise<string>;             // returns the new project Id
     replicateProject(projectId: string): Promise<string>;   // Id of the replicated project

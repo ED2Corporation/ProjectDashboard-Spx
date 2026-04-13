@@ -19,6 +19,11 @@
   background: $c-surface-mid;
 }
 
+.cardArchived {
+  border-color: rgba($c-archived, 0.28);
+  background: linear-gradient(180deg, rgba($c-archived, 0.035) 0%, $c-surface 55%);
+}
+
 .cardActionsOpen {
   border-color: rgba($c-primary, 0.32);
   background: linear-gradient(180deg, rgba($c-primary, 0.035) 0%, $c-surface 42%);
@@ -163,4 +168,297 @@
 .taskSection {
   padding: $sp-4 $sp-5;
   background: $c-surface-soft;
+}
+
+// Archived project report
+.archivedSummary {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: $sp-3;
+  min-width: 0;
+  color: $c-text-secondary;
+}
+
+.archivedBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border: 1px solid rgba($c-archived, 0.35);
+  border-radius: $r-pill;
+  background: $c-archived-bg;
+  color: $c-archived;
+  font-size: $f-xs;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.archivedDate {
+  font-size: $f-sm;
+  color: $c-text-secondary;
+  white-space: nowrap;
+}
+
+.archivedFileName {
+  max-width: 280px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: $f-sm;
+  color: $c-text-subtle;
+}
+
+.archivedReportPanel {
+  padding: $sp-4 $sp-5;
+  border-top: 1px solid rgba($c-archived, 0.18);
+  background: $c-surface-soft;
+}
+
+.archivedReportToolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $sp-3;
+  margin-bottom: $sp-3;
+  color: $c-text-secondary;
+  font-size: $f-sm;
+  font-weight: 700;
+
+  span {
+    display: inline-flex;
+    align-items: center;
+    gap: $sp-2;
+  }
+}
+
+.archivedReportLink {
+  display: inline-flex;
+  align-items: center;
+  padding: $sp-1 $sp-3;
+  border: 1px solid rgba($c-primary, 0.24);
+  border-radius: $r-pill;
+  background: $c-surface;
+  color: $c-primary;
+  font-size: $f-xs;
+  font-weight: 700;
+  text-decoration: none;
+
+  &:hover {
+    background: $c-primary-bg;
+    text-decoration: none;
+  }
+}
+
+.archivedReportJsonLink {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 7px;
+  border: 1px solid rgba($c-text-secondary, 0.2);
+  border-radius: $r-pill;
+  background: $c-surface;
+  color: $c-text-secondary;
+  font-size: 10px;
+  font-weight: 700;
+  text-decoration: none;
+
+  &:hover {
+    color: $c-primary;
+    border-color: rgba($c-primary, 0.24);
+    background: $c-primary-bg;
+    text-decoration: none;
+  }
+}
+
+.archivedReportFrame {
+  width: 100%;
+  min-height: 620px;
+  border: 1px solid $c-border-subtle;
+  border-radius: $r-md;
+  background: $c-surface;
+}
+
+.archivedDynamicReport {
+  display: flex;
+  flex-direction: column;
+  gap: $sp-4;
+}
+
+.archivedReportSection {
+  padding: $sp-4;
+  border: 1px solid rgba($c-border, 0.85);
+  border-radius: $r-md;
+  background: $c-surface;
+  box-shadow: 0 6px 16px rgba(17, 24, 39, 0.04);
+
+  h3 {
+    margin: 0;
+    color: $c-text;
+    font-size: $f-lg;
+  }
+}
+
+.archivedReportSectionHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: $sp-3;
+  margin-bottom: $sp-3;
+
+  > span {
+    color: $c-text-subtle;
+    font-size: $f-xs;
+    white-space: nowrap;
+  }
+}
+
+.archivedReportEyebrow {
+  margin-bottom: $sp-1;
+  color: $c-text-subtle;
+  font-size: $f-xs;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.archivedReportSummaryGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: $sp-2;
+
+  div {
+    padding: $sp-2 $sp-3;
+    border: 1px solid $c-border-subtle;
+    border-radius: $r-sm;
+    background: $c-surface-soft;
+    color: $c-text;
+    font-size: $f-sm;
+    font-weight: 600;
+  }
+
+  span {
+    display: block;
+    margin-bottom: 2px;
+    color: $c-text-subtle;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+}
+
+.archivedTableWrap {
+  overflow-x: auto;
+}
+
+.archivedReportTable {
+  width: 100%;
+  min-width: 760px;
+  border-collapse: collapse;
+  font-size: $f-xs;
+
+  th {
+    padding: $sp-2;
+    border: 1px solid $c-border-subtle;
+    background: $c-surface-mid;
+    color: $c-text-secondary;
+    text-align: left;
+    font-weight: 700;
+  }
+
+  td {
+    padding: $sp-2;
+    border: 1px solid $c-border-subtle;
+    color: $c-text-secondary;
+    vertical-align: top;
+  }
+
+  a {
+    color: $c-primary;
+    font-weight: 700;
+    text-decoration: none;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+}
+
+.archivedLogGate {
+  margin-top: $sp-4;
+
+  h4 {
+    margin: 0 0 $sp-2;
+    color: $c-primary;
+    font-size: $f-base;
+  }
+}
+
+.archivedLogGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: $sp-3;
+
+  > div {
+    min-width: 0;
+    padding: $sp-3;
+    border: 1px solid $c-border-subtle;
+    border-radius: $r-sm;
+    background: $c-surface-soft;
+  }
+
+  strong {
+    display: block;
+    margin-bottom: $sp-2;
+    color: $c-text;
+    font-size: $f-xs;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  p {
+    margin: 0 0 $sp-2;
+    color: $c-text-secondary;
+    font-size: $f-xs;
+    line-height: 1.35;
+  }
+
+  span {
+    display: block;
+    margin-bottom: 2px;
+    color: $c-text-subtle;
+    font-size: 10px;
+  }
+
+  em {
+    color: $c-text-subtle;
+    font-size: $f-xs;
+  }
+
+  a {
+    color: $c-primary;
+    font-weight: 700;
+    text-decoration: none;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+}
+
+.noArchivedReport {
+  padding: $sp-5;
+  border: 1px dashed $c-border;
+  border-radius: $r-md;
+  background: $c-surface;
+  color: $c-text-subtle;
+  font-size: $f-sm;
+  text-align: center;
+}
+
+@media (max-width: 900px) {
+  .archivedLogGrid {
+    grid-template-columns: 1fr;
+  }
 }

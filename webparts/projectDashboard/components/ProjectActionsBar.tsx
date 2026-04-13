@@ -1,5 +1,6 @@
 import * as React from "react";
 import { IProjectListItem } from "../../../models";
+import { IProjectCatalogItem } from "../../../models/IProjectService";
 import { ProjectService } from "../services/ProjectService";
 import styles from "./ProjectActionsBar.module.scss";
 
@@ -46,6 +47,12 @@ const IconRepoLink: React.FC = () => (
   </svg>
 );
 
+const IconCheck: React.FC = () => (
+  <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+    <path d="M4 10.5l4 4L16 6" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
 // ─── Props ────────────────────────────────────────────────────────────────────
 
 export interface IProjectActionsBarProps {
@@ -54,7 +61,9 @@ export interface IProjectActionsBarProps {
   evidenceFolderServerRelative: string;
   repoUrl: string;
   repositoryName: string;
+  projectMetadata?: IProjectCatalogItem;
   onReset: () => void;
+  onCatalogRefresh?: () => void;
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -65,43 +74,102 @@ const ProjectActionsBar: React.FC<IProjectActionsBarProps> = ({
   evidenceFolderServerRelative,
   repoUrl,
   repositoryName,
+  projectMetadata,
   onReset,
+  onCatalogRefresh,
 }) => {
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const [isArchiving, setIsArchiving] = React.useState(false);
+  const [isExporting, setIsExporting] = React.useState(false);
   const [isImporting, setIsImporting] = React.useState(false);
+  const [successMessage, setSuccessMessage] = React.useState<string>("");
+  const successTimerRef = React.useRef<number | undefined>(undefined);
   const listUrl = project.Link?.Url || "";
+  const isProcessing = isArchiving || isExporting || isImporting;
+  const processingLabel =
+    isArchiving ? "Archiving project..." :
+    isExporting ? "Preparing export..." :
+    isImporting ? "Importing tasks..." : "";
+  const showSuccess = !isProcessing && !!successMessage;
+
+  React.useEffect(() => {
+    return () => {
+      if (successTimerRef.current) {
+        window.clearTimeout(successTimerRef.current);
+      }
+    };
+  }, []);
+
+  const markSuccess = (message: string): void => {
+    if (successTimerRef.current) {
+      window.clearTimeout(successTimerRef.current);
+    }
+    setSuccessMessage(message);
+    successTimerRef.current = window.setTimeout(() => {
+      setSuccessMessage("");
+      successTimerRef.current = undefined;
+    }, 2600);
+  };
 
   return (
-    <div className={styles.bar}>
+    <div
+      className={`${styles.bar} ${isProcessing ? styles.barProcessing : ""} ${showSuccess ? styles.barSuccess : ""}`}
+      aria-busy={isProcessing}
+    >
+      {isProcessing && (
+        <div className={styles.processingPill}>
+          <span className={styles.spinner} />
+          {processingLabel}
+        </div>
+      )}
+      {showSuccess && (
+        <div className={`${styles.processingPill} ${styles.successPill}`}>
+          <IconCheck />
+          {successMessage}
+        </div>
+      )}
 
       {/* ── Archive ─────────────────────────────────────────────────────── */}
       <button
         type="button"
         className={styles.btnArchive}
+        disabled={isProcessing}
         title="Export to Excel, save to evidence folder and remove the SharePoint list"
         onClick={async () => {
-          if (!project.ListName) return;
+          if (!project.ListName || isProcessing) return;
           if (!confirm(`Archive "${project.Title}"?\n\nThis will export the task list to Excel, save it to the evidence repository, and delete the SharePoint list.`)) return;
-          await projectService.archiveProject(
-            project.ListName,
-            `${evidenceFolderServerRelative.replace(/\/+$/, "")}/${project.RepositoryName}`,
-            project.Title
-          );
-          onReset();
+          try {
+            setIsArchiving(true);
+            await projectService.archiveProject(
+              project.ListName,
+              `${evidenceFolderServerRelative.replace(/\/+$/, "")}/${project.RepositoryName}`,
+              project.Title,
+              projectMetadata
+            );
+            onReset();
+            markSuccess("Archive completed");
+            window.setTimeout(() => {
+              onCatalogRefresh?.();
+            }, 1200);
+          } finally {
+            setIsArchiving(false);
+          }
         }}
       >
-        <IconArchive />
-        Archive
+        {isArchiving ? <span className={styles.spinner} /> : <IconArchive />}
+        {isArchiving ? "Archiving..." : "Archive"}
       </button>
 
       {/* ── Export ──────────────────────────────────────────────────────── */}
       <button
         type="button"
         className={styles.btnExport}
+        disabled={isProcessing}
         title="Download task list as Excel file"
         onClick={async () => {
-          if (!project.ListName) return;
+          if (!project.ListName || isProcessing) return;
           try {
+            setIsExporting(true);
             const blob = await projectService.exportProject(project.ListName);
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement("a");
@@ -111,22 +179,28 @@ const ProjectActionsBar: React.FC<IProjectActionsBarProps> = ({
             a.click();
             document.body.removeChild(a);
             window.URL.revokeObjectURL(url);
+            markSuccess("Export completed");
           } catch (error) {
             console.error("Error downloading file.", error);
+          } finally {
+            setIsExporting(false);
           }
         }}
       >
-        <IconExport />
-        Export
+        {isExporting ? <span className={styles.spinner} /> : <IconExport />}
+        {isExporting ? "Exporting..." : "Export"}
       </button>
 
       {/* ── Import ──────────────────────────────────────────────────────── */}
       <button
         type="button"
         className={styles.btnImport}
-        disabled={isImporting}
+        disabled={isProcessing}
         title="Import tasks from an Excel file"
-        onClick={() => fileInputRef.current?.click()}
+        onClick={() => {
+          if (isProcessing) return;
+          fileInputRef.current?.click();
+        }}
       >
         {isImporting ? <span className={styles.spinner} /> : <IconImport />}
         {isImporting ? "Importing…" : "Import"}
@@ -143,6 +217,7 @@ const ProjectActionsBar: React.FC<IProjectActionsBarProps> = ({
               setIsImporting(true);
               await projectService.importProject(project.ListName, file);
               onReset();
+              markSuccess("Import completed");
             } finally {
               setIsImporting(false);
               e.target.value = "";

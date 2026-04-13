@@ -948,13 +948,6 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
   ): Promise<void> => {
     const listTitle = config.sourceName;
     const value = JSON.stringify(entries);
-    console.log("[useProjectState] onSaveLogField start", {
-      listTitle,
-      taskId,
-      field,
-      entriesCount: entries.length,
-      value,
-    });
     const tryUpdate = async (): Promise<void> => {
       await sp.web.lists.getByTitle(listTitle).items.getById(Number(taskId)).update({ [field]: value });
     };
@@ -975,11 +968,6 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
           throw err;
         }
       }
-      console.log("[useProjectState] SharePoint update succeeded", {
-        listTitle,
-        taskId,
-        field,
-      });
     } catch (err: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
       console.error("[useProjectState] SharePoint update failed", {
         listTitle,
@@ -1003,11 +991,6 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
           field,
         });
         await tryUpdate();
-        console.log("[useProjectState] SharePoint update succeeded after ensuring fields", {
-          listTitle,
-          taskId,
-          field,
-        });
       } else {
         throw err;
       }
@@ -1017,11 +1000,6 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
       t.Id === taskId ? { ...t, [field]: entries } : t;
     syncTasks(tasksRef.current.map(patchTask));
     setSelectedTask(prev => (prev?.Id === taskId ? { ...prev, [field]: entries } : prev));
-    console.log("[useProjectState] Local task state patched", {
-      taskId,
-      field,
-      entriesCount: entries.length,
-    });
   }, [config.sourceName, sp, syncTasks]);
 
   // ── Send email via Graph ────────────────────────────────────────────────────

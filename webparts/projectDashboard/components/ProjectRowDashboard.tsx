@@ -436,7 +436,9 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
             evidenceFolderServerRelative={evidenceLibraryRootServerRelative}
             repoUrl={repoBrowseUrl}
             repositoryName={repoName}
+            projectMetadata={localProject}
             onReset={onReset}
+            onCatalogRefresh={onCatalogItemSaved}
           />
           <ProjectCatalogEditor
             project={localProject}

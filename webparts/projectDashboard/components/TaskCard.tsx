@@ -196,16 +196,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
   const saveNotesEntries = async (entries: INoteEntry[], shouldSaveTask = false): Promise<void> => {
     setNotesLog(entries);
     notesLogRef.current = entries;
-    console.log("[TaskCard] Saving Notes log", {
-      taskId: task.Id,
-      nextCount: entries.length,
-      entries,
-    });
     await onSaveLogField?.(task.Id, 'Notes', entries);
-    console.log("[TaskCard] onSaveLogField for Notes resolved", {
-      taskId: task.Id,
-      nextCount: entries.length,
-    });
     if (shouldSaveTask) {
       handleSave();
     }
@@ -412,7 +403,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
                 </label>
               </div>
             )}
-
+ 
             {/* Row 2: Task */}
             <div className={styles["form-row"]}>
               <label className={`${styles.field} ${styles["field-full"]}`}>

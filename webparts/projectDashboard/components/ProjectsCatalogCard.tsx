@@ -6,6 +6,7 @@ import { SPHttpClient } from '@microsoft/sp-http';
 
 import { useProjectsCatalog } from '../hooks/useProjectsCatalog';
 import ProjectRowDashboard from './ProjectRowDashboard';
+import ProjectRowArchived from './ProjectRowArchived';
 import { IProjectCatalogItem } from '../../../models/IProjectService';
 import styles from './ProjectsCatalogCard.module.scss';
 
@@ -341,14 +342,21 @@ const ProjectsCatalogCard: React.FC<IProjectsCatalogCardProps> = ({ sp, context,
             <div className={styles.message}>No projects match the selected filter.</div>
           ) : (
             filteredProjects.map((proj) => (
-              <ProjectRowDashboard
-                key={proj.Title}
-                project={proj}
-                context={context}
-                sp={sp}
-                onStatusReady={handleStatusReady}
-                onCatalogItemSaved={reload}
-              />
+              getCatalogStatus(proj) === 'archived' ? (
+                <ProjectRowArchived
+                  key={proj.Title}
+                  project={proj}
+                />
+              ) : (
+                <ProjectRowDashboard
+                  key={proj.Title}
+                  project={proj}
+                  context={context}
+                  sp={sp}
+                  onStatusReady={handleStatusReady}
+                  onCatalogItemSaved={reload}
+                />
+              )
             ))
           )}
         </div>

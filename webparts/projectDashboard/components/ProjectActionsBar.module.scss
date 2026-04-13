@@ -3,6 +3,7 @@
 // ─── Container ─────────────────────────────────────────────────────────────
 
 .bar {
+  position: relative;
   display: flex;
   flex-wrap: wrap;
   gap: $sp-4;
@@ -10,6 +11,44 @@
   background: $c-surface-soft;
   border: 1px solid $c-border-subtle;
   border-radius: $r-md;
+}
+
+.barProcessing {
+  border-color: rgba($c-primary, 0.28);
+  background:
+    linear-gradient(90deg, rgba($c-primary, 0.07) 0%, rgba($c-primary, 0.02) 42%, $c-surface-soft 100%);
+}
+
+.barSuccess {
+  border-color: rgba($c-ontime, 0.34);
+  background:
+    linear-gradient(90deg, rgba($c-ontime, 0.08) 0%, rgba($c-ontime, 0.025) 42%, $c-surface-soft 100%);
+}
+
+.processingPill {
+  display: inline-flex;
+  align-items: center;
+  gap: $sp-2;
+  padding: 3px 10px;
+  border: 1px solid rgba($c-primary, 0.25);
+  border-radius: $r-pill;
+  background: $c-surface;
+  color: $c-primary;
+  font-size: $f-xs;
+  font-weight: 700;
+  box-shadow: $shadow-sm;
+
+  svg {
+    width: 13px;
+    height: 13px;
+    flex-shrink: 0;
+  }
+}
+
+.successPill {
+  border-color: rgba($c-ontime, 0.28);
+  color: $c-ontime;
+  background: $c-surface;
 }
 
 // ─── Base action button ────────────────────────────────────────────────────

@@ -25,12 +25,7 @@ const NotesLog: React.FC<NotesLogProps> = ({ notes, currentUserDisplayName, onSa
         user: currentUserDisplayName,
         note: trimmed,
       };
-      console.log("[NotesLog] Adding note entry", {
-        existingCount: (notes ?? []).length,
-        entry,
-      });
       await onSave([...(notes ?? []), entry]);
-      console.log("[NotesLog] onSave resolved");
       setText('');
     } finally {
       setSaving(false);

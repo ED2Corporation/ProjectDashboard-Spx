@@ -95,7 +95,7 @@ const serializeProjectDetailsFields = (fields: IProjectDetailsField[]): string |
 
   return JSON.stringify(serialized);
 };
-
+ 
 // ─── Props ────────────────────────────────────────────────────────────────────
  
 export interface ProjectCatalogEditorProps {
@@ -103,7 +103,7 @@ export interface ProjectCatalogEditorProps {
   projectService: ProjectService;
   onSaved?: (updated: IProjectCatalogItem) => void;
   onCancel?: () => void;
-}
+} 
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
