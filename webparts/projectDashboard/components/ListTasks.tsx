@@ -481,7 +481,10 @@ const ListTasks = ({
                             className={styles.wbsEvidenceAlert}
                             title="Task is 100% complete but has no Evidence of Completion"
                           >
-                            !
+                            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{width:14,height:14,verticalAlign:'middle'}} aria-hidden="true">
+                              <path d="M8 2L1.5 13.5h13L8 2z"/>
+                              <path d="M8 7v3M8 11.5v.5"/>
+                            </svg>
                           </span>
                         );
                       }
@@ -496,10 +499,12 @@ const ListTasks = ({
                         }}
                         disabled={!!creatingTaskId}
                       >
+                        <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M6 2v8M2 6h8"/></svg>
                         Add
                       </button>
                       <button
                         type="button"
+                        className={styles["btn-danger"]}
                         onClick={(e) => {
                           e.stopPropagation();
                           if (window.confirm(`Delete task "${item.Task}"?`)) {
@@ -508,8 +513,10 @@ const ListTasks = ({
                         }}
                         disabled={!!creatingTaskId || !!deletingTaskId}
                       >
+                        <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M2 3.5h8M4.5 3.5V2.5h3v1M3.5 3.5l.5 6h4l.5-6"/></svg>
                         Remove
                       </button>
+                      <div className={styles["ctx-separator"]} />
                       <button
                         type="button"
                         onClick={(e) => {
@@ -517,6 +524,7 @@ const ListTasks = ({
                           startQuickEdit(item);
                         }}
                       >
+                        <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M2 7.5 4.5 10 10 3"/></svg>
                         Complete
                       </button>
                       {(() => {
@@ -568,6 +576,7 @@ const ListTasks = ({
                           onSelectItem(item, "task", "list-edit");
                         }}
                       >
+                        <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M8 2l2 2-6 6H2V8L8 2z"/></svg>
                         Edit
                       </button>
                     </div>

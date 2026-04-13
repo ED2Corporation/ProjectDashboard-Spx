@@ -4,7 +4,7 @@ import '@pnp/sp/webs';
 import '@pnp/sp/lists';
 import '@pnp/sp/items';
 import { IProjectCatalogItem } from '../../../models/IProjectService';
-import { resolveStorageVersion } from '../utils/StorageVersionResolver';
+import { resolveStorageVersion, parseWorkOrder } from '../utils/StorageVersionResolver';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -34,12 +34,15 @@ export function useProjectsCatalog(sp: SPFI): IProjectsCatalogState {
         .top(500)();
 
       const enriched = (items as IProjectCatalogItem[]).map(item => {
+        // PartNumber: prefer ProjectId (canonical SP field); fallback to Title extraction
         const num = item.ProjectNumber ?? '';
-        item.PartNumber = num && item.Title?.startsWith(`${num}-`)
+        const extractedFromTitle = num && item.Title?.startsWith(`${num}-`)
           ? item.Title.slice(num.length + 1)
           : item.Title;
+        item.PartNumber = item.ProjectId?.trim() || extractedFromTitle;
         item.Units = item.Units ?? 0;
         item.resolvedStorageVersion = resolveStorageVersion(item);
+        item.WorkOrder = parseWorkOrder(item) ?? undefined;
         return item;
       });
       setProjects(enriched);

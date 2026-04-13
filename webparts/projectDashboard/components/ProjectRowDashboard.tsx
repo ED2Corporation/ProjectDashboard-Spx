@@ -5,7 +5,7 @@ import { SPFx } from "@pnp/sp/presets/all";
 import "@pnp/sp/lists";
 import { BaseComponentContext } from "@microsoft/sp-component-base";
 import { SPHttpClient } from "@microsoft/sp-http";
-import { getStorageEndpoint, getProjectWebUrl, parseWorkOrder, buildListName, buildRepoName, resolveStorageVersion } from "../utils/StorageVersionResolver";
+import { getStorageEndpoint, getProjectWebUrl, buildListName, buildRepoName, resolveStorageVersion } from "../utils/StorageVersionResolver";
 
 import { ITaskListItem } from "../../../models";
 import { IProjectCatalogItem } from "../../../models/IProjectService";
@@ -310,9 +310,7 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
       currentUserDisplayName={context.pageContext.user.displayName}
       projectInfo={{
         projectNumber: localProject.ProjectNumber ?? '',
-        partNumber: localProject.ProjectNumber && localProject.Title?.startsWith(`${localProject.ProjectNumber}-`)
-          ? localProject.Title.slice(localProject.ProjectNumber.length + 1)
-          : (localProject.Title ?? ''),
+        partNumber: localProject.PartNumber ?? localProject.Title ?? '',
       }}
       onSaveLogField={onSaveLogField}
       onSendEmail={onSendEmail}
@@ -385,16 +383,13 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
               <span className={styles.storageAlert} title="Legacy storage v1">⚠</span>
             )}
             {localProject.PartNumber}
+          </div>
+          <div className={styles.projectSubtitle}>
+            {localProject.WorkOrder && <><span className={styles.woTag}>WO# {localProject.WorkOrder}</span>{' '}</>}
+            {localProject.ProjectNumber}
             {!!localProject.Units && (
               <span className={styles.unitsTag}> ({localProject.Units} units)</span>
             )}
-          </div>
-          <div className={styles.projectSubtitle}>
-            {(() => {
-              const wo = parseWorkOrder(localProject);
-              return wo ? <><span className={styles.woTag}>WO# {wo}</span>{' '}</> : null;
-            })()}
-            {localProject.ProjectNumber}
           </div>
           <div className={styles.projectCustomer}>{localProject.Customer}</div>
         </div>

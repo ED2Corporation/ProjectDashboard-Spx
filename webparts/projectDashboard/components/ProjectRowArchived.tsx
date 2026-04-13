@@ -1,7 +1,6 @@
 import * as React from "react";
 import { useEffect, useMemo, useState } from "react";
 import { IProjectCatalogItem } from "../../../models/IProjectService";
-import { parseWorkOrder } from "../utils/StorageVersionResolver";
 import styles from "./ProjectRowDashboard.module.scss";
 
 interface ArchivedReportInfo {
@@ -539,10 +538,7 @@ const ProjectRowArchived: React.FC<ProjectRowArchivedProps> = ({ project }) => {
             )}
           </div>
           <div className={styles.projectSubtitle}>
-            {(() => {
-              const wo = parseWorkOrder(project);
-              return wo ? <><span className={styles.woTag}>WO# {wo}</span>{' '}</> : null;
-            })()}
+            {project.WorkOrder && <><span className={styles.woTag}>WO# {project.WorkOrder}</span>{' '}</>}
             {project.ProjectNumber}
           </div>
           <div className={styles.projectCustomer}>{project.Customer}</div>

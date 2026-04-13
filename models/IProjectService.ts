@@ -25,4 +25,6 @@ export interface IProjectCatalogItem {
     ProjectDetails?: string;
     /** Resolved at catalog load time from ProjectDetails.storageVersion. Defaults to 'v1'. */
     resolvedStorageVersion?: 'v1' | 'v2';
+    /** Resolved at catalog load time from ProjectDetails.WorkOrder */
+    WorkOrder?: string;
 }
