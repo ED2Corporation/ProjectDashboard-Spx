@@ -750,7 +750,7 @@ const ProjectRowArchived: React.FC<ProjectRowArchivedProps> = ({ project }) => {
             )}
           </div>
           <div className={styles.projectSubtitle}>
-            {project.WorkOrder && <><span className={styles.woTag}>WO# {project.WorkOrder}</span>{' '}</>}
+            {project.WorkOrder && <><span className={styles.woTag}>PO# {project.WorkOrder}</span>{' '}</>}
             {project.ProjectNumber}
           </div>
           <div className={styles.projectCustomer}>{project.Customer}</div>

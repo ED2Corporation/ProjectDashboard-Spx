@@ -385,7 +385,7 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
             {localProject.PartNumber}
           </div>
           <div className={styles.projectSubtitle}>
-            {localProject.WorkOrder && <><span className={styles.woTag}>WO# {localProject.WorkOrder}</span>{' '}</>}
+            {localProject.WorkOrder && <><span className={styles.woTag}>PO# {localProject.WorkOrder}</span>{' '}</>}
             {localProject.ProjectNumber}
             {!!localProject.Units && (
               <span className={styles.unitsTag}> ({localProject.Units} units)</span>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { ITaskListItem } from "../../../models";
-import { INoteEntry, IEvidenceEntry, IApprovalEntry, PRIMARY_APPROVER } from "../../../models/ITaskLogFields";
+import { INoteEntry, IEvidenceEntry, IApprovalEntry } from "../../../models/ITaskLogFields";
 import styles from "./TaskCard.module.scss";
 import NotesLog from "./NotesLog";
 import EvidenceLog from "./EvidenceLog";
@@ -81,7 +81,6 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
   const [notesLog, setNotesLog] = useState<INoteEntry[]>(task.Notes ?? []);
   const [evidenceLog, setEvidenceLog] = useState<IEvidenceEntry[]>(task.Evidence ?? []);
   const notesLogRef        = useRef<INoteEntry[]>(task.Notes ?? []);
-  const approvalPendingRef = useRef(false);
   const previousCompleteRef = useRef<number>(task.Complete ?? 0);
   const skipNextCompleteEffectRef = useRef(false);
 
@@ -165,33 +164,6 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
     return { subject, body };
   };
 
-  const triggerApprovalRequest = async (): Promise<void> => {
-    if (approvalPendingRef.current) return;
-    approvalPendingRef.current = true;
-    try {
-      const currentApprovals = task.Approvals ?? [];
-      const nextApprovals = currentApprovals.length > 0
-        ? currentApprovals
-        : [{
-            date:   new Date().toISOString(),
-            user:   'Joel',
-            email:  PRIMARY_APPROVER,
-            status: 'pending',
-            role:   'primary',
-          } as IApprovalEntry];
-
-      if (currentApprovals.length === 0) {
-        await onSaveLogField?.(task.Id, 'Approvals', nextApprovals);
-      }
-
-      const recipients = nextApprovals.map(approval => approval.email);
-      const { subject, body } = buildApprovalEmail(currentUserDisplayName ?? '');
-      await onSendEmail?.(recipients, subject, body);
-      await appendAuditNote(`Approval request sent to: ${recipients.join(', ')} by ${currentUserDisplayName ?? 'system'}`);
-    } finally {
-      approvalPendingRef.current = false;
-    }
-  };
 
   const saveNotesEntries = async (entries: INoteEntry[], shouldSaveTask = false): Promise<void> => {
     setNotesLog(entries);
@@ -263,11 +235,6 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
 
   const handleSaveClick: React.MouseEventHandler<HTMLButtonElement> = () => {
     handleSave();
-    if (complete === 100) {
-      triggerApprovalRequest().catch(error => {
-        console.error("[TaskCard] Failed to trigger approval request", error);
-      });
-    }
   };
 
   useEffect(() => {
@@ -287,9 +254,6 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
     handleSave({ complete: 100 });
     appendAuditNote(`Task marked as 100% complete by ${currentUserDisplayName ?? 'system'}`).catch(error => {
       console.error("[TaskCard] Failed to append completion note", error);
-    });
-    triggerApprovalRequest().catch(error => {
-      console.error("[TaskCard] Failed to trigger approval request", error);
     });
   }, [complete]); // eslint-disable-line react-hooks/exhaustive-deps
   const hasCompletionEvidence = evidenceLog.some(entry => entry.isEvidenceOfCompletion);
@@ -556,7 +520,6 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
                       evidenceOfCompletion: nextEvidenceOfCompletion,
                     });
                     await appendAuditNote(`Evidence of completion uploaded by ${uploadedEntry.user}: ${uploadedEntry.fileName}`);
-                    await triggerApprovalRequest();
                   } else {
                     handleSave();
                   }

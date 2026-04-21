@@ -211,7 +211,7 @@ const ProjectsCatalogCard: React.FC<IProjectsCatalogCardProps> = ({ sp, context,
     <div className={styles.card}>
       <div onClick={() => setIsCollapsed((current) => !current)} className={styles.header}>
         <span className={styles.headerTitle}>
-          Projects Dashboard
+          Work Orders
           <span className={styles.headerCount}>({openProjects.length})</span>
         </span>
         <div className={styles.headerActions}>

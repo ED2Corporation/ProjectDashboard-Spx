@@ -276,7 +276,7 @@ const ProjectCatalogEditor: React.FC<ProjectCatalogEditorProps> = ({
             <div className={styles.detailsGrid}>
               {projectDetailsFields.map(field => (
                 <div key={field.key} className={styles.detailsField}>
-                  <label className={styles.label}>{field.key}</label>
+                  <label className={styles.label}>{field.key === 'WorkOrder' ? 'PO# (WorkOrder)' : field.key}</label>
                   <input
                     className={styles.input}
                     type="text"
