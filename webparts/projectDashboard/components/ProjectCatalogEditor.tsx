@@ -178,7 +178,7 @@ const ProjectCatalogEditor: React.FC<ProjectCatalogEditorProps> = ({
         {/* Title — full width */}
         <div className={`${styles.field} ${styles.fieldFull}`}>
           <div className={styles.labelRow}>
-            <label className={styles.label}>Project name (Title)</label>
+            <label className={styles.label} htmlFor="project-catalog-title">Project name (Title)</label>
             <label className={styles.sensitiveToggle}>
               <input
                 type="checkbox"
@@ -189,6 +189,7 @@ const ProjectCatalogEditor: React.FC<ProjectCatalogEditorProps> = ({
             </label>
           </div>
           <input
+            id="project-catalog-title"
             className={`${styles.input} ${!allowTitleEdit ? styles.inputLocked : ""}`}
             type="text"
             value={form.Title}
@@ -202,8 +203,9 @@ const ProjectCatalogEditor: React.FC<ProjectCatalogEditorProps> = ({
 
         {/* Project number */}
         <div className={styles.field}>
-          <label className={styles.label}>Project number</label>
+          <label className={styles.label} htmlFor="project-catalog-number">Project number</label>
           <input
+            id="project-catalog-number"
             className={styles.input}
             type="text"
             value={form.ProjectNumber ?? ""}
@@ -213,8 +215,9 @@ const ProjectCatalogEditor: React.FC<ProjectCatalogEditorProps> = ({
 
         {/* Part name / ProjectId */}
         <div className={styles.field}>
-          <label className={styles.label}>Part name / report label (ProjectId)</label>
+          <label className={styles.label} htmlFor="project-catalog-project-id">Part name / report label (ProjectId)</label>
           <input
+            id="project-catalog-project-id"
             className={styles.input}
             type="text"
             value={form.ProjectId ?? ""}
@@ -224,8 +227,9 @@ const ProjectCatalogEditor: React.FC<ProjectCatalogEditorProps> = ({
 
         {/* Customer */}
         <div className={styles.field}>
-          <label className={styles.label}>Customer</label>
+          <label className={styles.label} htmlFor="project-catalog-customer">Customer</label>
           <input
+            id="project-catalog-customer"
             className={styles.input}
             type="text"
             value={form.Customer ?? ""}
@@ -235,8 +239,9 @@ const ProjectCatalogEditor: React.FC<ProjectCatalogEditorProps> = ({
 
         {/* Units */}
         <div className={styles.field}>
-          <label className={styles.label}>Units</label>
+          <label className={styles.label} htmlFor="project-catalog-units">Units</label>
           <input
+            id="project-catalog-units"
             className={styles.input}
             type="number"
             value={form.Units ?? ""}
@@ -276,8 +281,14 @@ const ProjectCatalogEditor: React.FC<ProjectCatalogEditorProps> = ({
             <div className={styles.detailsGrid}>
               {projectDetailsFields.map(field => (
                 <div key={field.key} className={styles.detailsField}>
-                  <label className={styles.label}>{field.key === 'WorkOrder' ? 'PO# (WorkOrder)' : field.key}</label>
+                  <label
+                    className={styles.label}
+                    htmlFor={`project-detail-${field.key.replace(/[^a-zA-Z0-9_-]/g, '-')}`}
+                  >
+                    {field.key === 'WorkOrder' ? 'PO# (WorkOrder)' : field.key}
+                  </label>
                   <input
+                    id={`project-detail-${field.key.replace(/[^a-zA-Z0-9_-]/g, '-')}`}
                     className={styles.input}
                     type="text"
                     value={field.value}
