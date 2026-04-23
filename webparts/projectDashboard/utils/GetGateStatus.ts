@@ -76,7 +76,8 @@ export function StatusToColor(status: GateStatus, solid: boolean): string {
   }
 }
 
-export const getBackgroundImageByStatus = (status: GateStatus) => {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const getBackgroundImageByStatus = (status: GateStatus): any => {
   switch (status) {
     case "grey":   return require("../assets/ArrowGreen.png");
     case "white":  return require("../assets/ArrowWhite.png");
@@ -92,7 +93,7 @@ export const getCardClass = (
     start: string | Date | null,
     finish: string | Date | null,
     actualFinish: string | Date | null
-  ) => {
+  ): string => {
   const status = GetGateStatus(complete, start ?? null, finish ?? null, actualFinish ?? null);
   switch (status) {
     case "grey":   return styles.grey;
@@ -109,7 +110,7 @@ export const getCardDelay = (
   start: string | Date | null,
   finish: string | Date | null,
   actualFinish: string | Date | null
-) => {
+): string => {
   const status = GetGateStatus(complete, start ?? null, finish ?? null, actualFinish ?? null);
   switch (status) {
     case "grey":   return styles.greyFont;

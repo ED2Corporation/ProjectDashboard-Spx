@@ -6,9 +6,9 @@ interface GateCardProps {
   gates: IGateListItem[];
   onSelectItem: (item: string, group: string) => void;
 }
-const StackGates = ({ gates, onSelectItem }: GateCardProps) => {
+const StackGates = ({ gates, onSelectItem }: GateCardProps): JSX.Element => {
   //Hook
-  const getCardClass = (delay: number, complete: number) => {
+  const getCardClass = (delay: number, complete: number): string => {
     if (complete === 100) return styles.green;
     return styles.white; // Default Class
   };
@@ -16,7 +16,7 @@ const StackGates = ({ gates, onSelectItem }: GateCardProps) => {
   const sortedItems = [...gates].sort((a, b) => b.Title.localeCompare(a.Title));
   const compareGate: string = "0";
 
-  const getCardDelay = (delay: number, complete: number) => {
+  const getCardDelay = (delay: number, complete: number): string => {
     if (complete === 100) return styles.whiteFont;
     if (delay === 0) return styles.greenFont;
     if (delay > 0 && delay <= 7) return styles.yellowFont;
@@ -29,7 +29,8 @@ const StackGates = ({ gates, onSelectItem }: GateCardProps) => {
         {sortedItems.map((gate, index) => (
           <div
             key={gate.Id}
-            className={`${styles.pilaCard} ${getCardClass(
+            // eslint-disable-next-line dot-notation
+            className={`${styles["pilaCard"]} ${getCardClass(
               gate.Delay,
               gate.Complete
             )}`}

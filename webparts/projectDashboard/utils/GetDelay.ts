@@ -1,5 +1,5 @@
 //Write Message in Console / StatusBar
-export function GetDelay(end?: Date, actualEnd?: Date) {
+export function GetDelay(end?: Date, actualEnd?: Date): number {
   let delay = 0;
 
   if (!end) {

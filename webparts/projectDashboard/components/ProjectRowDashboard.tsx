@@ -107,14 +107,13 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
   const fallbackRelPath = context.pageContext.web.serverRelativeUrl;
 
   // SPFI bound to the correct web (v2 → WO-Plans, v1 → current site)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   const projectSp = useMemo(() => {
     const targetWebUrl = getProjectWebUrl(storageVersion, fallbackWebUrl);
     return storageVersion === 'v2'
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       ? spfi(targetWebUrl).using(SPFx(context as any))
       : sp;
-  }, [storageVersion, fallbackWebUrl, sp]);
+  }, [storageVersion, fallbackWebUrl, sp, context]);
 
   // Storage endpoint (siteRelPath, evidenceLibrary, evidenceBasePath)
   const storageEndpoint = useMemo(
@@ -257,25 +256,25 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
     setActiveGate(next);
     setShowCard(false);
     if (next === null) {
-      onGateFilterChange?.("all");
+      void onGateFilterChange?.("all");
       onSelectItem("all", "gate");
     } else {
       onSelectItem(next, "gate");
-      onGateFilterChange?.(next);
+      void onGateFilterChange?.(next);
     }
   };
 
   const handleTaskCompleted = (): void => {
     if (!selectedTask) return;
     const payload = JSON.stringify({ ...selectedTask, Complete: 100, ActualFinish: new Date() });
-    onUpdateTask?.(selectedTask.Id, 'quick-complete', payload);
+    void onUpdateTask?.(selectedTask.Id, 'quick-complete', payload);
   };
 
   const handleOverallClick = (): void => {
     const next = activeGate === "all" ? null : "all";
     setActiveGate(next);
     setShowCard(false);
-    onGateFilterChange?.("all");
+    void onGateFilterChange?.("all");
     onSelectItem("all", "gate");
   };
 
@@ -362,7 +361,7 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
             console.error("[ProjectRowDashboard] Failed to parse TaskCard save payload", error);
           }
         }
-        onUpdateTask?.(taskId, "full-update", payloadJson);
+        void onUpdateTask?.(taskId, "full-update", payloadJson);
         setShowCard(true);
       }}
       onUploadEvidenceFile={async (file, taskTitle) => {
@@ -464,7 +463,7 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
             deletingTaskId={deletingId ?? undefined}
             onSortedTasksChange={setNavTasks}
             onSave={(taskId, payloadJson) => {
-              onUpdateTask?.(taskId, "quick-complete", payloadJson);
+              void onUpdateTask?.(taskId, "quick-complete", payloadJson);
             }}
             onSelectItem={(item, _group, mode) => {
               if (!item?.Task) return;

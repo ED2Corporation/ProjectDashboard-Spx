@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { SPFI } from "@pnp/sp";
 import { IList } from "@pnp/sp/lists";
-import { MSGraphClientV3, SPHttpClient } from '@microsoft/sp-http';
+import { MSGraphClientV3, SPHttpClient, SPHttpClientResponse } from '@microsoft/sp-http';
 import { BaseComponentContext } from "@microsoft/sp-component-base";
 import { ITaskListItem, IGateListItem, IProjectListItem } from '../../../models';
 import { IProjectDashboardWebPartProps } from '../../../models';
@@ -114,7 +114,7 @@ function makeEmptyTask(gate?: string): ITaskListItem {
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────
 export function useProjectState(config: UseProjectStateConfig): UseProjectStateResult {
-  const { context, sp, showLog, onPatchProperties } = config;
+  const { context, sp, showLog, onPatchProperties: _onPatchProperties } = config;
 
   // ── State ──────────────────────────────────────────────────────────────────
   const [tasks, setTasks] = useState<ITaskListItem[]>([]);
@@ -162,7 +162,7 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
       const buildSelect = (withLog: boolean): string =>
         withLog ? `${baseSelect},Notes,Evidence,Approvals` : baseSelect;
 
-      const fetchItems = (withLog: boolean) => {
+      const fetchItems = (withLog: boolean): Promise<SPHttpClientResponse> => {
         const queryUrl = `${effectiveSiteUrl}${siteRelativePath}/_api/web/lists/getbytitle('${project.ListName}')/items?$select=${buildSelect(withLog)}`;
         return context.spHttpClient.get(queryUrl, SPHttpClient.configurations.v1);
       };
@@ -229,7 +229,7 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
       setEnvironmentMessage(String(error));
       return [];
     }
-  }, [context, showLog]);
+  }, [context, showLog, config.storageEndpoint?.siteRelPath, config.storageEndpoint?.siteUrl]);
 
   const _getGateListItems = useCallback(async (
     project: IProjectListItem,
@@ -407,7 +407,7 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
       evidenceBase
     );
     return { fileUrl, fileName };
-  }, [context, config.sourceName]);
+  }, [context, config.sourceName, config.storageEndpoint?.siteRelPath, config.storageEndpoint?.siteUrl, config.storageEndpoint?.evidenceLibrary, config.storageEndpoint?.evidenceBasePath]);
 
   // ── Populate attachments (Planner) ─────────────────────────────────────────
   const onPopulateAttachements = useCallback(async (): Promise<void> => {
@@ -937,7 +937,7 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
     }
   }, [
     _ensureTaskList, _ensureEvidenceRepository, _importTasksFromExcel, _createInitialTask,
-    sp, context, onPatchProperties, showLog, _loadData
+    sp, context, showLog, _loadData
   ]);
 
   // ── Log field save ─────────────────────────────────────────────────────────

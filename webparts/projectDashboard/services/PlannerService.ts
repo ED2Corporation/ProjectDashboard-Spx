@@ -193,7 +193,7 @@ export class PlannerService {
     }
   }
 
-  public stripReadOnlyPlannerRefProps(references: Record<string, any>) {
+  public stripReadOnlyPlannerRefProps(references: Record<string, any>): Record<string, any> {
     const allowed = new Set(["@odata.type", "alias", "previewPriority", "type"]);
     const cleaned: Record<string, any> = {};
     for (const key of Object.keys(references || {})) {
@@ -429,7 +429,7 @@ export class PlannerService {
     }
 
     // Dates → normalize using toUtcIso (timezone-safe)
-    const normalize = (v?: string | Date) =>
+    const normalize = (v?: string | Date): string | null =>
       v ? toUtcIso(v instanceof Date ? v.toISOString() : v) : null;
 
     const startIso = normalize(item.Start);

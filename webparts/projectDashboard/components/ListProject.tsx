@@ -10,7 +10,7 @@ interface ListProjectProps {
   selection: string;
   onSelectItem: (item: string, group: string) => void;
 }
-const ListProject = ({ items, heading, onSelectItem }: ListProjectProps) => {
+const ListProject = ({ items, heading, onSelectItem }: ListProjectProps): JSX.Element => {
   //Hook
   const [selectedIndex, setSelectedIndex] = useState(-1);
 

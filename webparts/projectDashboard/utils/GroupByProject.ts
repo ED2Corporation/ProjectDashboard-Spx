@@ -1,7 +1,7 @@
 import { IGateListItem } from "../../../models";
 
 // Función para agrupar
-export function GroupByProject(gates: IGateListItem[]) {
+export function GroupByProject(gates: IGateListItem[]): IGateListItem {
  
   let complete: number = 0;
   let delay: number = 0;

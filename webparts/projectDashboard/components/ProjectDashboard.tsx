@@ -87,7 +87,8 @@ export default class ProjectDashboard extends React.Component<
         {/* ── Row 1: checkbox + project title ─────────────────────────── */}
         <div id="progress-header" className={styles.rowContainer}>
           <input
-            className={styles.checkbox}
+            // eslint-disable-next-line dot-notation
+            className={styles["checkbox"]}
             type="checkbox"
             checked={showDashboard}
             onChange={e =>

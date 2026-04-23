@@ -14,7 +14,7 @@ interface GateCardProps {
   onSelectItem: (item: string, group: string) => void;
 }
 
-const ProgressGates = ({ gates, tasks, onSelectItem, showDetails }: GateCardProps) => {
+const ProgressGates = ({ gates, tasks, onSelectItem, showDetails }: GateCardProps): JSX.Element => {
   
   return (
     <>
@@ -35,7 +35,8 @@ const ProgressGates = ({ gates, tasks, onSelectItem, showDetails }: GateCardProp
                 <img
                   alt=""
                   src={arrowSrc}
-                  className={styles.iconArrow}
+                  // eslint-disable-next-line dot-notation
+                  className={styles["iconArrow"]}
                 />
                 <div
                   style={{
@@ -82,7 +83,8 @@ const ProgressGates = ({ gates, tasks, onSelectItem, showDetails }: GateCardProp
                 <img
                   alt=""
                   src={arrowSrc}
-                  className={styles.iconArrow}
+                  // eslint-disable-next-line dot-notation
+                  className={styles["iconArrow"]}
                 />
                 <div
                   style={{

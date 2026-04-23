@@ -525,7 +525,7 @@ const ProjectRowArchived: React.FC<ProjectRowArchivedProps> = ({ project }) => {
       }
     };
 
-    loadReport()
+    void loadReport()
       .finally(() => {
         if (!disposed) setIsLoadingReport(false);
       });

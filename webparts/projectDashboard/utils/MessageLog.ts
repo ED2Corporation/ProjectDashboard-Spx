@@ -4,7 +4,7 @@ export function MessageLog(
   srcReference: string = "Debug",
   messageType: number = 0,
   writeConsole: boolean = false
-) {
+): string {
   if (messageType === 0) message = "[Info: " + srcReference + " ] " + message; //Informative
   if (messageType === 1) message = "[Alert: " + srcReference + " ] " + message; //Alert
   if (messageType === 2) message = "[ERROR: " + srcReference + " ] " + message; //Error

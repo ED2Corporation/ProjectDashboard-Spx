@@ -30,10 +30,10 @@ const DoughnutChart: React.FC<DoughnutChartProps> = ({
   showLegend,
   onSelectItem,
 }) => {
-  const values = gates.length > 0 ? gates.map(() => 100 / gates.length) : [];
-
   const data = useMemo(
-    () => ({
+    () => {
+      const values = gates.length > 0 ? gates.map(() => 100 / gates.length) : [];
+      return {
       labels: showLegend ? gates.map(g => g.Gate) : gates.map(g => g.Gate.substring(0, 1)),
       datasets: [
         {
@@ -52,8 +52,9 @@ const DoughnutChart: React.FC<DoughnutChartProps> = ({
           borderWidth: 2,
         },
       ],
-    }),
-    [gates, tasks, values, showLegend]
+    };
+    },
+    [gates, tasks, showLegend]
   );
 
   const centerTextPlugin = {

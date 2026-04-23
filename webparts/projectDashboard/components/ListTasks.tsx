@@ -30,7 +30,7 @@ interface ListGroupProps {
 type SortCol = "wbs" | "task" | "complete" | "start" | "finish";
 type SortDir = "asc" | "desc";
 
-const SortIcon = ({ col, active, dir }: { col: string; active: boolean; dir: SortDir }) => (
+const SortIcon = ({ col, active, dir }: { col: string; active: boolean; dir: SortDir }): JSX.Element => (
   <span style={{ marginLeft: 4, opacity: active ? 1 : 0.3, fontSize: 10 }}>
     {active ? (dir === "asc" ? "▲" : "▼") : "▲"}
   </span>
@@ -49,7 +49,7 @@ const ListTasks = ({
   deletingTaskId,
   onSortedTasksChange,
   onReload,
-}: ListGroupProps) => {
+}: ListGroupProps): JSX.Element => {
   const [editTaskTitle, setEditTaskTitle] = useState<string>("");
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const [editPercentComplete, setEditPercentComplete] = useState<number>(0);
@@ -76,7 +76,7 @@ const ListTasks = ({
     return isNaN(d.getTime()) ? 0 : d.getTime();
   };
 
-  const handleColSort = (col: SortCol) => {
+  const handleColSort = (col: SortCol): void => {
     if (sortCol === col) {
       setSortDir(d => d === "asc" ? "desc" : "asc");
     } else {

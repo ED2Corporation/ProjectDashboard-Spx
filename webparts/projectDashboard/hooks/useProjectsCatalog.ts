@@ -53,7 +53,7 @@ export function useProjectsCatalog(sp: SPFI): IProjectsCatalogState {
     }
   }, [sp]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { void load(); }, [load]);
 
   return { projects, isLoading, error, reload: load };
 }

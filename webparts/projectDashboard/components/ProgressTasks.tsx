@@ -8,7 +8,7 @@ interface GateCardProps {
   showDetails?: boolean | true;
   onSelectItem: (item: string, group: string) => void;
 }
-const ProgressTasks = ({ onSelectItem, showDetails, tasks }: GateCardProps) => {
+const ProgressTasks = ({ onSelectItem, showDetails, tasks }: GateCardProps): JSX.Element => {
 
 const sortedTasks = tasks.slice().sort((a, b) => {
     const gateA = (a.Gate || "").trim().toLowerCase();

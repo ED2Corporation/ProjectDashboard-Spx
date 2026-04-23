@@ -63,7 +63,7 @@ const NewProjectSetup: React.FC<NewProjectSetupProps> = ({
   };
 
   React.useEffect(() => {
-    (async () => {
+    void (async () => {
       try {
         const last = await getLastProjectFromCatalog();
         const lastStr = last?.ProjectNumber || "0";
@@ -77,7 +77,7 @@ const NewProjectSetup: React.FC<NewProjectSetupProps> = ({
     })();
   }, [getLastProjectFromCatalog]);
 
-  const handleCreate = async (mode: "empty" | "from-excel", fileArg?: File | null) => {
+  const handleCreate = async (mode: "empty" | "from-excel", fileArg?: File | null): Promise<void> => {
     if (!projectName.trim()) {
       alert("Please fill in Project name.");
       return;
@@ -243,7 +243,7 @@ const NewProjectSetup: React.FC<NewProjectSetupProps> = ({
                 onChange={(e) => {
                   const file = e.target.files?.[0] || null;
                   setExcelFile(file);
-                  if(file) {handleCreate("from-excel", file);}                  
+                  if(file) {void handleCreate("from-excel", file);}                  
                 }}
                 className={styles["input-small"]}
               />

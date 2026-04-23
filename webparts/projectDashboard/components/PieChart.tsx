@@ -18,14 +18,14 @@ const PieChart: React.FC<PieProps> = ({ gates }) => {
   //   if (delay > 0) return delay.toString;
   //   return ""; // Default Class
   // };
-  const getCardColor = (delay: number, complete: number) => {
+  const getCardColor = (delay: number, complete: number): string => {
     //console.log("Styles:" + delay + "-" + complete);
     if (complete === 1) return "#4CAF50";
     if (delay > 0 && delay <= 7) return "#FFCE56";
     if (delay > 7) return "#FF3B4E";
     return "#FFFFFF "; // Default Class
   };
-  const getCardBackground = (delay: number, complete: number) => {
+  const getCardBackground = (delay: number, complete: number): string => {
     //console.log("BackStyles:" + delay + "-" + complete);
     if (complete === 1) return "#4CAF50CC"; //green
     if (delay > 0 && delay <= 7) return "#FFCE56CC"; //yellow

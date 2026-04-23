@@ -61,7 +61,7 @@ const GateProgressBar: React.FC<GateProgressBarProps> = ({
                 {gate.Complete.toFixed(0)}%
               </div>
               <span className={`${styles.gateLabel} ${isActive ? styles.gateLabelActive : ""}`}>
-                {gate.Gate.substring(0, 14)}
+                {gate.Gate}
               </span>
             </div>
           );
