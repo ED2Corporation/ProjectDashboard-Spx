@@ -23,10 +23,10 @@ export async function uploadEvidenceFile(
                 : `${relativePath}Shared Documents/${folderPath}`;
 
         // Normalize web URL (no trailing slash)
-        let webUrl = `${siteUrl.replace(/\/+$/, "")}${relativePath.replace(/\/+$/, "")}`;
+        const webUrl = `${siteUrl.replace(/\/+$/, "")}${relativePath.replace(/\/+$/, "")}`;
 
         // Server-relative URL of the **parent folder**, no trailing slash
-        let parentFolderServerRelative = `${evidenceBasePath.replace(/\/+$/, "")}`;
+        const parentFolderServerRelative = `${evidenceBasePath.replace(/\/+$/, "")}`;
 
         // Escape single quotes for safety in OData
         const safeParent = parentFolderServerRelative.replace(/'/g, "''");
@@ -95,10 +95,10 @@ export async function ensureFolder(
                 : `${relativePath}Shared Documents/${folderPath}`;
 
         // Normalize web URL (no trailing slash)
-        let webUrl = `${siteUrl.replace(/\/+$/, "")}${relativePath.replace(/\/+$/, "")}`;
+        const webUrl = `${siteUrl.replace(/\/+$/, "")}${relativePath.replace(/\/+$/, "")}`;
 
         // Server-relative URL of the **parent folder**, no trailing slash
-        let parentFolderServerRelative = `${evidenceBasePath.replace(/\/+$/, "")}`;
+        const parentFolderServerRelative = `${evidenceBasePath.replace(/\/+$/, "")}`;
 
         // Escape single quotes for safety in OData
         const safeParent = parentFolderServerRelative.replace(/'/g, "''");

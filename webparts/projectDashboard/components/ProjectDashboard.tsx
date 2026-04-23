@@ -85,9 +85,9 @@ export default class ProjectDashboard extends React.Component<
     return (
       <>
         {/* ── Row 1: checkbox + project title ─────────────────────────── */}
-        <div id="progress-header" className={styles["rowContainer"]}>
+        <div id="progress-header" className={styles.rowContainer}>
           <input
-            className={styles["checkbox"]}
+            className={styles.checkbox}
             type="checkbox"
             checked={showDashboard}
             onChange={e =>
@@ -152,7 +152,7 @@ export default class ProjectDashboard extends React.Component<
                 <h1>Review your plan setup (unable to reach the info)...</h1>
                 <button
                   type="button"
-                  className={styles["primaryCtaButton"]}
+                  className={styles.primaryCtaButton}
                   onClick={() => this.setState({ showNewProject: !showNewProject })}
                 >
                   Start new project
@@ -204,7 +204,7 @@ export default class ProjectDashboard extends React.Component<
           <section
             className={`${styles.projectDashboard} ${hasTeamsContext ? styles.teams : ""}`}
           >
-            <div className={styles["columnContainer"]}>
+            <div className={styles.columnContainer}>
               <div id="progress-body">
                 {spTaskListItems.length > 0 && (
                   <ProgressTasks

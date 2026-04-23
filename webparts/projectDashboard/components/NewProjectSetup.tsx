@@ -264,7 +264,7 @@ const NewProjectSetup: React.FC<NewProjectSetupProps> = ({
         {isCreating && <span className={styles.spinner} aria-label="Loading" />}
         <button
           type="button"
-          className={styles["primaryCtaButton"]}
+          className={styles.primaryCtaButton}
           disabled={isCreating}
           onClick={() => handleCreate("empty")}
         >
@@ -273,7 +273,7 @@ const NewProjectSetup: React.FC<NewProjectSetupProps> = ({
 
         <button
           type="button"
-          className={styles["primaryCtaButton"]}
+          className={styles.primaryCtaButton}
           disabled={isCreating}
           onClick={() => fileInputRef.current?.click()}
           style={{ marginLeft: 8 }}
@@ -283,7 +283,7 @@ const NewProjectSetup: React.FC<NewProjectSetupProps> = ({
 
         <button
           type="button"
-          className={styles["secondaryCtaButton"]}
+          className={styles.secondaryCtaButton}
           onClick={onCancel}
           style={{ marginLeft: 8 }}
           disabled={isCreating}

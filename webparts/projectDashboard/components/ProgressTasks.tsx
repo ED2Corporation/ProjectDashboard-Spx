@@ -33,11 +33,11 @@ const sortedTasks = tasks.slice().sort((a, b) => {
   return (
     <>
       {showDetails ? (
-        <div className={styles["cardContainer"]}>
+        <div className={styles.cardContainer}>
           {tasks.map((item, index) => (
             <div
               key={item.Id}
-              className={`${styles["ed2Card"]} ${getCardClass(
+              className={`${styles.ed2Card} ${getCardClass(
                 item.Complete,
                 item.Start ?? null,
                 item.Finish ?? null,
@@ -45,7 +45,7 @@ const sortedTasks = tasks.slice().sort((a, b) => {
               )}`}
             >
               <div
-                className={`${styles["cardContent"]} ${getCardDelay(
+                className={`${styles.cardContent} ${getCardDelay(
                   item.Complete,
                   item.Start ?? null,
                   item.Finish ?? null,
@@ -61,11 +61,11 @@ const sortedTasks = tasks.slice().sort((a, b) => {
           ))}
         </div>
       ) : (
-        <div className={styles["progressContainer"]}>
+        <div className={styles.progressContainer}>
             {sortedTasks.map((item, index) => (
             <div
               key={item.Id}
-              className={`${styles["progressCard"]} ${getCardClass(
+              className={`${styles.progressCard} ${getCardClass(
                 item.Complete,
                 item.Start ?? null,
                 item.Finish ?? null,

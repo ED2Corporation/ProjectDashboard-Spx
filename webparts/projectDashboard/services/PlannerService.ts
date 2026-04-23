@@ -532,7 +532,7 @@ export class PlannerService {
   }
 
   private async getAttachements(taskId: string): Promise<IAttachements> {
-    let attachement: IAttachements = {
+    const attachement: IAttachements = {
       EvidenceOfCompletion: { Url: "", Description: "" },
       checklist: { isChecked: false, title: "", orderHint: "" },
     };

@@ -362,7 +362,7 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
 
   // ── Select item ────────────────────────────────────────────────────────────
   const onSelectItem = useCallback((item: string, group: string): void => {
-    let currentTasks = tasksRef.current;
+    const currentTasks = tasksRef.current;
     if (group === "task") {
       const found = currentTasks.find(t => t.Task === item);
       if (found) {

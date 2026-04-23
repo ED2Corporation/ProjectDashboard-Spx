@@ -14,7 +14,7 @@ const StackGates = ({ gates, onSelectItem }: GateCardProps) => {
   };
 
   const sortedItems = [...gates].sort((a, b) => b.Title.localeCompare(a.Title));
-  let compareGate: string = "0";
+  const compareGate: string = "0";
 
   const getCardDelay = (delay: number, complete: number) => {
     if (complete === 100) return styles.whiteFont;
@@ -29,14 +29,14 @@ const StackGates = ({ gates, onSelectItem }: GateCardProps) => {
         {sortedItems.map((gate, index) => (
           <div
             key={gate.Id}
-            className={`${styles["pilaCard"]} ${getCardClass(
+            className={`${styles.pilaCard} ${getCardClass(
               gate.Delay,
               gate.Complete
             )}`}
           >
             {
               <div
-                className={`${styles["cardContent"]} ${getCardDelay(
+                className={`${styles.cardContent} ${getCardDelay(
                   gate.Delay,
                   gate.Complete
                 )}`}

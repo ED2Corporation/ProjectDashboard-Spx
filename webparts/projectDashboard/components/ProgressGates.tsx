@@ -19,7 +19,7 @@ const ProgressGates = ({ gates, tasks, onSelectItem, showDetails }: GateCardProp
   return (
     <>
       {showDetails ? (
-        <div className={styles["cardContainer"]}>
+        <div className={styles.cardContainer}>
           {gates.map((gate) => {
             const gateTasks = (tasks || []).filter(
               t => t.Gate === gate.Gate // o t.GateId === gate.Id
@@ -35,7 +35,7 @@ const ProgressGates = ({ gates, tasks, onSelectItem, showDetails }: GateCardProp
                 <img
                   alt=""
                   src={arrowSrc}
-                  className={styles["iconArrow"]}
+                  className={styles.iconArrow}
                 />
                 <div
                   style={{
@@ -43,7 +43,7 @@ const ProgressGates = ({ gates, tasks, onSelectItem, showDetails }: GateCardProp
                     top: "10%",
                     left: "20%",
                   }}
-                  className={`${styles["cardContent"]} `}
+                  className={`${styles.cardContent} `}
                   onClick={() => {
                     onSelectItem(gate.Gate, "gate");
                   }}
@@ -66,7 +66,7 @@ const ProgressGates = ({ gates, tasks, onSelectItem, showDetails }: GateCardProp
 
         </div>
       ) : (
-        <div className={styles["cardContainer"]}>
+        <div className={styles.cardContainer}>
           {gates.map((gate) => {
             const gateTasks = (tasks || []).filter(
               t => t.Gate === gate.Gate // o t.GateId === gate.Id
@@ -82,7 +82,7 @@ const ProgressGates = ({ gates, tasks, onSelectItem, showDetails }: GateCardProp
                 <img
                   alt=""
                   src={arrowSrc}
-                  className={styles["iconArrow"]}
+                  className={styles.iconArrow}
                 />
                 <div
                   style={{
@@ -90,7 +90,7 @@ const ProgressGates = ({ gates, tasks, onSelectItem, showDetails }: GateCardProp
                     top: "10%",
                     left: "20%",
                   }}
-                  className={`${styles["cardContent"]} `}
+                  className={`${styles.cardContent} `}
                   onClick={() => {
                     onSelectItem(gate.Gate, "gate");
                   }}
