@@ -1,16 +1,16 @@
 /**
  * @jest-environment jsdom
  */
+jest.mock('../NotesLog', () => () => <div data-testid="NotesLog">NotesLog</div>);
+jest.mock('../EvidenceLog', () => () => <div data-testid="EvidenceLog">EvidenceLog</div>);
+jest.mock('../ApprovalsLog', () => () => <div data-testid="ApprovalsLog">ApprovalsLog</div>);
+
 import * as React from 'react';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
 import TaskCard from '../TaskCard';
 import { ITaskListItem } from '../../../../models';
-
-jest.mock('../NotesLog', () => () => <div data-testid="NotesLog">NotesLog</div>);
-jest.mock('../EvidenceLog', () => () => <div data-testid="EvidenceLog">EvidenceLog</div>);
-jest.mock('../ApprovalsLog', () => () => <div data-testid="ApprovalsLog">ApprovalsLog</div>);
 
 describe('TaskCard', () => {
   const task: ITaskListItem = {
@@ -24,7 +24,7 @@ describe('TaskCard', () => {
     Evidence: [],
     Notes: [],
     Deliverable: 'Package',
-  } as unknown as ITaskListItem;
+  };
 
   it('shows Save and Close as explicit text actions', () => {
     render(

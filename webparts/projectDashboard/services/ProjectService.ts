@@ -472,7 +472,7 @@ export class ProjectService implements IProjectService {
     }
 
     private async _importTasksFromExcel(listName: string, file: File, defaultGate?: string): Promise<void> {
-        const XLSX = await import("xlsx");
+        const XLSX = await import(/* webpackChunkName: "xlsx" */ "xlsx");
         const arrayBuffer = await file.arrayBuffer();
         const workbook = XLSX.read(arrayBuffer, { type: "array", cellDates: true, cellText: false });
         const sheet = workbook.Sheets[workbook.SheetNames[0]];
@@ -612,7 +612,7 @@ export class ProjectService implements IProjectService {
             const project = res?.[0];
             if (!project) return "";
             return res.data.Title || "" as string;
-        } catch (error) {
+        } catch {
             console.error("[addProjectToCatalog] Error:", item.Title, "-", this._catalogListName);
             return "";
         }

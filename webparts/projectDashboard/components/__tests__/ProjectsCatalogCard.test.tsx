@@ -1,13 +1,6 @@
 /**
  * @jest-environment jsdom
  */
-import * as React from 'react';
-import { render, screen, waitFor, within } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
-import '@testing-library/jest-dom';
-import ProjectsCatalogCard from '../ProjectsCatalogCard';
-import { IProjectCatalogItem } from '../../../../models/IProjectService';
-
 const mockUseProjectsCatalog = jest.fn();
 
 jest.mock('../../hooks/useProjectsCatalog', () => ({
@@ -22,16 +15,27 @@ jest.mock('../ProjectRowDashboard', () => (props: {
   project: IProjectCatalogItem;
   onStatusReady?: (projectId: string, key: 'ontime' | 'stalled' | 'delayed' | 'archived') => void;
 }) => {
-  React.useEffect(() => {
+  const ReactActual = jest.requireActual<typeof import('react')>('react');
+
+  ReactActual.useEffect(() => {
     props.onStatusReady?.(props.project.Title, props.project.Title.includes('DELAY') ? 'delayed' : 'ontime');
   }, [props]);
 
-  return <div data-testid="project-row">{props.project.Title}</div>;
+  return ReactActual.createElement('div', { 'data-testid': 'project-row' }, props.project.Title);
 });
 
+import * as React from 'react';
+import { render, screen, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import '@testing-library/jest-dom';
+import ProjectsCatalogCard from '../ProjectsCatalogCard';
+import { IProjectCatalogItem } from '../../../../models/IProjectService';
+import { SPFI } from '@pnp/sp';
+import { BaseComponentContext } from '@microsoft/sp-component-base';
+
 describe('ProjectsCatalogCard', () => {
-  const context = {} as any;
-  const sp = {} as any;
+  const context = {} as BaseComponentContext;
+  const sp = {} as SPFI;
 
   const projects: IProjectCatalogItem[] = [
     {

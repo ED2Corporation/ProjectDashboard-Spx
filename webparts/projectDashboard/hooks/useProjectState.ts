@@ -114,7 +114,7 @@ function makeEmptyTask(gate?: string): ITaskListItem {
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────
 export function useProjectState(config: UseProjectStateConfig): UseProjectStateResult {
-  const { context, sp, showLog, onPatchProperties: _onPatchProperties } = config;
+  const { context, sp, showLog } = config;
 
   // ── State ──────────────────────────────────────────────────────────────────
   const [tasks, setTasks] = useState<ITaskListItem[]>([]);
@@ -134,6 +134,10 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
 
   // null = not yet probed; true = columns exist; false = columns absent in this list
   const logFieldsAvailableRef = useRef<boolean | null>(null);
+
+  const setLogFieldsAvailable = useCallback((available: boolean): void => {
+    logFieldsAvailableRef.current = available;
+  }, []);
 
   const syncTasks = useCallback((newTasks: ITaskListItem[]) => {
     tasksRef.current = newTasks;
@@ -176,7 +180,7 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
         const errText = await response.text();
         const isLogFieldError = LOG_FIELD_NAMES.some(f => errText.includes(`'${f}'`)) && errText.includes('does not exist');
         if (isLogFieldError) {
-          logFieldsAvailableRef.current = false;
+          setLogFieldsAvailable(false);
           response = await fetchItems(false);
         } else {
           console.error("[_getTaskListItems] HTTP error:", response.status, errText);
@@ -200,7 +204,7 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
       }
 
       // Mark log fields as available if we didn't already know they were absent
-      if (logFieldsAvailableRef.current === null) logFieldsAvailableRef.current = true;
+      if (logFieldsAvailableRef.current === null) setLogFieldsAvailable(true);
 
       const responseJson = await response.json();
       const raw: any[] = Array.isArray(responseJson.value) ? responseJson.value : [];  // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -229,7 +233,7 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
       setEnvironmentMessage(String(error));
       return [];
     }
-  }, [context, showLog, config.storageEndpoint?.siteRelPath, config.storageEndpoint?.siteUrl]);
+  }, [context, showLog, config.storageEndpoint?.siteRelPath, config.storageEndpoint?.siteUrl, setLogFieldsAvailable]);
 
   const _getGateListItems = useCallback(async (
     project: IProjectListItem,
@@ -857,7 +861,7 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
     file: File,
     defaultGate?: string
   ): Promise<void> => {
-    const XLSX = await import("xlsx");
+    const XLSX = await import(/* webpackChunkName: "xlsx" */ "xlsx");
     const arrayBuffer = await file.arrayBuffer();
     const workbook = XLSX.read(arrayBuffer, { type: "array", cellDates: true, cellText: false });
     const sheet = workbook.Sheets[workbook.SheetNames[0]];
@@ -984,7 +988,7 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
             await list.fields.addMultilineText(f);
           }
         }
-        logFieldsAvailableRef.current = true;
+        setLogFieldsAvailable(true);
         console.log("[useProjectState] Log fields ensured, retrying update", {
           listTitle,
           taskId,
@@ -1000,7 +1004,7 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
       t.Id === taskId ? { ...t, [field]: entries } : t;
     syncTasks(tasksRef.current.map(patchTask));
     setSelectedTask(prev => (prev?.Id === taskId ? { ...prev, [field]: entries } : prev));
-  }, [config.sourceName, sp, syncTasks]);
+  }, [config.sourceName, sp, syncTasks, setLogFieldsAvailable]);
 
   // ── Send email via Graph ────────────────────────────────────────────────────
   const onSendEmail = useCallback(async (

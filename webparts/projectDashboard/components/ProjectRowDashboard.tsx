@@ -184,6 +184,15 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
   // no-op: properties are fixed per catalog row
   const noop = (_patch: Partial<IProjectDashboardWebPartProps>): void => { return; };
 
+  const [activeGate,         setActiveGate]         = useState<string | null>(null);
+  const [showCard,           setShowCard]           = useState(false);
+  const [selectedTask,       setSelectedTask]       = useState<ITaskListItem | null>(null);
+  const [creatingId,         setCreatingId]         = useState<string | null>(null);
+  const [deletingId,         setDeletingId]         = useState<string | null>(null);
+  const [navTasks,           setNavTasks]           = useState<ITaskListItem[]>([]);
+  const [statusReported,     setStatusReported]     = useState(false);
+  const [showProjectActions, setShowProjectActions] = useState(false);
+
   const {
     tasks, gates, filteredTasks,
     onReset, onGateFilterChange, onSelectItem,
@@ -213,14 +222,6 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [_onSaveLogField]);
 
-  const [activeGate,         setActiveGate]         = useState<string | null>(null);
-  const [showCard,           setShowCard]           = useState(false);
-  const [selectedTask,       setSelectedTask]       = useState<ITaskListItem | null>(null);
-  const [creatingId,         setCreatingId]         = useState<string | null>(null);
-  const [deletingId,         setDeletingId]         = useState<string | null>(null);
-  const [navTasks,           setNavTasks]           = useState<ITaskListItem[]>([]);
-  const [statusReported,     setStatusReported]     = useState(false);
-  const [showProjectActions, setShowProjectActions] = useState(false);
   // Local copy of catalog fields — updated optimistically after a successful save
 
 

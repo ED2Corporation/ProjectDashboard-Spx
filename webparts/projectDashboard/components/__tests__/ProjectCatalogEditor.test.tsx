@@ -8,6 +8,7 @@ import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
 import ProjectCatalogEditor from '../ProjectCatalogEditor';
 import { IProjectCatalogItem } from '../../../../models/IProjectService';
+import { ProjectService } from '../../services/ProjectService';
 
 describe('ProjectCatalogEditor', () => {
   const project: IProjectCatalogItem = {
@@ -36,7 +37,7 @@ describe('ProjectCatalogEditor', () => {
     render(
       <ProjectCatalogEditor
         project={project}
-        projectService={projectService as any}
+        projectService={projectService as unknown as ProjectService}
       />
     );
 
@@ -56,7 +57,7 @@ describe('ProjectCatalogEditor', () => {
     render(
       <ProjectCatalogEditor
         project={project}
-        projectService={projectService as any}
+        projectService={projectService as unknown as ProjectService}
         onSaved={onSaved}
       />
     );

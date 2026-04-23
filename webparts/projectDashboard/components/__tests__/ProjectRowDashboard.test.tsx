@@ -1,13 +1,6 @@
 /**
  * @jest-environment jsdom
  */
-import * as React from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
-import '@testing-library/jest-dom';
-import ProjectRowDashboard from '../ProjectRowDashboard';
-import { IProjectCatalogItem } from '../../../../models/IProjectService';
-
 const mockUseProjectState = jest.fn();
 const mockGetBucketStatus = jest.fn();
 
@@ -31,6 +24,13 @@ jest.mock('../ProjectActionsBar', () => () => <div data-testid="ProjectActionsBa
 jest.mock('../ProjectCatalogEditor', () => () => <div data-testid="ProjectCatalogEditor">ProjectCatalogEditor</div>);
 jest.mock('../ListTasks', () => () => <div data-testid="ListTasks">ListTasks</div>);
 jest.mock('../TaskCard', () => () => <div data-testid="TaskCard">TaskCard</div>);
+
+import * as React from 'react';
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import '@testing-library/jest-dom';
+import ProjectRowDashboard from '../ProjectRowDashboard';
+import { IProjectCatalogItem } from '../../../../models/IProjectService';
 
 describe('ProjectRowDashboard', () => {
   const project: IProjectCatalogItem = {
@@ -102,8 +102,8 @@ describe('ProjectRowDashboard', () => {
     render(
       <ProjectRowDashboard
         project={project}
-        context={context as any}
-        sp={createSp(false) as any}
+        context={context as never}
+        sp={createSp(false) as never}
       />
     );
 
@@ -137,8 +137,8 @@ describe('ProjectRowDashboard', () => {
     render(
       <ProjectRowDashboard
         project={project}
-        context={context as any}
-        sp={createSp(true) as any}
+        context={context as never}
+        sp={createSp(true) as never}
         onStatusReady={onStatusReady}
       />
     );

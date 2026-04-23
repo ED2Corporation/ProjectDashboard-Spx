@@ -211,7 +211,8 @@ const ProjectActionsBar: React.FC<IProjectActionsBarProps> = ({
         accept=".xlsx,.xls"
         style={{ display: "none" }}
         onChange={async (e) => {
-          const file = e.target.files?.[0] || null;
+          const input = e.currentTarget;
+          const file = input.files?.[0] || null;
           if (file) {
             try {
               setIsImporting(true);
@@ -220,7 +221,7 @@ const ProjectActionsBar: React.FC<IProjectActionsBarProps> = ({
               markSuccess("Import completed");
             } finally {
               setIsImporting(false);
-              e.target.value = "";
+              input.value = "";
             }
           }
         }}
