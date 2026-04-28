@@ -7,6 +7,7 @@ import { SPHttpClient } from '@microsoft/sp-http';
 import { useProjectsCatalog } from '../hooks/useProjectsCatalog';
 import ProjectRowDashboard from './ProjectRowDashboard';
 import ProjectRowArchived from './ProjectRowArchived';
+import UserManualPanel from './UserManualPanel';
 import { IProjectCatalogItem } from '../../../models/IProjectService';
 import styles from './ProjectsCatalogCard.module.scss';
 
@@ -20,6 +21,7 @@ type AnyContext = BaseComponentContext & { spHttpClient: SPHttpClient; msGraphCl
 
 type BadgeVariant = StatusKey | 'hidden' | 'stalled';
 type CatalogStatus = 'open' | 'archived' | 'waiting-approval' | 'hidden';
+
 
 interface AggregatorBadgeProps {
   label: string;
@@ -40,6 +42,14 @@ const IconRotateCw: React.FC = () => (
   <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
     <path d="M16 10a6 6 0 10-1.76 4.24" strokeLinecap="round" strokeLinejoin="round" />
     <path d="M16 4v4h-4" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
+const IconUserManual: React.FC = () => (
+  <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true">
+    <path d="M4 4.5A2.5 2.5 0 016.5 2H16v14H6.5A2.5 2.5 0 004 18.5v-14z" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M4 4.5A2.5 2.5 0 016.5 7H16" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M8 10h5M8 12.5h4" strokeLinecap="round" />
   </svg>
 );
 
@@ -113,6 +123,7 @@ const ProjectsCatalogCard: React.FC<IProjectsCatalogCardProps> = ({ sp, context,
   const { projects, isLoading, error, reload } = useProjectsCatalog(sp);
 
   const [isCollapsed, setIsCollapsed]   = useState(false);
+  const [showManual, setShowManual]     = useState(false);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [statusMap, setStatusMap]       = useState<Record<string, StatusKey>>({});
   const [searchText, setSearchText]     = useState('');
@@ -208,6 +219,7 @@ const ProjectsCatalogCard: React.FC<IProjectsCatalogCardProps> = ({ sp, context,
   };
 
   return (
+    <>
     <div className={styles.card}>
       <div onClick={() => setIsCollapsed((current) => !current)} className={styles.header}>
         <span className={styles.headerTitle}>
@@ -238,6 +250,17 @@ const ProjectsCatalogCard: React.FC<IProjectsCatalogCardProps> = ({ sp, context,
             }}
           >
             <IconRotateCw />
+          </button>
+          <button
+            type="button"
+            className={styles.headerIconBtn}
+            title="Open user manual"
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowManual(true);
+            }}
+          >
+            <IconUserManual />
           </button>
           <span className={styles.headerChevron}>
             {isCollapsed ? <IconChevronDown /> : <IconChevronUp />}
@@ -362,6 +385,8 @@ const ProjectsCatalogCard: React.FC<IProjectsCatalogCardProps> = ({ sp, context,
         </div>
       )}
     </div>
+    {showManual && <UserManualPanel onClose={() => setShowManual(false)} />}
+    </>
   );
 };
 
