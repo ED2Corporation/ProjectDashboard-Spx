@@ -56,11 +56,16 @@
   min-width: 0;
 }
 
-.task-nav-arrows {
+// ─── Shared card-group mixin ──────────────────────────────────────────────
+%btn-card-group {
   display: inline-flex;
   align-items: center;
   gap: 2px;
-  margin-right: $sp-2;
+  padding: $sp-1;
+  border: 1px solid $c-border-subtle;
+  border-radius: $r-md;
+  background: $c-surface;
+  box-shadow: $shadow-sm;
 
   button:disabled {
     opacity: 0.25;
@@ -68,18 +73,32 @@
   }
 }
 
-.task-reorder-arrows {
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
-  margin-right: $sp-2;
-  padding-right: $sp-2;
-  border-right: 1px solid $c-border;
+// ─── Prev / Next navigation — blue tint ──────────────────────────────────
+.task-nav-card {
+  @extend %btn-card-group;
+  border-color: rgba($c-primary, 0.3);
+  background: $c-primary-bg;
+}
 
-  button:disabled {
+.task-button-nav {
+  color: $c-primary;
+  border-color: rgba($c-primary, 0.25);
+  background: transparent;
+
+  &:hover {
+    background: $c-primary-focus;
+    border-color: $c-primary;
+  }
+
+  &:disabled {
     opacity: 0.25;
     cursor: default;
   }
+}
+
+// ─── Move reorder — card ─────────────────────────────────────────────────
+.task-reorder-card {
+  @extend %btn-card-group;
 }
 
 .task-actions-card {

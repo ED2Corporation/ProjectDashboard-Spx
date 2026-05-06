@@ -272,34 +272,12 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
       <div className={styles["task-card-header"]}>
         <h1 className={styles["task-title"]}>{task.Task}</h1>
         <div className={styles["task-btn-group"]}>
-          {(onMoveFirst || onMoveUp || onMoveDown || onMoveLast) && (
-            <div className={styles["task-reorder-arrows"]}>
-              <button type="button" className={styles["task-button"]} onClick={onMoveFirst} disabled={!!isMoveFirst || !!isMoving} title="Move First">
-                <svg className={styles["icon-small"]} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <path d="M3 3h10M8 13V6M5 9l3-3 3 3"/>
-                </svg>
-              </button>
-              <button type="button" className={styles["task-button"]} onClick={onMoveUp} disabled={!!isMoveFirst || !!isMoving} title="Move Up">
-                <svg className={styles["icon-small"]} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <path d="M4 10l4-5 4 5"/>
-                </svg>
-              </button>
-              <button type="button" className={styles["task-button"]} onClick={onMoveDown} disabled={!!isMoveLast || !!isMoving} title="Move Down">
-                <svg className={styles["icon-small"]} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <path d="M4 6l4 5 4-5"/>
-                </svg>
-              </button>
-              <button type="button" className={styles["task-button"]} onClick={onMoveLast} disabled={!!isMoveLast || !!isMoving} title="Move Last">
-                <svg className={styles["icon-small"]} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <path d="M3 13h10M8 3v7M5 7l3 3 3-3"/>
-                </svg>
-              </button>
-            </div>
-          )}
-          <div className={styles["task-nav-arrows"]}>
+
+          {/* ── Prev / Next navigation — blue card ── */}
+          <div className={styles["task-nav-card"]}>
             <button
               type="button"
-              className={styles["task-button"]}
+              className={`${styles["task-button"]} ${styles["task-button-nav"]}`}
               onClick={() => onNavigate?.('prev')}
               disabled={!hasPrev}
               title={hasPrev ? "Previous task" : "No previous task"}
@@ -310,7 +288,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
             </button>
             <button
               type="button"
-              className={styles["task-button"]}
+              className={`${styles["task-button"]} ${styles["task-button-nav"]}`}
               onClick={() => onNavigate?.('next')}
               disabled={!hasNext}
               title={hasNext ? "Next task" : "No next task"}
@@ -320,6 +298,8 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
               </svg>
             </button>
           </div>
+
+          {/* ── Delete / Add new — card ── */}
           <div className={styles["task-actions-card"]}>
             <button type="button" className={styles["task-button"]} onClick={handleDelete} title={isDeleting ? "Deleting…" : "Delete task"} disabled={isDeleting}>
               {isDeleting ? (
@@ -344,7 +324,36 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
               )}
             </button>
           </div>
+
+          {/* ── Move order — card, between actions and Save ── */}
+          {(onMoveFirst || onMoveUp || onMoveDown || onMoveLast) && (
+            <div className={styles["task-reorder-card"]}>
+              <button type="button" className={styles["task-button"]} onClick={onMoveFirst} disabled={!!isMoveFirst || !!isMoving} title="Move First">
+                <svg className={styles["icon-small"]} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M3 3h10M8 13V6M5 9l3-3 3 3"/>
+                </svg>
+              </button>
+              <button type="button" className={styles["task-button"]} onClick={onMoveUp} disabled={!!isMoveFirst || !!isMoving} title="Move Up">
+                <svg className={styles["icon-small"]} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M4 10l4-5 4 5"/>
+                </svg>
+              </button>
+              <button type="button" className={styles["task-button"]} onClick={onMoveDown} disabled={!!isMoveLast || !!isMoving} title="Move Down">
+                <svg className={styles["icon-small"]} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M4 6l4 5 4-5"/>
+                </svg>
+              </button>
+              <button type="button" className={styles["task-button"]} onClick={onMoveLast} disabled={!!isMoveLast || !!isMoving} title="Move Last">
+                <svg className={styles["icon-small"]} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M3 13h10M8 3v7M5 7l3 3 3-3"/>
+                </svg>
+              </button>
+            </div>
+          )}
+
           <div className={styles["task-btn-spacer"]} />
+
+          {/* ── Save / Close ── */}
           <button
             type="button"
             className={`${styles["task-button"]} ${styles["task-button-save"]}`}

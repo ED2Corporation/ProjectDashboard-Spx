@@ -243,7 +243,7 @@ const UserManualPanel: React.FC<UserManualPanelProps> = ({ onClose }) => {
                     Filters in real time by <strong>Part Number</strong>, <strong>Job ID / Project Number</strong>,
                     and <strong>Customer</strong>. Applied on top of any active badge filter.
                   </div>
-                </div>
+                </div> 
               </div>
               <div className={styles.item}>
                 <div className={styles.itemIcon} style={{ background: '#f3f3f3' }}>↕</div>
