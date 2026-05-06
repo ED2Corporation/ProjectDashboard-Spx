@@ -251,6 +251,59 @@
   position: relative;
 }
 
+.colEvidence {
+  width: 130px;
+  vertical-align: middle;
+  padding: 0 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 130px;
+}
+
+.evidenceLink {
+  display: inline-block;
+  max-width: 120px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: $f-sm;
+  color: $c-primary;
+  text-decoration: none;
+  vertical-align: middle;
+
+  &:hover { text-decoration: underline; }
+
+  &::before {
+    content: '📎 ';
+    font-size: 0.85em;
+  }
+}
+
+.evidenceAlert {
+  color: $c-delayed;
+  display: inline-flex;
+  align-items: center;
+}
+
+.evidenceUploadBtn {
+  font-size: $f-sm;
+  padding: 2px 5px;
+  border: 1px solid $c-border;
+  border-radius: $r-sm;
+  background: $c-surface;
+  cursor: pointer;
+  line-height: 1.4;
+  vertical-align: middle;
+
+  &:hover:not(:disabled) {
+    background: $c-primary-bg;
+    border-color: $c-primary;
+  }
+
+  &:disabled { opacity: 0.5; cursor: not-allowed; }
+}
+
 .colDate {
   width: 92px;
   text-align: center;

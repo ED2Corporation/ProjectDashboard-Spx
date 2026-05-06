@@ -1,9 +1,11 @@
 import * as React from "react";
 import { useState, useEffect } from "react";
 import { ITaskListItem } from "../../../models";
+import { IEvidenceEntry } from "../../../models/ITaskLogFields";
 import { GetDelay } from "../utils/GetDelay";
 import { GetFormatDate } from "../utils/GetFormatDate";
 import { compareWbs } from "../utils/ParseWBS";
+import EvidenceUploadButton from "./EvidenceUploadButton";
 import styles from "./ProjectDashboard.module.scss";
 
 interface ListGroupProps {
@@ -19,6 +21,11 @@ interface ListGroupProps {
   onSortedTasksChange?: (tasks: ITaskListItem[]) => void;
   onReload?: () => void;
   onSave: (itemId: string, payload?: string) => void;
+  /** Upload a file to evidence storage — enables the upload button in Complete mode */
+  onUploadFile?: (file: File, taskTitle: string) => Promise<{ fileUrl: string; fileName: string }>;
+  /** Persist updated Evidence entries for a task */
+  onSaveEvidence?: (taskId: string, entries: IEvidenceEntry[]) => Promise<void>;
+  currentUserDisplayName?: string;
   onSelectItem: (
     item: ITaskListItem,
     group: string,
@@ -49,6 +56,9 @@ const ListTasks = ({
   deletingTaskId,
   onSortedTasksChange,
   onReload,
+  onUploadFile,
+  onSaveEvidence,
+  currentUserDisplayName,
 }: ListGroupProps): JSX.Element => {
   const [editTaskTitle, setEditTaskTitle] = useState<string>("");
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
@@ -248,8 +258,11 @@ const ListTasks = ({
                   >
                     Finish<SortIcon col="finish" active={sortCol === "finish"} dir={sortDir} />
                   </th>
+                  <th className={styles.colEvidence}>
+                    Evidence
+                  </th>
                   <th className={`${styles.colActions} ${styles.actionsFixed}`}>
-                    
+
                   </th>
                 </tr>
               </thead>
@@ -431,9 +444,62 @@ const ListTasks = ({
                     )}
                   </td>
 
+                  {/* Evidence of Completion */}
+                  {(() => {
+                    const completionEvidence = item.Evidence?.find(e => e.isEvidenceOfCompletion);
+                    const isComplete = Math.floor(item.Complete) === 100;
+                    const isEditing  = editingTaskId === item.Id;
+
+                    return (
+                      <td className={styles.colEvidence} onClick={e => e.stopPropagation()}>
+                        {isEditing && onUploadFile && onSaveEvidence ? (
+                          <EvidenceUploadButton
+                            evidence={item.Evidence ?? null}
+                            taskTitle={item.Task ?? ''}
+                            currentUser={currentUserDisplayName ?? ''}
+                            onUploadFile={onUploadFile}
+                            onSave={(entries) => onSaveEvidence(item.Id, entries)}
+                            isEvidenceOfCompletion={true}
+                            label={
+                              <span style={{display:'inline-flex',alignItems:'center',gap:3,fontSize:'inherit'}}>
+                                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{width:'1.1em',height:'1.1em',flexShrink:0}} aria-hidden="true">
+                                  <path d="M8 10V3"/>
+                                  <path d="M5 6l3-3 3 3"/>
+                                  <path d="M3 13h10"/>
+                                </svg>
+                                Upload evidence
+                              </span>
+                            }
+                            className={styles.evidenceUploadBtn}
+                          />
+                        ) : completionEvidence ? (
+                          <a
+                            href={completionEvidence.fileUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={styles.evidenceLink}
+                            title={completionEvidence.note || completionEvidence.fileName}
+                          >
+                            {completionEvidence.fileName}
+                          </a>
+                        ) : isComplete ? (
+                          <span
+                            className={styles.evidenceAlert}
+                            title="Task is 100% complete but has no Evidence of Completion"
+                          >
+                            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{width:13,height:13,verticalAlign:'middle'}} aria-hidden="true">
+                              <path d="M8 2L1.5 13.5h13L8 2z"/>
+                              <path d="M8 7v3M8 11.5v.5"/>
+                            </svg>
+                          </span>
+                        ) : null}
+                      </td>
+                    );
+                  })()}
+
                   {/* ACTIONS */}
                   <td className={`${styles.colActions} ${styles.actionsFixed}`}>
-                    {/* Add row */}
+                    {editingTaskId !== item.Id && (
                     <button
                       type="button"
                       className={styles["icon-button"]}
@@ -454,43 +520,8 @@ const ListTasks = ({
                         </svg>
                       )}
                     </button>
-                    {(() => {
-                      const completionEvidence = item.Evidence?.find(e => e.isEvidenceOfCompletion);
-                      const isComplete = Math.floor(item.Complete) === 100;
-                      if (isComplete && completionEvidence) {
-                        return (
-                          <a
-                            href={completionEvidence.fileUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            title={completionEvidence.note || completionEvidence.fileName || "Evidence of Completion"}
-                            onClick={(e) => e.stopPropagation()}
-                            className={styles.wbsEvidenceLink}
-                          >
-                            <img
-                              src={require("../assets/Document.png")}
-                              alt="Evidence"
-                              className={styles["icon-small"]}
-                            />
-                          </a>
-                        );
-                      }
-                      if (isComplete && !completionEvidence) {
-                        return (
-                          <span
-                            className={styles.wbsEvidenceAlert}
-                            title="Task is 100% complete but has no Evidence of Completion"
-                          >
-                            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{width:14,height:14,verticalAlign:'middle'}} aria-hidden="true">
-                              <path d="M8 2L1.5 13.5h13L8 2z"/>
-                              <path d="M8 7v3M8 11.5v.5"/>
-                            </svg>
-                          </span>
-                        );
-                      }
-                      return null;
-                    })()}
-                    <div className={styles.actionContextMenu}>
+                    )}
+                    {editingTaskId !== item.Id && <div className={styles.actionContextMenu}>
                       <button
                         type="button"
                         onClick={(e) => {
@@ -579,7 +610,7 @@ const ListTasks = ({
                         <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M8 2l2 2-6 6H2V8L8 2z"/></svg>
                         Edit
                       </button>
-                    </div>
+                    </div>}
                     {editingTaskId === item.Id && (
                       <div className={styles.quickEditActions}>
                         <button
@@ -610,7 +641,8 @@ const ListTasks = ({
                         </button>
                       </div>
                     )}
-                    {/* Delete row */}
+                    {/* Delete row — hidden in edit mode */}
+                    {editingTaskId !== item.Id && (
                     <button
                       type="button"
                       className={styles["icon-button"]}
@@ -633,12 +665,13 @@ const ListTasks = ({
                         </svg>
                       )}
                     </button>
+                    )}
                   </td>
 
                   </tr>
                   {item.Id === selectedTaskId && expandedContent && (
                     <tr className={styles["task-card-row"]}>
-                      <td colSpan={6} className={styles["task-card-cell"]}>
+                      <td colSpan={7} className={styles["task-card-cell"]}>
                         <div className={styles["task-card-shell"]}>
                           {expandedContent}
                         </div>

@@ -1,6 +1,7 @@
 import * as React from 'react';
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import { IEvidenceEntry } from '../../../models/ITaskLogFields';
+import EvidenceUploadButton from './EvidenceUploadButton';
 import styles from './EvidenceLog.module.scss';
 
 interface EvidenceLogProps {
@@ -15,53 +16,8 @@ interface EvidenceLogProps {
 const EvidenceLog: React.FC<EvidenceLogProps> = ({
   evidence, taskTitle, currentUserDisplayName, onSave, onToggleEvidenceOfCompletion, onUploadFile,
 }) => {
-  const [note, setNote]                         = useState('');
-  const [uploading, setUploading]               = useState(false);
-  const [isCompletion, setIsCompletion]         = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const resetFileInput = (): void => {
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-  };
-
-  const handleUpload = async (file: File): Promise<void> => {
-    if (!onUploadFile) return;
-    setUploading(true);
-    try {
-      const trimmedNote = note.trim();
-      const { fileUrl, fileName } = await onUploadFile(file, taskTitle);
-      const entry: IEvidenceEntry = {
-        date: new Date().toISOString(),
-        user: currentUserDisplayName,
-        fileName,
-        fileUrl,
-        note: trimmedNote || undefined,
-        isEvidenceOfCompletion: isCompletion || undefined,
-      };
-      await onSave([...(evidence ?? []), entry], entry);
-      setNote('');
-      setIsCompletion(false);
-      resetFileInput();
-    } catch (error) {
-      console.error('[EvidenceLog] Upload failed', error);
-      resetFileInput();
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>): Promise<void> => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    await handleUpload(file);
-  };
-
-  const openFileDialog = (): void => {
-    if (uploading) return;
-    fileInputRef.current?.click();
-  };
+  const [note, setNote]                 = useState('');
+  const [isCompletion, setIsCompletion] = useState(false);
 
   const entries = [...(evidence ?? [])].reverse();
 
@@ -69,12 +25,6 @@ const EvidenceLog: React.FC<EvidenceLogProps> = ({
     <div className={styles.container}>
       {onUploadFile && (
         <div className={styles.addForm}>
-          <input
-            ref={fileInputRef}
-            type="file"
-            onChange={handleFileChange}
-            className={styles.fileInput}
-          />
           <div className={styles.addRow}>
             <input
               type="text"
@@ -82,16 +32,18 @@ const EvidenceLog: React.FC<EvidenceLogProps> = ({
               onChange={e => setNote(e.target.value)}
               placeholder="Add note..."
               className={styles.noteInput}
-              disabled={uploading}
             />
-            <button
-              type="button"
+            <EvidenceUploadButton
+              evidence={evidence}
+              taskTitle={taskTitle}
+              currentUser={currentUserDisplayName}
+              onUploadFile={onUploadFile}
+              onSave={(entries) => onSave(entries, entries[entries.length - 1])}
+              note={note}
+              isEvidenceOfCompletion={isCompletion || undefined}
+              onUploaded={() => { setNote(''); setIsCompletion(false); }}
               className={styles.uploadBtn}
-              onClick={openFileDialog}
-              disabled={uploading}
-            >
-              {uploading ? 'Uploading...' : 'Add'}
-            </button>
+            />
             <label
               className={`${styles.checkRow} ${isCompletion ? styles.checkRowActive : ''}`}
               title="Is Evidence of Completion"
@@ -100,7 +52,6 @@ const EvidenceLog: React.FC<EvidenceLogProps> = ({
                 type="checkbox"
                 checked={isCompletion}
                 onChange={e => setIsCompletion(e.target.checked)}
-                disabled={uploading}
               />
               <span className={styles.switchTrack} aria-hidden="true">
                 <span className={styles.switchThumb} />

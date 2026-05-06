@@ -547,6 +547,11 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
                   break;
               }
             }}
+            currentUserDisplayName={context.pageContext.user.displayName}
+            onUploadFile={onUploadFile ? (file, taskTitle) => onUploadFile(file, taskTitle) : undefined}
+            onSaveEvidence={onSaveLogField
+              ? async (taskId, entries) => { await onSaveLogField(taskId, 'Evidence', entries); }
+              : undefined}
           />
         </div>
       )}

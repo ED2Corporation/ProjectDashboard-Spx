@@ -66,10 +66,7 @@ const styles = {
   archivedLogEntryMeta: 'archivedLogEntryMeta_88945406',
   archivedLogEntryContent: 'archivedLogEntryContent_88945406',
   archivedLogEmpty: 'archivedLogEmpty_88945406',
-  noArchivedReport: 'noArchivedReport_88945406',
-  reorderBar: 'reorderBar_88945406',
-  reorderBtn: 'reorderBtn_88945406',
-  reorderSpinner: 'reorderSpinner_88945406'
+  noArchivedReport: 'noArchivedReport_88945406'
 };
 
 export default styles;
