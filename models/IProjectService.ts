@@ -27,4 +27,6 @@ export interface IProjectCatalogItem {
     resolvedStorageVersion?: 'v1' | 'v2';
     /** Resolved at catalog load time from ProjectDetails.WorkOrder */
     WorkOrder?: string;
+    /** Resolved at catalog load time from ProjectDetails.sortOrder — controls display order in catalog */
+    sortOrder?: number;
 }

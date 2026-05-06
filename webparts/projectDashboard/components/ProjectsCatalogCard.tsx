@@ -9,6 +9,7 @@ import ProjectRowDashboard from './ProjectRowDashboard';
 import ProjectRowArchived from './ProjectRowArchived';
 import UserManualPanel from './UserManualPanel';
 import { IProjectCatalogItem } from '../../../models/IProjectService';
+import { ProjectService } from '../services/ProjectService';
 import styles from './ProjectsCatalogCard.module.scss';
 
 type StatusFilter = 'all' | 'ontime' | 'stalled' | 'delayed' | 'archived' | 'hidden' | 'waiting-approval';
@@ -129,6 +130,9 @@ const ProjectsCatalogCard: React.FC<IProjectsCatalogCardProps> = ({ sp, context,
   const [searchText, setSearchText]     = useState('');
   const [sortField, setSortField]       = useState<SortField | null>(null);
   const [sortDir, setSortDir]           = useState<SortDir>('asc');
+  const [isReordering, setIsReordering] = useState(false);
+
+  const catalogService = useMemo(() => new ProjectService(sp), [sp]);
 
   const handleStatusReady = useCallback((projectId: string, key: "ontime" | "stalled" | "delayed" | "archived") => {
     setStatusMap((prev) => {
@@ -136,6 +140,56 @@ const ProjectsCatalogCard: React.FC<IProjectsCatalogCardProps> = ({ sp, context,
       return { ...prev, [projectId]: key };
     });
   }, []);
+
+  const handleMove = useCallback(async (title: string, direction: 'first' | 'up' | 'down' | 'last') => {
+    if (isReordering) return;
+    setIsReordering(true);
+    try {
+      // Build the same base list the user currently sees, sorted by sortOrder
+      let base: IProjectCatalogItem[];
+      if (statusFilter === 'hidden')                base = projects.filter(p => getCatalogStatus(p) === 'hidden');
+      else if (statusFilter === 'archived')          base = projects.filter(p => getCatalogStatus(p) === 'archived');
+      else if (statusFilter === 'waiting-approval')  base = projects.filter(p => getCatalogStatus(p) === 'waiting-approval');
+      else if (statusFilter === 'all')               base = projects.filter(p => getCatalogStatus(p) === 'open');
+      else                                           base = projects.filter(p => getCatalogStatus(p) === 'open' && (statusMap[p.Title] ?? 'ontime') === statusFilter);
+
+      const sorted = [...base].sort((a, b) => (a.sortOrder ?? Infinity) - (b.sortOrder ?? Infinity));
+      const idx = sorted.findIndex(p => p.Title === title);
+      if (idx === -1) return;
+
+      // Bounds check
+      if (direction === 'up'   && idx === 0)                  return;
+      if (direction === 'down' && idx === sorted.length - 1)  return;
+      if (direction === 'first' && idx === 0)                 return;
+      if (direction === 'last'  && idx === sorted.length - 1) return;
+
+      // Reorder in memory
+      const reordered = [...sorted];
+      const [moved] = reordered.splice(idx, 1);
+      if (direction === 'first')     reordered.unshift(moved);
+      else if (direction === 'last') reordered.push(moved);
+      else if (direction === 'up')   reordered.splice(idx - 1, 0, moved);
+      else                           reordered.splice(idx + 1, 0, moved);
+
+      // Assign sequential sortOrders — only update items that changed
+      const updates: Array<{ t: string; pd: string }> = [];
+      reordered.forEach((p, i) => {
+        const newOrder = i + 1;
+        if (p.sortOrder !== newOrder) {
+          const existing: Record<string, unknown> = p.ProjectDetails ? JSON.parse(p.ProjectDetails) : {};
+          existing.sortOrder = newOrder;
+          updates.push({ t: p.Title, pd: JSON.stringify(existing) });
+        }
+      });
+
+      await Promise.all(updates.map(u => catalogService.updateCatalogItem(u.t, { ProjectDetails: u.pd })));
+      reload();
+    } catch (e) {
+      console.error('[handleMove] Error reordering:', e);
+    } finally {
+      setIsReordering(false);
+    }
+  }, [isReordering, statusFilter, projects, statusMap, catalogService, reload]);
 
   const { openProjects, archivedProjects, waitingApprovalProjects, hiddenProjects } = useMemo(() => {
     const open = projects.filter((project) => getCatalogStatus(project) === 'open');
@@ -189,7 +243,7 @@ const ProjectsCatalogCard: React.FC<IProjectsCatalogCardProps> = ({ sp, context,
       );
     }
 
-    // 3. Sort
+    // 3. Sort — column sort takes precedence; otherwise use persisted sortOrder
     if (sortField) {
       base = [...base].sort((a, b) => {
         const va = sortField === 'partNumber'
@@ -201,6 +255,8 @@ const ProjectsCatalogCard: React.FC<IProjectsCatalogCardProps> = ({ sp, context,
         const cmp = va.localeCompare(vb);
         return sortDir === 'asc' ? cmp : -cmp;
       });
+    } else {
+      base = [...base].sort((a, b) => (a.sortOrder ?? Infinity) - (b.sortOrder ?? Infinity));
     }
 
     return base;
@@ -364,7 +420,7 @@ const ProjectsCatalogCard: React.FC<IProjectsCatalogCardProps> = ({ sp, context,
           ) : filteredProjects.length === 0 ? (
             <div className={styles.message}>No projects match the selected filter.</div>
           ) : (
-            filteredProjects.map((proj) => (
+            filteredProjects.map((proj, idx) => (
               getCatalogStatus(proj) === 'archived' ? (
                 <ProjectRowArchived
                   key={proj.Title}
@@ -378,6 +434,13 @@ const ProjectsCatalogCard: React.FC<IProjectsCatalogCardProps> = ({ sp, context,
                   sp={sp}
                   onStatusReady={handleStatusReady}
                   onCatalogItemSaved={reload}
+                  isMoveFirst={idx === 0}
+                  isMoveLast={idx === filteredProjects.length - 1}
+                  isReordering={isReordering}
+                  onMoveFirst={() => void handleMove(proj.Title, 'first')}
+                  onMoveUp={() => void handleMove(proj.Title, 'up')}
+                  onMoveDown={() => void handleMove(proj.Title, 'down')}
+                  onMoveLast={() => void handleMove(proj.Title, 'last')}
                 />
               )
             ))

@@ -163,6 +163,49 @@
   box-shadow: inset 0 1px 0 rgba($c-primary, 0.08), 0 6px 16px rgba(17, 24, 39, 0.05);
 }
 
+// ─── Reorder bar ──────────────────────────────────────────────────────────────
+
+.reorderBar {
+  display: flex;
+  align-items: center;
+  gap: $sp-2;
+  padding: $sp-2 0 $sp-3;
+  border-bottom: 1px solid rgba($c-primary, 0.12);
+  margin-bottom: $sp-3;
+}
+
+.reorderBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: 1px solid rgba($c-primary, 0.3);
+  border-radius: $r-sm;
+  background: rgba($c-primary, 0.05);
+  color: $c-primary;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
+  line-height: 1;
+
+  &:hover:not(:disabled) {
+    background: rgba($c-primary, 0.14);
+    border-color: $c-primary;
+  }
+
+  &:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+  }
+}
+
+.reorderSpinner {
+  font-size: $f-xs;
+  color: $c-text-muted;
+  margin-left: $sp-1;
+}
+
 // ─── Task section ─────────────────────────────────────────────────────────────
 
 .taskSection {

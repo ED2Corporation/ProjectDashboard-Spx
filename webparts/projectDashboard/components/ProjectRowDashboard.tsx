@@ -34,6 +34,14 @@ export interface ProjectRowDashboardProps {
   onStatusReady?: (projectId: string, statusKey: "ontime" | "stalled" | "delayed" | "archived") => void;
   /** Called after a catalog item is saved — use to reload the parent catalog list */
   onCatalogItemSaved?: () => void;
+  // ── Sort-order controls (visible when ProjectCatalogEditor is open) ──
+  isMoveFirst?: boolean;
+  isMoveLast?: boolean;
+  isReordering?: boolean;
+  onMoveFirst?: () => void;
+  onMoveUp?: () => void;
+  onMoveDown?: () => void;
+  onMoveLast?: () => void;
 }
 
 const toAbsoluteSharePointUrl = (baseUrl: string, path: string): string =>
@@ -99,6 +107,7 @@ const SettingsIcon: React.FC = () => (
 
 const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
   project, context, sp, onStatusReady, onCatalogItemSaved,
+  isMoveFirst, isMoveLast, isReordering, onMoveFirst, onMoveUp, onMoveDown, onMoveLast,
 }) => {
   const [localProject, setLocalProject] = useState(project);
   // ── Storage version resolution ─────────────────────────────────────────────
@@ -435,6 +444,35 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
             onReset={onReset}
             onCatalogRefresh={onCatalogItemSaved}
           />
+          {(onMoveFirst || onMoveUp || onMoveDown || onMoveLast) && (
+            <div className={styles.reorderBar}>
+              <button
+                className={styles.reorderBtn}
+                title="Move First"
+                disabled={!!isMoveFirst || !!isReordering}
+                onClick={onMoveFirst}
+              >⏫</button>
+              <button
+                className={styles.reorderBtn}
+                title="Move Up"
+                disabled={!!isMoveFirst || !!isReordering}
+                onClick={onMoveUp}
+              >▲</button>
+              <button
+                className={styles.reorderBtn}
+                title="Move Down"
+                disabled={!!isMoveLast || !!isReordering}
+                onClick={onMoveDown}
+              >▼</button>
+              <button
+                className={styles.reorderBtn}
+                title="Move Last"
+                disabled={!!isMoveLast || !!isReordering}
+                onClick={onMoveLast}
+              >⏬</button>
+              {isReordering && <span className={styles.reorderSpinner}>saving…</span>}
+            </div>
+          )}
           <ProjectCatalogEditor
             project={localProject}
             projectService={projectService}

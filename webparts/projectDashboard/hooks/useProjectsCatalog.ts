@@ -43,6 +43,15 @@ export function useProjectsCatalog(sp: SPFI): IProjectsCatalogState {
         item.Units = item.Units ?? 0;
         item.resolvedStorageVersion = resolveStorageVersion(item);
         item.WorkOrder = parseWorkOrder(item) ?? undefined;
+
+        // sortOrder: extracted from ProjectDetails JSON blob
+        try {
+          const details = item.ProjectDetails ? JSON.parse(item.ProjectDetails) : {};
+          item.sortOrder = typeof details.sortOrder === 'number' ? details.sortOrder : undefined;
+        } catch {
+          item.sortOrder = undefined;
+        }
+
         return item;
       });
       setProjects(enriched);
