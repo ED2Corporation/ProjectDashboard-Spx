@@ -11,12 +11,15 @@ export interface ITaskListItem {
   Finish?: Date;
   ActualFinish?: Date;
   // Planner-only fields (not used in SP lists)
+  /** SP Description column — also used for SP tasks as JSON {"sortOrder":N} */
   Description?: string;
   EvidenceOfCompletion?: { Url: string; Description: string };
   Barriers?: string;
   Effort?: number;
   ActionableStatus?: string;
   WBS?: string;
+  /** Resolved from Description JSON — controls manual display order within a gate */
+  sortOrder?: number;
   Checklist?: {
     isChecked: boolean,
     title: string,

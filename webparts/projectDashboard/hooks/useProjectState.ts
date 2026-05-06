@@ -161,7 +161,7 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
       const siteRelativePath = config.storageEndpoint?.siteRelPath ?? context.pageContext.web.serverRelativeUrl;
       const effectiveSiteUrl = config.storageEndpoint?.siteUrl ?? SITE_URL;
       const LOG_FIELD_NAMES = ['Notes', 'Evidence', 'Approvals'];
-      const baseSelect = `Id,Title,Gate,Task,Deliverable,Complete,Start,Finish,ActualFinish`;
+      const baseSelect = `Id,Title,Gate,Task,Deliverable,Complete,Start,Finish,ActualFinish,Description`;
 
       const buildSelect = (withLog: boolean): string =>
         withLog ? `${baseSelect},Notes,Evidence,Approvals` : baseSelect;
@@ -208,21 +208,33 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
 
       const responseJson = await response.json();
       const raw: any[] = Array.isArray(responseJson.value) ? responseJson.value : [];  // eslint-disable-line @typescript-eslint/no-explicit-any
-      const loaded: ITaskListItem[] = raw.map(r => ({
-        Id: String(r.Id),
-        Gate: r.Gate ?? "",
-        Task: r.Task ?? "",
-        Title: r.Title ?? undefined,
-        Deliverable: r.Deliverable ?? "",
-        Complete: typeof r.Complete === "number" ? r.Complete : Number(r.Complete) || 0,
-        Start: r.Start ? new Date(r.Start) : undefined,
-        Finish: r.Finish ? new Date(r.Finish) : undefined,
-        ActualFinish: r.ActualFinish ? new Date(r.ActualFinish) : undefined,
-        // Log fields — null if column missing or empty (resilient)
-        Notes:     parseLogField<INoteEntry>(r.Notes),
-        Evidence:  parseLogField<IEvidenceEntry>(r.Evidence),
-        Approvals: parseLogField<IApprovalEntry>(r.Approvals),
-      }));
+      const loaded: ITaskListItem[] = raw.map(r => {
+        // Extract sortOrder from Description JSON — falls back gracefully if missing/invalid
+        let sortOrder: number | undefined;
+        if (r.Description) {
+          try {
+            const desc = JSON.parse(r.Description);
+            if (typeof desc?.sortOrder === 'number') sortOrder = desc.sortOrder;
+          } catch { /* not JSON — legacy plain-text Description, ignore */ }
+        }
+        return {
+          Id: String(r.Id),
+          Gate: r.Gate ?? "",
+          Task: r.Task ?? "",
+          Title: r.Title ?? undefined,
+          Deliverable: r.Deliverable ?? "",
+          Complete: typeof r.Complete === "number" ? r.Complete : Number(r.Complete) || 0,
+          Start: r.Start ? new Date(r.Start) : undefined,
+          Finish: r.Finish ? new Date(r.Finish) : undefined,
+          ActualFinish: r.ActualFinish ? new Date(r.ActualFinish) : undefined,
+          Description: r.Description ?? undefined,
+          sortOrder,
+          // Log fields — null if column missing or empty (resilient)
+          Notes:     parseLogField<INoteEntry>(r.Notes),
+          Evidence:  parseLogField<IEvidenceEntry>(r.Evidence),
+          Approvals: parseLogField<IApprovalEntry>(r.Approvals),
+        };
+      });
       return [...loaded].sort((a, b) => {
         const m = (g: string): string => { const x = g.match(/(\d+(?:\.\d+)*)/); return x ? x[1] : g; };
         return compareWbs(m(a.Gate), m(b.Gate));

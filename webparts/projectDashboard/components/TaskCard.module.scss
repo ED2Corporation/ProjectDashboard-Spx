@@ -68,6 +68,20 @@
   }
 }
 
+.task-reorder-arrows {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-right: $sp-2;
+  padding-right: $sp-2;
+  border-right: 1px solid $c-border;
+
+  button:disabled {
+    opacity: 0.25;
+    cursor: default;
+  }
+}
+
 .task-actions-card {
   display: inline-flex;
   align-items: center;

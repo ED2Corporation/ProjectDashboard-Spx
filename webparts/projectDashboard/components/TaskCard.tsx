@@ -28,6 +28,13 @@ interface TaskCardProps {
   hasPrev?: boolean;
   hasNext?: boolean;
   onNavigate?: (dir: 'prev' | 'next') => void;
+  isMoveFirst?: boolean;
+  isMoveLast?: boolean;
+  isMoving?: boolean;
+  onMoveFirst?: () => void;
+  onMoveUp?: () => void;
+  onMoveDown?: () => void;
+  onMoveLast?: () => void;
   onClose?: () => void;
   onDelete: (id: string) => void;
   onNew: (task: ITaskListItem) => void;
@@ -41,7 +48,7 @@ interface TaskCardProps {
   ) => Promise<{ fileUrl: string; fileName: string }>;
 }
 
-const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDeleting, hasPrev, hasNext, onNavigate, currentUserEmail, currentUserDisplayName, projectInfo, onClose, onSave, onDelete, onNew, onUploadEvidenceFile, onSaveLogField, onSendEmail, onSearchUsers, onTaskCompleted }) => {
+const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDeleting, hasPrev, hasNext, onNavigate, isMoveFirst, isMoveLast, isMoving, onMoveFirst, onMoveUp, onMoveDown, onMoveLast, currentUserEmail, currentUserDisplayName, projectInfo, onClose, onSave, onDelete, onNew, onUploadEvidenceFile, onSaveLogField, onSendEmail, onSearchUsers, onTaskCompleted }) => {
   const [activeTab, setActiveTab] = useState<TaskTab>('notes');
   const canManageApprovers = true; // All users can manage approvers
   const [wbs,             setWbs]             = useState(task.Title ?? "");
@@ -265,6 +272,30 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
       <div className={styles["task-card-header"]}>
         <h1 className={styles["task-title"]}>{task.Task}</h1>
         <div className={styles["task-btn-group"]}>
+          {(onMoveFirst || onMoveUp || onMoveDown || onMoveLast) && (
+            <div className={styles["task-reorder-arrows"]}>
+              <button type="button" className={styles["task-button"]} onClick={onMoveFirst} disabled={!!isMoveFirst || !!isMoving} title="Move First">
+                <svg className={styles["icon-small"]} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M3 3h10M8 13V6M5 9l3-3 3 3"/>
+                </svg>
+              </button>
+              <button type="button" className={styles["task-button"]} onClick={onMoveUp} disabled={!!isMoveFirst || !!isMoving} title="Move Up">
+                <svg className={styles["icon-small"]} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M4 10l4-5 4 5"/>
+                </svg>
+              </button>
+              <button type="button" className={styles["task-button"]} onClick={onMoveDown} disabled={!!isMoveLast || !!isMoving} title="Move Down">
+                <svg className={styles["icon-small"]} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M4 6l4 5 4-5"/>
+                </svg>
+              </button>
+              <button type="button" className={styles["task-button"]} onClick={onMoveLast} disabled={!!isMoveLast || !!isMoving} title="Move Last">
+                <svg className={styles["icon-small"]} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M3 13h10M8 3v7M5 7l3 3 3-3"/>
+                </svg>
+              </button>
+            </div>
+          )}
           <div className={styles["task-nav-arrows"]}>
             <button
               type="button"

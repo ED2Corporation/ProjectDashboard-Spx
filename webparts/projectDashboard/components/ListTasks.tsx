@@ -26,6 +26,8 @@ interface ListGroupProps {
   /** Persist updated Evidence entries for a task */
   onSaveEvidence?: (taskId: string, entries: IEvidenceEntry[]) => Promise<void>;
   currentUserDisplayName?: string;
+  /** Reorder a task within its gate */
+  onMoveTask?: (taskId: string, gate: string, direction: 'first' | 'up' | 'down' | 'last') => Promise<void>;
   onSelectItem: (
     item: ITaskListItem,
     group: string,
@@ -59,9 +61,11 @@ const ListTasks = ({
   onUploadFile,
   onSaveEvidence,
   currentUserDisplayName,
+  onMoveTask,
 }: ListGroupProps): JSX.Element => {
   const [editTaskTitle, setEditTaskTitle] = useState<string>("");
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
+  const [movingTaskId, setMovingTaskId]   = useState<string | null>(null);
   const [editPercentComplete, setEditPercentComplete] = useState<number>(0);
   const [editStart, setEditStart] = useState<string>("");
   const [editFinish, setEditFinish] = useState<string>("");
@@ -109,11 +113,18 @@ const ListTasks = ({
       )
     : visibilityFiltered;
 
+  // Use sortOrder when available (manual order), fall back to WBS
+  const gateHasSortOrder = textFiltered.some(t => t.sortOrder !== undefined);
+
   const sortedTasks = textFiltered.slice().sort((a, b) => {
     let cmp = 0;
     switch (sortCol) {
       case "wbs":
-        cmp = compareWbs(a.Title || "", b.Title || "");
+        if (gateHasSortOrder) {
+          cmp = (a.sortOrder ?? Infinity) - (b.sortOrder ?? Infinity);
+        } else {
+          cmp = compareWbs(a.Title || "", b.Title || "");
+        }
         break;
       case "task":
         cmp = (a.Task || "").localeCompare(b.Task || "");
@@ -600,6 +611,42 @@ const ListTasks = ({
                           </>
                         );
                       })()}
+                      {onMoveTask && (
+                        <div className={styles.actionSubmenuWrap}>
+                          <button type="button" onClick={(e) => e.stopPropagation()} disabled={movingTaskId === item.Id}>
+                            <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M6 2v8M3 5l3-3 3 3M3 7l3 3 3-3"/></svg>
+                            {movingTaskId === item.Id ? 'Moving…' : 'Move'}
+                          </button>
+                          <div className={styles.actionSubmenu}>
+                            {(['first','up','down','last'] as const).map(dir => {
+                              const gateItems = sortedTasks.filter(t => t.Gate === item.Gate);
+                              const idx = gateItems.findIndex(t => t.Id === item.Id);
+                              const disabled = movingTaskId === item.Id
+                                || (dir === 'first' && idx === 0)
+                                || (dir === 'up'    && idx === 0)
+                                || (dir === 'down'  && idx === gateItems.length - 1)
+                                || (dir === 'last'  && idx === gateItems.length - 1);
+                              const labels: Record<string, string> = { first:'⏫ First', up:'▲ Up', down:'▼ Down', last:'⏬ Last' };
+                              return (
+                                <button
+                                  key={dir}
+                                  type="button"
+                                  disabled={disabled}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setMovingTaskId(item.Id);
+                                    onMoveTask(item.Id, item.Gate, dir)
+                                      .finally(() => setMovingTaskId(null));
+                                  }}
+                                >
+                                  {labels[dir]}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                      <div className={styles["ctx-separator"]} />
                       <button
                         type="button"
                         onClick={(e) => {
