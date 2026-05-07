@@ -5,7 +5,7 @@ export interface ITaskListItem {
   Title: string; //WBS Task Title
   Gate: string;
   Task: string;
-  Deliverable: string;
+  Deliverable?: string;
   Complete: number;
   Start?: Date;
   Finish?: Date;
@@ -14,7 +14,7 @@ export interface ITaskListItem {
   /** SP Description column — also used for SP tasks as JSON {"sortOrder":N} */
   Description?: string;
   jsonTable?: string;
-  EvidenceOfCompletion?: { Url: string; Description: string };
+  EvidenceOfCompletion?: { Url?: string; Description?: string };
   Barriers?: string;
   Effort?: number;
   ActionableStatus?: string;

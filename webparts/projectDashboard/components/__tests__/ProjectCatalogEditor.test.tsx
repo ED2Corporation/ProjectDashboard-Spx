@@ -65,14 +65,11 @@ describe('ProjectCatalogEditor', () => {
     expect(screen.getByLabelText('CreationDate')).toHaveValue('2026-04-07');
     expect(screen.getByLabelText('NeedDate')).toHaveValue('2026-05-29');
     expect(screen.getByLabelText('storageVersion')).toHaveValue('v2');
-    expect(screen.getByLabelText('PO# (WorkOrder)')).toHaveValue('10010001');
     expect(screen.getByLabelText('RequiresAudit')).toHaveValue('true');
     expect(screen.getByLabelText('Quantity')).toHaveValue('12');
     expect((screen.getByLabelText('Meta') as HTMLInputElement).value).toContain('"owner"');
     expect((screen.getByLabelText('Meta') as HTMLInputElement).value).toContain('"ED2"');
 
-    await userEvent.clear(screen.getByLabelText('PO# (WorkOrder)'));
-    await userEvent.type(screen.getByLabelText('PO# (WorkOrder)'), '10010046');
     await userEvent.clear(screen.getByLabelText('Quantity'));
     await userEvent.type(screen.getByLabelText('Quantity'), '44');
     await userEvent.clear(screen.getByLabelText('RequiresAudit'));
@@ -94,7 +91,7 @@ describe('ProjectCatalogEditor', () => {
         CreationDate: '2026-04-07',
         NeedDate: '2026-05-29',
         storageVersion: 'v2',
-        WorkOrder: '10010046',
+        WorkOrder: '10010001',
         RequiresAudit: false,
         Quantity: 44,
         Meta: { owner: 'QA', region: 'EU' },

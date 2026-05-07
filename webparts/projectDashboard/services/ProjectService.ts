@@ -227,6 +227,14 @@ export class ProjectService implements IProjectService {
         return gates;
     }
 
+    private async _listHasField(listName: string, fieldName: string): Promise<boolean> {
+        const fields: Array<{ InternalName?: string }> = await this._sp.web.lists
+            .getByTitle(listName)
+            .fields
+            .select("InternalName")();
+        return fields.some(field => field.InternalName === fieldName);
+    }
+
     private _buildTaskCsvBlob(items: any[]): Blob { // eslint-disable-line @typescript-eslint/no-explicit-any
 
         const headers = [
@@ -492,6 +500,7 @@ export class ProjectService implements IProjectService {
         }
 
         const list = this._sp.web.lists.getByTitle(listName);
+        const hasDeliverableField = await this._listHasField(listName, "Deliverable");
         for (const row of rows) {
             const gate = row.Gate || defaultGate || "0. New Gate";
             const taskTitle = row.Task;
@@ -507,12 +516,15 @@ export class ProjectService implements IProjectService {
             if (complete < 0 || complete > 100) { console.warn("Skipping row: invalid Complete value", row); continue; }
 
             const nextWbs = await this._getNextWbsForGate(listName, gate);
-            await list.items.add({
+            const payload: Record<string, unknown> = {
                 Gate: gate, Task: taskTitle, Title: nextWbs,
-                Deliverable: row.Deliverable || "",
                 Complete: complete, Start: toIso(row.Start), Finish: toIso(row.Finish),
                 ActualFinish: toIso(row.ActualFinish)
-            });
+            };
+            if (hasDeliverableField) {
+                payload.Deliverable = row.Deliverable || "";
+            }
+            await list.items.add(payload);
         }
 
     }
