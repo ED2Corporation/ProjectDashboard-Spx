@@ -1,0 +1,176 @@
+@import './styles/tokens';
+
+.card {
+  margin: 0 $sp-5 $sp-5;
+  padding: $sp-4;
+  border-top: 1px solid $c-border-subtle;
+  background: $c-surface-soft;
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: $sp-4;
+  margin-bottom: $sp-4;
+}
+
+.title {
+  margin: 0 0 $sp-1;
+  font-size: $f-md;
+  color: $c-text;
+}
+
+.subtitle {
+  margin: 0;
+  font-size: $f-xs;
+  color: $c-text-subtle;
+}
+
+.itemsField {
+  display: flex;
+  align-items: center;
+  gap: $sp-2;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: $c-text-subtle;
+
+  input {
+    width: 88px;
+    min-width: 88px;
+    border: 1px solid $c-border;
+    border-radius: $r-sm;
+    background: $c-surface;
+    padding: 6px 8px;
+    font-size: 12px;
+    color: $c-text;
+  }
+}
+
+.tableWrap {
+  overflow-x: auto;
+  border: 1px solid $c-border-subtle;
+  border-radius: $r-md;
+  background: $c-surface;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+
+  th,
+  td {
+    border-bottom: 1px solid $c-border-subtle;
+    padding: 8px;
+    text-align: left;
+    vertical-align: middle;
+    font-size: 12px;
+  }
+
+  th {
+    background: $c-surface-soft;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: $c-text-subtle;
+    white-space: nowrap;
+  }
+
+  td input {
+    width: 100%;
+    min-width: 72px;
+    border: 1px solid $c-border;
+    border-radius: $r-sm;
+    background: $c-surface;
+    padding: 6px 8px;
+    font-size: 12px;
+    color: $c-text;
+    box-sizing: border-box;
+  }
+}
+
+.completeCell {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  white-space: nowrap;
+  min-width: 140px;
+}
+
+.completePercent {
+  font-weight: 700;
+  color: $c-text;
+}
+
+.completeDate {
+  color: $c-text-subtle;
+  font-size: 11px;
+}
+
+.actionsCell {
+  width: 72px;
+  white-space: nowrap;
+  text-align: center;
+}
+
+.actionsGroup {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.removeBtn,
+.addBtn,
+.acceptBtn {
+  border: 1px solid $c-border;
+  border-radius: $r-sm;
+  background: $c-surface;
+  color: $c-primary;
+  padding: 6px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: $t-fast;
+
+  &:hover {
+    border-color: $c-primary;
+    background: $c-primary-bg;
+  }
+}
+
+.acceptBtn {
+  min-width: 34px;
+  padding: 6px 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.removeBtn {
+  min-width: 34px;
+  padding: 6px 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  svg {
+    width: 12px;
+    height: 12px;
+  }
+}
+
+.emptyState {
+  padding: 16px;
+  text-align: center;
+  color: $c-text-subtle;
+}
+
+.footer {
+  margin-top: $sp-3;
+  display: flex;
+  justify-content: flex-start;
+}

@@ -14,6 +14,7 @@ import { MessageLog } from '../utils/MessageLog';
 import { compareWbs, computeShiftedWbs, computeUnshiftedWbs, nextWbsAfterInsert } from '../utils/ParseWBS';
 import { ensureFolder, uploadEvidenceFile } from '../services/UploadService';
 import { StorageEndpoint } from '../utils/StorageVersionResolver';
+import { getTaskSortOrder } from '../utils/TaskDescriptionBlob';
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 const MSG_INFO = 0;
@@ -210,13 +211,7 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
       const raw: any[] = Array.isArray(responseJson.value) ? responseJson.value : [];  // eslint-disable-line @typescript-eslint/no-explicit-any
       const loaded: ITaskListItem[] = raw.map(r => {
         // Extract sortOrder from Description JSON — falls back gracefully if missing/invalid
-        let sortOrder: number | undefined;
-        if (r.Description) {
-          try {
-            const desc = JSON.parse(r.Description);
-            if (typeof desc?.sortOrder === 'number') sortOrder = desc.sortOrder;
-          } catch { /* not JSON — legacy plain-text Description, ignore */ }
-        }
+        const sortOrder = getTaskSortOrder(r.Description);
         return {
           Id: String(r.Id),
           Gate: r.Gate ?? "",
@@ -675,7 +670,8 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
         Complete: curr,
         Start: data.Start,
         Finish: data.Finish,
-        ActualFinish: actualFinishValue
+        ActualFinish: actualFinishValue,
+        Description: data.Description
       });
 
       // Rename gate for all other tasks in the same gate
@@ -694,7 +690,7 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
     }
 
     const r: any = await itemRef.select( // eslint-disable-line @typescript-eslint/no-explicit-any
-      "Id","Gate","Task","Deliverable","Complete","Start","Finish","ActualFinish","Title"
+      "Id","Gate","Task","Deliverable","Complete","Start","Finish","ActualFinish","Title","Description"
     )();
 
     const task: ITaskListItem = {
@@ -706,7 +702,9 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
       Start: r.Start ? new Date(r.Start) : undefined,
       Finish: r.Finish ? new Date(r.Finish) : undefined,
       ActualFinish: r.ActualFinish ? new Date(r.ActualFinish) : undefined,
-      Title: r.Title ?? undefined
+      Title: r.Title ?? undefined,
+      Description: r.Description ?? data.Description ?? undefined,
+      sortOrder: getTaskSortOrder(r.Description ?? data.Description)
     };
     setSelectedTask(task);
   }, [config.sourceName, sp]);

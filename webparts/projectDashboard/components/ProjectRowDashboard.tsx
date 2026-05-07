@@ -20,6 +20,7 @@ import TaskCard from "./TaskCard";
 import ProjectActionsBar from "./ProjectActionsBar";
 import ProjectCatalogEditor from "./ProjectCatalogEditor";
 import styles from "./ProjectRowDashboard.module.scss";
+import { buildTaskDescription } from "../utils/TaskDescriptionBlob";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -266,11 +267,10 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
       reordered.forEach((t, i) => {
         const newOrder = i + 1;
         if (t.sortOrder !== newOrder) {
-          const existing: Record<string, unknown> = t.Description ? (() => {
-            try { return JSON.parse(t.Description) as Record<string, unknown>; } catch { return {}; }
-          })() : {};
-          existing.sortOrder = newOrder;
-          updates.push({ id: Number(t.Id), desc: JSON.stringify(existing) });
+          updates.push({
+            id: Number(t.Id),
+            desc: buildTaskDescription(t.Description, { sortOrder: newOrder }) || JSON.stringify({ sortOrder: newOrder })
+          });
         }
       });
 

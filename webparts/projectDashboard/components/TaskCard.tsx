@@ -5,6 +5,8 @@ import styles from "./TaskCard.module.scss";
 import NotesLog from "./NotesLog";
 import EvidenceLog from "./EvidenceLog";
 import ApprovalsLog from "./ApprovalsLog";
+import SubprocessCard from "./SubprocessCard";
+import { buildTaskDescription, getTaskSortOrder, getTaskSubprocess, ITaskSubprocessData } from "../utils/TaskDescriptionBlob";
 
 type TaskTab = 'notes' | 'evidence' | 'approvals';
 
@@ -87,6 +89,9 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
   const [evidenceOfCompletion, setEvidenceOfCompletion] = useState<ITaskListItem["EvidenceOfCompletion"]>(task.EvidenceOfCompletion);
   const [notesLog, setNotesLog] = useState<INoteEntry[]>(task.Notes ?? []);
   const [evidenceLog, setEvidenceLog] = useState<IEvidenceEntry[]>(task.Evidence ?? []);
+  const initialSubprocess = getTaskSubprocess(task.Description);
+  const [showSubprocess, setShowSubprocess] = useState(false);
+  const [subprocess, setSubprocess] = useState<ITaskSubprocessData>(initialSubprocess);
   const notesLogRef        = useRef<INoteEntry[]>(task.Notes ?? []);
   const previousCompleteRef = useRef<number>(task.Complete ?? 0);
   const skipNextCompleteEffectRef = useRef(false);
@@ -108,6 +113,8 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
     setNotesLog(task.Notes ?? []);
     notesLogRef.current = task.Notes ?? [];
     setEvidenceLog(task.Evidence ?? []);
+    setShowSubprocess(false);
+    setSubprocess(getTaskSubprocess(task.Description));
     previousCompleteRef.current = task.Complete ?? 0;
   }, [task]);
 
@@ -125,6 +132,13 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
         : null;
 
     const gateChanged = gate !== task.Gate;
+    const sortOrder = getTaskSortOrder(task.Description);
+    const hasSubprocessData = subprocess.items > 0 || subprocess.subTasks.length > 0;
+    const description = buildTaskDescription(task.Description, {
+      sortOrder,
+      subprocess: hasSubprocessData ? subprocess : undefined,
+      clearSubprocess: !hasSubprocessData,
+    });
     const data = {
       Id: task.Id,
       Title: wbs,
@@ -138,6 +152,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
       Start: start ? new Date(start) : undefined,
       Finish: finish ? new Date(finish) : undefined,
       ActualFinish: actualFinish,
+      Description: description,
       EvidenceOfCompletion: effectiveEvidence,
       ...(gateChanged && { originalGate: task.Gate, renameGate: renameAllGateTasks }),
     };
@@ -354,6 +369,14 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
           <div className={styles["task-btn-spacer"]} />
 
           {/* ── Save / Close ── */}
+          <button
+            type="button"
+            className={`${styles["task-button"]} ${styles["task-button-save"]} ${showSubprocess ? styles["task-button-toggle-active"] : ""}`}
+            onClick={() => setShowSubprocess(prev => !prev)}
+            title="Subprocess"
+          >
+            <span className={styles["task-button-label"]}>Subprocess</span>
+          </button>
           <button
             type="button"
             className={`${styles["task-button"]} ${styles["task-button-save"]}`}
@@ -590,6 +613,15 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
           </div>
         </div>
       </div>
+      {showSubprocess && (
+        <SubprocessCard
+          parentWbs={wbs}
+          parentStart={start}
+          parentFinish={finish}
+          value={subprocess}
+          onChange={setSubprocess}
+        />
+      )}
     </div>
   );
 };

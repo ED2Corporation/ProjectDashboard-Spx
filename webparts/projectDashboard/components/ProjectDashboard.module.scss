@@ -252,18 +252,18 @@
 }
 
 .colEvidence {
-  width: 130px;
+  width: 92px;
   vertical-align: middle;
   padding: 0 6px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 130px;
+  max-width: 92px;
 }
 
 .evidenceLink {
   display: inline-block;
-  max-width: 120px;
+  max-width: 82px;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
@@ -431,9 +431,9 @@
   width: 100%;
   cursor: pointer;
   color: $c-primary;
-  white-space: normal;
-  word-break: break-word;
-  overflow-wrap: anywhere;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   transition: color 0.15s ease;
 
   &:hover {
@@ -538,6 +538,11 @@
 
 .ed2Table th.colDate,
 .ed2Table td.colDate {
+  width: 92px;
+}
+
+.ed2Table th.colEvidence,
+.ed2Table td.colEvidence {
   width: 92px;
 }
 
