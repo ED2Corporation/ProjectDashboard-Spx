@@ -20,7 +20,7 @@ import TaskCard from "./TaskCard";
 import ProjectActionsBar from "./ProjectActionsBar";
 import ProjectCatalogEditor from "./ProjectCatalogEditor";
 import styles from "./ProjectRowDashboard.module.scss";
-import { buildTaskDescription } from "../utils/TaskDescriptionBlob";
+import { buildTaskJsonTable } from "../utils/TaskDescriptionBlob";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -263,20 +263,20 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
       else                            reordered.splice(idx + 1, 0, moved);
 
       // Assign sequential sortOrders — only update changed items
-      const updates: Array<{ id: number; desc: string }> = [];
+      const updates: Array<{ id: number; jsonTable: string }> = [];
       reordered.forEach((t, i) => {
         const newOrder = i + 1;
         if (t.sortOrder !== newOrder) {
           updates.push({
             id: Number(t.Id),
-            desc: buildTaskDescription(t.Description, { sortOrder: newOrder }) || JSON.stringify({ sortOrder: newOrder })
+            jsonTable: buildTaskJsonTable(t.jsonTable ?? t.Description, { sortOrder: newOrder }) || JSON.stringify({ sortOrder: newOrder })
           });
         }
       });
 
       await Promise.all(
         updates.map(u =>
-          projectSp.web.lists.getByTitle(listName).items.getById(u.id).update({ Description: u.desc })
+          projectSp.web.lists.getByTitle(listName).items.getById(u.id).update({ jsonTable: u.jsonTable })
         )
       );
 
@@ -466,8 +466,7 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
             {localProject.PartNumber}
           </div>
           <div className={styles.projectSubtitle}>
-            {localProject.WorkOrder && <><span className={styles.woTag}>PO# {localProject.WorkOrder}</span>{' '}</>}
-            {localProject.ProjectNumber}
+            {localProject.ProjectNumber && <><span className={styles.woTag}>WO# {localProject.ProjectNumber}</span></>}
             {!!localProject.Units && (
               <span className={styles.unitsTag}> ({localProject.Units} units)</span>
             )}

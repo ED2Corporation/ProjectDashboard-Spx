@@ -277,15 +277,17 @@ const ProjectCatalogEditor: React.FC<ProjectCatalogEditorProps> = ({
         {/* Project details */}
         <div className={`${styles.field} ${styles.fieldFull}`}>
           <label className={styles.label}>ProjectDetails</label>
-          {projectDetailsFields.length > 0 ? (
+          {projectDetailsFields.filter(field => field.key !== 'WorkOrder').length > 0 ? (
             <div className={styles.detailsGrid}>
-              {projectDetailsFields.map(field => (
+              {projectDetailsFields
+                .filter(field => field.key !== 'WorkOrder')
+                .map(field => (
                 <div key={field.key} className={styles.detailsField}>
                   <label
                     className={styles.label}
                     htmlFor={`project-detail-${field.key.replace(/[^a-zA-Z0-9_-]/g, '-')}`}
                   >
-                    {field.key === 'WorkOrder' ? 'PO# (WorkOrder)' : field.key}
+                    {field.key}
                   </label>
                   <input
                     id={`project-detail-${field.key.replace(/[^a-zA-Z0-9_-]/g, '-')}`}

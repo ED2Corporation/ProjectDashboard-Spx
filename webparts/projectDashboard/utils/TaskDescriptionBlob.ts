@@ -13,7 +13,7 @@ export interface ITaskSubprocessData {
   subTasks: ISubprocessSubTask[];
 }
 
-type DescriptionObject = Record<string, unknown>;
+type TaskJsonTableObject = Record<string, unknown>;
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   !!value && typeof value === "object" && !Array.isArray(value);
@@ -42,7 +42,7 @@ const normalizeSubTask = (value: unknown, index: number): ISubprocessSubTask => 
   };
 };
 
-export const parseTaskDescriptionObject = (raw?: string): DescriptionObject => {
+export const parseTaskJsonTableObject = (raw?: string): TaskJsonTableObject => {
   if (!raw || typeof raw !== "string") return {};
   try {
     const parsed = JSON.parse(raw);
@@ -53,12 +53,12 @@ export const parseTaskDescriptionObject = (raw?: string): DescriptionObject => {
 };
 
 export const getTaskSortOrder = (raw?: string): number | undefined => {
-  const parsed = parseTaskDescriptionObject(raw);
+  const parsed = parseTaskJsonTableObject(raw);
   return typeof parsed.sortOrder === "number" ? parsed.sortOrder : undefined;
 };
 
 export const getTaskSubprocess = (raw?: string): ITaskSubprocessData => {
-  const parsed = parseTaskDescriptionObject(raw);
+  const parsed = parseTaskJsonTableObject(raw);
   const subprocess = isRecord(parsed.subprocess) ? parsed.subprocess : {};
   const subTasksRaw = Array.isArray(subprocess.subTasks) ? subprocess.subTasks : [];
 
@@ -68,7 +68,7 @@ export const getTaskSubprocess = (raw?: string): ITaskSubprocessData => {
   };
 };
 
-export const buildTaskDescription = (
+export const buildTaskJsonTable = (
   raw: string | undefined,
   options: {
     sortOrder?: number;
@@ -76,7 +76,7 @@ export const buildTaskDescription = (
     clearSubprocess?: boolean;
   }
 ): string | undefined => {
-  const next: DescriptionObject = parseTaskDescriptionObject(raw);
+  const next: TaskJsonTableObject = parseTaskJsonTableObject(raw);
 
   if (!Object.keys(next).length && raw && raw.trim()) {
     next.legacyText = raw;

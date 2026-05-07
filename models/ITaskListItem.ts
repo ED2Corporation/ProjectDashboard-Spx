@@ -13,6 +13,7 @@ export interface ITaskListItem {
   // Planner-only fields (not used in SP lists)
   /** SP Description column — also used for SP tasks as JSON {"sortOrder":N} */
   Description?: string;
+  jsonTable?: string;
   EvidenceOfCompletion?: { Url: string; Description: string };
   Barriers?: string;
   Effort?: number;

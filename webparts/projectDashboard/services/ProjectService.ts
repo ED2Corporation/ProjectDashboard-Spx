@@ -231,7 +231,7 @@ export class ProjectService implements IProjectService {
 
         const headers = [
             "Id", "Title", "Gate", "Task", "Deliverable", "Complete", "Start", "Finish", "ActualFinish",
-            "Description", "EvidenceOfCompletion", "Barriers", "Effort", "ActionableStatus", "WBS",
+            "Description", "jsonTable", "EvidenceOfCompletion", "Barriers", "Effort", "ActionableStatus", "WBS",
             "Checklist", "Notes", "Evidence", "Approvals"
         ];
 
@@ -262,6 +262,7 @@ export class ProjectService implements IProjectService {
                     formatDate(i.Finish),
                     formatDate(i.ActualFinish),
                     csv(i.Description),
+                    csv(i.jsonTable ?? i.JsonTable),
                     csv(i.EvidenceOfCompletion),
                     csv(i.Barriers),
                     i.Effort ?? "",
@@ -305,6 +306,8 @@ export class ProjectService implements IProjectService {
                 start: item.Start,
                 finish: item.Finish,
                 actualFinish: item.ActualFinish,
+                description: item.Description ?? "",
+                jsonTable: item.jsonTable ?? item.JsonTable ?? "",
                 evidenceOfCompletion: parseArray<{ fileName: string; fileUrl: string; isEvidenceOfCompletion?: boolean }>(item.Evidence)
                     .find(entry => entry.isEvidenceOfCompletion) ?? null,
                 notes: parseArray(item.Notes),

@@ -162,27 +162,51 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
       const siteRelativePath = config.storageEndpoint?.siteRelPath ?? context.pageContext.web.serverRelativeUrl;
       const effectiveSiteUrl = config.storageEndpoint?.siteUrl ?? SITE_URL;
       const LOG_FIELD_NAMES = ['Notes', 'Evidence', 'Approvals'];
-      const baseSelect = `Id,Title,Gate,Task,Deliverable,Complete,Start,Finish,ActualFinish,Description`;
+      const TASK_FIELD_NAMES = ['jsonTable'];
 
-      const buildSelect = (withLog: boolean): string =>
-        withLog ? `${baseSelect},Notes,Evidence,Approvals` : baseSelect;
+      const buildSelect = (withLog: boolean, withJsonTable: boolean): string => {
+        const baseFields = [
+          'Id', 'Title', 'Gate', 'Task', 'Deliverable', 'Complete', 'Start', 'Finish', 'ActualFinish', 'Description',
+          ...(withJsonTable ? ['jsonTable'] : [])
+        ];
+        return withLog ? `${baseFields.join(',')},Notes,Evidence,Approvals` : baseFields.join(',');
+      };
 
-      const fetchItems = (withLog: boolean): Promise<SPHttpClientResponse> => {
-        const queryUrl = `${effectiveSiteUrl}${siteRelativePath}/_api/web/lists/getbytitle('${project.ListName}')/items?$select=${buildSelect(withLog)}`;
+      const fetchItems = (withLog: boolean, withJsonTable: boolean): Promise<SPHttpClientResponse> => {
+        const queryUrl = `${effectiveSiteUrl}${siteRelativePath}/_api/web/lists/getbytitle('${project.ListName}')/items?$select=${buildSelect(withLog, withJsonTable)}`;
         return context.spHttpClient.get(queryUrl, SPHttpClient.configurations.v1);
       };
 
       // If we already know log fields are absent, skip straight to reduced query
       const tryWithLog = logFieldsAvailableRef.current !== false;
-      let response = await fetchItems(tryWithLog);
+      let includeJsonTable = true;
+      let response = await fetchItems(tryWithLog, includeJsonTable);
 
-      // On 400, check if it's a missing log-field error and retry without them
+      // On 400, handle missing optional fields and retry with a reduced query
       if (!response.ok && response.status === 400 && tryWithLog) {
         const errText = await response.text();
         const isLogFieldError = LOG_FIELD_NAMES.some(f => errText.includes(`'${f}'`)) && errText.includes('does not exist');
+        const isJsonTableFieldError = TASK_FIELD_NAMES.some(f => errText.includes(`'${f}'`)) && errText.includes('does not exist');
         if (isLogFieldError) {
           setLogFieldsAvailable(false);
-          response = await fetchItems(false);
+          response = await fetchItems(false, includeJsonTable);
+        } else if (isJsonTableFieldError) {
+          includeJsonTable = false;
+          response = await fetchItems(tryWithLog, false);
+        } else {
+          console.error("[_getTaskListItems] HTTP error:", response.status, errText);
+          setSysError(true);
+          setEnvironmentMessage(errText);
+          return [];
+        }
+      }
+
+      if (!response.ok && response.status === 400 && includeJsonTable) {
+        const errText = await response.text();
+        const isJsonTableFieldError = TASK_FIELD_NAMES.some(f => errText.includes(`'${f}'`)) && errText.includes('does not exist');
+        if (isJsonTableFieldError) {
+          includeJsonTable = false;
+          response = await fetchItems(logFieldsAvailableRef.current !== false, false);
         } else {
           console.error("[_getTaskListItems] HTTP error:", response.status, errText);
           setSysError(true);
@@ -211,7 +235,8 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
       const raw: any[] = Array.isArray(responseJson.value) ? responseJson.value : [];  // eslint-disable-line @typescript-eslint/no-explicit-any
       const loaded: ITaskListItem[] = raw.map(r => {
         // Extract sortOrder from Description JSON — falls back gracefully if missing/invalid
-        const sortOrder = getTaskSortOrder(r.Description);
+        const jsonTable = r.jsonTable ?? r.JsonTable ?? r.Description ?? undefined;
+        const sortOrder = getTaskSortOrder(jsonTable);
         return {
           Id: String(r.Id),
           Gate: r.Gate ?? "",
@@ -223,6 +248,7 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
           Finish: r.Finish ? new Date(r.Finish) : undefined,
           ActualFinish: r.ActualFinish ? new Date(r.ActualFinish) : undefined,
           Description: r.Description ?? undefined,
+          jsonTable,
           sortOrder,
           // Log fields — null if column missing or empty (resilient)
           Notes:     parseLogField<INoteEntry>(r.Notes),
@@ -671,7 +697,8 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
         Start: data.Start,
         Finish: data.Finish,
         ActualFinish: actualFinishValue,
-        Description: data.Description
+        Description: data.Description,
+        jsonTable: data.jsonTable
       });
 
       // Rename gate for all other tasks in the same gate
@@ -690,8 +717,9 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
     }
 
     const r: any = await itemRef.select( // eslint-disable-line @typescript-eslint/no-explicit-any
-      "Id","Gate","Task","Deliverable","Complete","Start","Finish","ActualFinish","Title","Description"
+      "Id","Gate","Task","Deliverable","Complete","Start","Finish","ActualFinish","Title","Description","jsonTable"
     )();
+    const jsonTable = r.jsonTable ?? r.JsonTable ?? data.jsonTable ?? data.Description ?? undefined;
 
     const task: ITaskListItem = {
       Id: String(r.Id),
@@ -704,7 +732,8 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
       ActualFinish: r.ActualFinish ? new Date(r.ActualFinish) : undefined,
       Title: r.Title ?? undefined,
       Description: r.Description ?? data.Description ?? undefined,
-      sortOrder: getTaskSortOrder(r.Description ?? data.Description)
+      jsonTable,
+      sortOrder: getTaskSortOrder(jsonTable)
     };
     setSelectedTask(task);
   }, [config.sourceName, sp]);
@@ -819,6 +848,7 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
     await _ensureMultilineField(list, "Notes");
     await _ensureMultilineField(list, "Evidence");
     await _ensureMultilineField(list, "Approvals");
+    await _ensureMultilineField(list, "jsonTable");
 
     await _ensureDefaultViewFields(list, ["Title","Gate","Task","Deliverable","Complete","Start","Finish","ActualFinish"]);
   }, [sp, _ensureTextField, _ensureNumberField, _ensureDateField, _ensureMultilineField, _ensureDefaultViewFields]);

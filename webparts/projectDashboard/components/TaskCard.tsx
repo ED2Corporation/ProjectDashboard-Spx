@@ -6,7 +6,7 @@ import NotesLog from "./NotesLog";
 import EvidenceLog from "./EvidenceLog";
 import ApprovalsLog from "./ApprovalsLog";
 import SubprocessCard from "./SubprocessCard";
-import { buildTaskDescription, getTaskSortOrder, getTaskSubprocess, ITaskSubprocessData } from "../utils/TaskDescriptionBlob";
+import { buildTaskJsonTable, getTaskSortOrder, getTaskSubprocess, ITaskSubprocessData } from "../utils/TaskDescriptionBlob";
 
 type TaskTab = 'notes' | 'evidence' | 'approvals';
 
@@ -89,7 +89,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
   const [evidenceOfCompletion, setEvidenceOfCompletion] = useState<ITaskListItem["EvidenceOfCompletion"]>(task.EvidenceOfCompletion);
   const [notesLog, setNotesLog] = useState<INoteEntry[]>(task.Notes ?? []);
   const [evidenceLog, setEvidenceLog] = useState<IEvidenceEntry[]>(task.Evidence ?? []);
-  const initialSubprocess = getTaskSubprocess(task.Description);
+  const initialSubprocess = getTaskSubprocess(task.jsonTable ?? task.Description);
   const [showSubprocess, setShowSubprocess] = useState(false);
   const [subprocess, setSubprocess] = useState<ITaskSubprocessData>(initialSubprocess);
   const notesLogRef        = useRef<INoteEntry[]>(task.Notes ?? []);
@@ -114,7 +114,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
     notesLogRef.current = task.Notes ?? [];
     setEvidenceLog(task.Evidence ?? []);
     setShowSubprocess(false);
-    setSubprocess(getTaskSubprocess(task.Description));
+    setSubprocess(getTaskSubprocess(task.jsonTable ?? task.Description));
     previousCompleteRef.current = task.Complete ?? 0;
   }, [task]);
 
@@ -132,9 +132,9 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
         : null;
 
     const gateChanged = gate !== task.Gate;
-    const sortOrder = getTaskSortOrder(task.Description);
+    const sortOrder = getTaskSortOrder(task.jsonTable ?? task.Description);
     const hasSubprocessData = subprocess.items > 0 || subprocess.subTasks.length > 0;
-    const description = buildTaskDescription(task.Description, {
+    const jsonTable = buildTaskJsonTable(task.jsonTable ?? task.Description, {
       sortOrder,
       subprocess: hasSubprocessData ? subprocess : undefined,
       clearSubprocess: !hasSubprocessData,
@@ -152,7 +152,8 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
       Start: start ? new Date(start) : undefined,
       Finish: finish ? new Date(finish) : undefined,
       ActualFinish: actualFinish,
-      Description: description,
+      Description: task.Description,
+      jsonTable,
       EvidenceOfCompletion: effectiveEvidence,
       ...(gateChanged && { originalGate: task.Gate, renameGate: renameAllGateTasks }),
     };
