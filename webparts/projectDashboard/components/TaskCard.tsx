@@ -621,6 +621,11 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
           parentFinish={finish}
           value={subprocess}
           onChange={setSubprocess}
+          currentUserEmail={currentUserEmail}
+          currentUserDisplayName={currentUserDisplayName}
+          onUploadEvidenceFile={onUploadEvidenceFile}
+          onSendEmail={onSendEmail}
+          onSearchUsers={onSearchUsers}
         />
       )}
     </div>

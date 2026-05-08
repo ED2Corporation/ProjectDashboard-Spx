@@ -83,6 +83,20 @@ function parseLogField<T>(raw: unknown): T[] | null {
   catch { return null; }
 }
 
+function hasMissingFieldError(errorText: string, fieldName: string): boolean {
+  const haystack = errorText.toLowerCase();
+  const needle = fieldName.toLowerCase();
+  return (
+    haystack.includes(needle) &&
+    (
+      haystack.includes('does not exist') ||
+      haystack.includes('cannot be found') ||
+      haystack.includes('field or property') ||
+      haystack.includes('property does not exist')
+    )
+  );
+}
+
 // ─── Pure helpers ─────────────────────────────────────────────────────────────
 function buildProjectInfo(
   projectName: string,
@@ -214,9 +228,9 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
       // On 400, handle missing optional fields and retry with a reduced query
       if (!response.ok && response.status === 400 && tryWithLog) {
         const errText = await response.text();
-        const isLogFieldError = LOG_FIELD_NAMES.some(f => errText.includes(`'${f}'`)) && errText.includes('does not exist');
-        const isJsonTableFieldError = errText.includes(`'jsonTable'`) && errText.includes('does not exist');
-        const isDeliverableFieldError = errText.includes(`'Deliverable'`) && errText.includes('does not exist');
+        const isLogFieldError = LOG_FIELD_NAMES.some(f => hasMissingFieldError(errText, f));
+        const isJsonTableFieldError = hasMissingFieldError(errText, 'jsonTable');
+        const isDeliverableFieldError = hasMissingFieldError(errText, 'Deliverable');
         if (isLogFieldError) {
           setLogFieldsAvailable(false);
           response = await fetchItems(false, includeJsonTable);
@@ -237,8 +251,8 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
 
       if (!response.ok && response.status === 400 && includeJsonTable) {
         const errText = await response.text();
-        const isJsonTableFieldError = errText.includes(`'jsonTable'`) && errText.includes('does not exist');
-        const isDeliverableFieldError = errText.includes(`'Deliverable'`) && errText.includes('does not exist');
+        const isJsonTableFieldError = hasMissingFieldError(errText, 'jsonTable');
+        const isDeliverableFieldError = hasMissingFieldError(errText, 'Deliverable');
         if (isJsonTableFieldError) {
           includeJsonTable = false;
           setJsonTableFieldAvailable(false);

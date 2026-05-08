@@ -895,3 +895,11 @@
     accent-color: $c-primary;
   }
 }
+
+.taskRowSubprocess {
+  background: linear-gradient(180deg, rgba(15, 118, 110, 0.03) 0%, rgba(15, 118, 110, 0) 100%);
+}
+
+.subprocessTaskName {
+  color: #0f766e;
+}

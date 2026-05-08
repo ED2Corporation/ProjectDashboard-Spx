@@ -92,6 +92,18 @@ const ProjectActionsBar: React.FC<IProjectActionsBarProps> = ({
     isImporting ? "Importing tasks..." : "";
   const showSuccess = !isProcessing && !!successMessage;
 
+  const openExternalLink = (
+    event: React.MouseEvent<HTMLAnchorElement>,
+    url?: string
+  ): void => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (!url) return;
+
+    window.open(url, "_blank", "noopener,noreferrer");
+  };
+
   React.useEffect(() => {
     return () => {
       if (successTimerRef.current) {
@@ -245,6 +257,7 @@ const ProjectActionsBar: React.FC<IProjectActionsBarProps> = ({
         rel="noopener noreferrer"
         className={styles.btnQuickLink}
         title="Open the SharePoint task list for this project"
+        onClick={(event) => openExternalLink(event, listUrl)}
       >
         <IconListLink />
         List
@@ -256,6 +269,7 @@ const ProjectActionsBar: React.FC<IProjectActionsBarProps> = ({
         rel="noopener noreferrer"
         className={styles.btnQuickLink}
         title="Open the evidence repository for this project"
+        onClick={(event) => openExternalLink(event, repoUrl)}
       >
         <IconRepoLink />
         Repo
