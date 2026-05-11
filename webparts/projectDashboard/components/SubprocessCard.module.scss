@@ -25,6 +25,14 @@
   gap: $sp-2;
 }
 
+.contextActions {
+  display: flex;
+  align-items: center;
+  gap: $sp-2;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
 .kicker {
   margin-bottom: $sp-1;
   font-size: 10px;
@@ -83,10 +91,29 @@
   letter-spacing: 0.06em;
 }
 
+.closeBtn {
+  border: 1px solid rgba(15, 118, 110, 0.18);
+  border-radius: $r-sm;
+  background: $c-surface;
+  color: #0f766e;
+  padding: 6px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: $t-fast;
+
+  &:hover {
+    background: #eef9f8;
+    border-color: rgba(15, 118, 110, 0.34);
+  }
+}
+
 .listShell {
   border: 1px solid rgba(14, 116, 144, 0.12);
   border-radius: $r-md;
-  overflow: hidden;
+  overflow: visible;
   background: $c-surface;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
 }
@@ -145,30 +172,19 @@
 }
 
 .subtaskNameWrap {
-  display: inline-flex;
-  align-items: center;
-  gap: $sp-2;
+  display: block;
   min-width: 0;
 }
 
-.subtaskAccent {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 22px;
-  height: 18px;
-  padding: 0 6px;
-  border-radius: 999px;
-  background: rgba(15, 118, 110, 0.09);
-  color: #0f766e;
-  font-size: 9px;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  flex-shrink: 0;
+.subtaskWbs {
+  width: 50px;
+  min-width: 50px;
+  max-width: 50px;
 }
 
 .subtaskName {
+  display: inline-block;
+  max-width: 100%;
   text-decoration: underline;
   text-decoration-color: rgba(15, 118, 110, 0.18);
   text-underline-offset: 2px;

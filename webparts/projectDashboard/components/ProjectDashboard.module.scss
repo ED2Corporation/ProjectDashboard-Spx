@@ -492,6 +492,10 @@
   overflow-y: hidden;
 }
 
+.tableViewportShort {
+  min-height: 130px;
+}
+
 .ed2Table {
   width: 100%;
   max-width: 100%;
@@ -672,16 +676,18 @@
   pointer-events: none;
   position: absolute;
   top: 50%;
-  right: 67px;
+  right: 65px;
   transform: translateY(-50%);
   transition: opacity 120ms ease;
   z-index: 20;
   min-width: 108px;
+  max-width: 260px;
   padding: $sp-1 0;
   background: $c-surface;
   border: 1px solid $c-border-subtle;
   border-radius: $r-sm;
   box-shadow: 0 4px 12px rgba(0,0,0,.12), 0 1px 3px rgba(0,0,0,.08);
+  overflow: visible;
 
   // invisible bridge so mouse can slide from icon → menu without it closing
   &::after {
@@ -754,6 +760,58 @@
   }
 }
 
+.actionContextMenuShort {
+  min-height: 120px;
+  top: calc(0px - var(--menu-short-shift, 0px));
+  bottom: auto;
+  transform: none;
+
+  &::before {
+    top: var(--menu-notch-offset, 22px);
+    bottom: auto;
+    transform: rotate(45deg);
+  }
+
+  &::after {
+    top: 0;
+    bottom: auto;
+  }
+}
+
+.actionContextMenuDown {
+  top: 6px;
+  bottom: auto;
+  transform: none;
+
+  &::before {
+    top: 10px;
+    bottom: auto;
+    transform: rotate(45deg);
+  }
+
+  &::after {
+    top: 6px;
+    bottom: auto;
+  }
+}
+
+.actionContextMenuUp {
+  top: auto;
+  bottom: 6px;
+  transform: none;
+
+  &::before {
+    top: auto;
+    bottom: 10px;
+    transform: rotate(45deg);
+  }
+
+  &::after {
+    top: auto;
+    bottom: 6px;
+  }
+}
+
 .actionSubmenuWrap {
   position: relative;
 }
@@ -763,14 +821,15 @@
   position: absolute;
   top: 0;
   right: 100%;
-  z-index: 25;
+  z-index: 35;
   min-width: 180px;
   max-width: 260px;
-  padding: $sp-1;
+  padding: 0;
   background: $c-surface;
   border: 1px solid $c-border-subtle;
   border-radius: $r-sm;
   box-shadow: $shadow-sm;
+  overflow: visible;
 
   &::after {
     content: "";
@@ -784,6 +843,30 @@
   button {
     overflow: hidden;
     text-overflow: ellipsis;
+  }
+}
+
+.actionSubmenuShort {
+  min-height: 120px;
+}
+
+.actionSubmenuDown {
+  top: 6px;
+  bottom: auto;
+
+  &::after {
+    top: 6px;
+    bottom: auto;
+  }
+}
+
+.actionSubmenuUp {
+  top: auto;
+  bottom: 6px;
+
+  &::after {
+    top: auto;
+    bottom: 6px;
   }
 }
 

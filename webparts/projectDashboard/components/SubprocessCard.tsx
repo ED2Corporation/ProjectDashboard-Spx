@@ -1,5 +1,6 @@
 import * as React from "react";
 import { useEffect, useMemo, useState } from "react";
+import { IEvidenceEntry, INoteEntry } from "../../../models/ITaskLogFields";
 import { ITaskSubprocessData, ISubprocessSubTask } from "../utils/TaskDescriptionBlob";
 import SubprocessList from "./SubprocessList";
 import SubprocessTaskCard from "./SubprocessTaskCard";
@@ -11,6 +12,7 @@ interface SubprocessCardProps {
   parentFinish: string;
   value: ITaskSubprocessData;
   onChange: (nextValue: ITaskSubprocessData) => void;
+  onClose?: () => void;
   currentUserEmail?: string;
   currentUserDisplayName?: string;
   onUploadEvidenceFile?: (
@@ -73,6 +75,7 @@ const SubprocessCard: React.FC<SubprocessCardProps> = ({
   parentFinish,
   value,
   onChange,
+  onClose,
   currentUserEmail,
   currentUserDisplayName,
   onUploadEvidenceFile,
@@ -206,6 +209,41 @@ const SubprocessCard: React.FC<SubprocessCardProps> = ({
     window.setTimeout(() => setMovingSubTaskId(undefined), 0);
   };
 
+  const handleSaveEvidenceEntries = async (
+    subTaskId: string,
+    entries: IEvidenceEntry[]
+  ): Promise<void> => {
+    const uploadedEntry = entries[entries.length - 1];
+    const today = new Date().toISOString().slice(0, 10);
+
+    commitSubTasks(
+      normalizedSubTasks.map(entry => {
+        if (entry.id !== subTaskId) return entry;
+
+        const nextNotes = [...(entry.notes ?? [])];
+
+        if (uploadedEntry) {
+          const uploadNote: INoteEntry = {
+            date: uploadedEntry.date,
+            user: uploadedEntry.user,
+            note: uploadedEntry.note
+              ? `File uploaded by ${uploadedEntry.user}: ${uploadedEntry.fileName}. Note: ${uploadedEntry.note}`
+              : `File uploaded by ${uploadedEntry.user}: ${uploadedEntry.fileName}`,
+          };
+          nextNotes.push(uploadNote);
+        }
+
+        return {
+          ...entry,
+          complete: 100,
+          actualFinish: today,
+          evidence: entries,
+          notes: nextNotes,
+        };
+      })
+    );
+  };
+
   const handleSaveDetail = (nextSubTask: ISubprocessSubTask): void => {
     commitSubTasks(
       normalizedSubTasks.map(entry => (
@@ -232,7 +270,18 @@ const SubprocessCard: React.FC<SubprocessCardProps> = ({
           <h3 className={styles.title}>Subprocess</h3>
         </div>
         <div className={styles.headerMeta}>
-          <div className={styles.contextChip}>Embedded in task {parentWbs || "N/A"}</div>
+          <div className={styles.contextActions}>
+            <div className={styles.contextChip}>Embedded in task {parentWbs || "N/A"}</div>
+            {onClose && (
+              <button
+                type="button"
+                className={styles.closeBtn}
+                onClick={onClose}
+              >
+                Close
+              </button>
+            )}
+          </div>
           <label className={styles.itemsField}>
             <span>Items</span>
             <input
@@ -260,6 +309,9 @@ const SubprocessCard: React.FC<SubprocessCardProps> = ({
         onSaveQuickEdit={handleSaveQuickEdit}
         onCancelQuickEdit={() => setEditingSubTaskId(undefined)}
         onMove={handleMove}
+        currentUserDisplayName={currentUserDisplayName}
+        onUploadEvidenceFile={onUploadEvidenceFile}
+        onSaveEvidenceEntries={handleSaveEvidenceEntries}
         onEditDetail={(subTaskId) => {
           setSelectedSubTaskId(subTaskId);
           setEditingSubTaskId(undefined);

@@ -72,6 +72,14 @@ const ListTasks = ({
   const [sortCol, setSortCol] = useState<SortCol>("wbs");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
   const [taskFilter, setTaskFilter] = useState<string>("");
+  const [actionMenuUpKey, setActionMenuUpKey] = useState<string | null>(null);
+  const [actionMenuDownKey, setActionMenuDownKey] = useState<string | null>(null);
+  const [actionMenuShortKey, setActionMenuShortKey] = useState<string | null>(null);
+  const [actionMenuShortOffset, setActionMenuShortOffset] = useState<Record<string, string>>({});
+  const [actionMenuShortShift, setActionMenuShortShift] = useState<Record<string, string>>({});
+  const [submenuShortKey, setSubmenuShortKey] = useState<string | null>(null);
+  const [submenuUpKey, setSubmenuUpKey] = useState<string | null>(null);
+  const [submenuDownKey, setSubmenuDownKey] = useState<string | null>(null);
 
   // Helper: Date/ISO/string -> YYYY-MM-DD
   const toDateInputValue = (value: any): string => {
@@ -99,6 +107,67 @@ const ListTasks = ({
     }
   };
 
+  const handleSubmenuEnter = (
+    key: string,
+    event: React.MouseEvent<HTMLDivElement>
+  ): void => {
+    const wrap = event.currentTarget;
+    const submenu = wrap.querySelector(`.${styles.actionSubmenu}`) as HTMLDivElement | null;
+    if (!submenu) return;
+
+    const itemId = key.replace(/^(files|move)-/, "");
+    const hoveredIndex = sortedTasks.findIndex(task => task.Id === itemId);
+    const shouldOpenDown = !isShortListMode && hoveredIndex >= 0 && hoveredIndex <= 1;
+    const shouldOpenUp = !isShortListMode && hoveredIndex >= Math.max(0, sortedTasks.length - 2);
+
+    if (isShortListMode) {
+      console.log("[ListTasks][short-submenu-mode]", { key, visibleRows: textFiltered.length });
+    }
+
+    setSubmenuShortKey(current => (current === key && isShortListMode) ? current : (isShortListMode ? key : null));
+    setSubmenuUpKey(current => (current === key && shouldOpenUp) ? current : (shouldOpenUp ? key : null));
+    setSubmenuDownKey(current => (current === key && shouldOpenDown) ? current : (shouldOpenDown ? key : null));
+  };
+
+  const handleActionMenuEnter = (
+    key: string,
+    event: React.MouseEvent<HTMLElement>
+  ): void => {
+    const cell = event.currentTarget.closest(`.${styles.colActions}`) as HTMLElement | null;
+    const menu = cell?.querySelector(`.${styles.actionContextMenu}`) as HTMLDivElement | null;
+    if (!cell || !menu) return;
+
+    const itemId = key.replace("actions-", "");
+    const hoveredIndex = sortedTasks.findIndex(task => task.Id === itemId);
+    const shouldOpenDown = !isShortListMode && hoveredIndex >= 0 && hoveredIndex <= 1;
+    const shouldOpenUp = !isShortListMode && hoveredIndex >= Math.max(0, sortedTasks.length - 2);
+    const detectedCase = isShortListMode
+      ? "short-list"
+      : shouldOpenUp
+        ? "bottom-row"
+        : shouldOpenDown
+          ? "top-row"
+          : "default";
+
+    console.log("[ListTasks][action-menu-case]", {
+      key,
+      detectedCase,
+      hoveredIndex,
+      visibleRows: sortedTasks.length,
+    });
+
+    if (isShortListMode) {
+      const notchOffset = `${54 + Math.max(0, hoveredIndex) * 28}px`;
+      const shortShift = `${32 + Math.max(0, hoveredIndex) * 28}px`;
+      setActionMenuShortOffset(current => ({ ...current, [key]: notchOffset }));
+      setActionMenuShortShift(current => ({ ...current, [key]: shortShift }));
+    }
+
+    setActionMenuShortKey(current => (current === key && isShortListMode) ? current : (isShortListMode ? key : null));
+    setActionMenuUpKey(current => (current === key && shouldOpenUp) ? current : (shouldOpenUp ? key : null));
+    setActionMenuDownKey(current => (current === key && shouldOpenDown) ? current : (shouldOpenDown ? key : null));
+  };
+
   const visibilityFiltered = showDetails
     ? tasks
     : tasks.filter(
@@ -112,6 +181,8 @@ const ListTasks = ({
         (item.Task || "").toLowerCase().includes(taskFilter.trim().toLowerCase())
       )
     : visibilityFiltered;
+
+  const isShortListMode = textFiltered.length > 0 && textFiltered.length < 4;
 
   // Use sortOrder when available (manual order), fall back to WBS
   const gateHasSortOrder = textFiltered.some(t => t.sortOrder !== undefined);
@@ -218,7 +289,7 @@ const ListTasks = ({
             )}
             <p className={styles.taskSectionHeading}>{heading}</p>
           </div>
-          <div className={styles.tableViewport}>
+          <div className={`${styles.tableViewport} ${isShortListMode ? styles.tableViewportShort : ''}`}>
             <table className={styles.ed2Table}>
               <thead>
                 <tr>
@@ -514,6 +585,7 @@ const ListTasks = ({
                     <button
                       type="button"
                       className={styles["icon-button"]}
+                      onMouseEnter={(e) => handleActionMenuEnter(`actions-${item.Id}`, e)}
                       onClick={(e) => {
                         e.stopPropagation();
                         onSelectItem(item, "task", "list-create");
@@ -532,7 +604,20 @@ const ListTasks = ({
                       )}
                     </button>
                     )}
-                    {editingTaskId !== item.Id && <div className={styles.actionContextMenu}>
+                    {editingTaskId !== item.Id && <div
+                      className={[
+                        styles.actionContextMenu,
+                        actionMenuShortKey === `actions-${item.Id}` ? styles.actionContextMenuShort : "",
+                        actionMenuDownKey === `actions-${item.Id}` ? styles.actionContextMenuDown : "",
+                        actionMenuUpKey === `actions-${item.Id}` ? styles.actionContextMenuUp : "",
+                      ].filter(Boolean).join(" ")}
+                      style={actionMenuShortKey === `actions-${item.Id}`
+                        ? ({
+                            ["--menu-notch-offset" as "--menu-notch-offset"]: actionMenuShortOffset[`actions-${item.Id}`] ?? "22px",
+                            ["--menu-short-shift" as "--menu-short-shift"]: actionMenuShortShift[`actions-${item.Id}`] ?? "0px",
+                          } as React.CSSProperties)
+                        : undefined}
+                    >
                       <button
                         type="button"
                         onClick={(e) => {
@@ -586,11 +671,21 @@ const ListTasks = ({
                               </button>
                             )}
                             {files.length > 0 && (
-                              <div className={styles.actionSubmenuWrap}>
+                              <div
+                                className={styles.actionSubmenuWrap}
+                                onMouseEnter={(e) => handleSubmenuEnter(`files-${item.Id}`, e)}
+                              >
                                 <button type="button" onClick={(e) => e.stopPropagation()}>
                                   Files
                                 </button>
-                                <div className={styles.actionSubmenu}>
+                                <div
+                                  className={[
+                                    styles.actionSubmenu,
+                                    submenuShortKey === `files-${item.Id}` ? styles.actionSubmenuShort : "",
+                                    submenuDownKey === `files-${item.Id}` ? styles.actionSubmenuDown : "",
+                                    submenuUpKey === `files-${item.Id}` ? styles.actionSubmenuUp : "",
+                                  ].filter(Boolean).join(" ")}
+                                >
                                   {files.map((file, index) => (
                                     <button
                                       key={`${file.fileUrl}-${index}`}
@@ -612,12 +707,22 @@ const ListTasks = ({
                         );
                       })()}
                       {onMoveTask && (
-                        <div className={styles.actionSubmenuWrap}>
+                        <div
+                          className={styles.actionSubmenuWrap}
+                          onMouseEnter={(e) => handleSubmenuEnter(`move-${item.Id}`, e)}
+                        >
                           <button type="button" onClick={(e) => e.stopPropagation()} disabled={movingTaskId === item.Id}>
                             <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M6 2v8M3 5l3-3 3 3M3 7l3 3 3-3"/></svg>
                             {movingTaskId === item.Id ? 'Moving…' : 'Move'}
                           </button>
-                          <div className={styles.actionSubmenu}>
+                          <div
+                            className={[
+                              styles.actionSubmenu,
+                              submenuShortKey === `move-${item.Id}` ? styles.actionSubmenuShort : "",
+                              submenuDownKey === `move-${item.Id}` ? styles.actionSubmenuDown : "",
+                              submenuUpKey === `move-${item.Id}` ? styles.actionSubmenuUp : "",
+                            ].filter(Boolean).join(" ")}
+                          >
                             {(['first','up','down','last'] as const).map(dir => {
                               const gateItems = sortedTasks.filter(t => t.Gate === item.Gate);
                               const idx = gateItems.findIndex(t => t.Id === item.Id);

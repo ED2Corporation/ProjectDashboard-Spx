@@ -18,8 +18,8 @@ import ProjectDashboardApp, { IProjectDashboardAppProps } from './components/Pro
 
 export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProjectDashboardWebPartProps> {
 
-  private _sp: SPFI;
-  private _projectService: ProjectService;
+  private _sp!: SPFI;
+  private _projectService!: ProjectService;
 
   protected async onInit(): Promise<void> {
     this._sp = spfi().using(SPFx(this.context));
@@ -77,5 +77,9 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
         }
       ]
     };
+  }
+
+  public get isFullBleed(): boolean {
+    return true;
   }
 }
