@@ -71,6 +71,87 @@ describe('TaskCard', () => {
     }));
   });
 
+  it('persists release configuration in jsonTable when the task is marked as release', async () => {
+    const onSave = jest.fn();
+
+    render(
+      <TaskCard
+        task={{ ...task, Complete: 0, jsonTable: undefined }}
+        remainingReleaseUnits={12}
+        onDelete={jest.fn()}
+        onNew={jest.fn()}
+        onSave={onSave}
+        onClose={jest.fn()}
+      />
+    );
+
+    await userEvent.click(screen.getByRole('checkbox', { name: /Ship/i }));
+    expect(screen.getByLabelText('Release Units')).toHaveValue(12);
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+    const [, payload] = onSave.mock.calls[0];
+    const parsed = JSON.parse(payload);
+    const jsonTable = JSON.parse(parsed.jsonTable);
+
+    expect(jsonTable.isRelease).toBe(true);
+    expect(jsonTable.releaseUnits).toBe(12);
+  });
+
+  it('clears release configuration when ship is turned off and saved', async () => {
+    const onSave = jest.fn();
+
+    render(
+      <TaskCard
+        task={{
+          ...task,
+          Complete: 0,
+          isRelease: true,
+          releaseUnits: 5,
+          jsonTable: JSON.stringify({ isRelease: true, releaseUnits: 5 }),
+          Description: JSON.stringify({ isRelease: true, releaseUnits: 5 }),
+        }}
+        remainingReleaseUnits={12}
+        onDelete={jest.fn()}
+        onNew={jest.fn()}
+        onSave={onSave}
+        onClose={jest.fn()}
+      />
+    );
+
+    await userEvent.click(screen.getByRole('checkbox', { name: /Ship/i }));
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+    const [, payload] = onSave.mock.calls[0];
+    const parsed = JSON.parse(payload);
+    expect(parsed.isRelease).toBe(false);
+    expect(parsed.releaseUnits).toBe(0);
+    expect(parsed.jsonTable).toBe('');
+    expect(parsed.Description).toBe('');
+  });
+
+  it('blocks save when a release task has invalid release units', async () => {
+    const onSave = jest.fn();
+    const alertSpy = jest.spyOn(window, 'alert').mockImplementation(() => undefined);
+
+    render(
+      <TaskCard
+        task={{ ...task, Complete: 0, jsonTable: undefined }}
+        remainingReleaseUnits={0}
+        onDelete={jest.fn()}
+        onNew={jest.fn()}
+        onSave={onSave}
+        onClose={jest.fn()}
+      />
+    );
+
+    await userEvent.click(screen.getByRole('checkbox', { name: /Ship/i }));
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+    expect(alertSpy).toHaveBeenCalledWith('Release Units must be greater than 0 for a release task.');
+    expect(onSave).not.toHaveBeenCalled();
+    alertSpy.mockRestore();
+  });
+
   it('persists subprocess rows into jsonTable when saving the parent task', async () => {
     const onSave = jest.fn();
 

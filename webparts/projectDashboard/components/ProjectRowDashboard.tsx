@@ -218,6 +218,16 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
     showLog:        false,
     projectURL:     resolvedProjectListUrl,
     onPatchProperties: noop,
+    onReleaseRegistered: (release) => {
+      setLocalProject(prev => {
+        const existing = prev.releases ?? [];
+        if (existing.some(r => r.id === release.id)) return prev;
+        return {
+          ...prev,
+          releases: [...existing, release],
+        };
+      });
+    },
     storageEndpoint,
     projectUnits: localProject.Units ?? 0,
   });
@@ -369,6 +379,11 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
     }, 60);
   }, [prevNavTask, nextNavTask]);
 
+  const remainingReleaseUnits = Math.max(
+    0,
+    (localProject.Units ?? 0) - (localProject.releases ?? []).reduce((sum, release) => sum + (release.units ?? 0), 0)
+  );
+
   const expandedTaskCard = showCard && selectedTask ? (
     <TaskCard
       task={selectedTask}
@@ -379,6 +394,7 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
         projectNumber: localProject.ProjectNumber ?? '',
         partNumber: localProject.PartNumber ?? localProject.Title ?? '',
       }}
+      remainingReleaseUnits={remainingReleaseUnits}
       onSaveLogField={onSaveLogField}
       onSendEmail={onSendEmail}
       onSearchUsers={onSearchUsers}
@@ -418,6 +434,11 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
         if (payloadJson) {
           try {
             const parsed = JSON.parse(payloadJson) as Partial<ITaskListItem>;
+            console.log('[ProjectRowDashboard][onSave][release-debug]', {
+              taskId,
+              parsed,
+              previousSelectedTask: selectedTask,
+            });
             setSelectedTask(prev => prev?.Id === taskId ? {
               ...prev,
               ...parsed,

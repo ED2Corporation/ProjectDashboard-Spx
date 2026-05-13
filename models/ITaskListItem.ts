@@ -23,6 +23,8 @@ export interface ITaskListItem {
   sortOrder?: number;
   /** Resolved from Description JSON — when true, completing this task at 100% triggers a Release record */
   isRelease?: boolean;
+  /** Resolved from Description JSON — units released when this release task reaches 100% */
+  releaseUnits?: number;
   Checklist?: {
     isChecked: boolean,
     title: string,

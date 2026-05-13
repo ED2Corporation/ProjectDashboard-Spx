@@ -2,7 +2,7 @@
 // ─── Release record ───────────────────────────────────────────────────────────
 
 export interface IReleaseRecord {
-  /** Stable UUID — matches IApprovalEntry.releaseId for idempotency */
+  /** Stable UUID — used for idempotency when the same release task is saved again */
   id: string;
   date: string;
   units: number;

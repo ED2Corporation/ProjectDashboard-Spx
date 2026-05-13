@@ -168,6 +168,12 @@ export const getTaskIsRelease = (raw?: string): boolean => {
   return parsed.isRelease === true;
 };
 
+export const getTaskReleaseUnits = (raw?: string): number | undefined => {
+  const parsed = parseTaskJsonTableObject(raw);
+  const units = asNumber(parsed.releaseUnits);
+  return units > 0 ? units : undefined;
+};
+
 export const getTaskSubprocess = (raw?: string): ITaskSubprocessData => {
   const parsed = parseTaskJsonTableObject(raw);
   const subprocess = isRecord(parsed.subprocess) ? parsed.subprocess : {};
@@ -187,6 +193,7 @@ export const buildTaskJsonTable = (
   options: {
     sortOrder?: number;
     isRelease?: boolean;
+    releaseUnits?: number;
     subprocess?: ITaskSubprocessData;
     clearSubprocess?: boolean;
   }
@@ -207,6 +214,12 @@ export const buildTaskJsonTable = (
     next.isRelease = true;
   } else {
     delete next.isRelease;
+  }
+
+  if (options.isRelease === true && typeof options.releaseUnits === "number" && Number.isFinite(options.releaseUnits) && options.releaseUnits > 0) {
+    next.releaseUnits = options.releaseUnits;
+  } else {
+    delete next.releaseUnits;
   }
 
   if (options.clearSubprocess) {

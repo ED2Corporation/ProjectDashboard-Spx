@@ -15,7 +15,7 @@ import { MessageLog } from '../utils/MessageLog';
 import { compareWbs, computeShiftedWbs, computeUnshiftedWbs, nextWbsAfterInsert } from '../utils/ParseWBS';
 import { ensureFolder, uploadEvidenceFile } from '../services/UploadService';
 import { StorageEndpoint } from '../utils/StorageVersionResolver';
-import { getTaskSortOrder, getTaskIsRelease } from '../utils/TaskDescriptionBlob';
+import { getTaskSortOrder, getTaskIsRelease, getTaskReleaseUnits } from '../utils/TaskDescriptionBlob';
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 const MSG_INFO = 0;
@@ -39,6 +39,7 @@ export interface UseProjectStateConfig {
   showLog: boolean;
   projectURL?: string;
   onPatchProperties: (patch: Partial<IProjectDashboardWebPartProps>) => void;
+  onReleaseRegistered?: (release: IReleaseRecord) => void;
   /**
    * Storage endpoint resolved per-project from ProjectDetails.storageVersion.
    * When omitted, falls back to legacy v1 constants (SITE_URL + REPOSITORY_URL).
@@ -155,6 +156,7 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
   const logFieldsAvailableRef = useRef<boolean | null>(null);
   const deliverableFieldAvailableRef = useRef<boolean | null>(null);
   const jsonTableFieldAvailableRef = useRef<boolean | null>(null);
+  const releaseDebugTaskIdRef = useRef<string | null>(null);
 
   const setLogFieldsAvailable = useCallback((available: boolean): void => {
     logFieldsAvailableRef.current = available;
@@ -297,6 +299,17 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
         const jsonTable = r.jsonTable ?? r.JsonTable ?? r.Description ?? undefined;
         const sortOrder = getTaskSortOrder(jsonTable);
         const isRelease = getTaskIsRelease(jsonTable);
+        const releaseUnits = getTaskReleaseUnits(jsonTable);
+        if (releaseDebugTaskIdRef.current !== null && String(r.Id) === releaseDebugTaskIdRef.current) {
+          console.log('[useProjectState][_getTaskListItems][release-debug]', {
+            taskId: r.Id,
+            title: r.Title,
+            task: r.Task,
+            jsonTable,
+            isRelease,
+            releaseUnits,
+          });
+        }
         return {
           Id: String(r.Id),
           Gate: r.Gate ?? "",
@@ -311,6 +324,7 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
           jsonTable,
           sortOrder,
           isRelease: isRelease || undefined,
+          releaseUnits,
           // Log fields — null if column missing or empty (resilient)
           Notes:     parseLogField<INoteEntry>(r.Notes),
           Evidence:  parseLogField<IEvidenceEntry>(r.Evidence),
@@ -734,11 +748,12 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
     if (!config.projectName) return;
     try {
       await config.projectService.appendReleaseRecord(config.projectName, release);
+      config.onReleaseRegistered?.(release);
     } catch (err) {
       console.error('[useProjectState] Failed to register release', err);
       throw err;
     }
-  }, [config.projectName, config.projectService]);
+  }, [config.projectName, config.projectService, config.onReleaseRegistered]);
 
   // ── Update task ────────────────────────────────────────────────────────────
   const _updateListTask = useCallback(async (
@@ -747,6 +762,7 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
     completeSafe?: number
   ): Promise<void> => {
     const listTitle = config.sourceName;
+    releaseDebugTaskIdRef.current = String(data.Id);
     const curr = completeSafe ?? data.Complete;
     const actualFinishValue = curr === 100 ? new Date() : null;
     const itemRef = sp.web.lists.getByTitle(listTitle).items.getById(Number(data.Id));
@@ -789,6 +805,26 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
     const r: any = await itemRef(); // eslint-disable-line @typescript-eslint/no-explicit-any
     const jsonTable = r.jsonTable ?? r.JsonTable ?? data.jsonTable ?? data.Description ?? undefined;
     const taskIsRelease = getTaskIsRelease(jsonTable);
+    const taskReleaseUnits = getTaskReleaseUnits(jsonTable);
+    console.log('[useProjectState][_updateListTask][release-debug]', {
+      listTitle,
+      taskId: data.Id,
+      inputData: data,
+      sharePointItem: {
+        Id: r.Id,
+        Title: r.Title,
+        Gate: r.Gate,
+        Task: r.Task,
+        Complete: r.Complete,
+        Description: r.Description,
+        jsonTable: r.jsonTable ?? r.JsonTable,
+      },
+      resolved: {
+        jsonTable,
+        taskIsRelease,
+        taskReleaseUnits,
+      },
+    });
 
     const task: ITaskListItem = {
       Id: String(r.Id),
@@ -804,15 +840,16 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
       jsonTable,
       sortOrder: getTaskSortOrder(jsonTable),
       isRelease: taskIsRelease || undefined,
+      releaseUnits: taskReleaseUnits,
     };
     setSelectedTask(task);
 
     // ── Auto-register release when task reaches 100% and isRelease is flagged ──
-    if (taskIsRelease && task.Complete === 100 && config.projectName) {
+    if (taskIsRelease && task.Complete === 100 && config.projectName && taskReleaseUnits && taskReleaseUnits > 0) {
       const release: IReleaseRecord = {
         id:         `release-task-${task.Id}`,   // stable — idempotent via appendReleaseRecord
         date:       new Date().toISOString(),
-        units:      config.projectUnits ?? 0,
+        units:      taskReleaseUnits,
         approvedBy: context.pageContext?.user?.displayName ?? 'Unknown',
         taskId:     task.Id,
         taskTitle:  task.Task ?? task.Id,
@@ -821,7 +858,7 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
         console.error('[useProjectState] Auto-release registration failed', err)
       );
     }
-  }, [config.sourceName, config.projectName, config.projectUnits, context, sp, withAvailableTaskFields, onRegisterRelease]);
+  }, [config.sourceName, config.projectName, context, sp, withAvailableTaskFields, onRegisterRelease]);
 
   const _updatePlannerTask = useCallback(async (
     data: any, // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -1129,30 +1166,6 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
     syncTasks(tasksRef.current.map(patchTask));
     setSelectedTask(prev => (prev?.Id === taskId ? { ...prev, [field]: entries } : prev));
 
-    // ── Auto-register release records when an approved release event is saved ──
-    if (field === 'Approvals' && config.projectName) {
-      const approvals = entries as IApprovalEntry[];
-      const newReleases = approvals.filter(
-        a => a.isReleaseEvent && a.status === 'approved' && a.releaseId && a.releaseUnits
-      );
-      for (const approval of newReleases) {
-        const task = tasksRef.current.find(t => t.Id === taskId);
-        const record: IReleaseRecord = {
-          id:         approval.releaseId!,
-          date:       approval.date,
-          units:      approval.releaseUnits!,
-          approvedBy: approval.user,
-          taskId,
-          taskTitle:  task?.Title ?? taskId,
-          notes:      approval.comment,
-        };
-        try {
-          await onRegisterRelease(record);
-        } catch {
-          console.error('[useProjectState] Release registration failed for releaseId', approval.releaseId);
-        }
-      }
-    }
   }, [config.sourceName, config.projectName, sp, syncTasks, setLogFieldsAvailable, onRegisterRelease]);
 
   // ── Send email via Graph ────────────────────────────────────────────────────

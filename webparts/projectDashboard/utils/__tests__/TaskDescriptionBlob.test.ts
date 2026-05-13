@@ -1,4 +1,4 @@
-import { buildTaskJsonTable, getTaskSubprocess } from '../TaskDescriptionBlob';
+import { buildTaskJsonTable, getTaskReleaseUnits, getTaskSubprocess } from '../TaskDescriptionBlob';
 
 describe('TaskDescriptionBlob subprocess support', () => {
   it('normalizes legacy subprocess entries and preserves embedded logs', () => {
@@ -89,5 +89,17 @@ describe('TaskDescriptionBlob subprocess support', () => {
     expect(parsed.subprocess.subTasks[0].sortOrder).toBe(0);
     expect(parsed.subprocess.subTasks[1].id).toBe('second');
     expect(parsed.subprocess.subTasks[1].sortOrder).toBe(1);
+  });
+
+  it('persists and resolves release metadata in jsonTable', () => {
+    const next = buildTaskJsonTable(undefined, {
+      isRelease: true,
+      releaseUnits: 7,
+    });
+
+    const parsed = JSON.parse(next || '{}');
+    expect(parsed.isRelease).toBe(true);
+    expect(parsed.releaseUnits).toBe(7);
+    expect(getTaskReleaseUnits(next)).toBe(7);
   });
 });

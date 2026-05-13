@@ -6,7 +6,7 @@ import NotesLog from "./NotesLog";
 import EvidenceLog from "./EvidenceLog";
 import ApprovalsLog from "./ApprovalsLog";
 import SubprocessCard from "./SubprocessCard";
-import { buildTaskJsonTable, getTaskSortOrder, getTaskSubprocess, ITaskSubprocessData } from "../utils/TaskDescriptionBlob";
+import { buildTaskJsonTable, getTaskReleaseUnits, getTaskSortOrder, getTaskSubprocess, ITaskSubprocessData } from "../utils/TaskDescriptionBlob";
 
 type TaskTab = 'notes' | 'evidence' | 'approvals';
 
@@ -21,6 +21,7 @@ interface TaskCardProps {
   currentUserEmail?: string;
   currentUserDisplayName?: string;
   projectInfo?: ITaskCardProjectInfo;
+  remainingReleaseUnits?: number;
   onSaveLogField?: (taskId: string, field: 'Notes' | 'Evidence' | 'Approvals', entries: unknown[]) => Promise<void>;
   onSendEmail?: (to: string[], subject: string, body: string) => Promise<void>;
   onSearchUsers?: (query: string) => Promise<{ displayName: string; email: string }[]>;
@@ -50,7 +51,7 @@ interface TaskCardProps {
   ) => Promise<{ fileUrl: string; fileName: string }>;
 }
 
-const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDeleting, hasPrev, hasNext, onNavigate, isMoveFirst, isMoveLast, isMoving, onMoveFirst, onMoveUp, onMoveDown, onMoveLast, currentUserEmail, currentUserDisplayName, projectInfo, onClose, onSave, onDelete, onNew, onUploadEvidenceFile, onSaveLogField, onSendEmail, onSearchUsers, onTaskCompleted }) => {
+const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDeleting, hasPrev, hasNext, onNavigate, isMoveFirst, isMoveLast, isMoving, onMoveFirst, onMoveUp, onMoveDown, onMoveLast, currentUserEmail, currentUserDisplayName, projectInfo, remainingReleaseUnits, onClose, onSave, onDelete, onNew, onUploadEvidenceFile, onSaveLogField, onSendEmail, onSearchUsers, onTaskCompleted }) => {
   const [activeTab, setActiveTab] = useState<TaskTab>('notes');
   const canManageApprovers = true; // All users can manage approvers
   const [wbs,             setWbs]             = useState(task.Title ?? "");
@@ -58,6 +59,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
   const [gateEditEnabled, setGateEditEnabled] = useState(false);
   const [renameAllGateTasks, setRenameAllGateTasks] = useState(true);
   const [isRelease, setIsRelease] = useState(task.isRelease ?? false);
+  const [releaseUnits, setReleaseUnits] = useState<number>(task.releaseUnits ?? getTaskReleaseUnits(task.jsonTable ?? task.Description) ?? 0);
   const [deliverable, setDeliverable] = useState(task.Deliverable ?? "");
   const [taskTitle, setTaskTitle] = useState(task.Task ?? "");
   const [complete, setComplete] = useState<number>(task.Complete ?? 0);
@@ -96,13 +98,23 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
   const notesLogRef        = useRef<INoteEntry[]>(task.Notes ?? []);
   const previousCompleteRef = useRef<number>(task.Complete ?? 0);
   const skipNextCompleteEffectRef = useRef(false);
+  const prevTaskIdRef      = useRef<string>(task.Id);
 
   useEffect(() => {
+    const taskChanged = task.Id !== prevTaskIdRef.current;
+    prevTaskIdRef.current = task.Id;
+
     setWbs(task.Title ?? "");
     setGate(task.Gate ?? "");
     setGateEditEnabled(false);
     setRenameAllGateTasks(true);
-    setIsRelease(task.isRelease ?? false);
+    // Only reset isRelease when navigating to a different task.
+    // On same-task updates the local toggle state is authoritative until the
+    // next SP reload brings back a definitive value.
+    if (taskChanged || task.isRelease === true) {
+      setIsRelease(task.isRelease ?? false);
+    }
+    setReleaseUnits(task.releaseUnits ?? getTaskReleaseUnits(task.jsonTable ?? task.Description) ?? 0);
     setDeliverable(task.Deliverable ?? "");
     setTaskTitle(task.Task ?? "");
     setComplete(task.Complete ?? 0);
@@ -124,6 +136,11 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
     complete?: number;
     evidenceOfCompletion?: ITaskListItem["EvidenceOfCompletion"];
   }): void => {
+    if (isRelease && releaseUnits <= 0) {
+      alert("Release Units must be greater than 0 for a release task.");
+      return;
+    }
+
     const effectiveComplete = overrides?.complete ?? complete;
     const effectiveEvidence = overrides && Object.prototype.hasOwnProperty.call(overrides, 'evidenceOfCompletion')
       ? overrides.evidenceOfCompletion
@@ -139,6 +156,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
     const jsonTable = buildTaskJsonTable(task.jsonTable ?? task.Description, {
       sortOrder,
       isRelease: isRelease || undefined,
+      releaseUnits: isRelease ? releaseUnits : undefined,
       subprocess: hasSubprocessData ? subprocess : undefined,
       clearSubprocess: !hasSubprocessData,
     });
@@ -155,11 +173,22 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
       Start: start ? new Date(start) : undefined,
       Finish: finish ? new Date(finish) : undefined,
       ActualFinish: actualFinish,
-      Description: jsonTable ?? task.Description,
-      jsonTable,
+      Description: jsonTable ?? "",
+      jsonTable: jsonTable ?? "",
+      isRelease,
+      releaseUnits: isRelease ? releaseUnits : 0,
       EvidenceOfCompletion: effectiveEvidence,
       ...(gateChanged && { originalGate: task.Gate, renameGate: renameAllGateTasks }),
     };
+
+    console.log('[TaskCard][handleSave][release-debug]', {
+      taskId: task.Id,
+      isReleaseState: isRelease,
+      releaseUnitsState: releaseUnits,
+      effectiveComplete,
+      jsonTable,
+      payload: data,
+    });
 
     onSave(task.Id, JSON.stringify(data));
   };
@@ -445,7 +474,13 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
                 <input
                   type="checkbox"
                   checked={isRelease}
-                  onChange={e => setIsRelease(e.target.checked)}
+                  onChange={e => {
+                    const checked = e.target.checked;
+                    setIsRelease(checked);
+                    if (checked && releaseUnits <= 0) {
+                      setReleaseUnits(Math.max(0, remainingReleaseUnits ?? 0));
+                    }
+                  }}
                 />
                 <span className={styles["gate-edit-track"]}>
                   <span className={styles["gate-edit-thumb"]} />
@@ -453,6 +488,22 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
                 <span className={styles["gate-edit-label"]}>Ship</span>
               </label>
             </div>
+
+            {isRelease && (
+              <div className={styles["form-row"]}>
+                <label className={`${styles.field} ${styles["field-half"]}`}>
+                  <span>Release Units</span>
+                  <input
+                    type="number"
+                    min={0}
+                    step={1}
+                    value={releaseUnits}
+                    onChange={e => setReleaseUnits(Math.max(0, Number(e.target.value) || 0))}
+                    className={`${styles["input-small"]} ${styles["release-units-input"]}`}
+                  />
+                </label>
+              </div>
+            )}
 
             {/* Row 3: Left=% Complete  |  Right=Duration+WBS */}
             <div className={styles["form-row"]}>

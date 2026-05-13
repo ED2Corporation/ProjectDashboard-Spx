@@ -356,6 +356,19 @@
   }
 }
 
+.release-units-input {
+  background: #fff7e6;
+  border-color: #d97706;
+  box-shadow: 0 0 0 1px rgba(217, 119, 6, 0.12);
+
+  &:focus {
+    border-color: #b45309;
+    box-shadow:
+      0 0 0 1px rgba(180, 83, 9, 0.18),
+      0 0 0 4px rgba(245, 158, 11, 0.16);
+  }
+}
+
 .select-complete {
   width: 100%;
   font-family: $f-family;
