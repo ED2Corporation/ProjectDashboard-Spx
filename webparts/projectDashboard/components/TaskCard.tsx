@@ -57,6 +57,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
   const [gate,            setGate]            = useState(task.Gate ?? "");
   const [gateEditEnabled, setGateEditEnabled] = useState(false);
   const [renameAllGateTasks, setRenameAllGateTasks] = useState(true);
+  const [isRelease, setIsRelease] = useState(task.isRelease ?? false);
   const [deliverable, setDeliverable] = useState(task.Deliverable ?? "");
   const [taskTitle, setTaskTitle] = useState(task.Task ?? "");
   const [complete, setComplete] = useState<number>(task.Complete ?? 0);
@@ -101,6 +102,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
     setGate(task.Gate ?? "");
     setGateEditEnabled(false);
     setRenameAllGateTasks(true);
+    setIsRelease(task.isRelease ?? false);
     setDeliverable(task.Deliverable ?? "");
     setTaskTitle(task.Task ?? "");
     setComplete(task.Complete ?? 0);
@@ -136,6 +138,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
     const hasSubprocessData = subprocess.items > 0 || subprocess.subTasks.length > 0;
     const jsonTable = buildTaskJsonTable(task.jsonTable ?? task.Description, {
       sortOrder,
+      isRelease: isRelease || undefined,
       subprocess: hasSubprocessData ? subprocess : undefined,
       clearSubprocess: !hasSubprocessData,
     });
@@ -152,7 +155,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
       Start: start ? new Date(start) : undefined,
       Finish: finish ? new Date(finish) : undefined,
       ActualFinish: actualFinish,
-      Description: task.Description,
+      Description: jsonTable ?? task.Description,
       jsonTable,
       EvidenceOfCompletion: effectiveEvidence,
       ...(gateChanged && { originalGate: task.Gate, renameGate: renameAllGateTasks }),
@@ -432,11 +435,22 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
               </div>
             )}
  
-            {/* Row 2: Task */}
+            {/* Row 2: Task + Release toggle */}
             <div className={styles["form-row"]}>
               <label className={`${styles.field} ${styles["field-full"]}`}>
                 <span>Task</span>
                 <input type="text" value={taskTitle} onChange={e => setTaskTitle(e.target.value)} className={styles["input-small"]} />
+              </label>
+              <label className={styles["gate-edit-toggle"]}>
+                <input
+                  type="checkbox"
+                  checked={isRelease}
+                  onChange={e => setIsRelease(e.target.checked)}
+                />
+                <span className={styles["gate-edit-track"]}>
+                  <span className={styles["gate-edit-thumb"]} />
+                </span>
+                <span className={styles["gate-edit-label"]}>Ship</span>
               </label>
             </div>
 

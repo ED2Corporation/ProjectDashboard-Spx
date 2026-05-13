@@ -4,6 +4,7 @@
   "alias": "ProjectDashboardWebPart",
   "componentType": "WebPart",
   "version": "*",
+  "supportsFullBleed": true,
   "manifestVersion": 2,
   "requiresCustomScript": false,
   "supportedHosts": [

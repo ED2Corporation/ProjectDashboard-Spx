@@ -1,6 +1,6 @@
 import * as React from "react";
 import { useState } from "react";
-import { IProjectCatalogItem } from "../../../models/IProjectService";
+import { IProjectCatalogItem, IReleaseRecord } from "../../../models/IProjectService";
 import { ProjectService } from "../services/ProjectService";
 import styles from "./ProjectCatalogEditor.module.scss";
 
@@ -122,6 +122,12 @@ const ProjectCatalogEditor: React.FC<ProjectCatalogEditorProps> = ({
   const [projectDetailsFields, setProjectDetailsFields] = useState<IProjectDetailsField[]>(
     () => parseProjectDetailsFields(project.ProjectDetails)
   );
+
+  // Releases — read from project prop (resolved at catalog load time)
+  const releases: IReleaseRecord[] = project.releases ?? [];
+  const totalReleased = releases.reduce((sum, r) => sum + (r.units ?? 0), 0);
+  const expectedUnits = form.Units ?? 0;
+  const remaining = expectedUnits - totalReleased;
 
   const set = (field: keyof IProjectCatalogItem, value: string | number): void =>
     setForm(prev => ({ ...prev, [field]: value }));
@@ -277,10 +283,10 @@ const ProjectCatalogEditor: React.FC<ProjectCatalogEditorProps> = ({
         {/* Project details */}
         <div className={`${styles.field} ${styles.fieldFull}`}>
           <label className={styles.label}>ProjectDetails</label>
-          {projectDetailsFields.filter(field => field.key !== 'WorkOrder').length > 0 ? (
+          {projectDetailsFields.filter(field => field.key !== 'WorkOrder' && field.key !== 'releases').length > 0 ? (
             <div className={styles.detailsGrid}>
               {projectDetailsFields
-                .filter(field => field.key !== 'WorkOrder')
+                .filter(field => field.key !== 'WorkOrder' && field.key !== 'releases')
                 .map(field => (
                 <div key={field.key} className={styles.detailsField}>
                   <label
@@ -304,6 +310,54 @@ const ProjectCatalogEditor: React.FC<ProjectCatalogEditorProps> = ({
             <span className={styles.fieldHint}>
               No ProjectDetails fields were found for this project.
             </span>
+          )}
+        </div>
+
+        {/* ── Release Balance ─────────────────────────────────────────── */}
+        <div className={`${styles.field} ${styles.fieldFull}`}>
+          <label className={styles.label}>Release Balance</label>
+          <div className={styles.releaseBalance}>
+            <div className={styles.releaseBalanceStat}>
+              <span className={styles.releaseBalanceValue}>{expectedUnits}</span>
+              <span className={styles.releaseBalanceCaption}>Expected</span>
+            </div>
+            <span className={styles.releaseBalanceSep}>−</span>
+            <div className={styles.releaseBalanceStat}>
+              <span className={styles.releaseBalanceValue}>{totalReleased}</span>
+              <span className={styles.releaseBalanceCaption}>Released</span>
+            </div>
+            <span className={styles.releaseBalanceSep}>=</span>
+            <div className={`${styles.releaseBalanceStat} ${remaining < 0 ? styles.releaseBalanceOver : remaining === 0 ? styles.releaseBalanceDone : ''}`}>
+              <span className={styles.releaseBalanceValue}>{remaining}</span>
+              <span className={styles.releaseBalanceCaption}>Remaining</span>
+            </div>
+          </div>
+
+          {releases.length > 0 ? (
+            <table className={styles.releaseTable}>
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Units</th>
+                  <th>Approved by</th>
+                  <th>Task</th>
+                  <th>Notes</th>
+                </tr>
+              </thead>
+              <tbody>
+                {releases.map(r => (
+                  <tr key={r.id}>
+                    <td>{new Date(r.date).toLocaleDateString()}</td>
+                    <td className={styles.releaseTableUnits}>{r.units}</td>
+                    <td>{r.approvedBy}</td>
+                    <td>{r.taskTitle}</td>
+                    <td className={styles.releaseTableNotes}>{r.notes ?? '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : (
+            <p className={styles.releaseTableEmpty}>— No releases recorded —</p>
           )}
         </div>
 

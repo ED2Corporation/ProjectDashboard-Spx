@@ -219,6 +219,7 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
     projectURL:     resolvedProjectListUrl,
     onPatchProperties: noop,
     storageEndpoint,
+    projectUnits: localProject.Units ?? 0,
   });
 
   // Wrap onSaveLogField so the local selectedTask also reflects log changes immediately

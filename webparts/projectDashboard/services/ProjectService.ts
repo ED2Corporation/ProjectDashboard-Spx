@@ -618,6 +618,39 @@ export class ProjectService implements IProjectService {
         await this._catalogSp.web.lists.getByTitle(this._catalogListName).items.getById(id).update(patch);
     }
 
+    /**
+     * Merges `patch` into the ProjectDetails JSON blob of the catalog item identified by `title`.
+     * Safe for partial updates — only the keys present in `patch` are overwritten.
+     */
+    public async patchProjectDetails(title: string, patch: Record<string, unknown>): Promise<void> {
+        const found = await this._catalogSp.web.lists.getByTitle(this._catalogListName)
+            .items.select('Id', 'ProjectDetails').filter(`Title eq '${title.replace(/'/g, "''")}'`).top(1)();
+        if (!found.length) throw new Error(`Catalog item not found: ${title}`);
+        const item = found[0] as any; // eslint-disable-line @typescript-eslint/no-explicit-any
+        const current: Record<string, unknown> = item.ProjectDetails ? JSON.parse(item.ProjectDetails) : {};
+        const updated = { ...current, ...patch };
+        await this._catalogSp.web.lists.getByTitle(this._catalogListName)
+            .items.getById(item.Id as number).update({ ProjectDetails: JSON.stringify(updated) });
+    }
+
+    /**
+     * Appends a release record to ProjectDetails.releases[] idempotently.
+     * If a record with the same `id` already exists it is skipped (safe for re-saves).
+     */
+    public async appendReleaseRecord(title: string, release: import('../../../models/IProjectService').IReleaseRecord): Promise<void> {
+        const found = await this._catalogSp.web.lists.getByTitle(this._catalogListName)
+            .items.select('Id', 'ProjectDetails').filter(`Title eq '${title.replace(/'/g, "''")}'`).top(1)();
+        if (!found.length) throw new Error(`Catalog item not found: ${title}`);
+        const item = found[0] as any; // eslint-disable-line @typescript-eslint/no-explicit-any
+        const current: Record<string, unknown> = item.ProjectDetails ? JSON.parse(item.ProjectDetails) : {};
+        const existing: import('../../../models/IProjectService').IReleaseRecord[] =
+            Array.isArray(current.releases) ? current.releases : [];
+        if (existing.some(r => r.id === release.id)) return; // idempotent — already registered
+        const updated = { ...current, releases: [...existing, release] };
+        await this._catalogSp.web.lists.getByTitle(this._catalogListName)
+            .items.getById(item.Id as number).update({ ProjectDetails: JSON.stringify(updated) });
+    }
+
     public async addProjectToCatalog(item: IProjectCatalogItem): Promise<string> {
         try {
             const res = await this._catalogSp.web.lists.getByTitle(this._catalogListName).items.add({

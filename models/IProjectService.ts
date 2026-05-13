@@ -1,4 +1,17 @@
 
+// ─── Release record ───────────────────────────────────────────────────────────
+
+export interface IReleaseRecord {
+  /** Stable UUID — matches IApprovalEntry.releaseId for idempotency */
+  id: string;
+  date: string;
+  units: number;
+  approvedBy: string;
+  taskId: string;
+  taskTitle: string;
+  notes?: string;
+}
+
 export interface IProjectService {
     createProject(baseData: any): Promise<string>;          // returns the new project Id
     deleteProject(listName: string, projectTitle: string, evidenceFolderServerRelative?: string): Promise<void>;
@@ -29,4 +42,6 @@ export interface IProjectCatalogItem {
     WorkOrder?: string;
     /** Resolved at catalog load time from ProjectDetails.sortOrder — controls display order in catalog */
     sortOrder?: number;
+    /** Resolved at catalog load time from ProjectDetails.releases */
+    releases?: IReleaseRecord[];
 }

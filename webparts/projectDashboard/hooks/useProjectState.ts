@@ -6,6 +6,7 @@ import { BaseComponentContext } from "@microsoft/sp-component-base";
 import { ITaskListItem, IGateListItem, IProjectListItem } from '../../../models';
 import { IProjectDashboardWebPartProps } from '../../../models';
 import { INoteEntry, IEvidenceEntry, IApprovalEntry } from '../../../models';
+import { IReleaseRecord } from '../../../models/IProjectService';
 import { GroupByGate } from '../utils/GroupByGate';
 import { FilterTasks } from '../utils/FilterTasks';
 import { PlannerService } from '../services/PlannerService';
@@ -14,7 +15,7 @@ import { MessageLog } from '../utils/MessageLog';
 import { compareWbs, computeShiftedWbs, computeUnshiftedWbs, nextWbsAfterInsert } from '../utils/ParseWBS';
 import { ensureFolder, uploadEvidenceFile } from '../services/UploadService';
 import { StorageEndpoint } from '../utils/StorageVersionResolver';
-import { getTaskSortOrder } from '../utils/TaskDescriptionBlob';
+import { getTaskSortOrder, getTaskIsRelease } from '../utils/TaskDescriptionBlob';
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 const MSG_INFO = 0;
@@ -43,6 +44,8 @@ export interface UseProjectStateConfig {
    * When omitted, falls back to legacy v1 constants (SITE_URL + REPOSITORY_URL).
    */
   storageEndpoint?: StorageEndpoint;
+  /** Total units from the WorkOrder — used when registering a Release event */
+  projectUnits?: number;
 }
 
 export interface UseProjectStateResult {
@@ -71,6 +74,7 @@ export interface UseProjectStateResult {
   onSaveLogField: (taskId: string, field: 'Notes' | 'Evidence' | 'Approvals', entries: unknown[]) => Promise<void>;
   onSendEmail: (to: string[], subject: string, body: string) => Promise<void>;
   onSearchUsers: (query: string) => Promise<{ displayName: string; email: string }[]>;
+  onRegisterRelease: (release: IReleaseRecord) => Promise<void>;
 }
 
 // ─── Resilient JSON field parser ──────────────────────────────────────────────
@@ -292,6 +296,7 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
         // Extract sortOrder from Description JSON — falls back gracefully if missing/invalid
         const jsonTable = r.jsonTable ?? r.JsonTable ?? r.Description ?? undefined;
         const sortOrder = getTaskSortOrder(jsonTable);
+        const isRelease = getTaskIsRelease(jsonTable);
         return {
           Id: String(r.Id),
           Gate: r.Gate ?? "",
@@ -305,6 +310,7 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
           Description: r.Description ?? undefined,
           jsonTable,
           sortOrder,
+          isRelease: isRelease || undefined,
           // Log fields — null if column missing or empty (resilient)
           Notes:     parseLogField<INoteEntry>(r.Notes),
           Evidence:  parseLogField<IEvidenceEntry>(r.Evidence),
@@ -723,6 +729,17 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
     }
   }, [config.isPlanner, _deletePlannerTask, _deleteListTask, _deleteTaskAndShift, onReset]);
 
+  // ── Register a release record in ED2-Projects.ProjectDetails ───────────────
+  const onRegisterRelease = useCallback(async (release: IReleaseRecord): Promise<void> => {
+    if (!config.projectName) return;
+    try {
+      await config.projectService.appendReleaseRecord(config.projectName, release);
+    } catch (err) {
+      console.error('[useProjectState] Failed to register release', err);
+      throw err;
+    }
+  }, [config.projectName, config.projectService]);
+
   // ── Update task ────────────────────────────────────────────────────────────
   const _updateListTask = useCallback(async (
     data: any, // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -771,6 +788,7 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
 
     const r: any = await itemRef(); // eslint-disable-line @typescript-eslint/no-explicit-any
     const jsonTable = r.jsonTable ?? r.JsonTable ?? data.jsonTable ?? data.Description ?? undefined;
+    const taskIsRelease = getTaskIsRelease(jsonTable);
 
     const task: ITaskListItem = {
       Id: String(r.Id),
@@ -784,10 +802,26 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
       Title: r.Title ?? undefined,
       Description: r.Description ?? data.Description ?? undefined,
       jsonTable,
-      sortOrder: getTaskSortOrder(jsonTable)
+      sortOrder: getTaskSortOrder(jsonTable),
+      isRelease: taskIsRelease || undefined,
     };
     setSelectedTask(task);
-  }, [config.sourceName, sp, withAvailableTaskFields]);
+
+    // ── Auto-register release when task reaches 100% and isRelease is flagged ──
+    if (taskIsRelease && task.Complete === 100 && config.projectName) {
+      const release: IReleaseRecord = {
+        id:         `release-task-${task.Id}`,   // stable — idempotent via appendReleaseRecord
+        date:       new Date().toISOString(),
+        units:      config.projectUnits ?? 0,
+        approvedBy: context.pageContext?.user?.displayName ?? 'Unknown',
+        taskId:     task.Id,
+        taskTitle:  task.Task ?? task.Id,
+      };
+      onRegisterRelease(release).catch(err =>
+        console.error('[useProjectState] Auto-release registration failed', err)
+      );
+    }
+  }, [config.sourceName, config.projectName, config.projectUnits, context, sp, withAvailableTaskFields, onRegisterRelease]);
 
   const _updatePlannerTask = useCallback(async (
     data: any, // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -1034,6 +1068,7 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
   ]);
 
   // ── Log field save ─────────────────────────────────────────────────────────
+
   const onSaveLogField = useCallback(async (
     taskId: string,
     field: 'Notes' | 'Evidence' | 'Approvals',
@@ -1093,7 +1128,32 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
       t.Id === taskId ? { ...t, [field]: entries } : t;
     syncTasks(tasksRef.current.map(patchTask));
     setSelectedTask(prev => (prev?.Id === taskId ? { ...prev, [field]: entries } : prev));
-  }, [config.sourceName, sp, syncTasks, setLogFieldsAvailable]);
+
+    // ── Auto-register release records when an approved release event is saved ──
+    if (field === 'Approvals' && config.projectName) {
+      const approvals = entries as IApprovalEntry[];
+      const newReleases = approvals.filter(
+        a => a.isReleaseEvent && a.status === 'approved' && a.releaseId && a.releaseUnits
+      );
+      for (const approval of newReleases) {
+        const task = tasksRef.current.find(t => t.Id === taskId);
+        const record: IReleaseRecord = {
+          id:         approval.releaseId!,
+          date:       approval.date,
+          units:      approval.releaseUnits!,
+          approvedBy: approval.user,
+          taskId,
+          taskTitle:  task?.Title ?? taskId,
+          notes:      approval.comment,
+        };
+        try {
+          await onRegisterRelease(record);
+        } catch {
+          console.error('[useProjectState] Release registration failed for releaseId', approval.releaseId);
+        }
+      }
+    }
+  }, [config.sourceName, config.projectName, sp, syncTasks, setLogFieldsAvailable, onRegisterRelease]);
 
   // ── Send email via Graph ────────────────────────────────────────────────────
   const onSendEmail = useCallback(async (
@@ -1164,5 +1224,6 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
     onSaveLogField,
     onSendEmail,
     onSearchUsers,
+    onRegisterRelease,
   };
 }

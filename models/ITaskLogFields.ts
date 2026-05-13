@@ -28,6 +28,12 @@ export interface IApprovalEntry {
   status:   ApprovalStatus;
   role?:    ApproverRole;
   comment?: string;
+  /** When true this approval represents a shipping/release event */
+  isReleaseEvent?: boolean;
+  /** Units being released — required when isReleaseEvent is true */
+  releaseUnits?: number;
+  /** Stable UUID used to deduplicate the release record in ProjectDetails.releases */
+  releaseId?: string;
 }
 
 // ─── Roles ────────────────────────────────────────────────────────────────────

@@ -489,4 +489,71 @@
   margin: 0;
 }
 
+// ─── Release event ───────────────────────────────────────────────────────────
+
+.entryRelease {
+  border-left: 3px solid $c-primary;
+  background: $c-primary-bg;
+}
+
+.releaseToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: $f-tiny;
+  padding: 2px 6px;
+  border: 1px solid $c-border;
+  border-radius: $r-sm;
+  background: $c-surface;
+  color: $c-text-muted;
+  cursor: pointer;
+  transition: $t-fast;
+
+  &:hover:not(:disabled) {
+    border-color: $c-primary;
+    color: $c-primary;
+  }
+}
+
+.releaseToggleActive {
+  border-color: $c-primary;
+  color: $c-primary;
+  background: $c-primary-bg;
+  font-weight: 600;
+}
+
+.releaseRow {
+  display: flex;
+  align-items: center;
+  gap: $sp-2;
+  margin-top: $sp-1;
+  padding-top: $sp-1;
+  border-top: 1px dashed $c-border-subtle;
+}
+
+.releaseLabel {
+  font-size: $f-tiny;
+  color: $c-text-muted;
+  white-space: nowrap;
+}
+
+.releaseInput {
+  width: 72px;
+  font-size: $f-xs;
+  padding: 2px $sp-2;
+  border: 1px solid $c-border;
+  border-radius: $r-sm;
+  background: $c-surface;
+  color: $c-text;
+  text-align: right;
+
+  &:focus { outline: none; border-color: $c-primary; }
+}
+
+.releaseDone {
+  font-size: $f-tiny;
+  color: $c-ontime;
+  font-weight: 600;
+}
+
 // stylelint-enable selector-class-pattern

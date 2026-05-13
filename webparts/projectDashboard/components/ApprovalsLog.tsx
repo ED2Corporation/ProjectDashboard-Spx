@@ -173,6 +173,7 @@ const ApprovalsLog: React.FC<ApprovalsLogProps> = ({
     setSearchResults([]);
   };
 
+
   return (
     <div className={styles.container}>
 
