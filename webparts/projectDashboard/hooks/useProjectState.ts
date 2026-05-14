@@ -747,7 +747,7 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
   const onRegisterRelease = useCallback(async (release: IReleaseRecord): Promise<void> => {
     if (!config.projectName) return;
     try {
-      await config.projectService.appendReleaseRecord(config.projectName, release);
+      await config.projectService.upsertReleaseRecord(config.projectName, release);
       config.onReleaseRegistered?.(release);
     } catch (err) {
       console.error('[useProjectState] Failed to register release', err);
@@ -842,12 +842,26 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
       isRelease: taskIsRelease || undefined,
       releaseUnits: taskReleaseUnits,
     };
+    const nextTasks = tasksRef.current.map(existing =>
+      existing.Id === task.Id
+        ? {
+            ...existing,
+            ...task,
+          }
+        : existing
+    );
+    syncTasks(nextTasks);
+    setFilteredTasks(
+      (currentGate === "all" || !currentGate)
+        ? nextTasks
+        : FilterTasks(nextTasks, "gate", currentGate)
+    );
     setSelectedTask(task);
 
     // ── Auto-register release when task reaches 100% and isRelease is flagged ──
     if (taskIsRelease && task.Complete === 100 && config.projectName && taskReleaseUnits && taskReleaseUnits > 0) {
       const release: IReleaseRecord = {
-        id:         `release-task-${task.Id}`,   // stable — idempotent via appendReleaseRecord
+        id:         `release-task-${task.Id}`,   // stable — idempotent via upsertReleaseRecord
         date:       new Date().toISOString(),
         units:      taskReleaseUnits,
         approvedBy: context.pageContext?.user?.displayName ?? 'Unknown',
@@ -858,7 +872,7 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
         console.error('[useProjectState] Auto-release registration failed', err)
       );
     }
-  }, [config.sourceName, config.projectName, context, sp, withAvailableTaskFields, onRegisterRelease]);
+  }, [config.sourceName, config.projectName, context, sp, withAvailableTaskFields, onRegisterRelease, syncTasks, currentGate]);
 
   const _updatePlannerTask = useCallback(async (
     data: any, // eslint-disable-line @typescript-eslint/no-explicit-any

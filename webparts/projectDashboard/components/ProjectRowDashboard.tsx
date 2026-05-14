@@ -221,10 +221,12 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
     onReleaseRegistered: (release) => {
       setLocalProject(prev => {
         const existing = prev.releases ?? [];
-        if (existing.some(r => r.id === release.id)) return prev;
+        const nextReleases = existing.some(r => r.id === release.id)
+          ? existing.map(r => r.id === release.id ? release : r)
+          : [...existing, release];
         return {
           ...prev,
-          releases: [...existing, release],
+          releases: nextReleases,
         };
       });
     },
@@ -383,6 +385,13 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
     0,
     (localProject.Units ?? 0) - (localProject.releases ?? []).reduce((sum, release) => sum + (release.units ?? 0), 0)
   );
+
+  const resolveFreshTaskById = useCallback((taskId: string): ITaskListItem | null => {
+    return tasks.find(task => task.Id === taskId)
+      ?? filteredTasks.find(task => task.Id === taskId)
+      ?? navTasks.find(task => task.Id === taskId)
+      ?? null;
+  }, [tasks, filteredTasks, navTasks]);
 
   const expandedTaskCard = showCard && selectedTask ? (
     <TaskCard
@@ -601,12 +610,19 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
               if (!item?.Task) return;
               switch (mode) {
                 case "list-edit":
+                  {
+                    const freshItem = resolveFreshTaskById(item.Id) ?? item;
+                    console.log('[ProjectRowDashboard][list-edit][release-debug]', {
+                      clickedItem: item,
+                      freshItem,
+                    });
                   if (showCard && selectedTask?.Id === item.Id) {
                     setShowCard(false);
                   } else {
-                    setSelectedTask(item);
+                    setSelectedTask(freshItem);
                     setShowCard(true);
                     onSelectItem(item.Task, "task");
+                  }
                   }
                   break;
                 case "list-create":
@@ -635,7 +651,14 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
                   })();
                   break;
                 default:
-                  setSelectedTask(item); setShowCard(true);
+                  {
+                    const freshItem = resolveFreshTaskById(item.Id) ?? item;
+                    console.log('[ProjectRowDashboard][list-default][release-debug]', {
+                      clickedItem: item,
+                      freshItem,
+                    });
+                    setSelectedTask(freshItem); setShowCard(true);
+                  }
                   onSelectItem(item.Task, "task");
                   break;
               }

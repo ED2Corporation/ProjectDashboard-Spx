@@ -27,6 +27,17 @@ describe('ProjectCatalogEditor', () => {
       Quantity: 12,
       Meta: { owner: 'ED2' },
     }),
+    releases: [
+      {
+        id: 'release-task-1',
+        date: '2026-05-10T00:00:00.000Z',
+        units: 2,
+        approvedBy: 'Saul',
+        taskId: '1',
+        taskTitle: 'Ship Product',
+        notes: 'Initial release',
+      },
+    ],
   };
 
   it('keeps Title protected until the sensitive toggle is enabled', async () => {
@@ -69,6 +80,8 @@ describe('ProjectCatalogEditor', () => {
     expect(screen.getByLabelText('Quantity')).toHaveValue('12');
     expect((screen.getByLabelText('Meta') as HTMLInputElement).value).toContain('"owner"');
     expect((screen.getByLabelText('Meta') as HTMLInputElement).value).toContain('"ED2"');
+    expect(screen.getByDisplayValue('Initial release')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('2026-05-10')).toBeInTheDocument();
 
     await userEvent.clear(screen.getByLabelText('Quantity'));
     await userEvent.type(screen.getByLabelText('Quantity'), '44');
@@ -77,6 +90,17 @@ describe('ProjectCatalogEditor', () => {
     fireEvent.change(screen.getByLabelText('Meta'), {
       target: { value: '{"owner":"QA","region":"EU"}' },
     });
+    const releaseNotesInput = screen.getByDisplayValue('Initial release') as HTMLInputElement;
+    await userEvent.clear(releaseNotesInput);
+    await userEvent.type(releaseNotesInput, 'Updated release note');
+
+    fireEvent.change(screen.getByDisplayValue('2026-05-10'), {
+      target: { value: '2026-05-11' },
+    });
+
+    const releaseUnitsInput = screen.getByDisplayValue('2') as HTMLInputElement;
+    await userEvent.clear(releaseUnitsInput);
+    await userEvent.type(releaseUnitsInput, '3');
 
     await act(async () => {
       await userEvent.click(screen.getByRole('button', { name: /Save changes/i }));
@@ -95,6 +119,17 @@ describe('ProjectCatalogEditor', () => {
         RequiresAudit: false,
         Quantity: 44,
         Meta: { owner: 'QA', region: 'EU' },
+        releases: [
+          {
+            id: 'release-task-1',
+            date: '2026-05-11T00:00:00.000Z',
+            units: 3,
+            approvedBy: 'Saul',
+            taskId: '1',
+            taskTitle: 'Ship Product',
+            notes: 'Updated release note',
+          },
+        ],
       })
     );
 

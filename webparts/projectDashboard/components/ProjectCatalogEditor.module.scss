@@ -311,6 +311,17 @@
   white-space: nowrap;
 }
 
+.releaseTableInput {
+  min-width: 0;
+  padding: 4px 8px;
+  font-size: $f-xs;
+}
+
+.releaseTableUnitsInput {
+  max-width: 84px;
+  text-align: right;
+}
+
 .releaseTableNotes {
   color: $c-text-muted;
   font-style: italic;

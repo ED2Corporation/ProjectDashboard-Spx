@@ -104,6 +104,23 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
     const taskChanged = task.Id !== prevTaskIdRef.current;
     prevTaskIdRef.current = task.Id;
 
+    console.log('[TaskCard][useEffect][release-debug]', {
+      taskId: task.Id,
+      taskChanged,
+      incomingTask: {
+        Id: task.Id,
+        Task: task.Task,
+        Complete: task.Complete,
+        isRelease: task.isRelease,
+        releaseUnits: task.releaseUnits,
+        jsonTable: task.jsonTable ?? task.Description,
+      },
+      localBefore: {
+        isRelease,
+        releaseUnits,
+      },
+    });
+
     setWbs(task.Title ?? "");
     setGate(task.Gate ?? "");
     setGateEditEnabled(false);

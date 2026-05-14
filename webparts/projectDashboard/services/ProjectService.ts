@@ -634,10 +634,10 @@ export class ProjectService implements IProjectService {
     }
 
     /**
-     * Appends a release record to ProjectDetails.releases[] idempotently.
-     * If a record with the same `id` already exists it is skipped (safe for re-saves).
+     * Upserts a release record in ProjectDetails.releases[].
+     * If a record with the same `id` already exists it is replaced, otherwise appended.
      */
-    public async appendReleaseRecord(title: string, release: import('../../../models/IProjectService').IReleaseRecord): Promise<void> {
+    public async upsertReleaseRecord(title: string, release: import('../../../models/IProjectService').IReleaseRecord): Promise<void> {
         const found = await this._catalogSp.web.lists.getByTitle(this._catalogListName)
             .items.select('Id', 'ProjectDetails').filter(`Title eq '${title.replace(/'/g, "''")}'`).top(1)();
         if (!found.length) throw new Error(`Catalog item not found: ${title}`);
@@ -645,8 +645,10 @@ export class ProjectService implements IProjectService {
         const current: Record<string, unknown> = item.ProjectDetails ? JSON.parse(item.ProjectDetails) : {};
         const existing: import('../../../models/IProjectService').IReleaseRecord[] =
             Array.isArray(current.releases) ? current.releases : [];
-        if (existing.some(r => r.id === release.id)) return; // idempotent — already registered
-        const updated = { ...current, releases: [...existing, release] };
+        const nextReleases = existing.some(r => r.id === release.id)
+            ? existing.map(r => r.id === release.id ? release : r)
+            : [...existing, release];
+        const updated = { ...current, releases: nextReleases };
         await this._catalogSp.web.lists.getByTitle(this._catalogListName)
             .items.getById(item.Id as number).update({ ProjectDetails: JSON.stringify(updated) });
     }

@@ -95,6 +95,13 @@ const serializeProjectDetailsFields = (fields: IProjectDetailsField[]): string |
 
   return JSON.stringify(serialized);
 };
+
+const toDateInputValue = (value?: string): string => {
+  if (!value) return "";
+  const date = new Date(value);
+  if (isNaN(date.getTime())) return "";
+  return date.toISOString().slice(0, 10);
+};
  
 // ─── Props ────────────────────────────────────────────────────────────────────
  
@@ -122,10 +129,12 @@ const ProjectCatalogEditor: React.FC<ProjectCatalogEditorProps> = ({
   const [projectDetailsFields, setProjectDetailsFields] = useState<IProjectDetailsField[]>(
     () => parseProjectDetailsFields(project.ProjectDetails)
   );
+  const [editableReleases, setEditableReleases] = useState<IReleaseRecord[]>(
+    () => (project.releases ?? []).map(release => ({ ...release }))
+  );
 
   // Releases — read from project prop (resolved at catalog load time)
-  const releases: IReleaseRecord[] = project.releases ?? [];
-  const totalReleased = releases.reduce((sum, r) => sum + (r.units ?? 0), 0);
+  const totalReleased = editableReleases.reduce((sum, r) => sum + (r.units ?? 0), 0);
   const expectedUnits = form.Units ?? 0;
   const remaining = expectedUnits - totalReleased;
 
@@ -138,6 +147,33 @@ const ProjectCatalogEditor: React.FC<ProjectCatalogEditorProps> = ({
     );
   };
 
+  const setReleaseValue = (id: string, field: "date" | "units" | "notes", value: string): void => {
+    setEditableReleases(prev =>
+      prev.map(release => {
+        if (release.id !== id) return release;
+
+        if (field === "date") {
+          return {
+            ...release,
+            date: value ? new Date(`${value}T00:00:00.000Z`).toISOString() : release.date,
+          };
+        }
+
+        if (field === "units") {
+          return {
+            ...release,
+            units: value === "" ? 0 : Number(value),
+          };
+        }
+
+        return {
+          ...release,
+          notes: value,
+        };
+      })
+    );
+  };
+
   const handleSave = async (): Promise<void> => {
     if (!project.Title) return;
     setSaving(true);
@@ -147,6 +183,15 @@ const ProjectCatalogEditor: React.FC<ProjectCatalogEditorProps> = ({
       let normalizedProjectDetails: string | undefined;
       try {
         normalizedProjectDetails = serializeProjectDetailsFields(projectDetailsFields);
+        const detailsObject = normalizedProjectDetails
+          ? JSON.parse(normalizedProjectDetails) as Record<string, unknown>
+          : {};
+        detailsObject.releases = editableReleases.map(release => ({
+          ...release,
+          units: Number(release.units) || 0,
+          notes: release.notes ?? "",
+        }));
+        normalizedProjectDetails = JSON.stringify(detailsObject);
       } catch {
         throw new Error("ProjectDetails contains an invalid JSON value.");
       }
@@ -164,6 +209,7 @@ const ProjectCatalogEditor: React.FC<ProjectCatalogEditorProps> = ({
       const updated: IProjectCatalogItem = {
         ...form,
         ProjectDetails: normalizedProjectDetails ?? "",
+        releases: editableReleases.map(release => ({ ...release })),
       };
       setForm(updated);
       setSaved(true);
@@ -333,25 +379,49 @@ const ProjectCatalogEditor: React.FC<ProjectCatalogEditorProps> = ({
             </div>
           </div>
 
-          {releases.length > 0 ? (
+          {editableReleases.length > 0 ? (
             <table className={styles.releaseTable}>
               <thead>
                 <tr>
                   <th>Date</th>
                   <th>Units</th>
-                  <th>Approved by</th>
                   <th>Task</th>
                   <th>Notes</th>
+                  <th>Approved by</th>
                 </tr>
               </thead>
               <tbody>
-                {releases.map(r => (
+                {editableReleases.map(r => (
                   <tr key={r.id}>
-                    <td>{new Date(r.date).toLocaleDateString()}</td>
-                    <td className={styles.releaseTableUnits}>{r.units}</td>
-                    <td>{r.approvedBy}</td>
+                    <td>
+                      <input
+                        className={`${styles.input} ${styles.releaseTableInput}`}
+                        type="date"
+                        value={toDateInputValue(r.date)}
+                        onChange={e => setReleaseValue(r.id, "date", e.target.value)}
+                        disabled={saving}
+                      />
+                    </td>
+                    <td className={styles.releaseTableUnits}>
+                      <input
+                        className={`${styles.input} ${styles.releaseTableInput} ${styles.releaseTableUnitsInput}`}
+                        type="number"
+                        value={r.units}
+                        onChange={e => setReleaseValue(r.id, "units", e.target.value)}
+                        disabled={saving}
+                      />
+                    </td>
                     <td>{r.taskTitle}</td>
-                    <td className={styles.releaseTableNotes}>{r.notes ?? '—'}</td>
+                    <td className={styles.releaseTableNotes}>
+                      <input
+                        className={`${styles.input} ${styles.releaseTableInput}`}
+                        type="text"
+                        value={r.notes ?? ""}
+                        onChange={e => setReleaseValue(r.id, "notes", e.target.value)}
+                        disabled={saving}
+                      />
+                    </td>
+                    <td>{r.approvedBy}</td>
                   </tr>
                 ))}
               </tbody>
