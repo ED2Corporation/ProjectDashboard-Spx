@@ -283,19 +283,20 @@
 .releaseTable {
   width: 100%;
   border-collapse: collapse;
+  table-layout: fixed;
   font-size: $f-xs;
 
   th {
     text-align: left;
     font-weight: 600;
     color: $c-text-muted;
-    padding: $sp-1 $sp-2;
+    padding: 2px;
     border-bottom: 1px solid $c-border;
     white-space: nowrap;
   }
 
   td {
-    padding: $sp-1 $sp-2;
+    padding: 2px;
     border-bottom: 1px solid $c-border-subtle;
     color: $c-text;
     vertical-align: top;
@@ -305,26 +306,144 @@
   tr:hover td { background: $c-surface-soft; }
 }
 
+.releaseTableCompactHeader,
+.releaseTableCompactCell {
+  padding-left: 2px !important;
+  padding-right: 2px !important;
+}
+
 .releaseTableUnits {
   font-weight: 600;
   text-align: right;
   white-space: nowrap;
 }
 
+.releaseTableDateHeader {
+  width: 100px;
+  max-width: 100px;
+}
+
+.releaseTableUnitsHeader {
+  width: 50px;
+  max-width: 50px;
+}
+
+.releaseTableDateCell {
+  width: 100px;
+  max-width: 100px;
+}
+
+.releaseTableTaskHeader {
+  width: 30%;
+  min-width: 150px;
+}
+
+.releaseTableTaskCell {
+  width: 30%;
+  min-width: 150px;
+}
+
+.releaseTableNotesHeader {
+  width: 34%;
+  min-width: 150px;
+}
+
+.releaseTableApprovedHeader {
+  width: 100px;
+  max-width: 100px;
+}
+
+.releaseTableApprovedCell {
+  color: $c-text-secondary;
+  width: 100px;
+  max-width: 100px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .releaseTableInput {
   min-width: 0;
-  padding: 4px 8px;
+  padding: 2px 4px;
   font-size: $f-xs;
 }
 
+.releaseTableDateInput {
+  max-width: 96px;
+}
+
 .releaseTableUnitsInput {
-  max-width: 84px;
+  padding-left: 2px;
+  padding-right: 2px;
+  max-width: 46px;
   text-align: right;
 }
 
 .releaseTableNotes {
   color: $c-text-muted;
-  font-style: italic;
+}
+
+.releaseTableNotesInput {
+  width: 100%;
+}
+
+.releaseTableActionHeader {
+  width: 40px;
+  max-width: 40px;
+  text-align: center !important;
+}
+
+.releaseTableActionCell {
+  width: 40px;
+  max-width: 40px;
+  text-align: center;
+  vertical-align: middle !important;
+}
+
+.releaseTableRemoveButton {
+  width: 24px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 1px solid rgba(180, 35, 24, 0.18);
+  border-radius: 999px;
+  background: rgba(180, 35, 24, 0.08);
+  color: #b42318;
+  font-size: 0;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+  position: relative;
+
+  &::before {
+    content: "";
+    width: 12px;
+    height: 12px;
+    display: block;
+    background-color: currentColor;
+    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M6 2.5h4l.5 1H13a.75.75 0 0 1 0 1.5h-.54l-.58 7.14A1.5 1.5 0 0 1 10.38 13.5H5.62a1.5 1.5 0 0 1-1.5-1.36L3.54 5H3a.75.75 0 0 1 0-1.5h2.5l.5-1Zm-.96 2.5.57 6.98h4.78L10.96 5H5.04ZM7 6.25c.41 0 .75.34.75.75v3a.75.75 0 0 1-1.5 0V7c0-.41.34-.75.75-.75Zm2 0c.41 0 .75.34.75.75v3a.75.75 0 0 1-1.5 0V7c0-.41.34-.75.75-.75Z'/%3E%3C/svg%3E");
+    mask-repeat: no-repeat;
+    mask-position: center;
+    mask-size: contain;
+    -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M6 2.5h4l.5 1H13a.75.75 0 0 1 0 1.5h-.54l-.58 7.14A1.5 1.5 0 0 1 10.38 13.5H5.62a1.5 1.5 0 0 1-1.5-1.36L3.54 5H3a.75.75 0 0 1 0-1.5h2.5l.5-1Zm-.96 2.5.57 6.98h4.78L10.96 5H5.04ZM7 6.25c.41 0 .75.34.75.75v3a.75.75 0 0 1-1.5 0V7c0-.41.34-.75.75-.75Zm2 0c.41 0 .75.34.75.75v3a.75.75 0 0 1-1.5 0V7c0-.41.34-.75.75-.75Z'/%3E%3C/svg%3E");
+    -webkit-mask-repeat: no-repeat;
+    -webkit-mask-position: center;
+    -webkit-mask-size: contain;
+  }
+
+  &:hover {
+    background: rgba(180, 35, 24, 0.14);
+    border-color: rgba(180, 35, 24, 0.3);
+    transform: scale(1.03);
+  }
+
+  &:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    transform: none;
+  }
 }
 
 .releaseTableEmpty {

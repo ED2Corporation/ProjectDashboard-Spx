@@ -147,7 +147,7 @@ const ProjectCatalogEditor: React.FC<ProjectCatalogEditorProps> = ({
     );
   };
 
-  const setReleaseValue = (id: string, field: "date" | "units" | "notes", value: string): void => {
+  const setReleaseValue = (id: string, field: "date" | "units" | "taskTitle" | "notes", value: string): void => {
     setEditableReleases(prev =>
       prev.map(release => {
         if (release.id !== id) return release;
@@ -166,12 +166,23 @@ const ProjectCatalogEditor: React.FC<ProjectCatalogEditorProps> = ({
           };
         }
 
+        if (field === "taskTitle") {
+          return {
+            ...release,
+            taskTitle: value,
+          };
+        }
+
         return {
           ...release,
           notes: value,
         };
       })
     );
+  };
+
+  const removeRelease = (id: string): void => {
+    setEditableReleases(prev => prev.filter(release => release.id !== id));
   };
 
   const handleSave = async (): Promise<void> => {
@@ -383,26 +394,27 @@ const ProjectCatalogEditor: React.FC<ProjectCatalogEditorProps> = ({
             <table className={styles.releaseTable}>
               <thead>
                 <tr>
-                  <th>Date</th>
-                  <th>Units</th>
-                  <th>Task</th>
-                  <th>Notes</th>
-                  <th>Approved by</th>
+                  <th className={`${styles.releaseTableDateHeader} ${styles.releaseTableCompactHeader}`}>Date</th>
+                  <th className={`${styles.releaseTableUnitsHeader} ${styles.releaseTableCompactHeader}`}>Units</th>
+                  <th className={styles.releaseTableTaskHeader}>Task</th>
+                  <th className={styles.releaseTableNotesHeader}>Notes</th>
+                  <th className={styles.releaseTableApprovedHeader}>Approved by</th>
+                  <th className={`${styles.releaseTableActionHeader} ${styles.releaseTableCompactHeader}`}>Remove</th>
                 </tr>
               </thead>
               <tbody>
                 {editableReleases.map(r => (
                   <tr key={r.id}>
-                    <td>
+                    <td className={`${styles.releaseTableDateCell} ${styles.releaseTableCompactCell}`}>
                       <input
-                        className={`${styles.input} ${styles.releaseTableInput}`}
+                        className={`${styles.input} ${styles.releaseTableInput} ${styles.releaseTableDateInput}`}
                         type="date"
                         value={toDateInputValue(r.date)}
                         onChange={e => setReleaseValue(r.id, "date", e.target.value)}
                         disabled={saving}
                       />
                     </td>
-                    <td className={styles.releaseTableUnits}>
+                    <td className={`${styles.releaseTableUnits} ${styles.releaseTableCompactCell}`}>
                       <input
                         className={`${styles.input} ${styles.releaseTableInput} ${styles.releaseTableUnitsInput}`}
                         type="number"
@@ -411,17 +423,37 @@ const ProjectCatalogEditor: React.FC<ProjectCatalogEditorProps> = ({
                         disabled={saving}
                       />
                     </td>
-                    <td>{r.taskTitle}</td>
-                    <td className={styles.releaseTableNotes}>
+                    <td className={styles.releaseTableTaskCell}>
                       <input
                         className={`${styles.input} ${styles.releaseTableInput}`}
+                        type="text"
+                        value={r.taskTitle ?? ""}
+                        onChange={e => setReleaseValue(r.id, "taskTitle", e.target.value)}
+                        disabled={saving}
+                      />
+                    </td>
+                    <td className={styles.releaseTableNotes}>
+                      <input
+                        className={`${styles.input} ${styles.releaseTableInput} ${styles.releaseTableNotesInput}`}
                         type="text"
                         value={r.notes ?? ""}
                         onChange={e => setReleaseValue(r.id, "notes", e.target.value)}
                         disabled={saving}
                       />
                     </td>
-                    <td>{r.approvedBy}</td>
+                    <td className={styles.releaseTableApprovedCell}>{r.approvedBy}</td>
+                    <td className={`${styles.releaseTableActionCell} ${styles.releaseTableCompactCell}`}>
+                      <button
+                        type="button"
+                        className={styles.releaseTableRemoveButton}
+                        onClick={() => removeRelease(r.id)}
+                        disabled={saving}
+                        aria-label={`Remove release ${r.taskTitle}`}
+                        title="Remove release row"
+                      >
+                        ×
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
