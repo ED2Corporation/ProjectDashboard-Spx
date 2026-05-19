@@ -59,7 +59,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
   const [gateEditEnabled, setGateEditEnabled] = useState(false);
   const [renameAllGateTasks, setRenameAllGateTasks] = useState(true);
   const [isRelease, setIsRelease] = useState(task.isRelease ?? false);
-  const [releaseUnits, setReleaseUnits] = useState<number>(task.releaseUnits ?? getTaskReleaseUnits(task.jsonTable ?? task.Description) ?? 0);
+  const [releaseUnits, setReleaseUnits] = useState<number>(task.releaseUnits ?? getTaskReleaseUnits(task.jsonTable) ?? 0);
   const [deliverable, setDeliverable] = useState(task.Deliverable ?? "");
   const [taskTitle, setTaskTitle] = useState(task.Task ?? "");
   const [complete, setComplete] = useState<number>(task.Complete ?? 0);
@@ -92,7 +92,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
   const [evidenceOfCompletion, setEvidenceOfCompletion] = useState<ITaskListItem["EvidenceOfCompletion"]>(task.EvidenceOfCompletion);
   const [notesLog, setNotesLog] = useState<INoteEntry[]>(task.Notes ?? []);
   const [evidenceLog, setEvidenceLog] = useState<IEvidenceEntry[]>(task.Evidence ?? []);
-  const initialSubprocess = getTaskSubprocess(task.jsonTable ?? task.Description);
+  const initialSubprocess = getTaskSubprocess(task.jsonTable);
   const [showSubprocess, setShowSubprocess] = useState(false);
   const [subprocess, setSubprocess] = useState<ITaskSubprocessData>(initialSubprocess);
   const notesLogRef        = useRef<INoteEntry[]>(task.Notes ?? []);
@@ -101,37 +101,16 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
   const prevTaskIdRef      = useRef<string>(task.Id);
 
   useEffect(() => {
-    const taskChanged = task.Id !== prevTaskIdRef.current;
     prevTaskIdRef.current = task.Id;
-
-    console.log('[TaskCard][useEffect][release-debug]', {
-      taskId: task.Id,
-      taskChanged,
-      incomingTask: {
-        Id: task.Id,
-        Task: task.Task,
-        Complete: task.Complete,
-        isRelease: task.isRelease,
-        releaseUnits: task.releaseUnits,
-        jsonTable: task.jsonTable ?? task.Description,
-      },
-      localBefore: {
-        isRelease,
-        releaseUnits,
-      },
-    });
 
     setWbs(task.Title ?? "");
     setGate(task.Gate ?? "");
     setGateEditEnabled(false);
     setRenameAllGateTasks(true);
-    // Only reset isRelease when navigating to a different task.
-    // On same-task updates the local toggle state is authoritative until the
-    // next SP reload brings back a definitive value.
-    if (taskChanged || task.isRelease === true) {
-      setIsRelease(task.isRelease ?? false);
-    }
-    setReleaseUnits(task.releaseUnits ?? getTaskReleaseUnits(task.jsonTable ?? task.Description) ?? 0);
+    // Rehydrate release state from the latest task snapshot so both
+    // transitions (false -> true and true -> false) are reflected after reload.
+    setIsRelease(task.isRelease ?? false);
+    setReleaseUnits(task.releaseUnits ?? getTaskReleaseUnits(task.jsonTable) ?? 0);
     setDeliverable(task.Deliverable ?? "");
     setTaskTitle(task.Task ?? "");
     setComplete(task.Complete ?? 0);
@@ -145,7 +124,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
     notesLogRef.current = task.Notes ?? [];
     setEvidenceLog(task.Evidence ?? []);
     setShowSubprocess(false);
-    setSubprocess(getTaskSubprocess(task.jsonTable ?? task.Description));
+    setSubprocess(getTaskSubprocess(task.jsonTable));
     previousCompleteRef.current = task.Complete ?? 0;
   }, [task]);
 
@@ -168,9 +147,9 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
         : null;
 
     const gateChanged = gate !== task.Gate;
-    const sortOrder = getTaskSortOrder(task.jsonTable ?? task.Description);
+    const sortOrder = getTaskSortOrder(task.jsonTable);
     const hasSubprocessData = subprocess.items > 0 || subprocess.subTasks.length > 0;
-    const jsonTable = buildTaskJsonTable(task.jsonTable ?? task.Description, {
+    const jsonTable = buildTaskJsonTable(task.jsonTable, {
       sortOrder,
       isRelease: isRelease || undefined,
       releaseUnits: isRelease ? releaseUnits : undefined,
@@ -190,22 +169,13 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
       Start: start ? new Date(start) : undefined,
       Finish: finish ? new Date(finish) : undefined,
       ActualFinish: actualFinish,
-      Description: jsonTable ?? "",
+      Description: task.Description ?? "",
       jsonTable: jsonTable ?? "",
       isRelease,
       releaseUnits: isRelease ? releaseUnits : 0,
       EvidenceOfCompletion: effectiveEvidence,
       ...(gateChanged && { originalGate: task.Gate, renameGate: renameAllGateTasks }),
     };
-
-    console.log('[TaskCard][handleSave][release-debug]', {
-      taskId: task.Id,
-      isReleaseState: isRelease,
-      releaseUnitsState: releaseUnits,
-      effectiveComplete,
-      jsonTable,
-      payload: data,
-    });
 
     onSave(task.Id, JSON.stringify(data));
   };
@@ -324,9 +294,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
     }
 
     handleSave({ complete: 100 });
-    appendAuditNote(`Task marked as 100% complete by ${currentUserDisplayName ?? 'system'}`).catch(error => {
-      console.error("[TaskCard] Failed to append completion note", error);
-    });
+    appendAuditNote(`Task marked as 100% complete by ${currentUserDisplayName ?? 'system'}`).catch(() => undefined);
   }, [complete]); // eslint-disable-line react-hooks/exhaustive-deps
   const hasCompletionEvidence = evidenceLog.some(entry => entry.isEvidenceOfCompletion);
   const handleNew = (): void => onNew(task);

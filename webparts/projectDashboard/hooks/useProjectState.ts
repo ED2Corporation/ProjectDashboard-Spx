@@ -295,21 +295,11 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
       const responseJson = await response.json();
       const raw: any[] = Array.isArray(responseJson.value) ? responseJson.value : [];  // eslint-disable-line @typescript-eslint/no-explicit-any
       const loaded: ITaskListItem[] = raw.map(r => {
-        // Extract sortOrder from Description JSON — falls back gracefully if missing/invalid
-        const jsonTable = r.jsonTable ?? r.JsonTable ?? r.Description ?? undefined;
+        // Extract task metadata strictly from jsonTable
+        const jsonTable = r.jsonTable ?? r.JsonTable ?? undefined;
         const sortOrder = getTaskSortOrder(jsonTable);
         const isRelease = getTaskIsRelease(jsonTable);
         const releaseUnits = getTaskReleaseUnits(jsonTable);
-        if (releaseDebugTaskIdRef.current !== null && String(r.Id) === releaseDebugTaskIdRef.current) {
-          console.log('[useProjectState][_getTaskListItems][release-debug]', {
-            taskId: r.Id,
-            title: r.Title,
-            task: r.Task,
-            jsonTable,
-            isRelease,
-            releaseUnits,
-          });
-        }
         return {
           Id: String(r.Id),
           Gate: r.Gate ?? "",
@@ -803,29 +793,9 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
     }
 
     const r: any = await itemRef(); // eslint-disable-line @typescript-eslint/no-explicit-any
-    const jsonTable = r.jsonTable ?? r.JsonTable ?? data.jsonTable ?? data.Description ?? undefined;
+    const jsonTable = r.jsonTable ?? r.JsonTable ?? data.jsonTable ?? undefined;
     const taskIsRelease = getTaskIsRelease(jsonTable);
     const taskReleaseUnits = getTaskReleaseUnits(jsonTable);
-    console.log('[useProjectState][_updateListTask][release-debug]', {
-      listTitle,
-      taskId: data.Id,
-      inputData: data,
-      sharePointItem: {
-        Id: r.Id,
-        Title: r.Title,
-        Gate: r.Gate,
-        Task: r.Task,
-        Complete: r.Complete,
-        Description: r.Description,
-        jsonTable: r.jsonTable ?? r.JsonTable,
-      },
-      resolved: {
-        jsonTable,
-        taskIsRelease,
-        taskReleaseUnits,
-      },
-    });
-
     const task: ITaskListItem = {
       Id: String(r.Id),
       Gate: r.Gate ?? data.Gate,
@@ -926,6 +896,20 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
         await _updateListTask(data, action, completeSafe);
       }
       await onReset();
+
+      const touchesReleaseBlob =
+        action === "full-update" &&
+        (
+          typeof data?.jsonTable === "string" ||
+          typeof data?.Description === "string" ||
+          Object.prototype.hasOwnProperty.call(data ?? {}, "isRelease") ||
+          Object.prototype.hasOwnProperty.call(data ?? {}, "releaseUnits")
+        );
+
+      if (touchesReleaseBlob) {
+        await new Promise<void>(resolve => setTimeout(resolve, 650));
+        await onReset();
+      }
     } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
       MessageLog(`[onUpdateTask] Error: ${error.message}`, "error");
     }

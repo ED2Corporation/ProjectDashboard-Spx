@@ -282,7 +282,7 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
         if (t.sortOrder !== newOrder) {
           updates.push({
             id: Number(t.Id),
-            jsonTable: buildTaskJsonTable(t.jsonTable ?? t.Description, { sortOrder: newOrder }) || JSON.stringify({ sortOrder: newOrder })
+            jsonTable: buildTaskJsonTable(t.jsonTable, { sortOrder: newOrder }) || JSON.stringify({ sortOrder: newOrder })
           });
         }
       });
@@ -393,6 +393,17 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
       ?? null;
   }, [tasks, filteredTasks, navTasks]);
 
+  useEffect(() => {
+    if (!selectedTask?.Id) return;
+    const freshTask = resolveFreshTaskById(selectedTask.Id);
+    if (!freshTask) return;
+
+    setSelectedTask(prev => {
+      if (!prev || prev.Id !== freshTask.Id) return prev;
+      return prev === freshTask ? prev : freshTask;
+    });
+  }, [selectedTask?.Id, resolveFreshTaskById]);
+
   const expandedTaskCard = showCard && selectedTask ? (
     <TaskCard
       task={selectedTask}
@@ -443,11 +454,6 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
         if (payloadJson) {
           try {
             const parsed = JSON.parse(payloadJson) as Partial<ITaskListItem>;
-            console.log('[ProjectRowDashboard][onSave][release-debug]', {
-              taskId,
-              parsed,
-              previousSelectedTask: selectedTask,
-            });
             setSelectedTask(prev => prev?.Id === taskId ? {
               ...prev,
               ...parsed,
@@ -612,10 +618,6 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
                 case "list-edit":
                   {
                     const freshItem = resolveFreshTaskById(item.Id) ?? item;
-                    console.log('[ProjectRowDashboard][list-edit][release-debug]', {
-                      clickedItem: item,
-                      freshItem,
-                    });
                   if (showCard && selectedTask?.Id === item.Id) {
                     setShowCard(false);
                   } else {
@@ -653,10 +655,6 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
                 default:
                   {
                     const freshItem = resolveFreshTaskById(item.Id) ?? item;
-                    console.log('[ProjectRowDashboard][list-default][release-debug]', {
-                      clickedItem: item,
-                      freshItem,
-                    });
                     setSelectedTask(freshItem); setShowCard(true);
                   }
                   onSelectItem(item.Task, "task");
