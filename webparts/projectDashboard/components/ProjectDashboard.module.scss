@@ -483,7 +483,7 @@
 
 // ─── ed2Table (used by ListTasks.tsx) ─────────────────────────────────────
 
-.actionsFixed { width: 44px; }
+.actionsFixed { width: 72px; }
 
 .tableViewport {
   width: 100%;
@@ -554,7 +554,7 @@
 .ed2Table td.colActions,
 .ed2Table th.actionsFixed,
 .ed2Table td.actionsFixed {
-  width: 64px;
+  width: 72px;
 }
 
 // ─── Shared inline controls (kebab-case — accessed via styles["name"]) ─────
@@ -667,8 +667,26 @@
   height: 15px;
 }
 
-.colActions > .icon-button:not(:first-of-type) {
-  display: none;
+.actionButtonsRow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+}
+
+.actionMenuArea {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.actionMenuTrigger,
+.actionAddTrigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .actionContextMenu {
@@ -676,7 +694,7 @@
   pointer-events: none;
   position: absolute;
   top: 50%;
-  right: 65px;
+  right: calc(100% + 4px);
   transform: translateY(-50%);
   transition: opacity 120ms ease;
   z-index: 20;
@@ -694,8 +712,8 @@
     content: "";
     position: absolute;
     top: 0;
-    right: -10px;
-    width: 10px;
+    right: -6px;
+    width: 6px;
     height: 100%;
   }
 
@@ -704,7 +722,7 @@
     content: "";
     position: absolute;
     top: 50%;
-    right: -5px;
+    right: -4px;
     transform: translateY(-50%) rotate(45deg);
     width: 8px;
     height: 8px;
@@ -875,7 +893,7 @@
   display: block;
 }
 
-.colActions:hover .actionContextMenu,
+.actionMenuArea:hover .actionContextMenu,
 .actionContextMenu:hover {
   opacity: 1;
   pointer-events: auto;

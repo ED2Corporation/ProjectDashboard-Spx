@@ -582,42 +582,36 @@ const ListTasks = ({
                   {/* ACTIONS */}
                   <td className={`${styles.colActions} ${styles.actionsFixed}`}>
                     {editingTaskId !== item.Id && (
-                    <button
-                      type="button"
-                      className={styles["icon-button"]}
-                      onMouseEnter={(e) => handleActionMenuEnter(`actions-${item.Id}`, e)}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onSelectItem(item, "task", "list-create");
-                      }}
-                      title={creatingTaskId === item.Id ? "Creating…" : "Add / New row"}
-                      disabled={!!creatingTaskId}
-                    >
-                      {creatingTaskId === item.Id ? (
-                        <svg className={`${styles["icon-small"]} ${styles.spinning}`} viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                          <circle cx="8" cy="8" r="5.5" stroke="currentColor" strokeWidth="2" strokeDasharray="20 15" strokeLinecap="round"/>
-                        </svg>
-                      ) : (
-                        <svg className={styles["icon-small"]} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
-                          <path d="M8 3v10M3 8h10"/>
-                        </svg>
-                      )}
-                    </button>
-                    )}
-                    {editingTaskId !== item.Id && <div
-                      className={[
-                        styles.actionContextMenu,
-                        actionMenuShortKey === `actions-${item.Id}` ? styles.actionContextMenuShort : "",
-                        actionMenuDownKey === `actions-${item.Id}` ? styles.actionContextMenuDown : "",
-                        actionMenuUpKey === `actions-${item.Id}` ? styles.actionContextMenuUp : "",
-                      ].filter(Boolean).join(" ")}
-                      style={actionMenuShortKey === `actions-${item.Id}`
-                        ? ({
-                            ["--menu-notch-offset" as "--menu-notch-offset"]: actionMenuShortOffset[`actions-${item.Id}`] ?? "22px",
-                            ["--menu-short-shift" as "--menu-short-shift"]: actionMenuShortShift[`actions-${item.Id}`] ?? "0px",
-                          } as React.CSSProperties)
-                        : undefined}
-                    >
+                      <div className={styles.actionButtonsRow}>
+                        <div
+                          className={styles.actionMenuArea}
+                          onMouseEnter={(e) => handleActionMenuEnter(`actions-${item.Id}`, e)}
+                        >
+                          <button
+                            type="button"
+                            className={`${styles["icon-button"]} ${styles.actionMenuTrigger}`}
+                            onClick={(e) => e.stopPropagation()}
+                            title="Open actions menu"
+                            aria-label="Open actions menu"
+                          >
+                            <svg className={styles["icon-small"]} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true">
+                              <path d="M3 4h10M3 8h10M3 12h10"/>
+                            </svg>
+                          </button>
+                          <div
+                            className={[
+                              styles.actionContextMenu,
+                              actionMenuShortKey === `actions-${item.Id}` ? styles.actionContextMenuShort : "",
+                              actionMenuDownKey === `actions-${item.Id}` ? styles.actionContextMenuDown : "",
+                              actionMenuUpKey === `actions-${item.Id}` ? styles.actionContextMenuUp : "",
+                            ].filter(Boolean).join(" ")}
+                            style={actionMenuShortKey === `actions-${item.Id}`
+                              ? ({
+                                  ["--menu-notch-offset" as "--menu-notch-offset"]: actionMenuShortOffset[`actions-${item.Id}`] ?? "22px",
+                                  ["--menu-short-shift" as "--menu-short-shift"]: actionMenuShortShift[`actions-${item.Id}`] ?? "0px",
+                                } as React.CSSProperties)
+                              : undefined}
+                          >
                       <button
                         type="button"
                         onClick={(e) => {
@@ -762,7 +756,30 @@ const ListTasks = ({
                         <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M8 2l2 2-6 6H2V8L8 2z"/></svg>
                         Edit
                       </button>
-                    </div>}
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          className={`${styles["icon-button"]} ${styles.actionAddTrigger}`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onSelectItem(item, "task", "list-create");
+                          }}
+                          title={creatingTaskId === item.Id ? "Creating…" : "Add / New row"}
+                          disabled={!!creatingTaskId}
+                        >
+                          {creatingTaskId === item.Id ? (
+                            <svg className={`${styles["icon-small"]} ${styles.spinning}`} viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                              <circle cx="8" cy="8" r="5.5" stroke="currentColor" strokeWidth="2" strokeDasharray="20 15" strokeLinecap="round"/>
+                            </svg>
+                          ) : (
+                            <svg className={styles["icon-small"]} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+                              <path d="M8 3v10M3 8h10"/>
+                            </svg>
+                          )}
+                        </button>
+                      </div>
+                    )}
                     {editingTaskId === item.Id && (
                       <div className={styles.quickEditActions}>
                         <button
@@ -792,31 +809,6 @@ const ListTasks = ({
                           </svg>
                         </button>
                       </div>
-                    )}
-                    {/* Delete row — hidden in edit mode */}
-                    {editingTaskId !== item.Id && (
-                    <button
-                      type="button"
-                      className={styles["icon-button"]}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (window.confirm(`Delete task "${item.Task}"?`)) {
-                          onSelectItem(item, "task", "list-delete");
-                        }
-                      }}
-                      title={deletingTaskId === item.Id ? "Deleting…" : "Delete task"}
-                      disabled={!!creatingTaskId || !!deletingTaskId}
-                    >
-                      {deletingTaskId === item.Id ? (
-                        <svg className={`${styles["icon-small"]} ${styles.spinning}`} viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                          <circle cx="8" cy="8" r="5.5" stroke="currentColor" strokeWidth="2" strokeDasharray="20 15" strokeLinecap="round"/>
-                        </svg>
-                      ) : (
-                        <svg className={styles["icon-small"]} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                          <path d="M3 5h10M6 5V3h4v2M4.5 5l.7 8h6.6l.7-8"/>
-                        </svg>
-                      )}
-                    </button>
                     )}
                   </td>
 
