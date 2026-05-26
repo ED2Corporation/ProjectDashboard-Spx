@@ -8,6 +8,7 @@ import NotesLog from "./NotesLog";
 import styles from "./SubprocessCard.module.scss";
 
 type SubprocessTaskTab = "notes" | "evidence" | "approvals";
+type SubprocessColumnFocus = "balanced" | "left" | "right";
 
 interface ISubprocessTaskCardProps {
   subTask: ISubprocessSubTask;
@@ -33,6 +34,16 @@ const toDateInputValue = (value?: string): string => {
 const clampPercent = (value: number): number =>
   Math.max(0, Math.min(100, Math.floor(Number.isFinite(value) ? value : 0)));
 
+const deriveDuration = (value?: number, start?: string, finish?: string): number => {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (!start || !finish) return 0;
+  const startDate = new Date(start);
+  const finishDate = new Date(finish);
+  if (isNaN(startDate.getTime()) || isNaN(finishDate.getTime()) || finishDate < startDate) return 0;
+  const days = Math.ceil((finishDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+  return Math.max(0, days);
+};
+
 const hasCompletionEvidence = (entries: IEvidenceEntry[]): boolean =>
   entries.some(entry => entry.isEvidenceOfCompletion);
 
@@ -48,6 +59,7 @@ const SubprocessTaskCard: React.FC<ISubprocessTaskCardProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<SubprocessTaskTab>("notes");
   const [taskTitle, setTaskTitle] = useState(subTask.task || "");
+  const [duration, setDuration] = useState<number>(deriveDuration(subTask.duration, subTask.start, subTask.finish));
   const [complete, setComplete] = useState<number>(subTask.complete || 0);
   const [start, setStart] = useState<string>(toDateInputValue(subTask.start));
   const [finish, setFinish] = useState<string>(toDateInputValue(subTask.finish));
@@ -55,10 +67,12 @@ const SubprocessTaskCard: React.FC<ISubprocessTaskCardProps> = ({
   const [notes, setNotes] = useState<INoteEntry[]>(subTask.notes ?? []);
   const [evidence, setEvidence] = useState<IEvidenceEntry[]>(subTask.evidence ?? []);
   const [approvals, setApprovals] = useState<IApprovalEntry[]>(subTask.approvals ?? []);
+  const [columnFocus, setColumnFocus] = useState<SubprocessColumnFocus>("balanced");
   const notesRef = useRef<INoteEntry[]>(subTask.notes ?? []);
 
   useEffect(() => {
     setTaskTitle(subTask.task || "");
+    setDuration(deriveDuration(subTask.duration, subTask.start, subTask.finish));
     setComplete(subTask.complete || 0);
     setStart(toDateInputValue(subTask.start));
     setFinish(toDateInputValue(subTask.finish));
@@ -68,6 +82,7 @@ const SubprocessTaskCard: React.FC<ISubprocessTaskCardProps> = ({
     setEvidence(subTask.evidence ?? []);
     setApprovals(subTask.approvals ?? []);
     setActiveTab("notes");
+    setColumnFocus("balanced");
   }, [subTask]);
 
   const appendAuditNote = async (text: string): Promise<void> => {
@@ -99,6 +114,7 @@ const SubprocessTaskCard: React.FC<ISubprocessTaskCardProps> = ({
     return {
       ...subTask,
       task: taskTitle,
+      duration,
       complete: clampPercent(nextComplete),
       start,
       finish,
@@ -171,6 +187,35 @@ const SubprocessTaskCard: React.FC<ISubprocessTaskCardProps> = ({
           <h3 className={styles.detailTitle}>{subTask.wbs} · {taskTitle || "Untitled subtask"}</h3>
         </div>
         <div className={styles.detailActions}>
+          <div className={styles.detailViewCard}>
+            <button
+              type="button"
+              className={`${styles.detailViewBtn} ${columnFocus === "right" ? styles.detailViewBtnActive : ""}`}
+              onClick={() => setColumnFocus("right")}
+              title="Expand right section"
+              aria-label="Expand right section"
+            >
+              &lt;
+            </button>
+            <button
+              type="button"
+              className={`${styles.detailViewBtn} ${columnFocus === "balanced" ? styles.detailViewBtnActive : ""}`}
+              onClick={() => setColumnFocus("balanced")}
+              title="Balanced view"
+              aria-label="Balanced view"
+            >
+              ||
+            </button>
+            <button
+              type="button"
+              className={`${styles.detailViewBtn} ${columnFocus === "left" ? styles.detailViewBtnActive : ""}`}
+              onClick={() => setColumnFocus("left")}
+              title="Expand left section"
+              aria-label="Expand left section"
+            >
+              &gt;
+            </button>
+          </div>
           <button type="button" className={styles.detailActionBtn} onClick={handleSave}>
             Save
           </button>
@@ -180,7 +225,13 @@ const SubprocessTaskCard: React.FC<ISubprocessTaskCardProps> = ({
         </div>
       </div>
 
-      <div className={styles.detailBody}>
+      <div
+        className={[
+          styles.detailBody,
+          columnFocus === "left" ? styles.detailBodyLeftFocus : "",
+          columnFocus === "right" ? styles.detailBodyRightFocus : "",
+        ].filter(Boolean).join(" ")}
+      >
         <div className={styles.detailForm}>
           <div className={styles.detailRow}>
             <label className={styles.detailFieldFull}>
@@ -227,6 +278,19 @@ const SubprocessTaskCard: React.FC<ISubprocessTaskCardProps> = ({
                 className={styles.detailInput}
               />
             </label>
+            <label className={styles.detailField}>
+              <span>Duration</span>
+              <input
+                type="number"
+                min={0}
+                value={duration}
+                onChange={(event) => setDuration(Number(event.target.value) || 0)}
+                className={styles.detailInput}
+              />
+            </label>
+          </div>
+
+          <div className={styles.detailRow}>
             <label className={styles.detailField}>
               <span>Finish</span>
               <input

@@ -124,7 +124,6 @@ function makeEmptyTask(gate?: string): ITaskListItem {
     Id: "",
     Gate: gate || "New Gate",
     Complete: 0,
-    Deliverable: "",
     Title: "",
     Start: new Date(),
     Finish: new Date(),
@@ -154,16 +153,11 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
 
   // null = not yet probed; true = columns exist; false = columns absent in this list
   const logFieldsAvailableRef = useRef<boolean | null>(null);
-  const deliverableFieldAvailableRef = useRef<boolean | null>(null);
   const jsonTableFieldAvailableRef = useRef<boolean | null>(null);
   const releaseDebugTaskIdRef = useRef<string | null>(null);
 
   const setLogFieldsAvailable = useCallback((available: boolean): void => {
     logFieldsAvailableRef.current = available;
-  }, []);
-
-  const setDeliverableFieldAvailable = useCallback((available: boolean): void => {
-    deliverableFieldAvailableRef.current = available;
   }, []);
 
   const setJsonTableFieldAvailable = useCallback((available: boolean): void => {
@@ -172,15 +166,11 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
 
   const withAvailableTaskFields = useCallback((
     payload: Record<string, unknown>,
-    options?: { includeDeliverableDefault?: boolean; includeJsonTableDefault?: boolean }
+    options?: { includeJsonTableDefault?: boolean }
   ): Record<string, unknown> => {
     const nextPayload = { ...payload };
-    const includeDeliverable = deliverableFieldAvailableRef.current !== false && options?.includeDeliverableDefault !== false;
     const includeJsonTable = jsonTableFieldAvailableRef.current !== false && options?.includeJsonTableDefault !== false;
 
-    if (!includeDeliverable) {
-      delete nextPayload.Deliverable;
-    }
     if (!includeJsonTable) {
       delete nextPayload.jsonTable;
     }
@@ -214,7 +204,6 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
       const buildSelect = (withLog: boolean, withJsonTable: boolean): string => {
         const baseFields = [
           'Id', 'Title', 'Gate', 'Task',
-          ...(deliverableFieldAvailableRef.current !== false ? ['Deliverable'] : []),
           'Complete', 'Start', 'Finish', 'ActualFinish', 'Description',
           ...(withJsonTable ? ['jsonTable'] : [])
         ];
@@ -226,47 +215,49 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
         return context.spHttpClient.get(queryUrl, SPHttpClient.configurations.v1);
       };
 
-      // If we already know log fields are absent, skip straight to reduced query
-      const tryWithLog = logFieldsAvailableRef.current !== false;
-      let includeJsonTable = true;
+      // If we already know optional fields are absent, skip straight to reduced query.
+      let tryWithLog = logFieldsAvailableRef.current !== false;
+      let includeJsonTable = jsonTableFieldAvailableRef.current !== false;
       let response = await fetchItems(tryWithLog, includeJsonTable);
 
-      // On 400, handle missing optional fields and retry with a reduced query
-      if (!response.ok && response.status === 400 && tryWithLog) {
+      // On 400, the issue is typically a missing field in $select, not bad row data.
+      // SharePoint error messages are not stable, so fall back progressively even if
+      // we cannot parse the exact field name from the response body.
+      if (!response.ok && response.status === 400) {
         const errText = await response.text();
         const isLogFieldError = LOG_FIELD_NAMES.some(f => hasMissingFieldError(errText, f));
         const isJsonTableFieldError = hasMissingFieldError(errText, 'jsonTable');
-        const isDeliverableFieldError = hasMissingFieldError(errText, 'Deliverable');
-        if (isLogFieldError) {
-          setLogFieldsAvailable(false);
-          response = await fetchItems(false, includeJsonTable);
-        } else if (isJsonTableFieldError) {
-          includeJsonTable = false;
-          setJsonTableFieldAvailable(false);
-          response = await fetchItems(tryWithLog, false);
-        } else if (isDeliverableFieldError) {
-          setDeliverableFieldAvailable(false);
-          response = await fetchItems(tryWithLog, includeJsonTable);
-        } else {
-          console.error("[_getTaskListItems] HTTP error:", response.status, errText);
-          setSysError(true);
-          setEnvironmentMessage(errText);
-          return [];
-        }
-      }
+        const attempts: Array<{ withLog: boolean; withJsonTable: boolean }> = [];
 
-      if (!response.ok && response.status === 400 && includeJsonTable) {
-        const errText = await response.text();
-        const isJsonTableFieldError = hasMissingFieldError(errText, 'jsonTable');
-        const isDeliverableFieldError = hasMissingFieldError(errText, 'Deliverable');
-        if (isJsonTableFieldError) {
-          includeJsonTable = false;
-          setJsonTableFieldAvailable(false);
-          response = await fetchItems(logFieldsAvailableRef.current !== false, false);
-        } else if (isDeliverableFieldError) {
-          setDeliverableFieldAvailable(false);
-          response = await fetchItems(logFieldsAvailableRef.current !== false, includeJsonTable);
-        } else {
+        if (isLogFieldError && tryWithLog) {
+          attempts.push({ withLog: false, withJsonTable: includeJsonTable });
+        }
+        if (isJsonTableFieldError && includeJsonTable) {
+          attempts.push({ withLog: tryWithLog, withJsonTable: false });
+        }
+
+        // Generic fallback sequence when SharePoint returns a 400 without a parsable field name.
+        if (!attempts.length) {
+          if (tryWithLog) attempts.push({ withLog: false, withJsonTable: includeJsonTable });
+          if (includeJsonTable) attempts.push({ withLog: tryWithLog, withJsonTable: false });
+          if (tryWithLog && includeJsonTable) attempts.push({ withLog: false, withJsonTable: false });
+        }
+
+        let recovered = false;
+        for (const attempt of attempts) {
+          tryWithLog = attempt.withLog;
+          includeJsonTable = attempt.withJsonTable;
+          if (!tryWithLog) setLogFieldsAvailable(false);
+          if (!includeJsonTable) setJsonTableFieldAvailable(false);
+
+          response = await fetchItems(tryWithLog, includeJsonTable);
+          if (response.ok) {
+            recovered = true;
+            break;
+          }
+        }
+
+        if (!recovered && !response.ok) {
           console.error("[_getTaskListItems] HTTP error:", response.status, errText);
           setSysError(true);
           setEnvironmentMessage(errText);
@@ -289,7 +280,6 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
 
       // Mark log fields as available if we didn't already know they were absent
       if (logFieldsAvailableRef.current === null) setLogFieldsAvailable(true);
-      if (deliverableFieldAvailableRef.current === null && buildSelect(false, false).includes('Deliverable')) setDeliverableFieldAvailable(true);
       if (jsonTableFieldAvailableRef.current === null && includeJsonTable) setJsonTableFieldAvailable(true);
 
       const responseJson = await response.json();
@@ -305,7 +295,6 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
           Gate: r.Gate ?? "",
           Task: r.Task ?? "",
           Title: r.Title ?? undefined,
-          Deliverable: r.Deliverable ?? "",
           Complete: typeof r.Complete === "number" ? r.Complete : Number(r.Complete) || 0,
           Start: r.Start ? new Date(r.Start) : undefined,
           Finish: r.Finish ? new Date(r.Finish) : undefined,
@@ -331,7 +320,7 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
       setEnvironmentMessage(String(error));
       return [];
     }
-  }, [context, showLog, config.storageEndpoint?.siteRelPath, config.storageEndpoint?.siteUrl, setDeliverableFieldAvailable, setJsonTableFieldAvailable, setLogFieldsAvailable]);
+  }, [context, showLog, config.storageEndpoint?.siteRelPath, config.storageEndpoint?.siteUrl, setJsonTableFieldAvailable, setLogFieldsAvailable]);
 
   const _getGateListItems = useCallback(async (
     project: IProjectListItem,
@@ -550,7 +539,6 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
     const addResult: any = await sp.web.lists.getByTitle(listTitle).items.add(withAvailableTaskFields({ // eslint-disable-line @typescript-eslint/no-explicit-any
       Gate: gate,
       Title: nextWbs,
-      Deliverable: gate + ". Deliverable",
       Task: "New task...",
       Start: today.toISOString(),
       Finish: today.toISOString(),
@@ -566,7 +554,6 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
       Id: String(r.Id),
       Gate: r.Gate ?? gate,
       Task: r.Task ?? "New task...",
-      Deliverable: r.Deliverable ?? "",
       Complete: typeof r.Complete === "number" ? r.Complete : Number(r.Complete) || 0,
       Start: r.Start ? new Date(r.Start) : today,
       Finish: r.Finish ? new Date(r.Finish) : today,
@@ -599,7 +586,6 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
     const addResult: any = await sp.web.lists.getByTitle(listTitle).items.add(withAvailableTaskFields({ // eslint-disable-line @typescript-eslint/no-explicit-any
       Gate: gate,
       Title: newWbs,
-      Deliverable: gate + ". Deliverable",
       Task: "New task...",
       Start: today.toISOString(),
       Finish: today.toISOString(),
@@ -615,7 +601,6 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
       Id: String(r.Id),
       Gate: r.Gate ?? gate,
       Task: r.Task ?? "New task...",
-      Deliverable: r.Deliverable ?? "",
       Complete: typeof r.Complete === "number" ? r.Complete : Number(r.Complete) || 0,
       Start: r.Start ? new Date(r.Start) : today,
       Finish: r.Finish ? new Date(r.Finish) : today,
@@ -766,7 +751,6 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
       });
     } else {
       await itemRef.update(withAvailableTaskFields({
-        Deliverable: data.Deliverable,
         Gate: data.Gate,
         Task: data.Task,
         Complete: curr,
@@ -800,7 +784,6 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
       Id: String(r.Id),
       Gate: r.Gate ?? data.Gate,
       Task: r.Task ?? "New task",
-      Deliverable: r.Deliverable ?? "",
       Complete: typeof r.Complete === "number" ? r.Complete : Number(r.Complete) || 0,
       Start: r.Start ? new Date(r.Start) : undefined,
       Finish: r.Finish ? new Date(r.Finish) : undefined,
@@ -862,7 +845,6 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
     } else {
       await plannerService.updateTaskFull({
         Id: data.Id,
-        Deliverable: data.Deliverable,
         Description: data.Description,
         Complete: completeSafe,
         EvidenceOfCompletion: {
@@ -988,7 +970,6 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
     const addResult: any = await sp.web.lists.getByTitle(listTitle).items.add(withAvailableTaskFields({ // eslint-disable-line @typescript-eslint/no-explicit-any
       Gate: gate || "Gate 1",
       Title: nextWbs,
-      Deliverable: (gate || "Gate 1") + ". Deliverable",
       Task: (gate || "Gate 1") + ". Task",
       Start: today.toISOString(),
       Finish: today.toISOString(),
@@ -1004,7 +985,6 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
       Id: String(r.Id),
       Gate: r.Gate ?? gate,
       Task: r.Task ?? "New task",
-      Deliverable: r.Deliverable ?? "",
       Complete: typeof r.Complete === "number" ? r.Complete : Number(r.Complete) || 0,
       Start: r.Start ? new Date(r.Start) : today,
       Finish: r.Finish ? new Date(r.Finish) : today,
@@ -1055,7 +1035,6 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
         Gate: gate,
         Task: taskTitle,
         Title: nextWbs,
-        Deliverable: row.Deliverable || "",
         Complete: complete,
         Start: toIso(row.Start),
         Finish: toIso(row.Finish),

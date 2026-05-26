@@ -21,7 +21,7 @@ interface ISubprocessListProps {
   onStartQuickEdit: (subTaskId: string) => void;
   onSaveQuickEdit: (
     subTaskId: string,
-    patch: Pick<ISubprocessSubTask, "task" | "complete" | "start" | "finish" | "actualFinish">
+    patch: Pick<ISubprocessSubTask, "task" | "duration" | "complete" | "start" | "finish" | "actualFinish">
   ) => void;
   onCancelQuickEdit: () => void;
   onMove: (subTaskId: string, direction: MoveDirection) => void;
@@ -112,10 +112,6 @@ const SubprocessList: React.FC<ISubprocessListProps> = ({
     const shouldOpenDown = !isShortListMode && hoveredIndex >= 0 && hoveredIndex <= 1;
     const shouldOpenUp = !isShortListMode && hoveredIndex >= Math.max(0, sortedTasks.length - 2);
 
-    if (isShortListMode) {
-      console.log("[SubprocessList][short-submenu-mode]", { key, visibleRows: subTasks.length });
-    }
-
     setSubmenuShortKey(current => (current === key && isShortListMode) ? current : (isShortListMode ? key : null));
     setSubmenuUpKey(current => (current === key && shouldOpenUp) ? current : (shouldOpenUp ? key : null));
     setSubmenuDownKey(current => (current === key && shouldOpenDown) ? current : (shouldOpenDown ? key : null));
@@ -133,21 +129,6 @@ const SubprocessList: React.FC<ISubprocessListProps> = ({
     const hoveredIndex = sortedTasks.findIndex(task => task.id === itemId);
     const shouldOpenDown = !isShortListMode && hoveredIndex >= 0 && hoveredIndex <= 1;
     const shouldOpenUp = !isShortListMode && hoveredIndex >= Math.max(0, sortedTasks.length - 2);
-    const detectedCase = isShortListMode
-      ? "short-list"
-      : shouldOpenUp
-        ? "bottom-row"
-        : shouldOpenDown
-          ? "top-row"
-          : "default";
-
-    console.log("[SubprocessList][action-menu-case]", {
-      key,
-      detectedCase,
-      hoveredIndex,
-      visibleRows: sortedTasks.length,
-    });
-
     if (isShortListMode) {
       const notchOffset = `${54 + Math.max(0, hoveredIndex) * 28}px`;
       const shortShift = `${32 + Math.max(0, hoveredIndex) * 28}px`;
@@ -416,11 +397,120 @@ const SubprocessList: React.FC<ISubprocessListProps> = ({
                   </td>
                   <td className={`${dashboardStyles.colActions} ${dashboardStyles.actionsFixed}`}>
                     {!isEditing && (
-                      <>
+                      <div className={dashboardStyles.actionButtonsRow}>
+                        <div
+                          className={dashboardStyles.actionMenuArea}
+                          onMouseEnter={(e) => handleActionMenuEnter(`actions-${item.id}`, e)}
+                        >
+                          <button
+                            type="button"
+                            className={`${dashboardStyles["icon-button"]} ${dashboardStyles.actionMenuTrigger}`}
+                            onClick={(e) => e.stopPropagation()}
+                            title="Open actions menu"
+                            aria-label="Open actions menu"
+                          >
+                            <svg className={dashboardStyles["icon-small"]} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true">
+                              <path d="M3 4h10M3 8h10M3 12h10" />
+                            </svg>
+                          </button>
+                          <div
+                            className={[
+                              dashboardStyles.actionContextMenu,
+                              actionMenuShortKey === `actions-${item.id}` ? dashboardStyles.actionContextMenuShort : "",
+                              actionMenuDownKey === `actions-${item.id}` ? dashboardStyles.actionContextMenuDown : "",
+                              actionMenuUpKey === `actions-${item.id}` ? dashboardStyles.actionContextMenuUp : "",
+                            ].filter(Boolean).join(" ")}
+                            style={actionMenuShortKey === `actions-${item.id}`
+                              ? ({
+                                  ["--menu-notch-offset" as "--menu-notch-offset"]: actionMenuShortOffset[`actions-${item.id}`] ?? "22px",
+                                  ["--menu-short-shift" as "--menu-short-shift"]: actionMenuShortShift[`actions-${item.id}`] ?? "0px",
+                                } as React.CSSProperties)
+                              : undefined}
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <button
+                              type="button"
+                              onClick={() => onAddBelow(item.id)}
+                            >
+                              <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M6 2v8M2 6h8" /></svg>
+                              Add
+                            </button>
+                            <button
+                              type="button"
+                              className={dashboardStyles["btn-danger"]}
+                              onClick={() => {
+                                if (window.confirm(`Delete subtask "${item.task || item.wbs}"?`)) {
+                                  onRemove(item.id);
+                                }
+                              }}
+                            >
+                              <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M2 3.5h8M4.5 3.5V2.5h3v1M3.5 3.5l.5 6h4l.5-6" /></svg>
+                              Remove
+                            </button>
+                            <div className={dashboardStyles["ctx-separator"]} />
+                            <button
+                              type="button"
+                              onClick={() => startQuickEdit(item)}
+                            >
+                              <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M2 7.5 4.5 10 10 3" /></svg>
+                              Complete
+                            </button>
+                            {onEditDetail && (
+                              <button
+                                type="button"
+                                onClick={() => onEditDetail(item.id)}
+                              >
+                                <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M8 2l2 2-6 6H2V8L8 2z" /></svg>
+                                Edit
+                              </button>
+                            )}
+                            <div
+                              className={dashboardStyles.actionSubmenuWrap}
+                              onMouseEnter={(e) => handleSubmenuEnter(`move-${item.id}`, e)}
+                            >
+                              <button type="button" disabled={moveDisabled}>
+                                <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M6 2v8M3 5l3-3 3 3M3 7l3 3 3-3" /></svg>
+                                {moveDisabled ? "Moving..." : "Move"}
+                              </button>
+                              <div
+                                className={[
+                                  dashboardStyles.actionSubmenu,
+                                  submenuShortKey === `move-${item.id}` ? dashboardStyles.actionSubmenuShort : "",
+                                  submenuDownKey === `move-${item.id}` ? dashboardStyles.actionSubmenuDown : "",
+                                  submenuUpKey === `move-${item.id}` ? dashboardStyles.actionSubmenuUp : "",
+                                ].filter(Boolean).join(" ")}
+                              >
+                                {(["first", "up", "down", "last"] as const).map((direction) => {
+                                  const disabled =
+                                    moveDisabled ||
+                                    (direction === "first" && visibleIndex === 0) ||
+                                    (direction === "up" && visibleIndex === 0) ||
+                                    (direction === "down" && visibleIndex === subTasks.length - 1) ||
+                                    (direction === "last" && visibleIndex === subTasks.length - 1);
+                                  const labels: Record<MoveDirection, string> = {
+                                    first: "First",
+                                    up: "Up",
+                                    down: "Down",
+                                    last: "Last",
+                                  };
+                                  return (
+                                    <button
+                                      key={direction}
+                                      type="button"
+                                      disabled={disabled}
+                                      onClick={() => onMove(item.id, direction)}
+                                    >
+                                      {labels[direction]}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
                         <button
                           type="button"
-                          className={dashboardStyles["icon-button"]}
-                          onMouseEnter={(e) => handleActionMenuEnter(`actions-${item.id}`, e)}
+                          className={`${dashboardStyles["icon-button"]} ${dashboardStyles.actionAddTrigger}`}
                           onClick={(e) => {
                             e.stopPropagation();
                             onAddBelow(item.id);
@@ -431,101 +521,7 @@ const SubprocessList: React.FC<ISubprocessListProps> = ({
                             <path d="M8 3v10M3 8h10" />
                           </svg>
                         </button>
-                        <div
-                          className={[
-                            dashboardStyles.actionContextMenu,
-                            actionMenuShortKey === `actions-${item.id}` ? dashboardStyles.actionContextMenuShort : "",
-                            actionMenuDownKey === `actions-${item.id}` ? dashboardStyles.actionContextMenuDown : "",
-                            actionMenuUpKey === `actions-${item.id}` ? dashboardStyles.actionContextMenuUp : "",
-                          ].filter(Boolean).join(" ")}
-                          style={actionMenuShortKey === `actions-${item.id}`
-                            ? ({
-                                ["--menu-notch-offset" as "--menu-notch-offset"]: actionMenuShortOffset[`actions-${item.id}`] ?? "22px",
-                                ["--menu-short-shift" as "--menu-short-shift"]: actionMenuShortShift[`actions-${item.id}`] ?? "0px",
-                              } as React.CSSProperties)
-                            : undefined}
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <button
-                            type="button"
-                            onClick={() => onAddBelow(item.id)}
-                          >
-                            <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M6 2v8M2 6h8" /></svg>
-                            Add
-                          </button>
-                          <button
-                            type="button"
-                            className={dashboardStyles["btn-danger"]}
-                            onClick={() => {
-                              if (window.confirm(`Delete subtask "${item.task || item.wbs}"?`)) {
-                                onRemove(item.id);
-                              }
-                            }}
-                          >
-                            <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M2 3.5h8M4.5 3.5V2.5h3v1M3.5 3.5l.5 6h4l.5-6" /></svg>
-                            Remove
-                          </button>
-                          <div className={dashboardStyles["ctx-separator"]} />
-                          <button
-                            type="button"
-                            onClick={() => startQuickEdit(item)}
-                          >
-                            <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M2 7.5 4.5 10 10 3" /></svg>
-                            Complete
-                          </button>
-                          {onEditDetail && (
-                            <button
-                              type="button"
-                              onClick={() => onEditDetail(item.id)}
-                            >
-                              <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M8 2l2 2-6 6H2V8L8 2z" /></svg>
-                              Edit
-                            </button>
-                          )}
-                          <div
-                            className={dashboardStyles.actionSubmenuWrap}
-                            onMouseEnter={(e) => handleSubmenuEnter(`move-${item.id}`, e)}
-                          >
-                            <button type="button" disabled={moveDisabled}>
-                              <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M6 2v8M3 5l3-3 3 3M3 7l3 3 3-3" /></svg>
-                              {moveDisabled ? "Moving..." : "Move"}
-                            </button>
-                            <div
-                              className={[
-                                dashboardStyles.actionSubmenu,
-                                submenuShortKey === `move-${item.id}` ? dashboardStyles.actionSubmenuShort : "",
-                                submenuDownKey === `move-${item.id}` ? dashboardStyles.actionSubmenuDown : "",
-                                submenuUpKey === `move-${item.id}` ? dashboardStyles.actionSubmenuUp : "",
-                              ].filter(Boolean).join(" ")}
-                            >
-                              {(["first", "up", "down", "last"] as const).map((direction) => {
-                                const disabled =
-                                  moveDisabled ||
-                                  (direction === "first" && visibleIndex === 0) ||
-                                  (direction === "up" && visibleIndex === 0) ||
-                                  (direction === "down" && visibleIndex === subTasks.length - 1) ||
-                                  (direction === "last" && visibleIndex === subTasks.length - 1);
-                                const labels: Record<MoveDirection, string> = {
-                                  first: "First",
-                                  up: "Up",
-                                  down: "Down",
-                                  last: "Last",
-                                };
-                                return (
-                                  <button
-                                    key={direction}
-                                    type="button"
-                                    disabled={disabled}
-                                    onClick={() => onMove(item.id, direction)}
-                                  >
-                                    {labels[direction]}
-                                  </button>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        </div>
-                      </>
+                      </div>
                     )}
                     {isEditing && (
                       <div className={dashboardStyles.quickEditActions} onClick={(e) => e.stopPropagation()}>

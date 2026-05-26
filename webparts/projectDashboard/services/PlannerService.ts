@@ -313,7 +313,6 @@ export class PlannerService {
   public async updateTaskFull(
     payload: Partial<ITaskListItem> & {
       Id: string;
-      Deliverable?: string;
       Description?: string;
       Complete?: number;
       Start?: string | Date;
@@ -325,7 +324,7 @@ export class PlannerService {
   ): Promise<void> {
     const {
       Id,
-      Deliverable,
+      Task,
       Complete,
       Start,
       Finish,
@@ -338,7 +337,7 @@ export class PlannerService {
     await this.updateFromTaskItem(
       {
         Id,
-        Deliverable,
+        Task,
         Complete,
         Start,
         Finish,
@@ -398,7 +397,7 @@ export class PlannerService {
   public async updateFromTaskItem(
     item: {
       Id: string;
-      Deliverable?: string;
+      Task?: string;
       Complete?: number;
       Start?: string | Date;
       Finish?: string | Date;
@@ -424,8 +423,8 @@ export class PlannerService {
     if (typeof item.Complete === "number") {
       taskPatch.percentComplete = Math.max(0, Math.min(100, item.Complete));
     }
-    if (item.Deliverable) {
-      taskPatch.title = item.Deliverable;
+    if (item.Task) {
+      taskPatch.title = item.Task;
     }
 
     // Dates → normalize using toUtcIso (timezone-safe)
@@ -602,7 +601,6 @@ export class PlannerService {
       Id: task.id,
       Gate: this.getBucketNameById(task.bucketId, buckets),
       Task: task.title || "",
-      Deliverable: task.title || "",
       Complete: task.percentComplete || 0,
       Description: details?.description || task.description || "",
       Start: task.startDateTime ? new Date(task.startDateTime) : undefined,

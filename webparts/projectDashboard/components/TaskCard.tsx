@@ -9,6 +9,7 @@ import SubprocessCard from "./SubprocessCard";
 import { buildTaskJsonTable, getTaskReleaseUnits, getTaskSortOrder, getTaskSubprocess, ITaskSubprocessData } from "../utils/TaskDescriptionBlob";
 
 type TaskTab = 'notes' | 'evidence' | 'approvals';
+type TaskCardColumnFocus = 'balanced' | 'left' | 'right';
 
 export interface ITaskCardProjectInfo {
   projectNumber: string;   // e.g. "1003028"
@@ -60,7 +61,6 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
   const [renameAllGateTasks, setRenameAllGateTasks] = useState(true);
   const [isRelease, setIsRelease] = useState(task.isRelease ?? false);
   const [releaseUnits, setReleaseUnits] = useState<number>(task.releaseUnits ?? getTaskReleaseUnits(task.jsonTable) ?? 0);
-  const [deliverable, setDeliverable] = useState(task.Deliverable ?? "");
   const [taskTitle, setTaskTitle] = useState(task.Task ?? "");
   const [complete, setComplete] = useState<number>(task.Complete ?? 0);
   const [start, setStart] = useState<string>(
@@ -95,10 +95,13 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
   const initialSubprocess = getTaskSubprocess(task.jsonTable);
   const [showSubprocess, setShowSubprocess] = useState(false);
   const [subprocess, setSubprocess] = useState<ITaskSubprocessData>(initialSubprocess);
+  const [columnFocus, setColumnFocus] = useState<TaskCardColumnFocus>('balanced');
+  const [bodyCollapsed, setBodyCollapsed] = useState(false);
   const notesLogRef        = useRef<INoteEntry[]>(task.Notes ?? []);
   const previousCompleteRef = useRef<number>(task.Complete ?? 0);
   const skipNextCompleteEffectRef = useRef(false);
   const prevTaskIdRef      = useRef<string>(task.Id);
+  const hasSubprocessTasks = subprocess.subTasks.length > 0;
 
   useEffect(() => {
     prevTaskIdRef.current = task.Id;
@@ -111,7 +114,6 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
     // transitions (false -> true and true -> false) are reflected after reload.
     setIsRelease(task.isRelease ?? false);
     setReleaseUnits(task.releaseUnits ?? getTaskReleaseUnits(task.jsonTable) ?? 0);
-    setDeliverable(task.Deliverable ?? "");
     setTaskTitle(task.Task ?? "");
     setComplete(task.Complete ?? 0);
     setStart(task.Start ? new Date(task.Start).toISOString().slice(0, 10) : "");
@@ -125,6 +127,8 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
     setEvidenceLog(task.Evidence ?? []);
     setShowSubprocess(false);
     setSubprocess(getTaskSubprocess(task.jsonTable));
+    setColumnFocus('balanced');
+    setBodyCollapsed(false);
     previousCompleteRef.current = task.Complete ?? 0;
   }, [task]);
 
@@ -148,7 +152,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
 
     const gateChanged = gate !== task.Gate;
     const sortOrder = getTaskSortOrder(task.jsonTable);
-    const hasSubprocessData = subprocess.items > 0 || subprocess.subTasks.length > 0;
+    const hasSubprocessData = subprocess.subTasks.length > 0;
     const jsonTable = buildTaskJsonTable(task.jsonTable, {
       sortOrder,
       isRelease: isRelease || undefined,
@@ -159,7 +163,6 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
     const data = {
       Id: task.Id,
       Title: wbs,
-      Deliverable: deliverable,
       Gate: gate,
       Task: taskTitle,
       Complete: effectiveComplete,
@@ -175,6 +178,38 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
       releaseUnits: isRelease ? releaseUnits : 0,
       EvidenceOfCompletion: effectiveEvidence,
       ...(gateChanged && { originalGate: task.Gate, renameGate: renameAllGateTasks }),
+    };
+
+    onSave(task.Id, JSON.stringify(data));
+  };
+
+  const handleSaveSubprocessOnly = (nextSubprocess: ITaskSubprocessData): void => {
+    const hasSubprocessData = nextSubprocess.subTasks.length > 0;
+    const jsonTable = buildTaskJsonTable(task.jsonTable, {
+      sortOrder: getTaskSortOrder(task.jsonTable),
+      isRelease: task.isRelease || undefined,
+      releaseUnits: task.isRelease ? task.releaseUnits : undefined,
+      subprocess: hasSubprocessData ? nextSubprocess : undefined,
+      clearSubprocess: !hasSubprocessData,
+    });
+
+    const data = {
+      Id: task.Id,
+      Title: task.Title ?? "",
+      Gate: task.Gate ?? "",
+      Task: task.Task ?? "",
+      Complete: task.Complete ?? 0,
+      Effort: task.Effort,
+      Barriers: task.Barriers ?? "",
+      ActionableStatus: task.ActionableStatus ?? "",
+      Start: task.Start ?? undefined,
+      Finish: task.Finish ?? undefined,
+      ActualFinish: task.ActualFinish ?? undefined,
+      Description: task.Description ?? "",
+      jsonTable: jsonTable ?? "",
+      isRelease: task.isRelease ?? false,
+      releaseUnits: task.isRelease ? (task.releaseUnits ?? 0) : 0,
+      EvidenceOfCompletion: task.EvidenceOfCompletion,
     };
 
     onSave(task.Id, JSON.stringify(data));
@@ -299,6 +334,15 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
   const hasCompletionEvidence = evidenceLog.some(entry => entry.isEvidenceOfCompletion);
   const handleNew = (): void => onNew(task);
   const handleDelete = (): void => onDelete(task.Id);
+  const handleToggleSubprocess = (): void => {
+    setShowSubprocess(prev => {
+      const next = !prev;
+      if (next) {
+        setBodyCollapsed(false);
+      }
+      return next;
+    });
+  };
 
   return (
     <div className={styles["task-card"]}>
@@ -384,13 +428,58 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
             </div>
           )}
 
-          <div className={styles["task-btn-spacer"]} />
+          <div className={styles["task-view-card"]}>
+            <button
+              type="button"
+              className={`${styles["task-button"]} ${columnFocus === 'right' ? styles["task-button-toggle-active"] : ""}`}
+              onClick={() => setColumnFocus('right')}
+              title="Expand right section"
+              aria-label="Expand right section"
+            >
+              <span className={styles["task-button-label"]}>&lt;</span>
+            </button>
+            <button
+              type="button"
+              className={`${styles["task-button"]} ${columnFocus === 'balanced' ? styles["task-button-toggle-active"] : ""}`}
+              onClick={() => setColumnFocus('balanced')}
+              title="Balanced view"
+              aria-label="Balanced view"
+            >
+              <span className={styles["task-button-label"]}>||</span>
+            </button>
+            <button
+              type="button"
+              className={`${styles["task-button"]} ${columnFocus === 'left' ? styles["task-button-toggle-active"] : ""}`}
+              onClick={() => setColumnFocus('left')}
+              title="Expand left section"
+              aria-label="Expand left section"
+            >
+              <span className={styles["task-button-label"]}>&gt;</span>
+            </button>
+          </div>
+          <button
+            type="button"
+            className={`${styles["task-button"]} ${styles["task-button-collapse"]} ${bodyCollapsed ? styles["task-button-toggle-active"] : ""}`}
+            onClick={() => setBodyCollapsed(prev => !prev)}
+            title={bodyCollapsed ? "Expand task card details" : "Collapse task card details"}
+            aria-label={bodyCollapsed ? "Expand task card details" : "Collapse task card details"}
+          >
+            <svg className={styles["icon-small"]} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              {bodyCollapsed ? <path d="M3 10l5-5 5 5" /> : <path d="M3 6l5 5 5-5" />}
+            </svg>
+          </button>
+
 
           {/* ── Save / Close ── */}
           <button
             type="button"
-            className={`${styles["task-button"]} ${styles["task-button-save"]} ${showSubprocess ? styles["task-button-toggle-active"] : ""}`}
-            onClick={() => setShowSubprocess(prev => !prev)}
+            className={[
+              styles["task-button"],
+              styles["task-button-save"],
+              hasSubprocessTasks ? styles["task-button-subprocess-ready"] : "",
+              showSubprocess ? styles["task-button-toggle-active"] : "",
+            ].filter(Boolean).join(" ")}
+            onClick={handleToggleSubprocess}
             title="Subprocess"
           >
             <span className={styles["task-button-label"]}>Subprocess</span>
@@ -410,7 +499,14 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
           )}
         </div>
       </div>
-      <div className={styles["task-card-row"]}>
+      {!bodyCollapsed && (
+      <div
+        className={[
+          styles["task-card-row"],
+          columnFocus === 'left' ? styles["task-card-row-left-focus"] : "",
+          columnFocus === 'right' ? styles["task-card-row-right-focus"] : "",
+        ].filter(Boolean).join(" ")}
+      >
         <div className={styles["task-card-body"]}>
           <div className={styles["task-form"]}>
 
@@ -664,6 +760,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
           </div>
         </div>
       </div>
+      )}
       {showSubprocess && (
         <SubprocessCard
           parentWbs={wbs}
@@ -671,6 +768,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
           parentFinish={finish}
           value={subprocess}
           onChange={setSubprocess}
+          onSaveSubprocess={handleSaveSubprocessOnly}
           onClose={() => setShowSubprocess(false)}
           currentUserEmail={currentUserEmail}
           currentUserDisplayName={currentUserDisplayName}

@@ -227,18 +227,10 @@ export class ProjectService implements IProjectService {
         return gates;
     }
 
-    private async _listHasField(listName: string, fieldName: string): Promise<boolean> {
-        const fields: Array<{ InternalName?: string }> = await this._sp.web.lists
-            .getByTitle(listName)
-            .fields
-            .select("InternalName")();
-        return fields.some(field => field.InternalName === fieldName);
-    }
-
     private _buildTaskCsvBlob(items: any[]): Blob { // eslint-disable-line @typescript-eslint/no-explicit-any
 
         const headers = [
-            "Id", "Title", "Gate", "Task", "Deliverable", "Complete", "Start", "Finish", "ActualFinish",
+            "Id", "Title", "Gate", "Task", "Complete", "Start", "Finish", "ActualFinish",
             "Description", "jsonTable", "EvidenceOfCompletion", "Barriers", "Effort", "ActionableStatus", "WBS",
             "Checklist", "Notes", "Evidence", "Approvals"
         ];
@@ -264,7 +256,6 @@ export class ProjectService implements IProjectService {
                     csv(i.Title),
                     csv(i.Gate),
                     csv(i.Task),
-                    csv(i.Deliverable),
                     i.Complete ?? "",
                     formatDate(i.Start),
                     formatDate(i.Finish),
@@ -309,7 +300,6 @@ export class ProjectService implements IProjectService {
                 wbs: item.Title,
                 gate: item.Gate,
                 task: item.Task,
-                deliverable: item.Deliverable,
                 complete: item.Complete,
                 start: item.Start,
                 finish: item.Finish,
@@ -500,7 +490,6 @@ export class ProjectService implements IProjectService {
         }
 
         const list = this._sp.web.lists.getByTitle(listName);
-        const hasDeliverableField = await this._listHasField(listName, "Deliverable");
         for (const row of rows) {
             const gate = row.Gate || defaultGate || "0. New Gate";
             const taskTitle = row.Task;
@@ -521,9 +510,6 @@ export class ProjectService implements IProjectService {
                 Complete: complete, Start: toIso(row.Start), Finish: toIso(row.Finish),
                 ActualFinish: toIso(row.ActualFinish)
             };
-            if (hasDeliverableField) {
-                payload.Deliverable = row.Deliverable || "";
-            }
             await list.items.add(payload);
         }
 

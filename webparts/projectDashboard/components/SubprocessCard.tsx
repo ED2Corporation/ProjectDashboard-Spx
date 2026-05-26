@@ -12,6 +12,7 @@ interface SubprocessCardProps {
   parentFinish: string;
   value: ITaskSubprocessData;
   onChange: (nextValue: ITaskSubprocessData) => void;
+  onSaveSubprocess?: (nextValue: ITaskSubprocessData) => void;
   onClose?: () => void;
   currentUserEmail?: string;
   currentUserDisplayName?: string;
@@ -41,6 +42,7 @@ const normalizeSubTasks = (parentWbs: string, subTasks: ISubprocessSubTask[]): I
       ...entry,
       sortOrder: index,
       wbs: formatSubTaskWbs(parentWbs, index),
+      duration: entry.duration,
       complete: clampPercent(entry.complete || 0),
       start: entry.start || "",
       finish: entry.finish || "",
@@ -60,6 +62,7 @@ const createEmptySubTask = (
   wbs: formatSubTaskWbs(parentWbs, index),
   sortOrder: index,
   task: "New subtask...",
+  duration: 0,
   complete: 0,
   start: parentStart,
   finish: parentFinish,
@@ -75,6 +78,7 @@ const SubprocessCard: React.FC<SubprocessCardProps> = ({
   parentFinish,
   value,
   onChange,
+  onSaveSubprocess,
   onClose,
   currentUserEmail,
   currentUserDisplayName,
@@ -122,11 +126,13 @@ const SubprocessCard: React.FC<SubprocessCardProps> = ({
     setSelectedSubTaskId(normalizedSubTasks[0].id);
   }, [normalizedSubTasks, selectedSubTaskId]);
 
-  const commitSubTasks = (subTasks: ISubprocessSubTask[]): void => {
-    onChange({
+  const commitSubTasks = (subTasks: ISubprocessSubTask[]): ITaskSubprocessData => {
+    const nextValue = {
       ...value,
       subTasks: normalizeSubTasks(parentWbs, subTasks),
-    });
+    };
+    onChange(nextValue);
+    return nextValue;
   };
 
   const handleAddBelow = (subTaskId: string): void => {
@@ -162,9 +168,9 @@ const SubprocessCard: React.FC<SubprocessCardProps> = ({
 
   const handleSaveQuickEdit = (
     subTaskId: string,
-    patch: Pick<ISubprocessSubTask, "task" | "complete" | "start" | "finish" | "actualFinish">
+    patch: Pick<ISubprocessSubTask, "task" | "duration" | "complete" | "start" | "finish" | "actualFinish">
   ): void => {
-    commitSubTasks(
+    const nextValue = commitSubTasks(
       normalizedSubTasks.map(entry =>
         entry.id === subTaskId
           ? {
@@ -177,6 +183,7 @@ const SubprocessCard: React.FC<SubprocessCardProps> = ({
       )
     );
     setEditingSubTaskId(undefined);
+    onSaveSubprocess?.(nextValue);
   };
 
   const handleMove = (subTaskId: string, direction: MoveDirection): void => {
@@ -245,7 +252,7 @@ const SubprocessCard: React.FC<SubprocessCardProps> = ({
   };
 
   const handleSaveDetail = (nextSubTask: ISubprocessSubTask): void => {
-    commitSubTasks(
+    const nextValue = commitSubTasks(
       normalizedSubTasks.map(entry => (
         entry.id === nextSubTask.id
           ? {
@@ -256,6 +263,7 @@ const SubprocessCard: React.FC<SubprocessCardProps> = ({
       ))
     );
     setSelectedSubTaskId(nextSubTask.id);
+    onSaveSubprocess?.(nextValue);
   };
 
   const detailSubTask = detailSubTaskId
@@ -282,18 +290,6 @@ const SubprocessCard: React.FC<SubprocessCardProps> = ({
               </button>
             )}
           </div>
-          <label className={styles.itemsField}>
-            <span>Items</span>
-            <input
-              type="number"
-              min={0}
-              value={value.items}
-              onChange={(event) => onChange({
-                ...value,
-                items: Math.max(0, Number(event.target.value) || 0),
-              })}
-            />
-          </label>
         </div>
       </div>
 

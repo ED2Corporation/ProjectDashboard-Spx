@@ -5,7 +5,6 @@ export interface ITaskListItem {
   Title: string; //WBS Task Title
   Gate: string;
   Task: string;
-  Deliverable?: string;
   Complete: number;
   Start?: Date;
   Finish?: Date;

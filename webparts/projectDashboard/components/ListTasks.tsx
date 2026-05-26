@@ -120,10 +120,6 @@ const ListTasks = ({
     const shouldOpenDown = !isShortListMode && hoveredIndex >= 0 && hoveredIndex <= 1;
     const shouldOpenUp = !isShortListMode && hoveredIndex >= Math.max(0, sortedTasks.length - 2);
 
-    if (isShortListMode) {
-      console.log("[ListTasks][short-submenu-mode]", { key, visibleRows: textFiltered.length });
-    }
-
     setSubmenuShortKey(current => (current === key && isShortListMode) ? current : (isShortListMode ? key : null));
     setSubmenuUpKey(current => (current === key && shouldOpenUp) ? current : (shouldOpenUp ? key : null));
     setSubmenuDownKey(current => (current === key && shouldOpenDown) ? current : (shouldOpenDown ? key : null));
@@ -141,21 +137,6 @@ const ListTasks = ({
     const hoveredIndex = sortedTasks.findIndex(task => task.Id === itemId);
     const shouldOpenDown = !isShortListMode && hoveredIndex >= 0 && hoveredIndex <= 1;
     const shouldOpenUp = !isShortListMode && hoveredIndex >= Math.max(0, sortedTasks.length - 2);
-    const detectedCase = isShortListMode
-      ? "short-list"
-      : shouldOpenUp
-        ? "bottom-row"
-        : shouldOpenDown
-          ? "top-row"
-          : "default";
-
-    console.log("[ListTasks][action-menu-case]", {
-      key,
-      detectedCase,
-      hoveredIndex,
-      visibleRows: sortedTasks.length,
-    });
-
     if (isShortListMode) {
       const notchOffset = `${54 + Math.max(0, hoveredIndex) * 28}px`;
       const shortShift = `${32 + Math.max(0, hoveredIndex) * 28}px`;

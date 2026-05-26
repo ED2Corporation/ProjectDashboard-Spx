@@ -24,7 +24,6 @@ describe('TaskCard', () => {
     Finish: new Date('2026-04-10'),
     Evidence: [],
     Notes: [],
-    Deliverable: 'Package',
   };
 
   it('shows Save and Close as explicit text actions', () => {
@@ -126,7 +125,7 @@ describe('TaskCard', () => {
     expect(parsed.isRelease).toBe(false);
     expect(parsed.releaseUnits).toBe(0);
     expect(parsed.jsonTable).toBe('');
-    expect(parsed.Description).toBe('');
+    expect(parsed.Description).toBe(JSON.stringify({ isRelease: true, releaseUnits: 5 }));
   });
 
   it('blocks save when a release task has invalid release units', async () => {
@@ -198,7 +197,6 @@ describe('TaskCard', () => {
           Complete: 0,
           jsonTable: JSON.stringify({
             subprocess: {
-              items: 1,
               subTasks: [
                 {
                   id: 'sp-1',

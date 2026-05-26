@@ -5,7 +5,6 @@ describe('TaskDescriptionBlob subprocess support', () => {
     const raw = JSON.stringify({
       sortOrder: 7,
       subprocess: {
-        items: 3,
         subTasks: [
           {
             id: 'b',
@@ -36,7 +35,6 @@ describe('TaskDescriptionBlob subprocess support', () => {
 
     const parsed = getTaskSubprocess(raw);
 
-    expect(parsed.items).toBe(3);
     expect(parsed.subTasks).toHaveLength(2);
     expect(parsed.subTasks[0]).toMatchObject({
       id: 'a',
@@ -60,7 +58,6 @@ describe('TaskDescriptionBlob subprocess support', () => {
   it('serializes subprocess entries in sort order', () => {
     const next = buildTaskJsonTable(undefined, {
       subprocess: {
-        items: 2,
         subTasks: [
           {
             id: 'second',

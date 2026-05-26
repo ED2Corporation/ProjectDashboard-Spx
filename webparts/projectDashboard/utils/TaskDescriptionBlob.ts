@@ -5,6 +5,7 @@ export interface ISubprocessSubTask {
   wbs: string;
   sortOrder: number;
   task: string;
+  duration?: number;
   complete: number;
   start: string;
   finish: string;
@@ -15,7 +16,6 @@ export interface ISubprocessSubTask {
 }
 
 export interface ITaskSubprocessData {
-  items: number;
   subTasks: ISubprocessSubTask[];
 }
 
@@ -138,6 +138,9 @@ const normalizeSubTask = (value: unknown, index: number): ISubprocessSubTask => 
     wbs: asString(record.wbs),
     sortOrder: Math.max(0, Math.floor(asNumber(record.sortOrder) || index)),
     task: asString(record.task),
+    duration: record.duration !== undefined && record.duration !== null && asString(record.duration) !== ""
+      ? asNumber(record.duration)
+      : undefined,
     complete: Math.max(0, Math.min(100, asNumber(record.complete))),
     start: asString(record.start),
     finish: asString(record.finish),
@@ -180,7 +183,6 @@ export const getTaskSubprocess = (raw?: string): ITaskSubprocessData => {
   const subTasksRaw = Array.isArray(subprocess.subTasks) ? subprocess.subTasks : [];
 
   return {
-    items: asNumber(subprocess.items),
     subTasks: subTasksRaw
       .map((entry, index) => normalizeSubTask(entry, index))
       .sort((a, b) => a.sortOrder - b.sortOrder)
@@ -234,7 +236,6 @@ export const buildTaskJsonTable = (
       }));
 
     next.subprocess = {
-      items: Math.max(0, Math.floor(asNumber(options.subprocess.items))),
       subTasks: normalizedSubTasks,
     };
   }

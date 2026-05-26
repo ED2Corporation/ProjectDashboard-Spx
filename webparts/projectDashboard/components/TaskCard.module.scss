@@ -56,7 +56,8 @@
   gap: $sp-2;
   flex: 0 0 auto;
   min-width: 0;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  overflow-x: auto;
 }
 
 // ─── Shared card-group mixin ──────────────────────────────────────────────
@@ -115,9 +116,14 @@
   box-shadow: $shadow-sm;
 }
 
-.task-btn-spacer {
-  flex: 1 1 48px;
-  min-width: 48px;
+.task-view-card {
+  @extend %btn-card-group;
+}
+
+.task-button-collapse {
+  width: 28px;
+  min-width: 28px;
+  padding: 0;
 }
 
 .task-button {
@@ -181,6 +187,24 @@
   border-color: $c-primary;
 }
 
+.task-button-subprocess-ready {
+  background: #eef9f2;
+  border-color: rgba(22, 163, 74, 0.42);
+
+  .task-button-label {
+    color: #15803d;
+  }
+
+  &:hover:not(:disabled) {
+    background: #dcf4e3;
+    border-color: #16a34a;
+  }
+
+  &:active {
+    background: #ccecd8;
+  }
+}
+
 // ─── Body layout ───────────────────────────────────────────────────────────
 
 .task-card-row {
@@ -189,6 +213,82 @@
   align-items: stretch;
   width: 100%;
   gap: 0;
+}
+
+.task-card-row-left-focus {
+  .task-card-body {
+    flex: 1 1 auto;
+    width: auto;
+    min-width: 0;
+    max-width: none;
+  }
+
+  .task-card-column {
+    flex: 0 0 12px;
+    width: 12px;
+    min-width: 12px;
+    max-width: 12px;
+    padding: 0;
+    overflow: hidden;
+    border-left: 1px solid rgba($c-primary, 0.24);
+    background: linear-gradient(180deg, rgba($c-primary, 0.08) 0%, rgba($c-primary, 0.02) 100%);
+    position: relative;
+
+    > * {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    &::after {
+      content: "";
+      position: absolute;
+      top: 16px;
+      bottom: 16px;
+      left: 50%;
+      width: 2px;
+      transform: translateX(-50%);
+      border-radius: 999px;
+      background: rgba($c-primary, 0.28);
+    }
+  }
+}
+
+.task-card-row-right-focus {
+  .task-card-body {
+    flex: 0 0 12px;
+    width: 12px;
+    min-width: 12px;
+    max-width: 12px;
+    padding: 0;
+    overflow: hidden;
+    border-right: 1px solid rgba($c-primary, 0.24);
+    background: linear-gradient(180deg, rgba($c-primary, 0.08) 0%, rgba($c-primary, 0.02) 100%);
+    position: relative;
+
+    > * {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    &::after {
+      content: "";
+      position: absolute;
+      top: 16px;
+      bottom: 16px;
+      left: 50%;
+      width: 2px;
+      transform: translateX(-50%);
+      border-radius: 999px;
+      background: rgba($c-primary, 0.28);
+    }
+  }
+
+  .task-card-column {
+    flex: 1 1 auto;
+    width: auto;
+    min-width: 0;
+    max-width: none;
+  }
 }
 
 .task-card-body {
