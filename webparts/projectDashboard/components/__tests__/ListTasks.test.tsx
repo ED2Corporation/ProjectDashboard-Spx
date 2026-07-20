@@ -2,7 +2,7 @@
  * @jest-environment jsdom
  */
 import * as React from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
 import ListTasks from '../ListTasks';
@@ -71,8 +71,10 @@ describe('ListTasks', () => {
       />
     );
 
-    await userEvent.click(screen.getAllByTitle('Add / New row')[0]);
-    await userEvent.click(screen.getAllByTitle('Delete task')[0]);
+    const firstTaskRow = screen.getByText('Alpha task').closest('tr') as HTMLTableRowElement;
+
+    await userEvent.click(within(firstTaskRow).getByTitle('Add / New row'));
+    await userEvent.click(within(firstTaskRow).getByRole('button', { name: /Remove/i }));
 
     expect(onSelectItem).toHaveBeenCalledWith(expect.objectContaining({ Id: '1' }), 'task', 'list-create');
     expect(onSelectItem).toHaveBeenCalledWith(expect.objectContaining({ Id: '1' }), 'task', 'list-delete');

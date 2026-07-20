@@ -435,6 +435,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
               onClick={() => setColumnFocus('right')}
               title="Expand right section"
               aria-label="Expand right section"
+              disabled={bodyCollapsed}
             >
               <span className={styles["task-button-label"]}>&lt;</span>
             </button>
@@ -444,6 +445,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
               onClick={() => setColumnFocus('balanced')}
               title="Balanced view"
               aria-label="Balanced view"
+              disabled={bodyCollapsed}
             >
               <span className={styles["task-button-label"]}>||</span>
             </button>
@@ -453,6 +455,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
               onClick={() => setColumnFocus('left')}
               title="Expand left section"
               aria-label="Expand left section"
+              disabled={bodyCollapsed}
             >
               <span className={styles["task-button-label"]}>&gt;</span>
             </button>
