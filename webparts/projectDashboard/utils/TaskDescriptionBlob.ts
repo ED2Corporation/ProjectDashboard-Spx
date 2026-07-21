@@ -19,6 +19,30 @@ export interface ITaskSubprocessData {
   subTasks: ISubprocessSubTask[];
 }
 
+export interface ITaskStepEntry {
+  id: string;
+  wbs: string;
+  sortOrder: number;
+  title: string;
+  units: number;
+  complete: number;
+  start: string;
+  finish: string;
+  actualFinish?: string;
+  notes?: INoteEntry[];
+  evidence?: IEvidenceEntry[];
+  approvals?: IApprovalEntry[];
+  subprocess?: ITaskSubprocessData;
+}
+
+export interface ITaskStepsData {
+  enabled: boolean;
+  totalUnits: number;
+  unitsPerStep: number;
+  stepCount: number;
+  steps: ITaskStepEntry[];
+}
+
 type TaskJsonTableObject = Record<string, unknown>;
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -138,7 +162,7 @@ const normalizeSubTask = (value: unknown, index: number): ISubprocessSubTask => 
     wbs: asString(record.wbs),
     sortOrder: Math.max(0, Math.floor(asNumber(record.sortOrder) || index)),
     task: asString(record.task),
-    duration: record.duration !== undefined && record.duration !== null && asString(record.duration) !== ""
+    duration: record.duration !== undefined && record.duration !== null && `${record.duration}`.trim() !== ""
       ? asNumber(record.duration)
       : undefined,
     complete: Math.max(0, Math.min(100, asNumber(record.complete))),
@@ -148,6 +172,32 @@ const normalizeSubTask = (value: unknown, index: number): ISubprocessSubTask => 
     notes: normalizeNotes(record.notes),
     evidence: normalizeEvidence(record.evidence),
     approvals: normalizeApprovals(record.approvals),
+  };
+};
+
+const normalizeTaskStep = (value: unknown, index: number): ITaskStepEntry => {
+  const record = isRecord(value) ? value : {};
+  const subprocess = isRecord(record.subprocess) ? record.subprocess : {};
+  const subTasksRaw = Array.isArray(subprocess.subTasks) ? subprocess.subTasks : [];
+  return {
+    id: asString(record.id) || `step-${index + 1}`,
+    wbs: asString(record.wbs),
+    sortOrder: Math.max(0, Math.floor(asNumber(record.sortOrder) || index)),
+    title: asString(record.title),
+    units: Math.max(0, Math.floor(asNumber(record.units))),
+    complete: Math.max(0, Math.min(100, asNumber(record.complete))),
+    start: asString(record.start),
+    finish: asString(record.finish),
+    actualFinish: asString(record.actualFinish),
+    notes: normalizeNotes(record.notes),
+    evidence: normalizeEvidence(record.evidence),
+    approvals: normalizeApprovals(record.approvals),
+    subprocess: {
+      subTasks: subTasksRaw
+        .map((entry, subIndex) => normalizeSubTask(entry, subIndex))
+        .sort((a, b) => a.sortOrder - b.sortOrder)
+        .map((entry, subIndex) => ({ ...entry, sortOrder: subIndex })),
+    },
   };
 };
 
@@ -190,6 +240,27 @@ export const getTaskSubprocess = (raw?: string): ITaskSubprocessData => {
   };
 };
 
+export const getTaskSteps = (raw?: string): ITaskStepsData => {
+  const parsed = parseTaskJsonTableObject(raw);
+  const taskSteps = isRecord(parsed.taskSteps) ? parsed.taskSteps : {};
+  const stepsRaw = Array.isArray(taskSteps.steps) ? taskSteps.steps : [];
+  const totalUnits = Math.max(0, Math.floor(asNumber(taskSteps.totalUnits)));
+  const unitsPerStep = Math.max(0, Math.floor(asNumber(taskSteps.unitsPerStep)));
+  const stepCount = Math.max(0, Math.floor(asNumber(taskSteps.stepCount)));
+  const normalizedSteps = stepsRaw
+    .map((entry, index) => normalizeTaskStep(entry, index))
+    .sort((a, b) => a.sortOrder - b.sortOrder)
+    .map((entry, index) => ({ ...entry, sortOrder: index }));
+
+  return {
+    enabled: taskSteps.enabled === true || normalizedSteps.length > 0,
+    totalUnits: totalUnits > 0 ? totalUnits : normalizedSteps.reduce((sum, entry) => sum + entry.units, 0),
+    unitsPerStep: unitsPerStep > 0 ? unitsPerStep : (normalizedSteps[0]?.units ?? 0),
+    stepCount: stepCount > 0 ? stepCount : normalizedSteps.length,
+    steps: normalizedSteps,
+  };
+};
+
 export const buildTaskJsonTable = (
   raw: string | undefined,
   options: {
@@ -198,6 +269,8 @@ export const buildTaskJsonTable = (
     releaseUnits?: number;
     subprocess?: ITaskSubprocessData;
     clearSubprocess?: boolean;
+    taskSteps?: ITaskStepsData;
+    clearTaskSteps?: boolean;
   }
 ): string | undefined => {
   const next: TaskJsonTableObject = parseTaskJsonTableObject(raw);
@@ -237,6 +310,26 @@ export const buildTaskJsonTable = (
 
     next.subprocess = {
       subTasks: normalizedSubTasks,
+    };
+  }
+
+  if (options.clearTaskSteps) {
+    delete next.taskSteps;
+  } else if (options.taskSteps) {
+    const normalizedSteps = options.taskSteps.steps
+      .map((entry, index) => normalizeTaskStep(entry, index))
+      .sort((a, b) => a.sortOrder - b.sortOrder)
+      .map((entry, index) => ({
+        ...entry,
+        sortOrder: index,
+      }));
+
+    next.taskSteps = {
+      enabled: options.taskSteps.enabled === true || normalizedSteps.length > 0,
+      totalUnits: Math.max(0, Math.floor(asNumber(options.taskSteps.totalUnits))),
+      unitsPerStep: Math.max(0, Math.floor(asNumber(options.taskSteps.unitsPerStep))),
+      stepCount: Math.max(0, Math.floor(asNumber(options.taskSteps.stepCount))),
+      steps: normalizedSteps,
     };
   }
 

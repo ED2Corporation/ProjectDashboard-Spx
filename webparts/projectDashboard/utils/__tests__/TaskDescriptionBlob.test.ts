@@ -1,4 +1,4 @@
-import { buildTaskJsonTable, getTaskReleaseUnits, getTaskSubprocess } from '../TaskDescriptionBlob';
+import { buildTaskJsonTable, getTaskReleaseUnits, getTaskSteps, getTaskSubprocess } from '../TaskDescriptionBlob';
 
 describe('TaskDescriptionBlob subprocess support', () => {
   it('normalizes legacy subprocess entries and preserves embedded logs', () => {
@@ -98,5 +98,87 @@ describe('TaskDescriptionBlob subprocess support', () => {
     expect(parsed.isRelease).toBe(true);
     expect(parsed.releaseUnits).toBe(7);
     expect(getTaskReleaseUnits(next)).toBe(7);
+  });
+
+  it('persists and resolves task steps with nested subprocess data', () => {
+    const next = buildTaskJsonTable(undefined, {
+      taskSteps: {
+        enabled: true,
+        totalUnits: 100,
+        unitsPerStep: 20,
+        stepCount: 2,
+        steps: [
+          {
+            id: 'step-2',
+            wbs: '1.0.02',
+            sortOrder: 3,
+            title: 'Lot 2',
+            units: 80,
+            complete: 50,
+            start: '2026-04-09',
+            finish: '2026-04-10',
+          },
+          {
+            id: 'step-1',
+            wbs: '1.0.01',
+            sortOrder: 1,
+            title: 'Lot 1',
+            units: 20,
+            complete: 25,
+            start: '2026-04-08',
+            finish: '2026-04-08',
+            subprocess: {
+              subTasks: [
+                {
+                  id: 'sp-2',
+                  wbs: '1.0.01.02',
+                  sortOrder: 5,
+                  task: 'Ship',
+                  complete: 0,
+                  start: '2026-04-08',
+                  finish: '2026-04-08',
+                },
+                {
+                  id: 'sp-1',
+                  wbs: '1.0.01.01',
+                  sortOrder: 1,
+                  task: 'Prep',
+                  complete: 100,
+                  start: '2026-04-08',
+                  finish: '2026-04-08',
+                },
+              ],
+            },
+          },
+        ],
+      },
+    });
+
+    const parsed = getTaskSteps(next);
+
+    expect(parsed.enabled).toBe(true);
+    expect(parsed.steps).toHaveLength(2);
+    expect(parsed.steps[0]).toMatchObject({
+      id: 'step-1',
+      sortOrder: 0,
+      units: 20,
+    });
+    expect(parsed.steps[0].subprocess?.subTasks).toHaveLength(2);
+    expect(parsed.steps[0].subprocess?.subTasks[0]).toMatchObject({
+      id: 'sp-1',
+      sortOrder: 0,
+      complete: 100,
+    });
+    expect(parsed.steps[0].subprocess?.subTasks[1]).toMatchObject({
+      id: 'sp-2',
+      sortOrder: 1,
+      complete: 0,
+    });
+    expect(parsed.steps[1]).toMatchObject({
+      id: 'step-2',
+      sortOrder: 1,
+      units: 80,
+      complete: 50,
+    });
   });
 });

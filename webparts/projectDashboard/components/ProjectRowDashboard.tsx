@@ -414,6 +414,7 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
         projectNumber: localProject.ProjectNumber ?? '',
         partNumber: localProject.PartNumber ?? localProject.Title ?? '',
       }}
+      projectUnits={localProject.Units ?? 0}
       remainingReleaseUnits={remainingReleaseUnits}
       onSaveLogField={onSaveLogField}
       onSendEmail={onSendEmail}

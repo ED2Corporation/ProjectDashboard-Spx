@@ -240,4 +240,135 @@ describe('TaskCard', () => {
       wbs: '1.0.01',
     }));
   });
+
+  it('aggregates parent task complete from direct subprocess subtasks', async () => {
+    const onSave = jest.fn();
+
+    render(
+      <TaskCard
+        task={{
+          ...task,
+          Complete: 0,
+          jsonTable: JSON.stringify({
+            subprocess: {
+              subTasks: [
+                {
+                  id: 'sp-1',
+                  wbs: '1.0.01',
+                  sortOrder: 0,
+                  task: 'First',
+                  duration: 1,
+                  complete: 100,
+                  start: '2026-04-08',
+                  finish: '2026-04-08',
+                },
+                {
+                  id: 'sp-2',
+                  wbs: '1.0.02',
+                  sortOrder: 1,
+                  task: 'Second',
+                  duration: 3,
+                  complete: 0,
+                  start: '2026-04-09',
+                  finish: '2026-04-10',
+                },
+              ],
+            },
+          }),
+        }}
+        onDelete={jest.fn()}
+        onNew={jest.fn()}
+        onSave={onSave}
+        onClose={jest.fn()}
+      />
+    );
+
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+    const [, payload] = onSave.mock.calls[0];
+    const parsed = JSON.parse(payload);
+    expect(parsed.Complete).toBe(25);
+  });
+
+  it('aggregates subprocess, task steps, and parent task complete in cascade', async () => {
+    const onSave = jest.fn();
+
+    render(
+      <TaskCard
+        task={{
+          ...task,
+          Complete: 0,
+          jsonTable: JSON.stringify({
+            taskSteps: {
+              enabled: true,
+              totalUnits: 100,
+              unitsPerStep: 20,
+              stepCount: 2,
+              steps: [
+                {
+                  id: 'step-1',
+                  wbs: '1.0.01',
+                  sortOrder: 0,
+                  title: 'Lot 1',
+                  units: 20,
+                  complete: 0,
+                  start: '2026-04-08',
+                  finish: '2026-04-08',
+                  subprocess: {
+                    subTasks: [
+                      {
+                        id: 'sp-1',
+                        wbs: '1.0.01.01',
+                        sortOrder: 0,
+                        task: 'Prep',
+                        duration: 1,
+                        complete: 100,
+                        start: '2026-04-08',
+                        finish: '2026-04-08',
+                      },
+                      {
+                        id: 'sp-2',
+                        wbs: '1.0.01.02',
+                        sortOrder: 1,
+                        task: 'Ship',
+                        duration: 3,
+                        complete: 0,
+                        start: '2026-04-08',
+                        finish: '2026-04-08',
+                      },
+                    ],
+                  },
+                },
+                {
+                  id: 'step-2',
+                  wbs: '1.0.02',
+                  sortOrder: 1,
+                  title: 'Lot 2',
+                  units: 80,
+                  complete: 50,
+                  start: '2026-04-09',
+                  finish: '2026-04-10',
+                },
+              ],
+            },
+          }),
+        }}
+        projectUnits={100}
+        onDelete={jest.fn()}
+        onNew={jest.fn()}
+        onSave={onSave}
+        onClose={jest.fn()}
+      />
+    );
+
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+    const [, payload] = onSave.mock.calls[0];
+    const parsed = JSON.parse(payload);
+    const jsonTable = JSON.parse(parsed.jsonTable);
+
+    expect(jsonTable.taskSteps.steps[0].complete).toBe(25);
+    expect(jsonTable.taskSteps.steps[1].complete).toBe(50);
+    expect(parsed.Complete).toBe(45);
+  });
 });

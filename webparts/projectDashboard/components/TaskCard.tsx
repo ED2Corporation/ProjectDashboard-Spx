@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { ITaskListItem } from "../../../models";
 import { INoteEntry, IEvidenceEntry, IApprovalEntry } from "../../../models/ITaskLogFields";
 import styles from "./TaskCard.module.scss";
@@ -6,10 +6,19 @@ import NotesLog from "./NotesLog";
 import EvidenceLog from "./EvidenceLog";
 import ApprovalsLog from "./ApprovalsLog";
 import SubprocessCard from "./SubprocessCard";
-import { buildTaskJsonTable, getTaskReleaseUnits, getTaskSortOrder, getTaskSubprocess, ITaskSubprocessData } from "../utils/TaskDescriptionBlob";
+import {
+  buildTaskJsonTable,
+  getTaskReleaseUnits,
+  getTaskSortOrder,
+  getTaskSteps,
+  getTaskSubprocess,
+  ITaskStepsData,
+  ITaskSubprocessData,
+} from "../utils/TaskDescriptionBlob";
 
 type TaskTab = 'notes' | 'evidence' | 'approvals';
 type TaskCardColumnFocus = 'balanced' | 'left' | 'right';
+type TaskStepsSource = 'pieces' | 'lots';
 
 export interface ITaskCardProjectInfo {
   projectNumber: string;   // e.g. "1003028"
@@ -22,6 +31,7 @@ interface TaskCardProps {
   currentUserEmail?: string;
   currentUserDisplayName?: string;
   projectInfo?: ITaskCardProjectInfo;
+  projectUnits?: number;
   remainingReleaseUnits?: number;
   onSaveLogField?: (taskId: string, field: 'Notes' | 'Evidence' | 'Approvals', entries: unknown[]) => Promise<void>;
   onSendEmail?: (to: string[], subject: string, body: string) => Promise<void>;
@@ -52,7 +62,78 @@ interface TaskCardProps {
   ) => Promise<{ fileUrl: string; fileName: string }>;
 }
 
-const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDeleting, hasPrev, hasNext, onNavigate, isMoveFirst, isMoveLast, isMoving, onMoveFirst, onMoveUp, onMoveDown, onMoveLast, currentUserEmail, currentUserDisplayName, projectInfo, remainingReleaseUnits, onClose, onSave, onDelete, onNew, onUploadEvidenceFile, onSaveLogField, onSendEmail, onSearchUsers, onTaskCompleted }) => {
+const createEmptyTaskSteps = (): ITaskStepsData => ({
+  enabled: false,
+  totalUnits: 0,
+  unitsPerStep: 0,
+  stepCount: 0,
+  steps: [],
+});
+
+const createEmptySubprocess = (): ITaskSubprocessData => ({
+  subTasks: [],
+});
+
+const asPositiveInteger = (value: number): number => {
+  if (!Number.isFinite(value) || value <= 0) return 0;
+  return Math.max(1, Math.floor(value));
+};
+
+const clampPercentValue = (value: number): number =>
+  Math.max(0, Math.min(100, Math.floor(Number.isFinite(value) ? value : 0)));
+
+const aggregateWeightedComplete = (entries: Array<{ complete: number; weight: number }>): number => {
+  if (!entries.length) return 0;
+
+  const normalized = entries.map(entry => ({
+    complete: clampPercentValue(entry.complete),
+    weight: entry.weight > 0 ? entry.weight : 0,
+  }));
+
+  const totalWeight = normalized.reduce((sum, entry) => sum + entry.weight, 0);
+  if (totalWeight <= 0) {
+    const average = normalized.reduce((sum, entry) => sum + entry.complete, 0) / normalized.length;
+    return clampPercentValue(average);
+  }
+
+  const weighted = normalized.reduce((sum, entry) => sum + (entry.complete * entry.weight), 0) / totalWeight;
+  return clampPercentValue(weighted);
+};
+
+const daysBetween = (startValue: string, finishValue: string): number => {
+  if (!startValue || !finishValue) return 0;
+  const [sy, sm, sd] = startValue.split("-").map(Number);
+  const [fy, fm, fd] = finishValue.split("-").map(Number);
+  return Math.max(0, Math.round((Date.UTC(fy, fm - 1, fd) - Date.UTC(sy, sm - 1, sd)) / 86400000));
+};
+
+const addDaysToDateString = (dateValue: string, days: number): string => {
+  if (!dateValue) return "";
+  const [year, month, day] = dateValue.split("-").map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day) + days * 86400000);
+  return date.toISOString().slice(0, 10);
+};
+
+const getStepDateRanges = (startValue: string, finishValue: string, count: number): Array<{ start: string; finish: string }> => {
+  if (!startValue || !finishValue || count <= 0) {
+    return Array.from({ length: count }, () => ({ start: startValue, finish: finishValue }));
+  }
+
+  const inclusiveDays = daysBetween(startValue, finishValue) + 1;
+  return Array.from({ length: count }, (_, index) => {
+    const startOffset = Math.floor((index * inclusiveDays) / count);
+    const endOffset = index === count - 1
+      ? inclusiveDays - 1
+      : Math.max(startOffset, Math.floor(((index + 1) * inclusiveDays) / count) - 1);
+
+    return {
+      start: addDaysToDateString(startValue, startOffset),
+      finish: addDaysToDateString(startValue, endOffset),
+    };
+  });
+};
+
+const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDeleting, hasPrev, hasNext, onNavigate, isMoveFirst, isMoveLast, isMoving, onMoveFirst, onMoveUp, onMoveDown, onMoveLast, currentUserEmail, currentUserDisplayName, projectInfo, projectUnits, remainingReleaseUnits, onClose, onSave, onDelete, onNew, onUploadEvidenceFile, onSaveLogField, onSendEmail, onSearchUsers, onTaskCompleted }) => {
   const [activeTab, setActiveTab] = useState<TaskTab>('notes');
   const canManageApprovers = true; // All users can manage approvers
   const [wbs,             setWbs]             = useState(task.Title ?? "");
@@ -92,26 +173,203 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
   const [evidenceOfCompletion, setEvidenceOfCompletion] = useState<ITaskListItem["EvidenceOfCompletion"]>(task.EvidenceOfCompletion);
   const [notesLog, setNotesLog] = useState<INoteEntry[]>(task.Notes ?? []);
   const [evidenceLog, setEvidenceLog] = useState<IEvidenceEntry[]>(task.Evidence ?? []);
-  const initialSubprocess = getTaskSubprocess(task.jsonTable);
+  const initialTaskSteps = getTaskSteps(task.jsonTable);
+  const initialSubprocess = initialTaskSteps.enabled || initialTaskSteps.steps.length > 0
+    ? createEmptySubprocess()
+    : getTaskSubprocess(task.jsonTable);
   const [showSubprocess, setShowSubprocess] = useState(false);
   const [subprocess, setSubprocess] = useState<ITaskSubprocessData>(initialSubprocess);
+  const [showTaskSteps, setShowTaskSteps] = useState(initialTaskSteps.enabled || initialTaskSteps.steps.length > 0);
+  const [taskSteps, setTaskSteps] = useState<ITaskStepsData>(initialTaskSteps);
+  const [taskStepsPieces, setTaskStepsPieces] = useState<number>(initialTaskSteps.unitsPerStep > 0 ? initialTaskSteps.unitsPerStep : 20);
+  const [taskStepsLots, setTaskStepsLots] = useState<number>(initialTaskSteps.stepCount);
+  const [taskStepsSource, setTaskStepsSource] = useState<TaskStepsSource>(
+    initialTaskSteps.stepCount > 0 && initialTaskSteps.unitsPerStep <= 0 ? "lots" : "pieces"
+  );
+  const [selectedTaskStepId, setSelectedTaskStepId] = useState<string | undefined>(initialTaskSteps.steps[0]?.id);
+  const [isTaskStepExpanded, setIsTaskStepExpanded] = useState(initialTaskSteps.steps.length > 0);
+  const [showTaskStepSubprocess, setShowTaskStepSubprocess] = useState(false);
+  const [taskStepTitleEdit, setTaskStepTitleEdit] = useState(initialTaskSteps.steps[0]?.title ?? "");
+  const [taskStepUnitsEdit, setTaskStepUnitsEdit] = useState<number>(initialTaskSteps.steps[0]?.units ?? 0);
+  const [taskStepCompleteEdit, setTaskStepCompleteEdit] = useState<number>(initialTaskSteps.steps[0]?.complete ?? 0);
+  const [taskStepStartEdit, setTaskStepStartEdit] = useState(initialTaskSteps.steps[0]?.start ?? "");
+  const [taskStepFinishEdit, setTaskStepFinishEdit] = useState(initialTaskSteps.steps[0]?.finish ?? "");
+  const [taskStepActualFinishEdit, setTaskStepActualFinishEdit] = useState(initialTaskSteps.steps[0]?.actualFinish ?? "");
   const [columnFocus, setColumnFocus] = useState<TaskCardColumnFocus>('balanced');
   const [bodyCollapsed, setBodyCollapsed] = useState(false);
   const notesLogRef        = useRef<INoteEntry[]>(task.Notes ?? []);
   const previousCompleteRef = useRef<number>(task.Complete ?? 0);
   const skipNextCompleteEffectRef = useRef(false);
-  const prevTaskIdRef      = useRef<string>(task.Id);
+  const skipNextTaskStepsRecalcRef = useRef(true);
   const hasSubprocessTasks = subprocess.subTasks.length > 0;
+  const hasTaskSteps = taskSteps.enabled && taskSteps.steps.length > 0;
+  const totalProjectUnits = asPositiveInteger(projectUnits ?? 0);
+
+  const buildTaskStepsData = (source: TaskStepsSource, rawValue: number, enabled = true): ITaskStepsData => {
+    const totalUnits = asPositiveInteger(projectUnits ?? 0);
+    if (totalUnits <= 0) {
+      return {
+        enabled,
+        totalUnits: 0,
+        unitsPerStep: 0,
+        stepCount: 0,
+        steps: [],
+      };
+    }
+
+    let stepCount = 0;
+    let unitsPerStep = 0;
+
+    if (source === "pieces") {
+      unitsPerStep = asPositiveInteger(rawValue);
+      if (unitsPerStep <= 0) {
+        return {
+          enabled,
+          totalUnits,
+          unitsPerStep: 0,
+          stepCount: 0,
+          steps: [],
+        };
+      }
+      stepCount = Math.ceil(totalUnits / unitsPerStep);
+    } else {
+      stepCount = asPositiveInteger(rawValue);
+      if (stepCount <= 0) {
+        return {
+          enabled,
+          totalUnits,
+          unitsPerStep: 0,
+          stepCount: 0,
+          steps: [],
+        };
+      }
+      unitsPerStep = Math.max(1, Math.floor(totalUnits / stepCount));
+    }
+
+    const dateRanges = getStepDateRanges(start, finish, stepCount);
+    const baseWbs = wbs || task.Title || "1";
+    const baseTitle = taskTitle || task.Task || "Task";
+    const previousSteps = taskSteps.steps;
+    let remainingUnits = totalUnits;
+
+    const steps = Array.from({ length: stepCount }, (_, index) => {
+      const previousStep = previousSteps[index];
+      const defaultUnits = source === "pieces"
+        ? Math.min(unitsPerStep, remainingUnits)
+        : Math.min(Math.max(1, Math.floor(totalUnits / stepCount)), remainingUnits);
+      const units = index === stepCount - 1 ? remainingUnits : defaultUnits;
+      remainingUnits -= units;
+
+      return {
+        id: `step-${index + 1}`,
+        wbs: `${baseWbs}.${String(index + 1).padStart(2, "0")}`,
+        sortOrder: index,
+        title: `${baseTitle} - Step ${index + 1}`,
+        units,
+        complete: previousStep?.complete ?? 0,
+        start: dateRanges[index]?.start ?? start,
+        finish: dateRanges[index]?.finish ?? finish,
+        actualFinish: previousStep?.actualFinish ?? "",
+        notes: previousStep?.notes ?? [],
+        evidence: previousStep?.evidence ?? [],
+        approvals: previousStep?.approvals ?? [],
+        subprocess: previousStep?.subprocess ?? { subTasks: [] },
+      };
+    });
+
+    return {
+      enabled,
+      totalUnits,
+      unitsPerStep,
+      stepCount,
+      steps,
+    };
+  };
+
+  const aggregateSubprocessComplete = (subprocessValue: ITaskSubprocessData): number =>
+    aggregateWeightedComplete(
+      subprocessValue.subTasks.map(subTask => ({
+        complete: subTask.complete,
+        weight: typeof subTask.duration === "number" && Number.isFinite(subTask.duration) && subTask.duration > 0
+          ? subTask.duration
+          : 0,
+      }))
+    );
+
+  const normalizeTaskStepsAggregation = (value: ITaskStepsData): ITaskStepsData => ({
+    ...value,
+    steps: value.steps.map(step => {
+      const subprocessValue = step.subprocess ?? { subTasks: [] };
+      const derivedComplete = subprocessValue.subTasks.length > 0
+        ? aggregateSubprocessComplete(subprocessValue)
+        : clampPercentValue(step.complete);
+
+      return {
+        ...step,
+        complete: derivedComplete,
+        actualFinish: derivedComplete === 100
+          ? (step.actualFinish || new Date().toISOString().slice(0, 10))
+          : "",
+      };
+    }),
+  });
+
+  const aggregateTaskStepsComplete = (value: ITaskStepsData): number =>
+    aggregateWeightedComplete(
+      normalizeTaskStepsAggregation(value).steps.map(step => ({
+        complete: step.complete,
+        weight: step.units > 0 ? step.units : 0,
+      }))
+    );
+
+  const deriveTaskComplete = (nextTaskSteps?: ITaskStepsData, nextSubprocess?: ITaskSubprocessData): number => {
+    if (nextTaskSteps && nextTaskSteps.enabled && nextTaskSteps.steps.length > 0) {
+      return aggregateTaskStepsComplete(nextTaskSteps);
+    }
+
+    if (nextSubprocess && nextSubprocess.subTasks.length > 0) {
+      return aggregateSubprocessComplete(nextSubprocess);
+    }
+
+    return clampPercentValue(complete);
+  };
+
+  const applyTaskStepsFromPieces = (piecesValue: number, enabled = true): void => {
+    const normalizedPieces = asPositiveInteger(piecesValue);
+    const nextTaskSteps = normalizeTaskStepsAggregation(buildTaskStepsData("pieces", normalizedPieces, enabled));
+    setTaskStepsSource("pieces");
+    setTaskStepsPieces(normalizedPieces || 20);
+    setTaskStepsLots(nextTaskSteps.stepCount);
+    setTaskSteps(nextTaskSteps);
+    setComplete(deriveTaskComplete(nextTaskSteps, undefined));
+  };
+
+  const applyTaskStepsFromLots = (lotsValue: number, enabled = true): void => {
+    const normalizedLots = asPositiveInteger(lotsValue);
+    const nextTaskSteps = normalizeTaskStepsAggregation(buildTaskStepsData("lots", normalizedLots, enabled));
+    setTaskStepsSource("lots");
+    setTaskStepsLots(normalizedLots);
+    setTaskStepsPieces(nextTaskSteps.unitsPerStep);
+    setTaskSteps(nextTaskSteps);
+    setComplete(deriveTaskComplete(nextTaskSteps, undefined));
+  };
+
+  const commitTaskSteps = (nextTaskSteps: ITaskStepsData): ITaskStepsData => {
+    setTaskSteps(nextTaskSteps);
+    setSelectedTaskStepId(current => {
+      if (current && nextTaskSteps.steps.some(step => step.id === current)) {
+        return current;
+      }
+      return nextTaskSteps.steps[0]?.id;
+    });
+    return nextTaskSteps;
+  };
 
   useEffect(() => {
-    prevTaskIdRef.current = task.Id;
-
     setWbs(task.Title ?? "");
     setGate(task.Gate ?? "");
     setGateEditEnabled(false);
     setRenameAllGateTasks(true);
-    // Rehydrate release state from the latest task snapshot so both
-    // transitions (false -> true and true -> false) are reflected after reload.
     setIsRelease(task.isRelease ?? false);
     setReleaseUnits(task.releaseUnits ?? getTaskReleaseUnits(task.jsonTable) ?? 0);
     setTaskTitle(task.Task ?? "");
@@ -125,12 +383,79 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
     setNotesLog(task.Notes ?? []);
     notesLogRef.current = task.Notes ?? [];
     setEvidenceLog(task.Evidence ?? []);
+    const nextTaskSteps = getTaskSteps(task.jsonTable);
+    const nextSubprocess = nextTaskSteps.enabled || nextTaskSteps.steps.length > 0
+      ? createEmptySubprocess()
+      : getTaskSubprocess(task.jsonTable);
     setShowSubprocess(false);
-    setSubprocess(getTaskSubprocess(task.jsonTable));
+    setSubprocess(nextSubprocess);
+    setShowTaskSteps(nextTaskSteps.enabled || nextTaskSteps.steps.length > 0);
+    setTaskSteps(nextTaskSteps);
+    setTaskStepsPieces(nextTaskSteps.unitsPerStep > 0 ? nextTaskSteps.unitsPerStep : 20);
+    setTaskStepsLots(nextTaskSteps.stepCount);
+    setTaskStepsSource(nextTaskSteps.stepCount > 0 && nextTaskSteps.unitsPerStep <= 0 ? "lots" : "pieces");
+    setSelectedTaskStepId(nextTaskSteps.steps[0]?.id);
+    setShowTaskStepSubprocess(false);
+    skipNextTaskStepsRecalcRef.current = true;
     setColumnFocus('balanced');
     setBodyCollapsed(false);
     previousCompleteRef.current = task.Complete ?? 0;
   }, [task]);
+
+  useEffect(() => {
+    if (skipNextTaskStepsRecalcRef.current) {
+      skipNextTaskStepsRecalcRef.current = false;
+      return;
+    }
+
+    if (!taskSteps.enabled) return;
+
+    if (taskStepsSource === "lots" && taskStepsLots > 0) {
+      setTaskSteps(buildTaskStepsData("lots", taskStepsLots, true));
+      return;
+    }
+
+    if (taskStepsPieces > 0) {
+      setTaskSteps(buildTaskStepsData("pieces", taskStepsPieces, true));
+    }
+  }, [projectUnits, start, finish, wbs, taskTitle]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (!taskSteps.steps.length) {
+      setSelectedTaskStepId(undefined);
+      setIsTaskStepExpanded(false);
+      setShowTaskStepSubprocess(false);
+      setTaskStepTitleEdit("");
+      setTaskStepUnitsEdit(0);
+      setTaskStepCompleteEdit(0);
+      setTaskStepStartEdit("");
+      setTaskStepFinishEdit("");
+      setTaskStepActualFinishEdit("");
+      return;
+    }
+
+    if (selectedTaskStepId && taskSteps.steps.some(step => step.id === selectedTaskStepId)) {
+      return;
+    }
+
+    setSelectedTaskStepId(taskSteps.steps[0].id);
+    setIsTaskStepExpanded(true);
+  }, [taskSteps.steps, selectedTaskStepId]);
+
+  useEffect(() => {
+    const selectedStep = selectedTaskStepId
+      ? taskSteps.steps.find(step => step.id === selectedTaskStepId)
+      : undefined;
+
+    if (!selectedStep) return;
+
+    setTaskStepTitleEdit(selectedStep.title);
+    setTaskStepUnitsEdit(selectedStep.units);
+    setTaskStepCompleteEdit(selectedStep.complete);
+    setTaskStepStartEdit(selectedStep.start);
+    setTaskStepFinishEdit(selectedStep.finish);
+    setTaskStepActualFinishEdit(selectedStep.actualFinish ?? "");
+  }, [selectedTaskStepId, taskSteps.steps]);
 
   const handleSave = (overrides?: {
     complete?: number;
@@ -141,7 +466,13 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
       return;
     }
 
-    const effectiveComplete = overrides?.complete ?? complete;
+    const derivedTaskSteps = taskSteps.enabled
+      ? normalizeTaskStepsAggregation(taskSteps)
+      : createEmptyTaskSteps();
+    const derivedSubprocess = derivedTaskSteps.enabled && derivedTaskSteps.steps.length > 0
+      ? undefined
+      : subprocess;
+    const effectiveComplete = overrides?.complete ?? deriveTaskComplete(derivedTaskSteps, derivedSubprocess);
     const effectiveEvidence = overrides && Object.prototype.hasOwnProperty.call(overrides, 'evidenceOfCompletion')
       ? overrides.evidenceOfCompletion
       : evidenceOfCompletion;
@@ -152,13 +483,17 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
 
     const gateChanged = gate !== task.Gate;
     const sortOrder = getTaskSortOrder(task.jsonTable);
-    const hasSubprocessData = subprocess.subTasks.length > 0;
+    const nextTaskSteps = derivedTaskSteps;
+    const hasTaskStepsData = nextTaskSteps.enabled && nextTaskSteps.steps.length > 0;
+    const hasSubprocessData = !hasTaskStepsData && subprocess.subTasks.length > 0;
     const jsonTable = buildTaskJsonTable(task.jsonTable, {
       sortOrder,
       isRelease: isRelease || undefined,
       releaseUnits: isRelease ? releaseUnits : undefined,
       subprocess: hasSubprocessData ? subprocess : undefined,
       clearSubprocess: !hasSubprocessData,
+      taskSteps: hasTaskStepsData ? nextTaskSteps : undefined,
+      clearTaskSteps: !hasTaskStepsData,
     });
     const data = {
       Id: task.Id,
@@ -180,11 +515,13 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
       ...(gateChanged && { originalGate: task.Gate, renameGate: renameAllGateTasks }),
     };
 
+    setComplete(effectiveComplete);
     onSave(task.Id, JSON.stringify(data));
   };
 
   const handleSaveSubprocessOnly = (nextSubprocess: ITaskSubprocessData): void => {
     const hasSubprocessData = nextSubprocess.subTasks.length > 0;
+    const aggregatedComplete = hasSubprocessData ? aggregateSubprocessComplete(nextSubprocess) : 0;
     const jsonTable = buildTaskJsonTable(task.jsonTable, {
       sortOrder: getTaskSortOrder(task.jsonTable),
       isRelease: task.isRelease || undefined,
@@ -198,13 +535,13 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
       Title: task.Title ?? "",
       Gate: task.Gate ?? "",
       Task: task.Task ?? "",
-      Complete: task.Complete ?? 0,
+      Complete: aggregatedComplete,
       Effort: task.Effort,
       Barriers: task.Barriers ?? "",
       ActionableStatus: task.ActionableStatus ?? "",
       Start: task.Start ?? undefined,
       Finish: task.Finish ?? undefined,
-      ActualFinish: task.ActualFinish ?? undefined,
+      ActualFinish: aggregatedComplete === 100 ? (task.ActualFinish ?? new Date()) : undefined,
       Description: task.Description ?? "",
       jsonTable: jsonTable ?? "",
       isRelease: task.isRelease ?? false,
@@ -212,7 +549,107 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
       EvidenceOfCompletion: task.EvidenceOfCompletion,
     };
 
+    setSubprocess(nextSubprocess);
+    setComplete(aggregatedComplete);
     onSave(task.Id, JSON.stringify(data));
+  };
+
+  const handleSaveTaskStepsOnly = (nextTaskSteps: ITaskStepsData): void => {
+    const normalizedTaskSteps = normalizeTaskStepsAggregation(nextTaskSteps);
+    const hasTaskStepsData = normalizedTaskSteps.enabled && normalizedTaskSteps.steps.length > 0;
+    const aggregatedComplete = hasTaskStepsData ? aggregateTaskStepsComplete(normalizedTaskSteps) : 0;
+    const jsonTable = buildTaskJsonTable(task.jsonTable, {
+      sortOrder: getTaskSortOrder(task.jsonTable),
+      isRelease: task.isRelease || undefined,
+      releaseUnits: task.isRelease ? task.releaseUnits : undefined,
+      clearSubprocess: true,
+      taskSteps: hasTaskStepsData ? normalizedTaskSteps : undefined,
+      clearTaskSteps: !hasTaskStepsData,
+    });
+
+    const data = {
+      Id: task.Id,
+      Title: task.Title ?? "",
+      Gate: task.Gate ?? "",
+      Task: task.Task ?? "",
+      Complete: aggregatedComplete,
+      Effort: task.Effort,
+      Barriers: task.Barriers ?? "",
+      ActionableStatus: task.ActionableStatus ?? "",
+      Start: task.Start ?? undefined,
+      Finish: task.Finish ?? undefined,
+      ActualFinish: aggregatedComplete === 100 ? (task.ActualFinish ?? new Date()) : undefined,
+      Description: task.Description ?? "",
+      jsonTable: jsonTable ?? "",
+      isRelease: task.isRelease ?? false,
+      releaseUnits: task.isRelease ? (task.releaseUnits ?? 0) : 0,
+      EvidenceOfCompletion: task.EvidenceOfCompletion,
+    };
+
+    setTaskSteps(normalizedTaskSteps);
+    setComplete(aggregatedComplete);
+    onSave(task.Id, JSON.stringify(data));
+  };
+
+  const handleSaveTaskStepSubprocessOnly = (stepId: string, nextSubprocess: ITaskSubprocessData): void => {
+    const nextTaskSteps: ITaskStepsData = {
+      ...taskSteps,
+      enabled: true,
+      steps: taskSteps.steps.map(step => (
+        step.id === stepId
+          ? {
+              ...step,
+              subprocess: nextSubprocess,
+            }
+          : step
+      )),
+    };
+
+    const normalizedTaskSteps = normalizeTaskStepsAggregation(nextTaskSteps);
+    commitTaskSteps(normalizedTaskSteps);
+    handleSaveTaskStepsOnly(normalizedTaskSteps);
+  };
+
+  const handleSaveSelectedTaskStep = (): void => {
+    if (!selectedTaskStepId) return;
+
+    if (taskStepStartEdit && taskStepFinishEdit) {
+      const startMs = Date.parse(taskStepStartEdit);
+      const finishMs = Date.parse(taskStepFinishEdit);
+      if (Number.isFinite(startMs) && Number.isFinite(finishMs) && finishMs < startMs) {
+        alert("Step Finish date cannot be earlier than Step Start date.");
+        return;
+      }
+    }
+
+    const normalizedUnits = Math.max(1, Math.floor(taskStepUnitsEdit || 0));
+    const normalizedComplete = Math.max(0, Math.min(100, Math.floor(taskStepCompleteEdit || 0)));
+    const normalizedActualFinish = normalizedComplete === 100
+      ? (taskStepActualFinishEdit || new Date().toISOString().slice(0, 10))
+      : "";
+
+    const nextTaskSteps: ITaskStepsData = {
+      ...taskSteps,
+      enabled: true,
+      steps: taskSteps.steps.map(step => (
+        step.id === selectedTaskStepId
+          ? {
+              ...step,
+              title: taskStepTitleEdit || step.title,
+              units: normalizedUnits,
+              complete: normalizedComplete,
+              start: taskStepStartEdit,
+              finish: taskStepFinishEdit,
+              actualFinish: normalizedActualFinish,
+            }
+          : step
+      )),
+    };
+    nextTaskSteps.totalUnits = nextTaskSteps.steps.reduce((sum, step) => sum + Math.max(0, step.units || 0), 0);
+
+    const normalizedTaskSteps = normalizeTaskStepsAggregation(nextTaskSteps);
+    commitTaskSteps(normalizedTaskSteps);
+    handleSaveTaskStepsOnly(normalizedTaskSteps);
   };
 
   const buildApprovalEmail = (requestedBy: string): { subject: string; body: string } => {
@@ -338,11 +775,30 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
     setShowSubprocess(prev => {
       const next = !prev;
       if (next) {
+        setTaskSteps(createEmptyTaskSteps());
+        setShowTaskSteps(false);
+        setSelectedTaskStepId(undefined);
+        setIsTaskStepExpanded(false);
+        setShowTaskStepSubprocess(false);
         setBodyCollapsed(false);
       }
       return next;
     });
   };
+  const handleToggleTaskSteps = (): void => {
+    setShowTaskSteps(prev => {
+      const next = !prev;
+      if (next) {
+        setSubprocess(createEmptySubprocess());
+        setShowSubprocess(false);
+        setBodyCollapsed(false);
+      }
+      return next;
+    });
+  };
+  const selectedTaskStep = selectedTaskStepId
+    ? taskSteps.steps.find(step => step.id === selectedTaskStepId)
+    : undefined;
 
   return (
     <div className={styles["task-card"]}>
@@ -479,13 +935,32 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
             className={[
               styles["task-button"],
               styles["task-button-save"],
+              styles["task-button-compact"],
+              hasTaskSteps ? styles["task-button-subprocess-ready"] : "",
+              showTaskSteps ? styles["task-button-toggle-active"] : "",
+            ].filter(Boolean).join(" ")}
+            onClick={handleToggleTaskSteps}
+            title="TaskSteps"
+          >
+            <span className={styles["task-button-label-stack"]}>
+              <span className={styles["task-button-label-text"]}>Task-<br />Steps</span>
+            </span>
+          </button>
+          <button
+            type="button"
+            className={[
+              styles["task-button"],
+              styles["task-button-save"],
+              styles["task-button-compact"],
               hasSubprocessTasks ? styles["task-button-subprocess-ready"] : "",
               showSubprocess ? styles["task-button-toggle-active"] : "",
             ].filter(Boolean).join(" ")}
             onClick={handleToggleSubprocess}
-            title="Subprocess"
+            title={hasTaskSteps ? "Switch to task-level Subprocess mode" : "Subprocess"}
           >
-            <span className={styles["task-button-label"]}>Subprocess</span>
+            <span className={styles["task-button-label-stack"]}>
+              <span className={styles["task-button-label-text"]}>Sub-<br />Process</span>
+            </span>
           </button>
           <button
             type="button"
@@ -660,6 +1135,266 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
               </label>
             </div>
 
+            {showTaskSteps && (
+              <div className={styles["task-steps-card"]}>
+                <div className={styles["task-steps-header"]}>
+                  <strong>TaskSteps</strong>
+                  <label className={styles["gate-edit-toggle"]}>
+                    <input
+                      type="checkbox"
+                      checked={taskSteps.enabled}
+                      onChange={e => {
+                        const checked = e.target.checked;
+                        if (!checked) {
+                          setTaskSteps(createEmptyTaskSteps());
+                          setShowSubprocess(false);
+                          setShowTaskStepSubprocess(false);
+                          setIsTaskStepExpanded(false);
+                          return;
+                        }
+                        setSubprocess(createEmptySubprocess());
+                        setShowSubprocess(false);
+                        if (taskStepsSource === "lots" && taskStepsLots > 0) {
+                          applyTaskStepsFromLots(taskStepsLots, true);
+                        } else {
+                          applyTaskStepsFromPieces(taskStepsPieces > 0 ? taskStepsPieces : 20, true);
+                        }
+                      }}
+                    />
+                    <span className={styles["gate-edit-track"]}>
+                      <span className={styles["gate-edit-thumb"]} />
+                    </span>
+                    <span className={styles["gate-edit-label"]}>Use</span>
+                  </label>
+                </div>
+
+                <div className={styles["task-steps-grid"]}>
+                  <label className={styles["task-steps-field"]}>
+                    <span>Total Units</span>
+                    <input type="number" value={totalProjectUnits || ""} className={styles["input-small"]} disabled />
+                  </label>
+                  <label className={styles["task-steps-field"]}>
+                    <span># Pieces</span>
+                    <input
+                      type="number"
+                      min={1}
+                      value={taskStepsPieces || ""}
+                      className={styles["input-small"]}
+                      onChange={e => applyTaskStepsFromPieces(Number(e.target.value) || 0, taskSteps.enabled)}
+                    />
+                  </label>
+                  <label className={styles["task-steps-field"]}>
+                    <span># Lots</span>
+                    <input
+                      type="number"
+                      min={1}
+                      value={taskStepsLots || ""}
+                      className={styles["input-small"]}
+                      onChange={e => applyTaskStepsFromLots(Number(e.target.value) || 0, taskSteps.enabled)}
+                    />
+                  </label>
+                </div>
+
+                {totalProjectUnits <= 0 && (
+                  <div className={styles["task-steps-hint"]}>
+                    TaskSteps need project Units defined in ED2-Projects.
+                  </div>
+                )}
+
+                {taskSteps.enabled && taskSteps.steps.length > 0 && (
+                  <>
+                    <div className={styles["task-steps-summary"]}>
+                      <span>{taskSteps.steps.length} steps generated</span>
+                      <div className={styles["task-steps-summary-actions"]}>
+                        {selectedTaskStep && (
+                          <button
+                            type="button"
+                            className={`${styles["task-button"]} ${styles["task-button-save"]} ${selectedTaskStep.subprocess?.subTasks?.length ? styles["task-button-subprocess-ready"] : ""}`}
+                            onClick={() => setShowTaskStepSubprocess(prev => !prev)}
+                          >
+                            <span className={styles["task-button-label"]}>
+                              {showTaskStepSubprocess ? "Hide Step Flow" : "Step Flow"}
+                            </span>
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          className={`${styles["task-button"]} ${styles["task-button-save"]}`}
+                          onClick={() => {
+                            setTaskSteps(createEmptyTaskSteps());
+                            setTaskStepsLots(0);
+                            setTaskStepsPieces(20);
+                            setSelectedTaskStepId(undefined);
+                            setIsTaskStepExpanded(false);
+                            setShowTaskStepSubprocess(false);
+                          }}
+                        >
+                          <span className={styles["task-button-label"]}>Reset</span>
+                        </button>
+                      </div>
+                    </div>
+                    <div className={styles["task-steps-preview"]}>
+                      {taskSteps.steps.map(step => {
+                        const isSelectedStep = step.id === selectedTaskStepId;
+                        const stepDuration = daysBetween(step.start, step.finish);
+
+                        return (
+                          <div key={step.id} className={styles["task-step-item"]}>
+                            <button
+                              type="button"
+                              className={[
+                                styles["task-step-row"],
+                                isSelectedStep ? styles["task-step-row-active"] : "",
+                              ].filter(Boolean).join(" ")}
+                              onClick={() => {
+                                if (isSelectedStep) {
+                                  setIsTaskStepExpanded(prev => {
+                                    const nextExpanded = !prev;
+                                    if (!nextExpanded) {
+                                      setShowTaskStepSubprocess(false);
+                                    }
+                                    return nextExpanded;
+                                  });
+                                  return;
+                                }
+
+                                setSelectedTaskStepId(step.id);
+                                setIsTaskStepExpanded(true);
+                              }}
+                            >
+                              <div className={styles["task-step-main"]}>
+                                <span className={styles["task-step-wbs"]}>{step.wbs}</span>
+                                <span className={styles["task-step-title"]}>{step.title}</span>
+                              </div>
+                              <div className={styles["task-step-meta"]}>
+                                <span>{step.units} units</span>
+                                <span>{step.subprocess?.subTasks?.length ?? 0} subprocess</span>
+                                <span>{step.start || "-"} to {step.finish || "-"}</span>
+                              </div>
+                            </button>
+                            {isSelectedStep && isTaskStepExpanded && selectedTaskStep && (
+                              <div className={styles["task-step-workspace"]}>
+                                <div className={styles["task-step-detail"]}>
+                                  <div className={styles["task-step-detail-header"]}>
+                                    <div>
+                                      <strong>{selectedTaskStep.wbs}</strong>
+                                      <span>{selectedTaskStep.title}</span>
+                                    </div>
+                                    <div className={styles["task-step-detail-meta"]}>
+                                      <span>{selectedTaskStep.units} units</span>
+                                      <span>{stepDuration} days</span>
+                                      <span>{selectedTaskStep.subprocess?.subTasks?.length ?? 0} subprocess</span>
+                                    </div>
+                                  </div>
+                                  <div className={styles["task-step-editor"]}>
+                                    <label className={styles["task-step-editor-field"]}>
+                                      <span>Task</span>
+                                      <input
+                                        type="text"
+                                        value={taskStepTitleEdit}
+                                        className={styles["input-small"]}
+                                        onChange={e => setTaskStepTitleEdit(e.target.value)}
+                                      />
+                                    </label>
+                                    <label className={styles["task-step-editor-field"]}>
+                                      <span>Units</span>
+                                      <input
+                                        type="number"
+                                        min={1}
+                                        value={taskStepUnitsEdit}
+                                        className={styles["input-small"]}
+                                        onChange={e => setTaskStepUnitsEdit(Math.max(1, Number(e.target.value) || 0))}
+                                      />
+                                    </label>
+                                    <label className={styles["task-step-editor-field"]}>
+                                      <span>% Complete</span>
+                                      <input
+                                        type="number"
+                                        min={0}
+                                        max={100}
+                                        value={taskStepCompleteEdit}
+                                        className={styles["input-small"]}
+                                        onChange={e => setTaskStepCompleteEdit(Number(e.target.value) || 0)}
+                                      />
+                                    </label>
+                                    <label className={styles["task-step-editor-field"]}>
+                                      <span>Start</span>
+                                      <input
+                                        type="date"
+                                        value={taskStepStartEdit}
+                                        className={styles["input-small"]}
+                                        onChange={e => setTaskStepStartEdit(e.target.value)}
+                                      />
+                                    </label>
+                                    <label className={styles["task-step-editor-field"]}>
+                                      <span>Delivery Date</span>
+                                      <input
+                                        type="date"
+                                        value={taskStepFinishEdit}
+                                        className={styles["input-small"]}
+                                        onChange={e => setTaskStepFinishEdit(e.target.value)}
+                                      />
+                                    </label>
+                                    <label className={styles["task-step-editor-field"]}>
+                                      <span>Actual Finish</span>
+                                      <input
+                                        type="date"
+                                        value={taskStepActualFinishEdit}
+                                        className={styles["input-small"]}
+                                        onChange={e => setTaskStepActualFinishEdit(e.target.value)}
+                                        disabled={taskStepCompleteEdit < 100}
+                                      />
+                                    </label>
+                                    <div className={styles["task-step-editor-actions"]}>
+                                      <button
+                                        type="button"
+                                        className={`${styles["task-button"]} ${styles["task-button-save"]}`}
+                                        onClick={handleSaveSelectedTaskStep}
+                                      >
+                                        <span className={styles["task-button-label"]}>Save Step</span>
+                                      </button>
+                                    </div>
+                                  </div>
+                                  {showTaskStepSubprocess && (
+                                    <SubprocessCard
+                                      parentWbs={selectedTaskStep.wbs}
+                                      parentStart={selectedTaskStep.start}
+                                      parentFinish={selectedTaskStep.finish}
+                                      value={selectedTaskStep.subprocess ?? { subTasks: [] }}
+                                      onChange={(nextValue) => {
+                                        const normalizedTaskSteps = normalizeTaskStepsAggregation({
+                                          ...taskSteps,
+                                          enabled: true,
+                                          steps: taskSteps.steps.map(taskStep => (
+                                            taskStep.id === selectedTaskStep.id
+                                              ? { ...taskStep, subprocess: nextValue }
+                                              : taskStep
+                                          )),
+                                        });
+                                        commitTaskSteps(normalizedTaskSteps);
+                                        setComplete(deriveTaskComplete(normalizedTaskSteps, undefined));
+                                      }}
+                                      onSaveSubprocess={(nextValue) => handleSaveTaskStepSubprocessOnly(selectedTaskStep.id, nextValue)}
+                                      onClose={() => setShowTaskStepSubprocess(false)}
+                                      currentUserEmail={currentUserEmail}
+                                      currentUserDisplayName={currentUserDisplayName}
+                                      onUploadEvidenceFile={onUploadEvidenceFile}
+                                      onSendEmail={onSendEmail}
+                                      onSearchUsers={onSearchUsers}
+                                    />
+                                  )}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+
             {/* Completion warning */}
             {complete === 100 && !hasCompletionEvidence && (
               <div className={styles["completion-warning"]}>
@@ -770,7 +1505,10 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
           parentStart={start}
           parentFinish={finish}
           value={subprocess}
-          onChange={setSubprocess}
+          onChange={(nextValue) => {
+            setSubprocess(nextValue);
+            setComplete(deriveTaskComplete(undefined, nextValue));
+          }}
           onSaveSubprocess={handleSaveSubprocessOnly}
           onClose={() => setShowSubprocess(false)}
           currentUserEmail={currentUserEmail}
