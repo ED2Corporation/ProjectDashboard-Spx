@@ -4,7 +4,7 @@
 /**
  * Checks if a string is in strict "YYYY-MM-DD" format.
  */
-export const isDateOnly = (value?: string | null): value is string => {
+export const isDateOnly = (value?: string): value is string => {
     if (!value) return false;
     return /^\d{4}-\d{2}-\d{2}$/.test(value);
 };
@@ -14,11 +14,11 @@ export const isDateOnly = (value?: string | null): value is string => {
  * This does NOT use local timezone; it builds UTC explicitly.
  * Returns null if input is invalid.
  */
-export const dateOnlyToUtcIso = (dateOnly?: string | null): string | null => {
-    if (!isDateOnly(dateOnly)) return null;
+export const dateOnlyToUtcIso = (dateOnly?: string): string | undefined => {
+    if (!isDateOnly(dateOnly)) return undefined;
     const [y, m, d] = dateOnly!.split("-").map(n => parseInt(n, 10));
     // Basic sanity checks
-    if (m < 1 || m > 12 || d < 1 || d > 31) return null;
+    if (m < 1 || m > 12 || d < 1 || d > 31) return undefined;
 
     const ms = Date.UTC(y, m - 1, d, 0, 0, 0, 0);
     return new Date(ms).toISOString(); // → "YYYY-MM-DDT00:00:00.000Z"
@@ -28,10 +28,10 @@ export const dateOnlyToUtcIso = (dateOnly?: string | null): string | null => {
  * Creates a Date object set at UTC midnight from a date-only "YYYY-MM-DD".
  * Returns null if input is invalid.
  */
-export const dateOnlyToUtcDate = (dateOnly?: string | null): Date | null => {
-    if (!isDateOnly(dateOnly)) return null;
+export const dateOnlyToUtcDate = (dateOnly?: string): Date | undefined => {
+    if (!isDateOnly(dateOnly)) return undefined;
     const [y, m, d] = dateOnly!.split("-").map(n => parseInt(n, 10));
-    if (m < 1 || m > 12 || d < 1 || d > 31) return null;
+    if (m < 1 || m > 12 || d < 1 || d > 31) return undefined;
     return new Date(Date.UTC(y, m - 1, d, 0, 0, 0, 0));
 };
 
@@ -47,8 +47,8 @@ export const dateOnlyToUtcDate = (dateOnly?: string | null): Date | null => {
  *
  * Returns null if the input cannot be parsed.
  */
-export const toUtcIso = (input?: string | Date | null): string | null => {
-    if (!input) return null;
+export const toUtcIso = (input?: string | Date): string | undefined => {
+    if (!input) return undefined;
 
     // If it's a date-only string
     if (typeof input === "string" && isDateOnly(input)) {
@@ -57,7 +57,7 @@ export const toUtcIso = (input?: string | Date | null): string | null => {
 
     // If it's a Date object or datetime string, try direct parsing
     const d = input instanceof Date ? input : new Date(input);
-    if (isNaN(d.getTime())) return null;
+    if (isNaN(d.getTime())) return undefined;
 
     return d.toISOString(); // normalized to UTC
 };
@@ -68,7 +68,7 @@ export const toUtcIso = (input?: string | Date | null): string | null => {
  * - For date-only input → returns as-is.
  * - For invalid/null → returns "".
  */
-export const toDateOnlyString = (input?: string | Date | null): string => {
+export const toDateOnlyString = (input?: string | Date): string => {
     if (!input) return "";
     if (typeof input === "string" && isDateOnly(input)) return input;
 
@@ -88,12 +88,12 @@ export const toDateOnlyString = (input?: string | Date | null): string => {
  *
  * Prefer `dateOnlyToUtcDate` when you need a UTC Date from date-only input.
  */
-export const parseToLocalDate = (input?: string | Date | null): Date | null => {
-    if (!input) return null;
+export const parseToLocalDate = (input?: string | Date): Date | undefined => {
+    if (!input) return undefined;
     if (typeof input === "string" && isDateOnly(input)) {
         const [y, m, d] = input.split("-").map(n => parseInt(n, 10));
         return new Date(y, m - 1, d, 0, 0, 0, 0); // local midnight
     }
     const d = input instanceof Date ? input : new Date(input);
-    return isNaN(d.getTime()) ? null : d;
+    return isNaN(d.getTime()) ? undefined : d;
 };

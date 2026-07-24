@@ -13,7 +13,7 @@ export interface IReleaseRecord {
 }
 
 export interface IProjectService {
-    createProject(baseData: any): Promise<string>;          // returns the new project Id
+    createProject(baseData: Record<string, unknown>): Promise<string>;          // returns the new project Id
     deleteProject(listName: string, projectTitle: string, evidenceFolderServerRelative?: string): Promise<void>;
     archiveProject(listName: string, evidenceFolderServerRelative: string, projectId?: string, projectMetadata?: IProjectCatalogItem): Promise<void>;
     exportProject(projectId: string): Promise<Blob>;        // or string with URL

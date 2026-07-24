@@ -9,6 +9,7 @@ import styles from "./SubprocessCard.module.scss";
 type SortCol = "wbs" | "task" | "complete" | "start" | "finish";
 type SortDir = "asc" | "desc";
 type MoveDirection = "first" | "up" | "down" | "last";
+type ActionMenuStyle = React.CSSProperties & Record<"--menu-notch-offset" | "--menu-short-shift", string>;
 
 interface ISubprocessListProps {
   subTasks: ISubprocessSubTask[];
@@ -99,6 +100,32 @@ const SubprocessList: React.FC<ISubprocessListProps> = ({
 
   const isShortListMode = subTasks.length > 0 && subTasks.length < 4;
 
+  const sortedTasks = useMemo(() => {
+    const next = subTasks.slice().sort((a, b) => {
+      let cmp = 0;
+      switch (sortCol) {
+        case "wbs":
+          cmp = a.sortOrder - b.sortOrder;
+          break;
+        case "task":
+          cmp = (a.task || "").localeCompare(b.task || "");
+          break;
+        case "complete":
+          cmp = (a.complete || 0) - (b.complete || 0);
+          break;
+        case "start":
+          cmp = toMs(a.start) - toMs(b.start);
+          break;
+        case "finish":
+          cmp = toMs(a.finish) - toMs(b.finish);
+          break;
+      }
+      return sortDir === "asc" ? cmp : -cmp;
+    });
+
+    return next;
+  }, [subTasks, sortCol, sortDir]);
+
   const handleSubmenuEnter = (
     key: string,
     event: React.MouseEvent<HTMLDivElement>
@@ -140,32 +167,6 @@ const SubprocessList: React.FC<ISubprocessListProps> = ({
     setActionMenuUpKey(current => (current === key && shouldOpenUp) ? current : (shouldOpenUp ? key : null));
     setActionMenuDownKey(current => (current === key && shouldOpenDown) ? current : (shouldOpenDown ? key : null));
   };
-
-  const sortedTasks = useMemo(() => {
-    const next = subTasks.slice().sort((a, b) => {
-      let cmp = 0;
-      switch (sortCol) {
-        case "wbs":
-          cmp = a.sortOrder - b.sortOrder;
-          break;
-        case "task":
-          cmp = (a.task || "").localeCompare(b.task || "");
-          break;
-        case "complete":
-          cmp = (a.complete || 0) - (b.complete || 0);
-          break;
-        case "start":
-          cmp = toMs(a.start) - toMs(b.start);
-          break;
-        case "finish":
-          cmp = toMs(a.finish) - toMs(b.finish);
-          break;
-      }
-      return sortDir === "asc" ? cmp : -cmp;
-    });
-
-    return next;
-  }, [subTasks, sortCol, sortDir]);
 
   const selectedItem = selectedSubTaskId
     ? subTasks.find(item => item.id === selectedSubTaskId)
@@ -422,9 +423,9 @@ const SubprocessList: React.FC<ISubprocessListProps> = ({
                             ].filter(Boolean).join(" ")}
                             style={actionMenuShortKey === `actions-${item.id}`
                               ? ({
-                                  ["--menu-notch-offset" as "--menu-notch-offset"]: actionMenuShortOffset[`actions-${item.id}`] ?? "22px",
-                                  ["--menu-short-shift" as "--menu-short-shift"]: actionMenuShortShift[`actions-${item.id}`] ?? "0px",
-                                } as React.CSSProperties)
+                                  "--menu-notch-offset": actionMenuShortOffset[`actions-${item.id}`] ?? "22px",
+                                  "--menu-short-shift": actionMenuShortShift[`actions-${item.id}`] ?? "0px",
+                                } as ActionMenuStyle)
                               : undefined}
                             onClick={(e) => e.stopPropagation()}
                           >

@@ -22,6 +22,13 @@ interface SubprocessCardProps {
   ) => Promise<{ fileUrl: string; fileName: string }>;
   onSendEmail?: (to: string[], subject: string, body: string) => Promise<void>;
   onSearchUsers?: (query: string) => Promise<{ displayName: string; email: string }[]>;
+  showTaskStepsToggle?: boolean;
+  taskStepsToggleActive?: boolean;
+  taskStepsToggleHighlighted?: boolean;
+  onToggleTaskSteps?: () => void;
+  taskStepsPanel?: React.ReactNode;
+  isCollapsed?: boolean;
+  closeLabel?: string;
 }
 
 type MoveDirection = "first" | "up" | "down" | "last";
@@ -85,6 +92,13 @@ const SubprocessCard: React.FC<SubprocessCardProps> = ({
   onUploadEvidenceFile,
   onSendEmail,
   onSearchUsers,
+  showTaskStepsToggle,
+  taskStepsToggleActive,
+  taskStepsToggleHighlighted,
+  onToggleTaskSteps,
+  taskStepsPanel,
+  isCollapsed = false,
+  closeLabel,
 }) => {
   const [selectedSubTaskId, setSelectedSubTaskId] = useState<string | undefined>(undefined);
   const [editingSubTaskId, setEditingSubTaskId] = useState<string | undefined>(undefined);
@@ -279,73 +293,97 @@ const SubprocessCard: React.FC<SubprocessCardProps> = ({
         </div>
         <div className={styles.headerMeta}>
           <div className={styles.contextActions}>
+            {showTaskStepsToggle && (
+              <button
+                type="button"
+                className={[
+                  styles.contextActionBtn,
+                  taskStepsToggleHighlighted ? styles.contextActionBtnHighlighted : "",
+                  taskStepsToggleActive ? styles.contextActionBtnActive : "",
+                ].filter(Boolean).join(" ")}
+                onClick={onToggleTaskSteps}
+                title="TaskSteps"
+              >
+                <span>Step Tasks</span>
+              </button>
+            )}
             <div className={styles.contextChip}>Embedded in task {parentWbs || "N/A"}</div>
             {onClose && (
               <button
                 type="button"
                 className={styles.closeBtn}
                 onClick={onClose}
+                title={isCollapsed ? "Expand subprocess workspace" : "Collapse subprocess workspace"}
+                aria-label={isCollapsed ? "Expand subprocess workspace" : "Collapse subprocess workspace"}
               >
-                Close
+                <svg className={styles.closeIcon} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  {isCollapsed ? <path d="M3 6l5 5 5-5" /> : <path d="M3 10l5-5 5 5" />}
+                </svg>
               </button>
             )}
           </div>
         </div>
       </div>
 
-      <SubprocessList
-        subTasks={normalizedSubTasks}
-        selectedSubTaskId={selectedSubTaskId}
-        editingSubTaskId={editingSubTaskId}
-        movingSubTaskId={movingSubTaskId}
-        onSelect={setSelectedSubTaskId}
-        onAddBelow={handleAddBelow}
-        onRemove={handleRemove}
-        onStartQuickEdit={handleStartQuickEdit}
-        onSaveQuickEdit={handleSaveQuickEdit}
-        onCancelQuickEdit={() => setEditingSubTaskId(undefined)}
-        onMove={handleMove}
-        currentUserDisplayName={currentUserDisplayName}
-        onUploadEvidenceFile={onUploadEvidenceFile}
-        onSaveEvidenceEntries={handleSaveEvidenceEntries}
-        onEditDetail={(subTaskId) => {
-          setSelectedSubTaskId(subTaskId);
-          setEditingSubTaskId(undefined);
-          setDetailSubTaskId(subTaskId);
-        }}
-      />
+      {!isCollapsed && (
+        <>
+          {taskStepsPanel}
 
-      {detailSubTask && (
-        <SubprocessTaskCard
-          subTask={detailSubTask}
-          currentUserEmail={currentUserEmail}
-          currentUserDisplayName={currentUserDisplayName}
-          onUploadEvidenceFile={onUploadEvidenceFile}
-          onSendEmail={onSendEmail}
-          onSearchUsers={onSearchUsers}
-          onSave={handleSaveDetail}
-          onClose={() => setDetailSubTaskId(undefined)}
-        />
+          <SubprocessList
+            subTasks={normalizedSubTasks}
+            selectedSubTaskId={selectedSubTaskId}
+            editingSubTaskId={editingSubTaskId}
+            movingSubTaskId={movingSubTaskId}
+            onSelect={setSelectedSubTaskId}
+            onAddBelow={handleAddBelow}
+            onRemove={handleRemove}
+            onStartQuickEdit={handleStartQuickEdit}
+            onSaveQuickEdit={handleSaveQuickEdit}
+            onCancelQuickEdit={() => setEditingSubTaskId(undefined)}
+            onMove={handleMove}
+            currentUserDisplayName={currentUserDisplayName}
+            onUploadEvidenceFile={onUploadEvidenceFile}
+            onSaveEvidenceEntries={handleSaveEvidenceEntries}
+            onEditDetail={(subTaskId) => {
+              setSelectedSubTaskId(subTaskId);
+              setEditingSubTaskId(undefined);
+              setDetailSubTaskId(subTaskId);
+            }}
+          />
+
+          {detailSubTask && (
+            <SubprocessTaskCard
+              subTask={detailSubTask}
+              currentUserEmail={currentUserEmail}
+              currentUserDisplayName={currentUserDisplayName}
+              onUploadEvidenceFile={onUploadEvidenceFile}
+              onSendEmail={onSendEmail}
+              onSearchUsers={onSearchUsers}
+              onSave={handleSaveDetail}
+              onClose={() => setDetailSubTaskId(undefined)}
+            />
+          )}
+
+          <div className={styles.footer}>
+            <button
+              type="button"
+              className={styles.addBtn}
+              onClick={() => {
+                if (selectedSubTaskId) {
+                  handleAddBelow(selectedSubTaskId);
+                } else {
+                  const nextSubTask = createEmptySubTask(parentWbs, parentStart, parentFinish, normalizedSubTasks.length);
+                  commitSubTasks([...normalizedSubTasks, nextSubTask]);
+                  setSelectedSubTaskId(nextSubTask.id);
+                  setEditingSubTaskId(nextSubTask.id);
+                }
+              }}
+            >
+              + Add Subtask
+            </button>
+          </div>
+        </>
       )}
-
-      <div className={styles.footer}>
-        <button
-          type="button"
-          className={styles.addBtn}
-          onClick={() => {
-            if (selectedSubTaskId) {
-              handleAddBelow(selectedSubTaskId);
-            } else {
-              const nextSubTask = createEmptySubTask(parentWbs, parentStart, parentFinish, normalizedSubTasks.length);
-              commitSubTasks([...normalizedSubTasks, nextSubTask]);
-              setSelectedSubTaskId(nextSubTask.id);
-              setEditingSubTaskId(nextSubTask.id);
-            }
-          }}
-        >
-          + Add Subtask
-        </button>
-      </div>
     </div>
   );
 };

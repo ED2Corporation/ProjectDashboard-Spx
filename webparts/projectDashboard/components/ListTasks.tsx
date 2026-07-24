@@ -38,6 +38,7 @@ interface ListGroupProps {
 
 type SortCol = "wbs" | "task" | "complete" | "start" | "finish";
 type SortDir = "asc" | "desc";
+type ActionMenuStyle = React.CSSProperties & Record<"--menu-notch-offset" | "--menu-short-shift", string>;
 
 const SortIcon = ({ col, active, dir }: { col: string; active: boolean; dir: SortDir }): JSX.Element => (
   <span style={{ marginLeft: 4, opacity: active ? 1 : 0.3, fontSize: 10 }}>
@@ -82,7 +83,7 @@ const ListTasks = ({
   const [submenuDownKey, setSubmenuDownKey] = useState<string | null>(null);
 
   // Helper: Date/ISO/string -> YYYY-MM-DD
-  const toDateInputValue = (value: any): string => {
+  const toDateInputValue = (value?: string | Date | null): string => {
     if (!value) return "";
     const d = new Date(value);
     if (isNaN(d.getTime())) return "";
@@ -92,7 +93,7 @@ const ListTasks = ({
     return `${yyyy}-${mm}-${dd}`;
   };
 
-  const toMs = (value: any): number => {
+  const toMs = (value?: string | Date | null): number => {
     if (!value) return 0;
     const d = new Date(value);
     return isNaN(d.getTime()) ? 0 : d.getTime();
@@ -105,48 +106,6 @@ const ListTasks = ({
       setSortCol(col);
       setSortDir("asc");
     }
-  };
-
-  const handleSubmenuEnter = (
-    key: string,
-    event: React.MouseEvent<HTMLDivElement>
-  ): void => {
-    const wrap = event.currentTarget;
-    const submenu = wrap.querySelector(`.${styles.actionSubmenu}`) as HTMLDivElement | null;
-    if (!submenu) return;
-
-    const itemId = key.replace(/^(files|move)-/, "");
-    const hoveredIndex = sortedTasks.findIndex(task => task.Id === itemId);
-    const shouldOpenDown = !isShortListMode && hoveredIndex >= 0 && hoveredIndex <= 1;
-    const shouldOpenUp = !isShortListMode && hoveredIndex >= Math.max(0, sortedTasks.length - 2);
-
-    setSubmenuShortKey(current => (current === key && isShortListMode) ? current : (isShortListMode ? key : null));
-    setSubmenuUpKey(current => (current === key && shouldOpenUp) ? current : (shouldOpenUp ? key : null));
-    setSubmenuDownKey(current => (current === key && shouldOpenDown) ? current : (shouldOpenDown ? key : null));
-  };
-
-  const handleActionMenuEnter = (
-    key: string,
-    event: React.MouseEvent<HTMLElement>
-  ): void => {
-    const cell = event.currentTarget.closest(`.${styles.colActions}`) as HTMLElement | null;
-    const menu = cell?.querySelector(`.${styles.actionContextMenu}`) as HTMLDivElement | null;
-    if (!cell || !menu) return;
-
-    const itemId = key.replace("actions-", "");
-    const hoveredIndex = sortedTasks.findIndex(task => task.Id === itemId);
-    const shouldOpenDown = !isShortListMode && hoveredIndex >= 0 && hoveredIndex <= 1;
-    const shouldOpenUp = !isShortListMode && hoveredIndex >= Math.max(0, sortedTasks.length - 2);
-    if (isShortListMode) {
-      const notchOffset = `${54 + Math.max(0, hoveredIndex) * 28}px`;
-      const shortShift = `${32 + Math.max(0, hoveredIndex) * 28}px`;
-      setActionMenuShortOffset(current => ({ ...current, [key]: notchOffset }));
-      setActionMenuShortShift(current => ({ ...current, [key]: shortShift }));
-    }
-
-    setActionMenuShortKey(current => (current === key && isShortListMode) ? current : (isShortListMode ? key : null));
-    setActionMenuUpKey(current => (current === key && shouldOpenUp) ? current : (shouldOpenUp ? key : null));
-    setActionMenuDownKey(current => (current === key && shouldOpenDown) ? current : (shouldOpenDown ? key : null));
   };
 
   const visibilityFiltered = showDetails
@@ -200,6 +159,48 @@ const ListTasks = ({
     onSortedTasksChange?.(sortedTasks);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sortedTaskIds]);
+
+  const handleSubmenuEnter = (
+    key: string,
+    event: React.MouseEvent<HTMLDivElement>
+  ): void => {
+    const wrap = event.currentTarget;
+    const submenu = wrap.querySelector(`.${styles.actionSubmenu}`) as HTMLDivElement | null;
+    if (!submenu) return;
+
+    const itemId = key.replace(/^(files|move)-/, "");
+    const hoveredIndex = sortedTasks.findIndex(task => task.Id === itemId);
+    const shouldOpenDown = !isShortListMode && hoveredIndex >= 0 && hoveredIndex <= 1;
+    const shouldOpenUp = !isShortListMode && hoveredIndex >= Math.max(0, sortedTasks.length - 2);
+
+    setSubmenuShortKey(current => (current === key && isShortListMode) ? current : (isShortListMode ? key : null));
+    setSubmenuUpKey(current => (current === key && shouldOpenUp) ? current : (shouldOpenUp ? key : null));
+    setSubmenuDownKey(current => (current === key && shouldOpenDown) ? current : (shouldOpenDown ? key : null));
+  };
+
+  const handleActionMenuEnter = (
+    key: string,
+    event: React.MouseEvent<HTMLElement>
+  ): void => {
+    const cell = event.currentTarget.closest(`.${styles.colActions}`) as HTMLElement | null;
+    const menu = cell?.querySelector(`.${styles.actionContextMenu}`) as HTMLDivElement | null;
+    if (!cell || !menu) return;
+
+    const itemId = key.replace("actions-", "");
+    const hoveredIndex = sortedTasks.findIndex(task => task.Id === itemId);
+    const shouldOpenDown = !isShortListMode && hoveredIndex >= 0 && hoveredIndex <= 1;
+    const shouldOpenUp = !isShortListMode && hoveredIndex >= Math.max(0, sortedTasks.length - 2);
+    if (isShortListMode) {
+      const notchOffset = `${54 + Math.max(0, hoveredIndex) * 28}px`;
+      const shortShift = `${32 + Math.max(0, hoveredIndex) * 28}px`;
+      setActionMenuShortOffset(current => ({ ...current, [key]: notchOffset }));
+      setActionMenuShortShift(current => ({ ...current, [key]: shortShift }));
+    }
+
+    setActionMenuShortKey(current => (current === key && isShortListMode) ? current : (isShortListMode ? key : null));
+    setActionMenuUpKey(current => (current === key && shouldOpenUp) ? current : (shouldOpenUp ? key : null));
+    setActionMenuDownKey(current => (current === key && shouldOpenDown) ? current : (shouldOpenDown ? key : null));
+  };
 
   const getDelayClassName = (task: ITaskListItem): string => {
     if (Math.floor(task.Complete) >= 100) return "";
@@ -588,9 +589,9 @@ const ListTasks = ({
                             ].filter(Boolean).join(" ")}
                             style={actionMenuShortKey === `actions-${item.Id}`
                               ? ({
-                                  ["--menu-notch-offset" as "--menu-notch-offset"]: actionMenuShortOffset[`actions-${item.Id}`] ?? "22px",
-                                  ["--menu-short-shift" as "--menu-short-shift"]: actionMenuShortShift[`actions-${item.Id}`] ?? "0px",
-                                } as React.CSSProperties)
+                                  "--menu-notch-offset": actionMenuShortOffset[`actions-${item.Id}`] ?? "22px",
+                                  "--menu-short-shift": actionMenuShortShift[`actions-${item.Id}`] ?? "0px",
+                                } as ActionMenuStyle)
                               : undefined}
                           >
                       <button
@@ -715,8 +716,10 @@ const ListTasks = ({
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     setMovingTaskId(item.Id);
-                                    onMoveTask(item.Id, item.Gate, dir)
-                                      .finally(() => setMovingTaskId(null));
+                                    onMoveTask(item.Id, item.Gate, dir).then(
+                                      () => setMovingTaskId(null),
+                                      () => setMovingTaskId(null)
+                                    );
                                   }}
                                 >
                                   {labels[dir]}

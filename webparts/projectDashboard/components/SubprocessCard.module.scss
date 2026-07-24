@@ -69,16 +69,56 @@
   letter-spacing: 0.06em;
 }
 
+.contextActionBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 92px;
+  min-height: 34px;
+  padding: 6px 12px;
+  border-radius: $r-sm;
+  border: 1px solid rgba(14, 116, 144, 0.34);
+  background: linear-gradient(180deg, #0ea5a4 0%, #0f766e 100%);
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  text-transform: none;
+  letter-spacing: 0.02em;
+  text-align: center;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: $t-fast;
+  box-shadow: 0 4px 12px rgba(15, 118, 110, 0.18);
+
+  &:hover {
+    background: linear-gradient(180deg, #14b8a6 0%, #0f766e 100%);
+    border-color: rgba(14, 116, 144, 0.48);
+  }
+}
+
+.contextActionBtnHighlighted {
+  border-color: rgba(14, 116, 144, 0.48);
+  box-shadow: 0 4px 12px rgba(15, 118, 110, 0.18), inset 0 0 0 1px rgba(255, 255, 255, 0.18);
+}
+
+.contextActionBtnActive {
+  background: linear-gradient(180deg, #0f766e 0%, #115e59 100%);
+  border-color: rgba(14, 116, 144, 0.56);
+  box-shadow: 0 4px 14px rgba(15, 118, 110, 0.24), inset 0 0 0 1px rgba(255, 255, 255, 0.16);
+}
+
 .closeBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
   border: 1px solid rgba(15, 118, 110, 0.18);
   border-radius: $r-sm;
   background: $c-surface;
   color: #0f766e;
-  padding: 6px 10px;
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+  padding: 0;
   cursor: pointer;
   transition: $t-fast;
 
@@ -86,6 +126,11 @@
     background: #eef9f8;
     border-color: rgba(15, 118, 110, 0.34);
   }
+}
+
+.closeIcon {
+  width: 14px;
+  height: 14px;
 }
 
 .listShell {

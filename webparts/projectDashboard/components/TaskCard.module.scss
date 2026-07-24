@@ -6,8 +6,8 @@
 
 .task-card {
   background: $c-surface;
-  border: 1px solid $c-border;
-  border-left: 3px solid $c-primary;
+  border: 1px solid rgba($c-primary, 0.2);
+  border-left: 4px solid $c-primary;
   border-radius: $r-md;
   padding: 0;
   width: 100%;
@@ -20,19 +20,167 @@
   flex-direction: column;
   box-sizing: border-box;
   overflow: hidden;
+  position: relative;
+
+  &::before {
+    content: "";
+    display: block;
+    height: 4px;
+    background: linear-gradient(90deg, darken($c-primary, 6%) 0%, $c-primary 45%, lighten($c-primary, 14%) 100%);
+  }
+}
+
+.task-card-panels {
+  display: flex;
+  flex-direction: column;
+  gap: $sp-4;
+  padding: $sp-4;
+}
+
+.task-details-shell {
+  background: $c-surface;
+  border: 1px solid rgba($c-primary, 0.2);
+  border-radius: $r-md;
+  box-shadow: $shadow-sm;
+  overflow: hidden;
+  position: relative;
 }
 
 // ─── Header ────────────────────────────────────────────────────────────────
 
 .task-card-header {
   display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: $sp-3;
+  padding: $sp-4 $sp-6;
+  background: linear-gradient(180deg, #edf5ff 0%, #f6faff 100%);
+  border-bottom: 1px solid rgba($c-primary, 0.16);
+  box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.65);
+  flex-wrap: wrap;
+}
+
+.task-details-title-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.task-details-kicker {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: darken($c-primary, 4%);
+}
+
+.task-details-body {
+  background: $c-surface;
+}
+
+.task-details-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $sp-3;
+  padding: $sp-3 $sp-5;
+  background: linear-gradient(180deg, rgba($c-primary, 0.04) 0%, rgba($c-primary, 0.01) 100%);
+  border-bottom: 1px solid rgba($c-primary, 0.1);
+  flex-wrap: wrap;
+}
+
+.task-details-inline-header {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.task-details-summary {
+  display: flex;
   flex-direction: column;
   align-items: stretch;
-  justify-content: flex-start;
-  gap: $sp-4;
-  padding: $sp-4 $sp-6;
-  background: $c-surface-soft;
-  border-bottom: 1px solid $c-border-subtle;
+  gap: 6px;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.task-details-summary-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: $sp-2;
+}
+
+.task-details-summary-heading {
+  display: flex;
+  align-items: baseline;
+  gap: $sp-2;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.task-details-summary-title {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: darken($c-primary, 4%);
+}
+
+.task-details-summary-subtitle {
+  font-size: 11px;
+  color: rgba($c-text, 0.62);
+  line-height: 1.25;
+}
+
+.task-details-summary-toggle {
+  color: rgba($c-primary, 0.78);
+  border-color: rgba($c-primary, 0.2);
+  background: rgba($c-primary, 0.04);
+
+  &:hover {
+    border-color: rgba($c-primary, 0.32);
+    background: rgba($c-primary, 0.08);
+  }
+}
+
+.task-details-summary-grid {
+  display: grid;
+  grid-template-columns: minmax(80px, 0.55fr) minmax(220px, 1.8fr) minmax(90px, 0.55fr) minmax(170px, 1.1fr);
+  gap: $sp-2;
+  align-items: start;
+}
+
+.task-details-summary-block {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.task-details-summary-label {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: rgba($c-text, 0.58);
+}
+
+.task-details-summary-value {
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba($c-text, 0.82);
+  min-width: 0;
+  line-height: 1.3;
+  word-break: break-word;
+}
+
+.task-details-subtitle {
+  font-size: 11px;
+  color: $c-text-subtle;
 }
 
 .task-title {
@@ -40,11 +188,12 @@
   margin: 0;
   padding: 0;
   font-size: $f-lg;
-  font-weight: 600;
-  color: $c-text;
+  font-weight: 700;
+  color: darken($c-text, 4%);
   line-height: 1.3;
   flex: 1;
   word-break: break-word;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.55);
 }
 
 // ─── Action button group (header right side) ──────────────────────────────
@@ -52,9 +201,19 @@
 .task-btn-group {
   display: flex;
   align-items: center;
-  width: 100%;
+  width: auto;
   gap: 2px;
   flex: 0 0 auto;
+  min-width: 0;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  padding-top: 4px;
+}
+
+.task-header-controls {
+  display: flex;
+  align-items: center;
+  gap: 2px;
   min-width: 0;
   flex-wrap: nowrap;
   overflow-x: auto;

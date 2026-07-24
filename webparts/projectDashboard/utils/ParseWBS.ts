@@ -38,22 +38,22 @@ export function nextWbsAfterInsert(sourceWbs: string): string {
  * Mirror of computeShiftedWbs — same prefix/depth rules, but decrements the segment.
  * Children cascade: "3.06.01" shifts to "3.05.01" when "3.05" is deleted.
  */
-export function computeUnshiftedWbs(sourceWbs: string, taskWbs: string): string | null {
+export function computeUnshiftedWbs(sourceWbs: string, taskWbs: string): string | undefined {
     const sourceParts = sourceWbs.split(".");
     const taskParts   = taskWbs.split(".");
     const depth      = sourceParts.length;
     const shiftIdx   = depth - 1;
 
-    if (taskParts.length < depth) return null;
+    if (taskParts.length < depth) return undefined;
 
     for (let i = 0; i < shiftIdx; i++) {
-        if (taskParts[i] !== sourceParts[i]) return null;
+        if (taskParts[i] !== sourceParts[i]) return undefined;
     }
 
     const sourceSegNum = Number(sourceParts[shiftIdx]) || 0;
     const taskSegNum   = Number(taskParts[shiftIdx])   || 0;
 
-    if (taskSegNum <= sourceSegNum) return null;
+    if (taskSegNum <= sourceSegNum) return undefined;
 
     const newParts = [...taskParts];
     const origStr  = taskParts[shiftIdx];
@@ -72,25 +72,25 @@ export function computeUnshiftedWbs(sourceWbs: string, taskWbs: string): string 
  *  - The segment at the source depth must be strictly greater than the source segment.
  *  - Children cascade: "3.06.01" shifts to "3.07.01" when source is "3.05".
  */
-export function computeShiftedWbs(sourceWbs: string, taskWbs: string): string | null {
+export function computeShiftedWbs(sourceWbs: string, taskWbs: string): string | undefined {
     const sourceParts = sourceWbs.split(".");
     const taskParts   = taskWbs.split(".");
     const depth      = sourceParts.length;      // e.g. 2 for "3.05"
     const shiftIdx   = depth - 1;               // index of segment to increment
 
     // Task must have at least as many segments as the source
-    if (taskParts.length < depth) return null;
+    if (taskParts.length < depth) return undefined;
 
     // Prefix before the shift point must match exactly
     for (let i = 0; i < shiftIdx; i++) {
-        if (taskParts[i] !== sourceParts[i]) return null;
+        if (taskParts[i] !== sourceParts[i]) return undefined;
     }
 
     const sourceSegNum = Number(sourceParts[shiftIdx]) || 0;
     const taskSegNum   = Number(taskParts[shiftIdx])   || 0;
 
     // Only tasks strictly after the source segment are shifted
-    if (taskSegNum <= sourceSegNum) return null;
+    if (taskSegNum <= sourceSegNum) return undefined;
 
     const newParts = [...taskParts];
     const origStr  = taskParts[shiftIdx];

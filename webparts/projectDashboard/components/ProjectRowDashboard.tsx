@@ -51,7 +51,7 @@ const toAbsoluteSharePointUrl = (baseUrl: string, path: string): string =>
 const buildEvidenceLibraryRootServerRelative = (
   siteRel: string,
   evidenceLibrary: string,
-  evidenceBasePath?: string | null
+  evidenceBasePath?: string
 ): string => {
   if (evidenceBasePath) return evidenceBasePath.replace(/\/+$/, "");
 
@@ -142,7 +142,7 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
   const evidenceLibraryRootServerRelative = buildEvidenceLibraryRootServerRelative(
     siteRel,
     storageEndpoint.evidenceLibrary,
-    storageEndpoint.evidenceBasePath
+    storageEndpoint.evidenceBasePath ?? undefined
   );
   const evidenceFolderServerRelative = `${evidenceLibraryRootServerRelative}/${repoName}`.replace(/\/{2,}/g, "/");
   const projectListUrlFallback = `${siteUrl.replace(/\/+$/, "")}/Lists/${encodeURIComponent(listName)}/AllItems.aspx`;
@@ -484,10 +484,10 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
         const g = navTasks.filter(t => t.Gate === selectedTask.Gate);
         return g.length === 0 || g[g.length - 1].Id === selectedTask.Id;
       })()}
-      onMoveFirst={() => void handleMoveTask(selectedTask!.Id, selectedTask!.Gate, 'first')}
-      onMoveUp={()    => void handleMoveTask(selectedTask!.Id, selectedTask!.Gate, 'up')}
-      onMoveDown={()  => void handleMoveTask(selectedTask!.Id, selectedTask!.Gate, 'down')}
-      onMoveLast={() => void handleMoveTask(selectedTask!.Id, selectedTask!.Gate, 'last')}
+      onMoveFirst={() => { handleMoveTask(selectedTask!.Id, selectedTask!.Gate, 'first').catch(() => undefined); }}
+      onMoveUp={() => { handleMoveTask(selectedTask!.Id, selectedTask!.Gate, 'up').catch(() => undefined); }}
+      onMoveDown={() => { handleMoveTask(selectedTask!.Id, selectedTask!.Gate, 'down').catch(() => undefined); }}
+      onMoveLast={() => { handleMoveTask(selectedTask!.Id, selectedTask!.Gate, 'last').catch(() => undefined); }}
     />
   ) : undefined;
 

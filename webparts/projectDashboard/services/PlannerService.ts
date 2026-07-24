@@ -429,7 +429,7 @@ export class PlannerService {
 
     // Dates → normalize using toUtcIso (timezone-safe)
     const normalize = (v?: string | Date): string | null =>
-      v ? toUtcIso(v instanceof Date ? v.toISOString() : v) : null;
+      v ? toUtcIso(v instanceof Date ? v.toISOString() : v) ?? null : null;
 
     const startIso = normalize(item.Start);
     const dueIso = normalize(item.Finish);

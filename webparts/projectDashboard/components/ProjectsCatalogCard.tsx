@@ -437,10 +437,10 @@ const ProjectsCatalogCard: React.FC<IProjectsCatalogCardProps> = ({ sp, context,
                   isMoveFirst={idx === 0}
                   isMoveLast={idx === filteredProjects.length - 1}
                   isReordering={isReordering}
-                  onMoveFirst={() => void handleMove(proj.Title, 'first')}
-                  onMoveUp={() => void handleMove(proj.Title, 'up')}
-                  onMoveDown={() => void handleMove(proj.Title, 'down')}
-                  onMoveLast={() => void handleMove(proj.Title, 'last')}
+                  onMoveFirst={() => { handleMove(proj.Title, 'first').catch(() => undefined); }}
+                  onMoveUp={() => { handleMove(proj.Title, 'up').catch(() => undefined); }}
+                  onMoveDown={() => { handleMove(proj.Title, 'down').catch(() => undefined); }}
+                  onMoveLast={() => { handleMove(proj.Title, 'last').catch(() => undefined); }}
                 />
               )
             ))

@@ -174,10 +174,15 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
   const [notesLog, setNotesLog] = useState<INoteEntry[]>(task.Notes ?? []);
   const [evidenceLog, setEvidenceLog] = useState<IEvidenceEntry[]>(task.Evidence ?? []);
   const initialTaskSteps = getTaskSteps(task.jsonTable);
+  const rawInitialSubprocess = getTaskSubprocess(task.jsonTable);
+  const initialHasSubprocessWorkspace =
+    rawInitialSubprocess.subTasks.length > 0 ||
+    initialTaskSteps.enabled ||
+    initialTaskSteps.steps.length > 0;
   const initialSubprocess = initialTaskSteps.enabled || initialTaskSteps.steps.length > 0
     ? createEmptySubprocess()
-    : getTaskSubprocess(task.jsonTable);
-  const [showSubprocess, setShowSubprocess] = useState(false);
+    : rawInitialSubprocess;
+  const [showSubprocess, setShowSubprocess] = useState(initialHasSubprocessWorkspace);
   const [subprocess, setSubprocess] = useState<ITaskSubprocessData>(initialSubprocess);
   const [showTaskSteps, setShowTaskSteps] = useState(initialTaskSteps.enabled || initialTaskSteps.steps.length > 0);
   const [taskSteps, setTaskSteps] = useState<ITaskStepsData>(initialTaskSteps);
@@ -196,14 +201,14 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
   const [taskStepFinishEdit, setTaskStepFinishEdit] = useState(initialTaskSteps.steps[0]?.finish ?? "");
   const [taskStepActualFinishEdit, setTaskStepActualFinishEdit] = useState(initialTaskSteps.steps[0]?.actualFinish ?? "");
   const [columnFocus, setColumnFocus] = useState<TaskCardColumnFocus>('balanced');
-  const [bodyCollapsed, setBodyCollapsed] = useState(false);
+  const [bodyCollapsed, setBodyCollapsed] = useState(initialHasSubprocessWorkspace);
   const notesLogRef        = useRef<INoteEntry[]>(task.Notes ?? []);
   const previousCompleteRef = useRef<number>(task.Complete ?? 0);
   const skipNextCompleteEffectRef = useRef(false);
   const skipNextTaskStepsRecalcRef = useRef(true);
-  const hasSubprocessTasks = subprocess.subTasks.length > 0;
   const hasTaskSteps = taskSteps.enabled && taskSteps.steps.length > 0;
   const totalProjectUnits = asPositiveInteger(projectUnits ?? 0);
+  const hasSubprocessWorkspace = showSubprocess || subprocess.subTasks.length > 0 || hasTaskSteps;
 
   const buildTaskStepsData = (source: TaskStepsSource, rawValue: number, enabled = true): ITaskStepsData => {
     const totalUnits = asPositiveInteger(projectUnits ?? 0);
@@ -384,10 +389,15 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
     notesLogRef.current = task.Notes ?? [];
     setEvidenceLog(task.Evidence ?? []);
     const nextTaskSteps = getTaskSteps(task.jsonTable);
+    const rawNextSubprocess = getTaskSubprocess(task.jsonTable);
+    const nextHasSubprocessWorkspace =
+      rawNextSubprocess.subTasks.length > 0 ||
+      nextTaskSteps.enabled ||
+      nextTaskSteps.steps.length > 0;
     const nextSubprocess = nextTaskSteps.enabled || nextTaskSteps.steps.length > 0
       ? createEmptySubprocess()
-      : getTaskSubprocess(task.jsonTable);
-    setShowSubprocess(false);
+      : rawNextSubprocess;
+    setShowSubprocess(nextHasSubprocessWorkspace);
     setSubprocess(nextSubprocess);
     setShowTaskSteps(nextTaskSteps.enabled || nextTaskSteps.steps.length > 0);
     setTaskSteps(nextTaskSteps);
@@ -398,7 +408,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
     setShowTaskStepSubprocess(false);
     skipNextTaskStepsRecalcRef.current = true;
     setColumnFocus('balanced');
-    setBodyCollapsed(false);
+    setBodyCollapsed(nextHasSubprocessWorkspace);
     previousCompleteRef.current = task.Complete ?? 0;
   }, [task]);
 
@@ -775,12 +785,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
     setShowSubprocess(prev => {
       const next = !prev;
       if (next) {
-        setTaskSteps(createEmptyTaskSteps());
-        setShowTaskSteps(false);
-        setSelectedTaskStepId(undefined);
-        setIsTaskStepExpanded(false);
-        setShowTaskStepSubprocess(false);
-        setBodyCollapsed(false);
+        setBodyCollapsed(true);
       }
       return next;
     });
@@ -789,8 +794,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
     setShowTaskSteps(prev => {
       const next = !prev;
       if (next) {
-        setSubprocess(createEmptySubprocess());
-        setShowSubprocess(false);
+        setShowSubprocess(true);
         setBodyCollapsed(false);
       }
       return next;
@@ -799,12 +803,276 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
   const selectedTaskStep = selectedTaskStepId
     ? taskSteps.steps.find(step => step.id === selectedTaskStepId)
     : undefined;
+  const taskStepsPanel = !showTaskSteps ? null : (
+    <div className={styles["task-steps-card"]}>
+      <div className={styles["task-steps-header"]}>
+        <strong>TaskSteps</strong>
+        <label className={styles["gate-edit-toggle"]}>
+          <input
+            type="checkbox"
+            checked={taskSteps.enabled}
+            onChange={e => {
+              const checked = e.target.checked;
+              if (!checked) {
+                setTaskSteps(createEmptyTaskSteps());
+                setShowTaskStepSubprocess(false);
+                setIsTaskStepExpanded(false);
+                return;
+              }
+              setSubprocess(createEmptySubprocess());
+              if (taskStepsSource === "lots" && taskStepsLots > 0) {
+                applyTaskStepsFromLots(taskStepsLots, true);
+              } else {
+                applyTaskStepsFromPieces(taskStepsPieces > 0 ? taskStepsPieces : 20, true);
+              }
+            }}
+          />
+          <span className={styles["gate-edit-track"]}>
+            <span className={styles["gate-edit-thumb"]} />
+          </span>
+          <span className={styles["gate-edit-label"]}>Use</span>
+        </label>
+      </div>
+
+      <div className={styles["task-steps-grid"]}>
+        <label className={styles["task-steps-field"]}>
+          <span>Total Units</span>
+          <input type="number" value={totalProjectUnits || ""} className={styles["input-small"]} disabled />
+        </label>
+        <label className={styles["task-steps-field"]}>
+          <span># Pieces</span>
+          <input
+            type="number"
+            min={1}
+            value={taskStepsPieces || ""}
+            className={styles["input-small"]}
+            onChange={e => applyTaskStepsFromPieces(Number(e.target.value) || 0, taskSteps.enabled)}
+          />
+        </label>
+        <label className={styles["task-steps-field"]}>
+          <span># Lots</span>
+          <input
+            type="number"
+            min={1}
+            value={taskStepsLots || ""}
+            className={styles["input-small"]}
+            onChange={e => applyTaskStepsFromLots(Number(e.target.value) || 0, taskSteps.enabled)}
+          />
+        </label>
+      </div>
+
+      {totalProjectUnits <= 0 && (
+        <div className={styles["task-steps-hint"]}>
+          TaskSteps need project Units defined in ED2-Projects.
+        </div>
+      )}
+
+      {taskSteps.enabled && taskSteps.steps.length > 0 && (
+        <>
+          <div className={styles["task-steps-summary"]}>
+            <span>{taskSteps.steps.length} steps generated</span>
+            <div className={styles["task-steps-summary-actions"]}>
+              {selectedTaskStep && (
+                <button
+                  type="button"
+                  className={`${styles["task-button"]} ${styles["task-button-save"]} ${((selectedTaskStep.subprocess?.subTasks?.length ?? 0) > 0) ? styles["task-button-subprocess-ready"] : ""}`}
+                  onClick={() => setShowTaskStepSubprocess(prev => !prev)}
+                >
+                  <span className={styles["task-button-label"]}>
+                    {showTaskStepSubprocess ? "Hide Step Flow" : "Step Flow"}
+                  </span>
+                </button>
+              )}
+              <button
+                type="button"
+                className={`${styles["task-button"]} ${styles["task-button-save"]}`}
+                onClick={() => {
+                  setTaskSteps(createEmptyTaskSteps());
+                  setTaskStepsLots(0);
+                  setTaskStepsPieces(20);
+                  setSelectedTaskStepId(undefined);
+                  setIsTaskStepExpanded(false);
+                  setShowTaskStepSubprocess(false);
+                }}
+              >
+                <span className={styles["task-button-label"]}>Reset</span>
+              </button>
+            </div>
+          </div>
+
+          <div className={styles["task-steps-preview"]}>
+            {taskSteps.steps.map(step => {
+              const isSelectedStep = step.id === selectedTaskStepId;
+              const stepDuration = daysBetween(step.start, step.finish);
+
+              return (
+                <div key={step.id} className={styles["task-step-item"]}>
+                  <button
+                    type="button"
+                    className={[
+                      styles["task-step-row"],
+                      isSelectedStep ? styles["task-step-row-active"] : "",
+                    ].filter(Boolean).join(" ")}
+                    onClick={() => {
+                      if (isSelectedStep) {
+                        setIsTaskStepExpanded(prev => {
+                          const nextExpanded = !prev;
+                          if (!nextExpanded) {
+                            setShowTaskStepSubprocess(false);
+                          }
+                          return nextExpanded;
+                        });
+                        return;
+                      }
+
+                      setSelectedTaskStepId(step.id);
+                      setIsTaskStepExpanded(true);
+                    }}
+                  >
+                    <div className={styles["task-step-main"]}>
+                      <span className={styles["task-step-wbs"]}>{step.wbs}</span>
+                      <span className={styles["task-step-title"]}>{step.title}</span>
+                    </div>
+                    <div className={styles["task-step-meta"]}>
+                      <span>{step.units} units</span>
+                      <span>{step.subprocess?.subTasks?.length ?? 0} subprocess</span>
+                      <span>{step.start || "-"} to {step.finish || "-"}</span>
+                    </div>
+                  </button>
+
+                  {isSelectedStep && isTaskStepExpanded && selectedTaskStep && (
+                    <div className={styles["task-step-workspace"]}>
+                      <div className={styles["task-step-detail"]}>
+                        <div className={styles["task-step-detail-header"]}>
+                          <div>
+                            <strong>{selectedTaskStep.wbs}</strong>
+                            <span>{selectedTaskStep.title}</span>
+                          </div>
+                          <div className={styles["task-step-detail-meta"]}>
+                            <span>{selectedTaskStep.units} units</span>
+                            <span>{stepDuration} days</span>
+                            <span>{selectedTaskStep.subprocess?.subTasks?.length ?? 0} subprocess</span>
+                          </div>
+                        </div>
+
+                        <div className={styles["task-step-editor"]}>
+                          <label className={styles["task-step-editor-field"]}>
+                            <span>Task</span>
+                            <input
+                              type="text"
+                              value={taskStepTitleEdit}
+                              className={styles["input-small"]}
+                              onChange={e => setTaskStepTitleEdit(e.target.value)}
+                            />
+                          </label>
+                          <label className={styles["task-step-editor-field"]}>
+                            <span>Units</span>
+                            <input
+                              type="number"
+                              min={1}
+                              value={taskStepUnitsEdit}
+                              className={styles["input-small"]}
+                              onChange={e => setTaskStepUnitsEdit(Math.max(1, Number(e.target.value) || 0))}
+                            />
+                          </label>
+                          <label className={styles["task-step-editor-field"]}>
+                            <span>% Complete</span>
+                            <input
+                              type="number"
+                              min={0}
+                              max={100}
+                              value={taskStepCompleteEdit}
+                              className={styles["input-small"]}
+                              onChange={e => setTaskStepCompleteEdit(Number(e.target.value) || 0)}
+                            />
+                          </label>
+                          <label className={styles["task-step-editor-field"]}>
+                            <span>Start</span>
+                            <input
+                              type="date"
+                              value={taskStepStartEdit}
+                              className={styles["input-small"]}
+                              onChange={e => setTaskStepStartEdit(e.target.value)}
+                            />
+                          </label>
+                          <label className={styles["task-step-editor-field"]}>
+                            <span>Delivery Date</span>
+                            <input
+                              type="date"
+                              value={taskStepFinishEdit}
+                              className={styles["input-small"]}
+                              onChange={e => setTaskStepFinishEdit(e.target.value)}
+                            />
+                          </label>
+                          <label className={styles["task-step-editor-field"]}>
+                            <span>Actual Finish</span>
+                            <input
+                              type="date"
+                              value={taskStepActualFinishEdit}
+                              className={styles["input-small"]}
+                              onChange={e => setTaskStepActualFinishEdit(e.target.value)}
+                              disabled={taskStepCompleteEdit < 100}
+                            />
+                          </label>
+                          <div className={styles["task-step-editor-actions"]}>
+                            <button
+                              type="button"
+                              className={`${styles["task-button"]} ${styles["task-button-save"]}`}
+                              onClick={handleSaveSelectedTaskStep}
+                            >
+                              <span className={styles["task-button-label"]}>Save Step</span>
+                            </button>
+                          </div>
+                        </div>
+
+                        {showTaskStepSubprocess && (
+                          <SubprocessCard
+                            parentWbs={selectedTaskStep.wbs}
+                            parentStart={selectedTaskStep.start}
+                            parentFinish={selectedTaskStep.finish}
+                            value={selectedTaskStep.subprocess ?? { subTasks: [] }}
+                            onChange={(nextValue) => {
+                              const normalizedTaskSteps = normalizeTaskStepsAggregation({
+                                ...taskSteps,
+                                enabled: true,
+                                steps: taskSteps.steps.map(taskStep => (
+                                  taskStep.id === selectedTaskStep.id
+                                    ? { ...taskStep, subprocess: nextValue }
+                                    : taskStep
+                                )),
+                              });
+                              commitTaskSteps(normalizedTaskSteps);
+                              setComplete(deriveTaskComplete(normalizedTaskSteps, undefined));
+                            }}
+                            onSaveSubprocess={(nextValue) => handleSaveTaskStepSubprocessOnly(selectedTaskStep.id, nextValue)}
+                            onClose={() => setShowTaskStepSubprocess(false)}
+                            currentUserEmail={currentUserEmail}
+                            currentUserDisplayName={currentUserDisplayName}
+                            onUploadEvidenceFile={onUploadEvidenceFile}
+                            onSendEmail={onSendEmail}
+                            onSearchUsers={onSearchUsers}
+                          />
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </>
+      )}
+    </div>
+  );
 
   return (
     <div className={styles["task-card"]}>
-      <div className={styles["task-card-header"]}>
-        <h1 className={styles["task-title"]}>{task.Task}</h1>
-        <div className={styles["task-btn-group"]}>
+        <div className={styles["task-card-header"]}>
+          <div className={styles["task-details-title-group"]}>
+            <div className={styles["task-details-kicker"]}>Task</div>
+            <h1 className={styles["task-title"]}>{task.Task}</h1>
+          </div>
+          <div className={styles["task-btn-group"]}>
 
           {/* ── Prev / Next navigation — blue card ── */}
           <div className={styles["task-nav-card"]}>
@@ -884,6 +1152,77 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
             </div>
           )}
 
+          <button
+            type="button"
+            className={`${styles["task-button"]} ${styles["task-button-save"]} ${hasSubprocessWorkspace ? styles["task-button-subprocess-ready"] : ""}`}
+            onClick={handleToggleSubprocess}
+            title={showSubprocess ? "Collapse subprocess workspace" : "Add subprocess"}
+          >
+            <span className={styles["task-button-label"]}>Add Subprocess</span>
+          </button>
+
+          </div>
+        </div>
+      <div className={styles["task-card-panels"]}>
+        <div className={styles["task-details-shell"]}>
+        <div className={styles["task-details-toolbar"]}>
+          {bodyCollapsed ? (
+            <>
+              <div className={styles["task-details-summary"]}>
+                <div className={styles["task-details-summary-top"]}>
+                  <div className={styles["task-details-summary-heading"]}>
+                    <div className={styles["task-details-summary-title"]}>Task Details</div>
+                    <div className={styles["task-details-summary-subtitle"]}>Expand to edit task data and review its log.</div>
+                  </div>
+                  <button
+                    type="button"
+                    className={`${styles["task-button"]} ${styles["task-button-collapse"]} ${styles["task-details-summary-toggle"]}`}
+                    onClick={() => setBodyCollapsed(false)}
+                    title="Expand task card details"
+                    aria-label="Expand task card details"
+                  >
+                    <svg className={styles["icon-small"]} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M3 6l5 5 5-5" />
+                    </svg>
+                  </button>
+                </div>
+                <div className={styles["task-details-summary-grid"]}>
+                  <div className={styles["task-details-summary-block"]}>
+                    <div className={styles["task-details-summary-label"]}>WBS</div>
+                  </div>
+                  <div className={styles["task-details-summary-block"]}>
+                    <div className={styles["task-details-summary-label"]}>Gate / Task</div>
+                  </div>
+                  <div className={styles["task-details-summary-block"]}>
+                    <div className={styles["task-details-summary-label"]}>% Complete</div>
+                  </div>
+                  <div className={styles["task-details-summary-block"]}>
+                    <div className={styles["task-details-summary-label"]}>Calendar</div>
+                  </div>
+                </div>
+                <div className={styles["task-details-summary-grid"]}>
+                  <div className={styles["task-details-summary-block"]}>
+                    <div className={styles["task-details-summary-value"]}>{wbs || "N/A"}</div>
+                  </div>
+                  <div className={styles["task-details-summary-block"]}>
+                    <div className={styles["task-details-summary-value"]}>{`${gate || "N/A"} / ${taskTitle || "N/A"}`}</div>
+                  </div>
+                  <div className={styles["task-details-summary-block"]}>
+                    <div className={styles["task-details-summary-value"]}>{`${complete}%`}</div>
+                  </div>
+                  <div className={styles["task-details-summary-block"]}>
+                    <div className={styles["task-details-summary-value"]}>{`(${start || "N/A"} - ${finish || "N/A"})`}</div>
+                  </div>
+                </div>
+              </div>
+            </>
+          ) : (
+          <>
+          <div className={styles["task-details-inline-header"]}>
+            <div className={styles["task-details-kicker"]}>Task Details</div>
+            <div className={styles["task-details-subtitle"]}>Edit task data and review its log.</div>
+          </div>
+          <div className={styles["task-btn-group"]}>
           <div className={styles["task-view-card"]}>
             <button
               type="button"
@@ -916,6 +1255,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
               <span className={styles["task-button-label"]}>&gt;</span>
             </button>
           </div>
+          {false && (
           <button
             type="button"
             className={`${styles["task-button"]} ${styles["task-button-collapse"]} ${bodyCollapsed ? styles["task-button-toggle-active"] : ""}`}
@@ -927,41 +1267,9 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
               {bodyCollapsed ? <path d="M3 10l5-5 5 5" /> : <path d="M3 6l5 5 5-5" />}
             </svg>
           </button>
-
+          )}
 
           {/* ── Save / Close ── */}
-          <button
-            type="button"
-            className={[
-              styles["task-button"],
-              styles["task-button-save"],
-              styles["task-button-compact"],
-              hasTaskSteps ? styles["task-button-subprocess-ready"] : "",
-              showTaskSteps ? styles["task-button-toggle-active"] : "",
-            ].filter(Boolean).join(" ")}
-            onClick={handleToggleTaskSteps}
-            title="TaskSteps"
-          >
-            <span className={styles["task-button-label-stack"]}>
-              <span className={styles["task-button-label-text"]}>Task-<br />Steps</span>
-            </span>
-          </button>
-          <button
-            type="button"
-            className={[
-              styles["task-button"],
-              styles["task-button-save"],
-              styles["task-button-compact"],
-              hasSubprocessTasks ? styles["task-button-subprocess-ready"] : "",
-              showSubprocess ? styles["task-button-toggle-active"] : "",
-            ].filter(Boolean).join(" ")}
-            onClick={handleToggleSubprocess}
-            title={hasTaskSteps ? "Switch to task-level Subprocess mode" : "Subprocess"}
-          >
-            <span className={styles["task-button-label-stack"]}>
-              <span className={styles["task-button-label-text"]}>Sub-<br />Process</span>
-            </span>
-          </button>
           <button
             type="button"
             className={`${styles["task-button"]} ${styles["task-button-save"]}`}
@@ -975,18 +1283,32 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
               <span className={styles["task-button-label"]}>Close</span>
             </button>
           )}
+          <button
+            type="button"
+            className={`${styles["task-button"]} ${styles["task-button-collapse"]}`}
+            onClick={() => setBodyCollapsed(true)}
+            title="Collapse task card details"
+            aria-label="Collapse task card details"
+          >
+            <svg className={styles["icon-small"]} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M3 10l5-5 5 5" />
+            </svg>
+          </button>
+          </div>
+          </>
+          )}
         </div>
-      </div>
-      {!bodyCollapsed && (
-      <div
-        className={[
-          styles["task-card-row"],
-          columnFocus === 'left' ? styles["task-card-row-left-focus"] : "",
-          columnFocus === 'right' ? styles["task-card-row-right-focus"] : "",
-        ].filter(Boolean).join(" ")}
-      >
-        <div className={styles["task-card-body"]}>
-          <div className={styles["task-form"]}>
+        {!bodyCollapsed && (
+        <div className={styles["task-details-body"]}>
+        <div
+          className={[
+            styles["task-card-row"],
+            columnFocus === 'left' ? styles["task-card-row-left-focus"] : "",
+            columnFocus === 'right' ? styles["task-card-row-right-focus"] : "",
+          ].filter(Boolean).join(" ")}
+        >
+          <div className={styles["task-card-body"]}>
+            <div className={styles["task-form"]}>
 
             {/* Row 1: Gate */}
             <div className={styles["form-row"]}>
@@ -1135,266 +1457,6 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
               </label>
             </div>
 
-            {showTaskSteps && (
-              <div className={styles["task-steps-card"]}>
-                <div className={styles["task-steps-header"]}>
-                  <strong>TaskSteps</strong>
-                  <label className={styles["gate-edit-toggle"]}>
-                    <input
-                      type="checkbox"
-                      checked={taskSteps.enabled}
-                      onChange={e => {
-                        const checked = e.target.checked;
-                        if (!checked) {
-                          setTaskSteps(createEmptyTaskSteps());
-                          setShowSubprocess(false);
-                          setShowTaskStepSubprocess(false);
-                          setIsTaskStepExpanded(false);
-                          return;
-                        }
-                        setSubprocess(createEmptySubprocess());
-                        setShowSubprocess(false);
-                        if (taskStepsSource === "lots" && taskStepsLots > 0) {
-                          applyTaskStepsFromLots(taskStepsLots, true);
-                        } else {
-                          applyTaskStepsFromPieces(taskStepsPieces > 0 ? taskStepsPieces : 20, true);
-                        }
-                      }}
-                    />
-                    <span className={styles["gate-edit-track"]}>
-                      <span className={styles["gate-edit-thumb"]} />
-                    </span>
-                    <span className={styles["gate-edit-label"]}>Use</span>
-                  </label>
-                </div>
-
-                <div className={styles["task-steps-grid"]}>
-                  <label className={styles["task-steps-field"]}>
-                    <span>Total Units</span>
-                    <input type="number" value={totalProjectUnits || ""} className={styles["input-small"]} disabled />
-                  </label>
-                  <label className={styles["task-steps-field"]}>
-                    <span># Pieces</span>
-                    <input
-                      type="number"
-                      min={1}
-                      value={taskStepsPieces || ""}
-                      className={styles["input-small"]}
-                      onChange={e => applyTaskStepsFromPieces(Number(e.target.value) || 0, taskSteps.enabled)}
-                    />
-                  </label>
-                  <label className={styles["task-steps-field"]}>
-                    <span># Lots</span>
-                    <input
-                      type="number"
-                      min={1}
-                      value={taskStepsLots || ""}
-                      className={styles["input-small"]}
-                      onChange={e => applyTaskStepsFromLots(Number(e.target.value) || 0, taskSteps.enabled)}
-                    />
-                  </label>
-                </div>
-
-                {totalProjectUnits <= 0 && (
-                  <div className={styles["task-steps-hint"]}>
-                    TaskSteps need project Units defined in ED2-Projects.
-                  </div>
-                )}
-
-                {taskSteps.enabled && taskSteps.steps.length > 0 && (
-                  <>
-                    <div className={styles["task-steps-summary"]}>
-                      <span>{taskSteps.steps.length} steps generated</span>
-                      <div className={styles["task-steps-summary-actions"]}>
-                        {selectedTaskStep && (
-                          <button
-                            type="button"
-                            className={`${styles["task-button"]} ${styles["task-button-save"]} ${selectedTaskStep.subprocess?.subTasks?.length ? styles["task-button-subprocess-ready"] : ""}`}
-                            onClick={() => setShowTaskStepSubprocess(prev => !prev)}
-                          >
-                            <span className={styles["task-button-label"]}>
-                              {showTaskStepSubprocess ? "Hide Step Flow" : "Step Flow"}
-                            </span>
-                          </button>
-                        )}
-                        <button
-                          type="button"
-                          className={`${styles["task-button"]} ${styles["task-button-save"]}`}
-                          onClick={() => {
-                            setTaskSteps(createEmptyTaskSteps());
-                            setTaskStepsLots(0);
-                            setTaskStepsPieces(20);
-                            setSelectedTaskStepId(undefined);
-                            setIsTaskStepExpanded(false);
-                            setShowTaskStepSubprocess(false);
-                          }}
-                        >
-                          <span className={styles["task-button-label"]}>Reset</span>
-                        </button>
-                      </div>
-                    </div>
-                    <div className={styles["task-steps-preview"]}>
-                      {taskSteps.steps.map(step => {
-                        const isSelectedStep = step.id === selectedTaskStepId;
-                        const stepDuration = daysBetween(step.start, step.finish);
-
-                        return (
-                          <div key={step.id} className={styles["task-step-item"]}>
-                            <button
-                              type="button"
-                              className={[
-                                styles["task-step-row"],
-                                isSelectedStep ? styles["task-step-row-active"] : "",
-                              ].filter(Boolean).join(" ")}
-                              onClick={() => {
-                                if (isSelectedStep) {
-                                  setIsTaskStepExpanded(prev => {
-                                    const nextExpanded = !prev;
-                                    if (!nextExpanded) {
-                                      setShowTaskStepSubprocess(false);
-                                    }
-                                    return nextExpanded;
-                                  });
-                                  return;
-                                }
-
-                                setSelectedTaskStepId(step.id);
-                                setIsTaskStepExpanded(true);
-                              }}
-                            >
-                              <div className={styles["task-step-main"]}>
-                                <span className={styles["task-step-wbs"]}>{step.wbs}</span>
-                                <span className={styles["task-step-title"]}>{step.title}</span>
-                              </div>
-                              <div className={styles["task-step-meta"]}>
-                                <span>{step.units} units</span>
-                                <span>{step.subprocess?.subTasks?.length ?? 0} subprocess</span>
-                                <span>{step.start || "-"} to {step.finish || "-"}</span>
-                              </div>
-                            </button>
-                            {isSelectedStep && isTaskStepExpanded && selectedTaskStep && (
-                              <div className={styles["task-step-workspace"]}>
-                                <div className={styles["task-step-detail"]}>
-                                  <div className={styles["task-step-detail-header"]}>
-                                    <div>
-                                      <strong>{selectedTaskStep.wbs}</strong>
-                                      <span>{selectedTaskStep.title}</span>
-                                    </div>
-                                    <div className={styles["task-step-detail-meta"]}>
-                                      <span>{selectedTaskStep.units} units</span>
-                                      <span>{stepDuration} days</span>
-                                      <span>{selectedTaskStep.subprocess?.subTasks?.length ?? 0} subprocess</span>
-                                    </div>
-                                  </div>
-                                  <div className={styles["task-step-editor"]}>
-                                    <label className={styles["task-step-editor-field"]}>
-                                      <span>Task</span>
-                                      <input
-                                        type="text"
-                                        value={taskStepTitleEdit}
-                                        className={styles["input-small"]}
-                                        onChange={e => setTaskStepTitleEdit(e.target.value)}
-                                      />
-                                    </label>
-                                    <label className={styles["task-step-editor-field"]}>
-                                      <span>Units</span>
-                                      <input
-                                        type="number"
-                                        min={1}
-                                        value={taskStepUnitsEdit}
-                                        className={styles["input-small"]}
-                                        onChange={e => setTaskStepUnitsEdit(Math.max(1, Number(e.target.value) || 0))}
-                                      />
-                                    </label>
-                                    <label className={styles["task-step-editor-field"]}>
-                                      <span>% Complete</span>
-                                      <input
-                                        type="number"
-                                        min={0}
-                                        max={100}
-                                        value={taskStepCompleteEdit}
-                                        className={styles["input-small"]}
-                                        onChange={e => setTaskStepCompleteEdit(Number(e.target.value) || 0)}
-                                      />
-                                    </label>
-                                    <label className={styles["task-step-editor-field"]}>
-                                      <span>Start</span>
-                                      <input
-                                        type="date"
-                                        value={taskStepStartEdit}
-                                        className={styles["input-small"]}
-                                        onChange={e => setTaskStepStartEdit(e.target.value)}
-                                      />
-                                    </label>
-                                    <label className={styles["task-step-editor-field"]}>
-                                      <span>Delivery Date</span>
-                                      <input
-                                        type="date"
-                                        value={taskStepFinishEdit}
-                                        className={styles["input-small"]}
-                                        onChange={e => setTaskStepFinishEdit(e.target.value)}
-                                      />
-                                    </label>
-                                    <label className={styles["task-step-editor-field"]}>
-                                      <span>Actual Finish</span>
-                                      <input
-                                        type="date"
-                                        value={taskStepActualFinishEdit}
-                                        className={styles["input-small"]}
-                                        onChange={e => setTaskStepActualFinishEdit(e.target.value)}
-                                        disabled={taskStepCompleteEdit < 100}
-                                      />
-                                    </label>
-                                    <div className={styles["task-step-editor-actions"]}>
-                                      <button
-                                        type="button"
-                                        className={`${styles["task-button"]} ${styles["task-button-save"]}`}
-                                        onClick={handleSaveSelectedTaskStep}
-                                      >
-                                        <span className={styles["task-button-label"]}>Save Step</span>
-                                      </button>
-                                    </div>
-                                  </div>
-                                  {showTaskStepSubprocess && (
-                                    <SubprocessCard
-                                      parentWbs={selectedTaskStep.wbs}
-                                      parentStart={selectedTaskStep.start}
-                                      parentFinish={selectedTaskStep.finish}
-                                      value={selectedTaskStep.subprocess ?? { subTasks: [] }}
-                                      onChange={(nextValue) => {
-                                        const normalizedTaskSteps = normalizeTaskStepsAggregation({
-                                          ...taskSteps,
-                                          enabled: true,
-                                          steps: taskSteps.steps.map(taskStep => (
-                                            taskStep.id === selectedTaskStep.id
-                                              ? { ...taskStep, subprocess: nextValue }
-                                              : taskStep
-                                          )),
-                                        });
-                                        commitTaskSteps(normalizedTaskSteps);
-                                        setComplete(deriveTaskComplete(normalizedTaskSteps, undefined));
-                                      }}
-                                      onSaveSubprocess={(nextValue) => handleSaveTaskStepSubprocessOnly(selectedTaskStep.id, nextValue)}
-                                      onClose={() => setShowTaskStepSubprocess(false)}
-                                      currentUserEmail={currentUserEmail}
-                                      currentUserDisplayName={currentUserDisplayName}
-                                      onUploadEvidenceFile={onUploadEvidenceFile}
-                                      onSendEmail={onSendEmail}
-                                      onSearchUsers={onSearchUsers}
-                                    />
-                                  )}
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </>
-                )}
-              </div>
-            )}
-
             {/* Completion warning */}
             {complete === 100 && !hasCompletionEvidence && (
               <div className={styles["completion-warning"]}>
@@ -1402,9 +1464,9 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
               </div>
             )}
 
+            </div>
           </div>
-        </div>
-        <div className={styles["task-card-column"]}>
+          <div className={styles["task-card-column"]}>
           {/* Tab bar */}
           <div className={styles["tab-bar"]}>
             <button
@@ -1497,27 +1559,37 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
             )}
           </div>
         </div>
+        </div>
+        </div>
+        )}
       </div>
-      )}
-      {showSubprocess && (
-        <SubprocessCard
-          parentWbs={wbs}
-          parentStart={start}
-          parentFinish={finish}
-          value={subprocess}
-          onChange={(nextValue) => {
-            setSubprocess(nextValue);
-            setComplete(deriveTaskComplete(undefined, nextValue));
-          }}
-          onSaveSubprocess={handleSaveSubprocessOnly}
-          onClose={() => setShowSubprocess(false)}
-          currentUserEmail={currentUserEmail}
-          currentUserDisplayName={currentUserDisplayName}
-          onUploadEvidenceFile={onUploadEvidenceFile}
-          onSendEmail={onSendEmail}
-          onSearchUsers={onSearchUsers}
-        />
-      )}
+        {hasSubprocessWorkspace && (
+          <SubprocessCard
+            parentWbs={wbs}
+            parentStart={start}
+            parentFinish={finish}
+            value={subprocess}
+            onChange={(nextValue) => {
+              setSubprocess(nextValue);
+              setComplete(deriveTaskComplete(undefined, nextValue));
+            }}
+            onSaveSubprocess={handleSaveSubprocessOnly}
+            onClose={handleToggleSubprocess}
+            closeLabel={showSubprocess ? "Collapse" : "Expand"}
+            isCollapsed={!showSubprocess}
+            currentUserEmail={currentUserEmail}
+            currentUserDisplayName={currentUserDisplayName}
+            onUploadEvidenceFile={onUploadEvidenceFile}
+            onSendEmail={onSendEmail}
+            onSearchUsers={onSearchUsers}
+            showTaskStepsToggle
+            taskStepsToggleActive={showTaskSteps}
+            taskStepsToggleHighlighted={hasTaskSteps}
+            onToggleTaskSteps={handleToggleTaskSteps}
+            taskStepsPanel={taskStepsPanel}
+          />
+        )}
+      </div>
     </div>
   );
 };
