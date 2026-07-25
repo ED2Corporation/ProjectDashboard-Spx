@@ -1,7 +1,8 @@
 import * as React from "react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { IEvidenceEntry, INoteEntry } from "../../../models/ITaskLogFields";
 import { ITaskSubprocessData, ISubprocessSubTask } from "../utils/TaskDescriptionBlob";
+import { parseSubprocessExcelFile } from "../utils/SubprocessImport";
 import SubprocessList from "./SubprocessList";
 import SubprocessTaskCard from "./SubprocessTaskCard";
 import styles from "./SubprocessCard.module.scss";
@@ -104,6 +105,8 @@ const SubprocessCard: React.FC<SubprocessCardProps> = ({
   const [editingSubTaskId, setEditingSubTaskId] = useState<string | undefined>(undefined);
   const [movingSubTaskId, setMovingSubTaskId] = useState<string | undefined>(undefined);
   const [detailSubTaskId, setDetailSubTaskId] = useState<string | undefined>(undefined);
+  const [isImporting, setIsImporting] = useState(false);
+  const importInputRef = useRef<HTMLInputElement | null>(null);
 
   const normalizedSubTasks = useMemo(
     () => normalizeSubTasks(parentWbs, value.subTasks),
@@ -280,6 +283,34 @@ const SubprocessCard: React.FC<SubprocessCardProps> = ({
     onSaveSubprocess?.(nextValue);
   };
 
+  const handleImportClick = (): void => {
+    if (isImporting) return;
+    importInputRef.current?.click();
+  };
+
+  const handleImportFileChange = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ): Promise<void> => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+
+    try {
+      setIsImporting(true);
+      const importedSubTasks = await parseSubprocessExcelFile(file, parentWbs, parentStart, parentFinish);
+      const nextValue = commitSubTasks(importedSubTasks);
+      setSelectedSubTaskId(importedSubTasks[0]?.id);
+      setEditingSubTaskId(undefined);
+      setDetailSubTaskId(undefined);
+      onSaveSubprocess?.(nextValue);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unable to import subprocess template.";
+      alert(message);
+    } finally {
+      setIsImporting(false);
+    }
+  };
+
   const detailSubTask = detailSubTaskId
     ? normalizedSubTasks.find(entry => entry.id === detailSubTaskId)
     : undefined;
@@ -293,6 +324,22 @@ const SubprocessCard: React.FC<SubprocessCardProps> = ({
         </div>
         <div className={styles.headerMeta}>
           <div className={styles.contextActions}>
+            <input
+              ref={importInputRef}
+              type="file"
+              accept=".xlsx,.xls"
+              onChange={handleImportFileChange}
+              style={{ display: "none" }}
+            />
+            <button
+              type="button"
+              className={styles.contextActionBtn}
+              onClick={handleImportClick}
+              title="Import subtasks from Excel"
+              disabled={isImporting}
+            >
+              <span>{isImporting ? "Importing..." : "Import Subtasks"}</span>
+            </button>
             {showTaskStepsToggle && (
               <button
                 type="button"

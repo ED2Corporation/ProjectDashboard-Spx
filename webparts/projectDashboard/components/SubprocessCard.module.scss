@@ -1,13 +1,17 @@
 @import './styles/tokens';
 
 .card {
-  margin: 0 $sp-5 $sp-5;
+  margin: 0;
+  width: 100%;
+  max-width: 100%;
   padding: $sp-4;
-  border: 1px solid rgba(14, 116, 144, 0.18);
-  border-left: 4px solid #0f766e;
+  border: 1px solid rgba($c-primary, 0.2);
   border-radius: $r-md;
-  background: linear-gradient(180deg, #f4fbfb 0%, #ffffff 100%);
+  background: $c-surface;
   box-shadow: $shadow-sm;
+  box-sizing: border-box;
+  overflow: hidden;
+  position: relative;
 }
 
 .header {

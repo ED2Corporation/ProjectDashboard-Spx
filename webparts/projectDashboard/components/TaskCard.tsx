@@ -1069,10 +1069,19 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
     <div className={styles.taskCard}>
         <div className={styles.taskCardHeader}>
           <div className={styles.taskDetailsTitleGroup}>
-            <div className={styles.taskDetailsKicker}>Task</div>
-            <h1 className={styles.taskTitle}>{task.Task}</h1>
+            <h1 className={styles.taskTitle}>{taskTitle || task.Task}</h1>
           </div>
           <div className={styles.taskBtnGroup}>
+          {!hasSubprocessWorkspace && (
+            <button
+              type="button"
+              className={`${styles.taskButton} ${styles.taskButtonSave}`}
+              onClick={handleToggleSubprocess}
+              title="Add subprocess"
+            >
+              <span className={styles.taskButtonLabel}>Add Subprocess</span>
+            </button>
+          )}
 
           {/* ── Prev / Next navigation — blue card ── */}
           <div className={styles.taskNavCard}>
@@ -1152,14 +1161,20 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
             </div>
           )}
 
-          <button
-            type="button"
-            className={`${styles.taskButton} ${styles.taskButtonSave} ${hasSubprocessWorkspace ? styles.taskButtonSubprocessReady : ""}`}
-            onClick={handleToggleSubprocess}
-            title={showSubprocess ? "Collapse subprocess workspace" : "Add subprocess"}
-          >
-            <span className={styles.taskButtonLabel}>Add Subprocess</span>
-          </button>
+          {onClose && (
+            <button
+              type="button"
+              className={`${styles.taskButton} ${styles.taskButtonClose}`}
+              onClick={onClose}
+              title="Close"
+              aria-label="Close task card"
+              style={{ marginLeft: 4 }}
+            >
+              <svg className={styles.iconSmall} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M4 4l8 8M12 4 4 12" />
+              </svg>
+            </button>
+          )}
 
           </div>
         </div>
@@ -1265,11 +1280,6 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
           >
             <span className={styles.taskButtonLabel}>Save</span>
           </button>
-          {onClose && (
-            <button type="button" className={`${styles.taskButton} ${styles.taskButtonSave} ${styles.taskButtonClose}`} onClick={onClose} title="Close">
-              <span className={styles.taskButtonLabel}>Close</span>
-            </button>
-          )}
           <button
             type="button"
             className={`${styles.taskButton} ${styles.taskButtonCollapse}`}
@@ -1549,7 +1559,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
         </div>
         </div>
         )}
-      </div>
+        </div>
         {hasSubprocessWorkspace && (
           <SubprocessCard
             parentWbs={wbs}
