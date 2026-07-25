@@ -5,7 +5,7 @@ import EvidenceUploadButton from './EvidenceUploadButton';
 import styles from './EvidenceLog.module.scss';
 
 interface EvidenceLogProps {
-  evidence: IEvidenceEntry[] | null;
+  evidence?: IEvidenceEntry[];
   taskTitle: string;
   currentUserDisplayName: string;
   onSave: (entries: IEvidenceEntry[], uploadedEntry?: IEvidenceEntry) => Promise<void>;

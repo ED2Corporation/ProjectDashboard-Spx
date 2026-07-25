@@ -4,7 +4,7 @@
 
 // ─── Card shell ────────────────────────────────────────────────────────────
 
-.task-card {
+.taskCard {
   background: $c-surface;
   border: 1px solid rgba($c-primary, 0.2);
   border-left: 4px solid $c-primary;
@@ -30,14 +30,14 @@
   }
 }
 
-.task-card-panels {
+.taskCardPanels {
   display: flex;
   flex-direction: column;
   gap: $sp-4;
   padding: $sp-4;
 }
 
-.task-details-shell {
+.taskDetailsShell {
   background: $c-surface;
   border: 1px solid rgba($c-primary, 0.2);
   border-radius: $r-md;
@@ -48,7 +48,7 @@
 
 // ─── Header ────────────────────────────────────────────────────────────────
 
-.task-card-header {
+.taskCardHeader {
   display: flex;
   flex-direction: row;
   align-items: center;
@@ -61,14 +61,14 @@
   flex-wrap: wrap;
 }
 
-.task-details-title-group {
+.taskDetailsTitleGroup {
   display: flex;
   flex-direction: column;
   gap: 4px;
   min-width: 0;
 }
 
-.task-details-kicker {
+.taskDetailsKicker {
   font-size: 10px;
   font-weight: 800;
   letter-spacing: 0.1em;
@@ -76,11 +76,11 @@
   color: darken($c-primary, 4%);
 }
 
-.task-details-body {
+.taskDetailsBody {
   background: $c-surface;
 }
 
-.task-details-toolbar {
+.taskDetailsToolbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -91,14 +91,14 @@
   flex-wrap: wrap;
 }
 
-.task-details-inline-header {
+.taskDetailsInlineHeader {
   display: flex;
   flex-direction: column;
   gap: 2px;
   min-width: 0;
 }
 
-.task-details-summary {
+.taskDetailsSummary {
   display: flex;
   flex-direction: column;
   align-items: stretch;
@@ -107,14 +107,14 @@
   min-width: 0;
 }
 
-.task-details-summary-top {
+.taskDetailsSummaryTop {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
   gap: $sp-2;
 }
 
-.task-details-summary-heading {
+.taskDetailsSummaryHeading {
   display: flex;
   align-items: baseline;
   gap: $sp-2;
@@ -122,7 +122,7 @@
   flex-wrap: wrap;
 }
 
-.task-details-summary-title {
+.taskDetailsSummaryTitle {
   font-size: 10px;
   font-weight: 800;
   letter-spacing: 0.1em;
@@ -130,13 +130,13 @@
   color: darken($c-primary, 4%);
 }
 
-.task-details-summary-subtitle {
+.taskDetailsSummarySubtitle {
   font-size: 11px;
   color: rgba($c-text, 0.62);
   line-height: 1.25;
 }
 
-.task-details-summary-toggle {
+.taskDetailsSummaryToggle {
   color: rgba($c-primary, 0.78);
   border-color: rgba($c-primary, 0.2);
   background: rgba($c-primary, 0.04);
@@ -147,21 +147,21 @@
   }
 }
 
-.task-details-summary-grid {
+.taskDetailsSummaryGrid {
   display: grid;
   grid-template-columns: minmax(80px, 0.55fr) minmax(220px, 1.8fr) minmax(90px, 0.55fr) minmax(170px, 1.1fr);
   gap: $sp-2;
   align-items: start;
 }
 
-.task-details-summary-block {
+.taskDetailsSummaryBlock {
   display: flex;
   flex-direction: column;
   gap: 2px;
   min-width: 0;
 }
 
-.task-details-summary-label {
+.taskDetailsSummaryLabel {
   font-size: 9px;
   font-weight: 700;
   letter-spacing: 0.07em;
@@ -169,7 +169,7 @@
   color: rgba($c-text, 0.58);
 }
 
-.task-details-summary-value {
+.taskDetailsSummaryValue {
   font-size: 11px;
   font-weight: 600;
   color: rgba($c-text, 0.82);
@@ -178,12 +178,12 @@
   word-break: break-word;
 }
 
-.task-details-subtitle {
+.taskDetailsSubtitle {
   font-size: 11px;
   color: $c-text-subtle;
 }
 
-.task-title {
+.taskTitle {
   // reset h1 defaults
   margin: 0;
   padding: 0;
@@ -198,7 +198,7 @@
 
 // ─── Action button group (header right side) ──────────────────────────────
 
-.task-btn-group {
+.taskBtnGroup {
   display: flex;
   align-items: center;
   width: auto;
@@ -210,7 +210,7 @@
   padding-top: 4px;
 }
 
-.task-header-controls {
+.taskHeaderControls {
   display: flex;
   align-items: center;
   gap: 2px;
@@ -237,13 +237,13 @@
 }
 
 // ─── Prev / Next navigation — blue tint ──────────────────────────────────
-.task-nav-card {
+.taskNavCard {
   @extend %btn-card-group;
   border-color: rgba($c-primary, 0.3);
   background: $c-primary-bg;
 }
 
-.task-button-nav {
+.taskButtonNav {
   color: $c-primary;
   border-color: rgba($c-primary, 0.25);
   background: transparent;
@@ -260,11 +260,11 @@
 }
 
 // ─── Move reorder — card ─────────────────────────────────────────────────
-.task-reorder-card {
+.taskReorderCard {
   @extend %btn-card-group;
 }
 
-.task-actions-card {
+.taskActionsCard {
   display: inline-flex;
   align-items: center;
   gap: $sp-2;
@@ -275,17 +275,17 @@
   box-shadow: $shadow-sm;
 }
 
-.task-view-card {
+.taskViewCard {
   @extend %btn-card-group;
 }
 
-.task-button-collapse {
+.taskButtonCollapse {
   width: 28px;
   min-width: 28px;
   padding: 0;
 }
 
-.task-button {
+.taskButton {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -308,18 +308,18 @@
   }
 }
 
-.task-button-save {
+.taskButtonSave {
   width: auto;
   min-width: 42px;
   padding: 0 $sp-2;
 }
 
-.task-button-compact {
+.taskButtonCompact {
   min-width: 44px;
   padding: 0 6px;
 }
 
-.task-button-label {
+.taskButtonLabel {
   font-size: $f-xs;
   font-weight: 600;
   color: $c-primary;
@@ -328,14 +328,14 @@
   letter-spacing: 0.04em;
 }
 
-.task-button-label-stack {
+.taskButtonLabelStack {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   color: $c-primary;
 }
 
-.task-button-label-text {
+.taskButtonLabelText {
   display: inline-block;
   font-size: 8px;
   font-weight: 700;
@@ -345,13 +345,13 @@
   text-align: center;
 }
 
-.task-button-close {
+.taskButtonClose {
   color: $c-text-subtle;
   background: $c-surface;
   border-color: $c-border;
   margin-left: $sp-1;
 
-  .task-button-label {
+  .taskButtonLabel {
     color: $c-text-subtle;
   }
 
@@ -359,20 +359,20 @@
     background: $c-surface-dark;
     border-color: $c-border;
 
-    .task-button-label { color: $c-text; }
+    .taskButtonLabel { color: $c-text; }
   }
 }
 
-.task-button-toggle-active {
+.taskButtonToggleActive {
   background: $c-primary-bg;
   border-color: $c-primary;
 }
 
-.task-button-subprocess-ready {
+.taskButtonSubprocessReady {
   background: #eef9f2;
   border-color: rgba(22, 163, 74, 0.42);
 
-  .task-button-label {
+  .taskButtonLabel {
     color: #15803d;
   }
 
@@ -388,7 +388,7 @@
 
 // ─── Body layout ───────────────────────────────────────────────────────────
 
-.task-card-row {
+.taskCardRow {
   display: flex;
   flex-direction: row;
   align-items: stretch;
@@ -396,15 +396,15 @@
   gap: 0;
 }
 
-.task-card-row-left-focus {
-  .task-card-body {
+.taskCardRowLeftFocus {
+  .taskCardBody {
     flex: 1 1 auto;
     width: auto;
     min-width: 0;
     max-width: none;
   }
 
-  .task-card-column {
+  .taskCardColumn {
     flex: 0 0 12px;
     width: 12px;
     min-width: 12px;
@@ -434,8 +434,8 @@
   }
 }
 
-.task-card-row-right-focus {
-  .task-card-body {
+.taskCardRowRightFocus {
+  .taskCardBody {
     flex: 0 0 12px;
     width: 12px;
     min-width: 12px;
@@ -464,7 +464,7 @@
     }
   }
 
-  .task-card-column {
+  .taskCardColumn {
     flex: 1 1 auto;
     width: auto;
     min-width: 0;
@@ -472,7 +472,7 @@
   }
 }
 
-.task-card-body {
+.taskCardBody {
   flex: 0 0 380px;
   width: 380px;
   min-width: 380px;
@@ -483,7 +483,7 @@
   overflow-x: hidden;
 }
 
-.task-card-column {
+.taskCardColumn {
   flex: 1 1 auto;
   display: flex;
   flex-direction: column;
@@ -495,7 +495,7 @@
 
 // ─── Modern form layout ────────────────────────────────────────────────────
 
-.task-form {
+.taskForm {
   display: flex;
   flex-direction: column;
   gap: $sp-3;
@@ -505,7 +505,7 @@
   }
 }
 
-.form-row {
+.formRow {
   display: flex;
   gap: $sp-3;
   align-items: center;
@@ -531,20 +531,20 @@
 
   > input,
   > select,
-  > .field-unit-wrap {
+  > .fieldUnitWrap {
     flex: 1 1 auto;
     min-width: 0;
   }
 }
 
 // Size variants
-.field-xs   { flex: 0 0 64px;  input, select { min-width: 50px; } }
-.field-pct  { flex: 0 0 96px;  input, select { min-width: 50px; } }
-.field-half { flex: 1 1 0;     min-width: 0;  input, select { min-width: 50px; } }
-.field-full { flex: 1 1 100%;  }
+.fieldXs   { flex: 0 0 64px;  input, select { min-width: 50px; } }
+.fieldPct  { flex: 0 0 96px;  input, select { min-width: 50px; } }
+.fieldHalf { flex: 1 1 0;     min-width: 0;  input, select { min-width: 50px; } }
+.fieldFull { flex: 1 1 100%;  }
 
 // Row 3 right-side group: Duration label + input + WBS label + input
-.field-right-group {
+.fieldRightGroup {
   flex: 1 1 0;
   display: flex;
   align-items: center;
@@ -552,7 +552,7 @@
   min-width: 0;
 }
 
-.field-group-label {
+.fieldGroupLabel {
   font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
@@ -562,13 +562,13 @@
   flex-shrink: 0;
 }
 
-.input-fixed {
+.inputFixed {
   width: 40px;
   min-width: 40px;
   max-width: 40px;
   flex: 0 0 40px;
 
-  &.input-fixed-50 {
+  &.inputFixed50 {
     width: 50px;
     min-width: 50px;
     max-width: 50px;
@@ -592,7 +592,7 @@
 }
 
 // Duration: input + "days" unit label side-by-side
-.field-unit-wrap {
+.fieldUnitWrap {
   display: flex;
   align-items: center;
   gap: $sp-2;
@@ -600,7 +600,7 @@
   input { flex: 1 1 auto; min-width: 0; }
 }
 
-.field-unit {
+.fieldUnit {
   font-size: $f-xs;
   color: $c-text-muted;
   white-space: nowrap;
@@ -609,7 +609,7 @@
 
 // ─── Inputs ────────────────────────────────────────────────────────────────
 
-.input-small {
+.inputSmall {
   width: 100%;
   font-family: $f-family;
   font-size: $f-body;
@@ -637,7 +637,7 @@
   }
 }
 
-.release-units-input {
+.releaseUnitsInput {
   background: #fff7e6;
   border-color: #d97706;
   box-shadow: 0 0 0 1px rgba(217, 119, 6, 0.12);
@@ -650,7 +650,7 @@
   }
 }
 
-.select-complete {
+.selectComplete {
   width: 100%;
   font-family: $f-family;
   font-size: $f-body;
@@ -671,7 +671,7 @@
 
 // ─── Gate edit toggle switch ───────────────────────────────────────────────
 
-.gate-edit-toggle {
+.gateEditToggle {
   display: inline-flex;
   align-items: center;
   gap: $sp-2;
@@ -688,7 +688,7 @@
   }
 }
 
-.gate-edit-track {
+.gateEditTrack {
   width: 28px;
   height: 16px;
   background: $c-border;
@@ -702,7 +702,7 @@
   }
 }
 
-.gate-edit-thumb {
+.gateEditThumb {
   width: 12px;
   height: 12px;
   background: white;
@@ -713,12 +713,12 @@
   transition: left $t-fast;
   box-shadow: 0 1px 2px rgba(0,0,0,0.2);
 
-  input:checked ~ .gate-edit-track & {
+  input:checked ~ .gateEditTrack & {
     left: 14px;
   }
 }
 
-.gate-edit-label {
+.gateEditLabel {
   font-size: 11px;
   font-weight: 600;
   color: $c-text-subtle;
@@ -726,11 +726,11 @@
   letter-spacing: 0.05em;
 }
 
-.gate-rename-toggle {
+.gateRenameToggle {
   margin-top: $sp-2;
 }
 
-.gate-rename-label {
+.gateRenameLabel {
   display: inline-flex;
   align-items: center;
   gap: $sp-2;
@@ -744,7 +744,7 @@
   }
 }
 
-.completion-warning {
+.completionWarning {
   display: inline-flex;
   align-items: center;
   max-width: 100%;
@@ -761,7 +761,7 @@
   text-overflow: ellipsis;
 }
 
-.task-steps-card {
+.taskStepsCard {
   display: flex;
   flex-direction: column;
   gap: $sp-3;
@@ -771,7 +771,7 @@
   background: linear-gradient(180deg, rgba($c-primary, 0.05) 0%, rgba($c-primary, 0.015) 100%);
 }
 
-.task-steps-header {
+.taskStepsHeader {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -786,13 +786,13 @@
   }
 }
 
-.task-steps-grid {
+.taskStepsGrid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: $sp-2;
 }
 
-.task-steps-field {
+.taskStepsField {
   display: flex;
   flex-direction: column;
   gap: $sp-1;
@@ -806,12 +806,12 @@
   }
 }
 
-.task-steps-hint {
+.taskStepsHint {
   font-size: $f-xs;
   color: $c-text-subtle;
 }
 
-.task-steps-summary {
+.taskStepsSummary {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -820,13 +820,13 @@
   color: $c-text-subtle;
 }
 
-.task-steps-summary-actions {
+.taskStepsSummaryActions {
   display: inline-flex;
   align-items: center;
   gap: $sp-2;
 }
 
-.task-steps-preview {
+.taskStepsPreview {
   display: flex;
   flex-direction: column;
   gap: $sp-2;
@@ -834,13 +834,13 @@
   overflow-y: auto;
 }
 
-.task-step-item {
+.taskStepItem {
   display: flex;
   flex-direction: column;
   gap: $sp-2;
 }
 
-.task-step-row {
+.taskStepRow {
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -859,13 +859,13 @@
   }
 }
 
-.task-step-row-active {
+.taskStepRowActive {
   border-color: rgba($c-primary, 0.42);
   background: rgba($c-primary, 0.09);
   box-shadow: inset 0 0 0 1px rgba($c-primary, 0.12);
 }
 
-.task-step-workspace {
+.taskStepWorkspace {
   margin-left: $sp-3;
   padding: $sp-2;
   border: 1px solid rgba($c-primary, 0.2);
@@ -875,21 +875,21 @@
   box-shadow: 0 8px 18px rgba($c-primary, 0.08);
 }
 
-.task-step-main {
+.taskStepMain {
   display: flex;
   align-items: center;
   gap: $sp-2;
   min-width: 0;
 }
 
-.task-step-wbs {
+.taskStepWbs {
   font-size: $f-xs;
   font-weight: 700;
   color: $c-primary;
   white-space: nowrap;
 }
 
-.task-step-title {
+.taskStepTitle {
   font-size: $f-xs;
   color: $c-text;
   min-width: 0;
@@ -898,7 +898,7 @@
   white-space: nowrap;
 }
 
-.task-step-meta {
+.taskStepMeta {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -907,13 +907,13 @@
   color: $c-text-subtle;
 }
 
-.task-step-detail {
+.taskStepDetail {
   display: flex;
   flex-direction: column;
   gap: $sp-2;
 }
 
-.task-step-editor {
+.taskStepEditor {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: $sp-2;
@@ -923,7 +923,7 @@
   background: rgba(255, 255, 255, 0.7);
 }
 
-.task-step-editor-field {
+.taskStepEditorField {
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -937,14 +937,14 @@
   }
 }
 
-.task-step-editor-actions {
+.taskStepEditorActions {
   display: flex;
   align-items: flex-end;
   justify-content: flex-end;
   grid-column: 1 / -1;
 }
 
-.task-step-detail-header {
+.taskStepDetailHeader {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
@@ -964,7 +964,7 @@
   }
 }
 
-.task-step-detail-meta {
+.taskStepDetailMeta {
   display: inline-flex;
   align-items: center;
   gap: $sp-2;
@@ -982,7 +982,7 @@
 
 // ─── Tab bar ────────────────────────────────────────────────────────────────
 
-.tab-bar {
+.tabBar {
   display: flex;
   flex-direction: row;
   gap: 0;
@@ -991,7 +991,7 @@
   flex-shrink: 0;
 }
 
-.tab-btn {
+.tabBtn {
   background: transparent;
   border: none;
   border-bottom: 2px solid transparent;
@@ -1012,13 +1012,13 @@
   }
 }
 
-.tab-active {
+.tabActive {
   color: $c-primary;
   border-bottom-color: $c-primary;
   font-weight: 600;
 }
 
-.tab-content {
+.tabContent {
   flex: 1 1 auto;
   display: flex;
   flex-direction: column;
@@ -1059,7 +1059,7 @@
   }
 }
 
-.tab-placeholder {
+.tabPlaceholder {
   flex: 1 1 auto;
   display: flex;
   align-items: center;
@@ -1074,7 +1074,7 @@
 
 // ─── Evidence section ──────────────────────────────────────────────────────
 
-.evidence-edit {
+.evidenceEdit {
   width: 100%;
   display: flex;
   flex-direction: column;
@@ -1083,19 +1083,19 @@
 
 // ─── Icon ──────────────────────────────────────────────────────────────────
 
-.icon-small {
+.iconSmall {
   width: 16px;
   height: 16px;
   display: block;
 }
 
-@keyframes tc-spin {
+@keyframes tcSpin {
   from { transform: rotate(0deg); }
   to   { transform: rotate(360deg); }
 }
 
 .spinning {
-  animation: tc-spin 0.7s linear infinite;
+  animation: tcSpin 0.7s linear infinite;
   transform-origin: center;
 }
 

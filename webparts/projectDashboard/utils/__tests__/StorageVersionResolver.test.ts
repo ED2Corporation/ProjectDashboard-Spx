@@ -58,6 +58,6 @@ describe('StorageVersionResolver', () => {
       ...baseProject,
       ProjectDetails: '{"WorkOrder":" 10010001 "}',
     })).toBe('10010001');
-    expect(parseWorkOrder(baseProject)).toBeNull();
+    expect(parseWorkOrder(baseProject)).toBeUndefined();
   });
 });

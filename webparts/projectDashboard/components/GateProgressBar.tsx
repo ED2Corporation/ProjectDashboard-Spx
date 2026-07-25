@@ -17,7 +17,7 @@ const GearIcon: React.FC<{ size?: number }> = ({ size = 13 }) => (
 export interface GateProgressBarProps {
   gates: IGateListItem[];
   tasks: ITaskListItem[];
-  activeGate: string | null;      // gate name | "all" | null
+  activeGate?: string;      // gate name | "all" | null
   onGateClick: (gate: string) => void;
   onOverallClick: () => void;
   /** Optional gear/settings button — shown to the right of Overall */

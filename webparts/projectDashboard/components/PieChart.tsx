@@ -19,14 +19,12 @@ const PieChart: React.FC<PieProps> = ({ gates }) => {
   //   return ""; // Default Class
   // };
   const getCardColor = (delay: number, complete: number): string => {
-    //console.log("Styles:" + delay + "-" + complete);
     if (complete === 1) return "#4CAF50";
     if (delay > 0 && delay <= 7) return "#FFCE56";
     if (delay > 7) return "#FF3B4E";
     return "#FFFFFF "; // Default Class
   };
   const getCardBackground = (delay: number, complete: number): string => {
-    //console.log("BackStyles:" + delay + "-" + complete);
     if (complete === 1) return "#4CAF50CC"; //green
     if (delay > 0 && delay <= 7) return "#FFCE56CC"; //yellow
     if (delay > 7) return "#FF6384CC"; //red
@@ -34,7 +32,7 @@ const PieChart: React.FC<PieProps> = ({ gates }) => {
   };
   const data = {
     //labels: ["Rojo", "Azul", "Amarillo", "Verde", "Púrpura"],
-    labels: gates.map((gate, index) => gate.Title.substring(0, 1)),
+    labels: gates.map((gate) => (gate.Title ?? gate.Gate).substring(0, 1)),
     datasets: [
       {
         data: [20, 20, 20, 20, 20], // Valores
@@ -98,10 +96,7 @@ const PieChart: React.FC<PieProps> = ({ gates }) => {
               },
               formatter: (value, ctx) => {
                 const index = ctx.dataIndex;
-                return `${data.labels[index]}`; // Muestra nombre y porcentaje dentro de cada rebanada
-                // return `${data.labels[index]}\n(${Math.floor(
-                //   gates[index].Complete * 100
-                // )}%)`; // Muestra nombre y porcentaje dentro de cada rebanada
+                return `${data.labels[index]}`;
               },
               anchor: "center",
               align: "center",
@@ -121,14 +116,10 @@ const PieChart: React.FC<PieProps> = ({ gates }) => {
               },
             },
           },
-          // onClick: onClick,
         }}
       />
     </div>
 
-    // <div style={{ width: "300px", margin: "0 auto" }}>
-    //   <Pie data={data} options={options} />
-    // </div>
   );
 };
 

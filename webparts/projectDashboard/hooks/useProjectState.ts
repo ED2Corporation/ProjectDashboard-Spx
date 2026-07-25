@@ -54,6 +54,7 @@ export interface UseProjectStateResult {
   tasks: ITaskListItem[];
   gates: IGateListItem[];
   filteredTasks: ITaskListItem[];
+  // eslint-disable-next-line @rushstack/no-new-null
   selectedTask: ITaskListItem | null;
   currentGate: string;
   sysError: boolean;
@@ -65,12 +66,15 @@ export interface UseProjectStateResult {
   onReset: () => Promise<void>;
   onGateFilterChange: (gate: string) => Promise<void>;
   onSelectItem: (item: string, group: string) => void;
+  // eslint-disable-next-line @rushstack/no-new-null
   onNewTask: (gate: string, sourceWbs?: string) => Promise<ITaskListItem | null>;
+  // eslint-disable-next-line @rushstack/no-new-null
   onDeleteTask: (taskId: string, gate?: string, wbs?: string) => Promise<ITaskListItem | null>;
   onUpdateTask: (taskName: string, action: "quick-complete" | "full-update", payloadJson?: string) => Promise<void>;
   onUploadFile: (file: File, taskTitle: string) => Promise<{ fileUrl: string; fileName: string }>;
   onPopulateAttachements: () => Promise<void>;
   onCreateNewProject: (listName: string, repositoryName: string, projectTitle: string, firstGate: string, mode: "empty" | "from-excel", file?: File) => Promise<void>;
+  // eslint-disable-next-line @rushstack/no-new-null
   setSelectedTask: (task: ITaskListItem | null) => void;
   onSaveLogField: (taskId: string, field: 'Notes' | 'Evidence' | 'Approvals', entries: unknown[]) => Promise<void>;
   onSendEmail: (to: string[], subject: string, body: string) => Promise<void>;
@@ -81,11 +85,11 @@ export interface UseProjectStateResult {
 // ─── Resilient JSON field parser ──────────────────────────────────────────────
 // Returns null (column missing/empty) or the parsed array.
 // Never throws — malformed JSON is treated as missing.
-function parseLogField<T>(raw: unknown): T[] | null {
-  if (raw === null || raw === undefined || raw === '') return null;
-  if (typeof raw !== 'string') return null;
+function parseLogField<T>(raw: unknown): T[] | undefined {
+  if (raw === null || raw === undefined || raw === '') return undefined;
+  if (typeof raw !== 'string') return undefined;
   try { return JSON.parse(raw) as T[]; }
-  catch { return null; }
+  catch { return undefined; }
 }
 
 function hasMissingFieldError(errorText: string, fieldName: string): boolean {
@@ -728,7 +732,7 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
       console.error('[useProjectState] Failed to register release', err);
       throw err;
     }
-  }, [config.projectName, config.projectService, config.onReleaseRegistered]);
+  }, [config]);
 
   // ── Update task ────────────────────────────────────────────────────────────
   const _updateListTask = useCallback(async (
@@ -1143,7 +1147,7 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
     syncTasks(tasksRef.current.map(patchTask));
     setSelectedTask(prev => (prev?.Id === taskId ? { ...prev, [field]: entries } : prev));
 
-  }, [config.sourceName, config.projectName, sp, syncTasks, setLogFieldsAvailable, onRegisterRelease]);
+  }, [config.sourceName, sp, syncTasks, setLogFieldsAvailable]);
 
   // ── Send email via Graph ────────────────────────────────────────────────────
   const onSendEmail = useCallback(async (
@@ -1217,3 +1221,4 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
     onRegisterRelease,
   };
 }
+

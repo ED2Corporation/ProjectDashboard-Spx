@@ -21,9 +21,13 @@ export class ProjectService implements IProjectService {
     /** Always points to the ED2-Team site — used for ED2-Projects catalog operations. */
     private _catalogSp: SPFI;
 
+    private static hasPageContext(value: BaseComponentContext | SPFI): value is BaseComponentContext {
+        return typeof value === "object" && value !== null && "pageContext" in value;
+    }
+
     constructor(contextOrSp: BaseComponentContext | SPFI, listName: string = "Projects", catalogSp?: SPFI) {
-        if ((contextOrSp as any).pageContext) {
-            this._context = contextOrSp as BaseComponentContext;
+        if (ProjectService.hasPageContext(contextOrSp)) {
+            this._context = contextOrSp;
             this._listName = listName;
             this._sp = spfi().using(SPFx(this._context));
             this._catalogSp = this._sp;
@@ -44,11 +48,11 @@ export class ProjectService implements IProjectService {
     }
 
     /** CREATE: Create new project */
-    public async createProject(baseData: any): Promise<string> {
+    public async createProject(baseData: Record<string, unknown>): Promise<string> {
         const body = {
             __metadata: { type: `SP.Data.${this._listName.replace(/\s/g, "_x0020_")}ListItem` },
-            Title: baseData.Title,
-            Status: baseData.Status || "Active"
+            Title: String(baseData.Title ?? ""),
+            Status: String(baseData.Status ?? "Active")
         };
 
         const resp = await this._context.spHttpClient.post(
@@ -227,7 +231,7 @@ export class ProjectService implements IProjectService {
         return gates;
     }
 
-    private _buildTaskCsvBlob(items: any[]): Blob { // eslint-disable-line @typescript-eslint/no-explicit-any
+    private _buildTaskCsvBlob(items: unknown[]): Blob {
 
         const headers = [
             "Id", "Title", "Gate", "Task", "Complete", "Start", "Finish", "ActualFinish",
@@ -235,14 +239,14 @@ export class ProjectService implements IProjectService {
             "Checklist", "Notes", "Evidence", "Approvals"
         ];
 
-        const formatDate = (value: any): string => {
+        const formatDate = (value: unknown): string => {
             if (!value) return "";
-            const d = new Date(value);
+            const d = value instanceof Date ? value : new Date(String(value));
             if (isNaN(d.getTime())) return "";
             return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
         };
 
-        const csv = (value: any): string => {
+        const csv = (value: unknown): string => {
             if (value === undefined || value === null) return "";
             const text = typeof value === "string" ? value : JSON.stringify(value);
             return `"${text.replace(/"/g, '""')}"`;
@@ -250,7 +254,8 @@ export class ProjectService implements IProjectService {
 
         const lines = [
             headers.join(","),
-            ...items.map(i => {
+            ...items.map(item => {
+                const i = item as Record<string, unknown>;
                 return [
                     i.Id,
                     csv(i.Title),
@@ -477,7 +482,8 @@ export class ProjectService implements IProjectService {
         const arrayBuffer = await file.arrayBuffer();
         const workbook = XLSX.read(arrayBuffer, { type: "array", cellDates: true, cellText: false });
         const sheet = workbook.Sheets[workbook.SheetNames[0]];
-        const rows: any[] = XLSX.utils.sheet_to_json(sheet, { defval: "", raw: false });
+        interface IExcelTaskRow { Gate?: string; Task?: string; Complete?: string | number; Start?: string | number | Date; Finish?: string | number | Date; ActualFinish?: string | number | Date; [key: string]: unknown; }
+        const rows = XLSX.utils.sheet_to_json<IExcelTaskRow>(sheet, { defval: "", raw: false });
 
         if (!rows.length) { alert("Excel plan is empty."); return; }
 
@@ -495,9 +501,9 @@ export class ProjectService implements IProjectService {
             const taskTitle = row.Task;
             if (!taskTitle) continue;
 
-            const toIso = (v: any): string | undefined => {
+            const toIso = (v: unknown): string | undefined => {
                 if (!v) return undefined;
-                const d = new Date(v);
+                const d = v instanceof Date ? v : new Date(String(v));
                 return isNaN(d.getTime()) ? undefined : d.toISOString();
             };
 
@@ -523,7 +529,7 @@ export class ProjectService implements IProjectService {
 
         if (!existing.length) return "1";
 
-        const titles = existing.map((e: any) => e.Title as string).filter(t => !!t);
+        const titles = existing.map((e) => ("Title" in e ? e.Title : undefined)).filter((t): t is string => typeof t === "string" && !!t);
         if (!titles.length) return "1";
 
         titles.sort(compareWbs);
@@ -571,11 +577,11 @@ export class ProjectService implements IProjectService {
         return (items as IProjectCatalogItem[]).map(i => this._enrichCatalogItem(i));
     }
 
-    public async getProjectByProjectId(projectId: string, listName: string = "ProjectCatalog"): Promise<IProjectCatalogItem | null> {
+    public async getProjectByProjectId(projectId: string, listName: string = "ProjectCatalog"): Promise<IProjectCatalogItem | undefined> {
         const items = await this._sp.web.lists.getByTitle(listName)
             .items.select("Id","Title","ProjectNumber","ProjectId","Year","Team","Status","Customer","Units")
             .filter(`ProjectId eq '${projectId.replace(/'/g, "''")}'`)();
-        return items.length ? this._enrichCatalogItem(items[0]) : null;
+        return items.length ? this._enrichCatalogItem(items[0]) : undefined;
     }
 
     public async getProjectsByYearAndStatus(year: number, status?: string, listName: string = "ProjectCatalog"): Promise<IProjectCatalogItem[]> {
@@ -587,13 +593,13 @@ export class ProjectService implements IProjectService {
         return (items as IProjectCatalogItem[]).map(i => this._enrichCatalogItem(i));
     }
 
-    public async getLastProjectFromCatalog(): Promise<{ ProjectNumber?: string } | null> {
+    public async getLastProjectFromCatalog(): Promise<{ ProjectNumber?: string } | undefined> {
         const items = await this._catalogSp.web.lists.getByTitle(this._catalogListName)
             .items.select("ID","Title","ProjectNumber","ProjectId","Year","Team","Status","Customer")
             .orderBy("ProjectNumber", false).top(1)();
-        if (!items.length) return null;
-        const item = items[0] as any;
-        return { ProjectNumber: item.ProjectNumber as string | undefined };
+        if (!items.length) return undefined;
+        const item = items[0] as { ProjectNumber?: string };
+        return { ProjectNumber: item.ProjectNumber };
     }
 
     public async updateCatalogItem(title: string, patch: Partial<IProjectCatalogItem>): Promise<void> {
@@ -654,3 +660,5 @@ export class ProjectService implements IProjectService {
         }
     }
 }
+
+

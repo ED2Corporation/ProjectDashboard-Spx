@@ -13,7 +13,7 @@ const StackGates = ({ gates, onSelectItem }: GateCardProps): JSX.Element => {
     return styles.white; // Default Class
   };
 
-  const sortedItems = [...gates].sort((a, b) => b.Title.localeCompare(a.Title));
+  const sortedItems = [...gates].sort((a, b) => (b.Title ?? b.Gate).localeCompare(a.Title ?? a.Gate));
   const compareGate: string = "0";
 
   const getCardDelay = (delay: number, complete: number): string => {
@@ -42,15 +42,16 @@ const StackGates = ({ gates, onSelectItem }: GateCardProps): JSX.Element => {
                   gate.Complete
                 )}`}
                 onClick={() => {
-                  if (compareGate === gate.Title) {
-                    onSelectItem(gate.Title, "remove");
+                  const gateTitle = gate.Title ?? gate.Gate;
+                  if (compareGate === gateTitle) {
+                    onSelectItem(gateTitle, "remove");
                   } else {
-                    onSelectItem(gate.Title, "gate");
+                    onSelectItem(gateTitle, "gate");
                   }
                 }}
               >
                 <h5>
-                  <strong>{gate.Title} </strong>
+                  <strong>{gate.Title ?? gate.Gate} </strong>
                 </h5>
                 {gate.Delay > 0 && (
                   <p>

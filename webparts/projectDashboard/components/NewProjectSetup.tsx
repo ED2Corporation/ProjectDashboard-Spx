@@ -12,7 +12,7 @@ export interface NewProjectSetupProps {
     mode: "empty" | "from-excel",
     file?: File
   ) => Promise<void>;
-  getLastProjectFromCatalog: () => Promise<{ ProjectNumber?: string } | null>;
+  getLastProjectFromCatalog: () => Promise<{ ProjectNumber?: string } | undefined>;
   addProjectToCatalog: (data: {
     Title: string;
     ProjectNumber: string;
@@ -50,6 +50,11 @@ const NewProjectSetup: React.FC<NewProjectSetupProps> = ({
     "Engineering" | "Strategic" | "Operations" | "Sales" | "Other"
   >("Operations");
   const [status] = React.useState("Open");
+  const handleTeamChange = (value: string): void => {
+    if (value === "Engineering" || value === "Strategic" || value === "Operations" || value === "Sales" || value === "Other") {
+      setTeam(value);
+    }
+  };
 
   const buildProjectId = (
     num: string | null,
@@ -89,7 +94,6 @@ const NewProjectSetup: React.FC<NewProjectSetupProps> = ({
       return;
     }
     const fileToUse = fileArg ?? excelFile;
-    //console.log("Mode: "+mode+" file: "+fileToUse?.size+" file: "+fileArg?.size)
 
     if (mode === "from-excel" && !fileToUse) {
       alert("Please select a valid file.");
@@ -149,7 +153,7 @@ const NewProjectSetup: React.FC<NewProjectSetupProps> = ({
                 type="number"
                 value={projectNumber ?? ""}
                 onChange={(e) => setProjectNumber(e.target.value || "0")}
-                className={styles["input-small"]}
+                className={styles.inputSmall}
                 placeholder="Auto-assigned"
               />
             </td>
@@ -164,7 +168,7 @@ const NewProjectSetup: React.FC<NewProjectSetupProps> = ({
                 type="text"
                 value={customer}
                 onChange={(e) => setCustomer(e.target.value)}
-                className={styles["input-small"]}
+                className={styles.inputSmall}
                 placeholder="Customer name"
               />
             </td>
@@ -179,7 +183,7 @@ const NewProjectSetup: React.FC<NewProjectSetupProps> = ({
                 type="text"
                 value={projectName}
                 onChange={(e) => setProjectName(e.target.value)}
-                className={styles["input-small"]}
+                className={styles.inputSmall}
                 placeholder="Displayed title for the project"
               />
             </td>
@@ -205,7 +209,7 @@ const NewProjectSetup: React.FC<NewProjectSetupProps> = ({
                 type="text"
                 value={firstGate}
                 onChange={(e) => setFirstGate(e.target.value)}
-                className={styles["input-small"]}
+                className={styles.inputSmall}
                 placeholder="e.g. 1. Gate"
               />
             </td>
@@ -218,8 +222,8 @@ const NewProjectSetup: React.FC<NewProjectSetupProps> = ({
             <td className={styles.colInput}>
               <select
                 value={team}
-                onChange={(e) => setTeam(e.target.value as any)}
-                className={styles["input-small"]}
+                onChange={(e) => handleTeamChange(e.target.value)}
+                className={styles.inputSmall}
               >
                 <option value="Engineering">Engineering</option>
                 <option value="Strategic">Strategic</option>
@@ -245,7 +249,7 @@ const NewProjectSetup: React.FC<NewProjectSetupProps> = ({
                   setExcelFile(file);
                   if(file) {void handleCreate("from-excel", file);}                  
                 }}
-                className={styles["input-small"]}
+                className={styles.inputSmall}
               />
               <a 
                 style={{ fontSize: 10}}

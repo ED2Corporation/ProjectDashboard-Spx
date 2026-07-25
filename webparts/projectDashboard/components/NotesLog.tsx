@@ -4,7 +4,7 @@ import { INoteEntry } from '../../../models/ITaskLogFields';
 import styles from './NotesLog.module.scss';
 
 interface NotesLogProps {
-  notes: INoteEntry[] | null;
+  notes?: INoteEntry[];
   currentUserDisplayName: string;
   onSave: (entries: INoteEntry[]) => Promise<void>;
 }

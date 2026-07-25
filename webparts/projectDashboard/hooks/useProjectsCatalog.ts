@@ -11,7 +11,7 @@ import { resolveStorageVersion, parseWorkOrder } from '../utils/StorageVersionRe
 export interface IProjectsCatalogState {
   projects: IProjectCatalogItem[];
   isLoading: boolean;
-  error: string | null;
+  error?: string;
   reload: () => void;
 }
 
@@ -22,11 +22,11 @@ export interface IProjectsCatalogState {
 export function useProjectsCatalog(sp: SPFI): IProjectsCatalogState {
   const [projects, setProjects] = useState<IProjectCatalogItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError]         = useState<string | null>(null);
+  const [error, setError]         = useState<string | undefined>(undefined);
 
   const load = useCallback(async () => {
     setIsLoading(true);
-    setError(null);
+    setError(undefined);
     try {
       const items = await sp.web.lists
         .getByTitle('ED2-Projects')
@@ -42,7 +42,7 @@ export function useProjectsCatalog(sp: SPFI): IProjectsCatalogState {
         item.PartNumber = item.ProjectId?.trim() || extractedFromTitle;
         item.Units = item.Units ?? 0;
         item.resolvedStorageVersion = resolveStorageVersion(item);
-        item.WorkOrder = parseWorkOrder(item) ?? undefined;
+        item.WorkOrder = parseWorkOrder(item);
 
         // sortOrder + releases: extracted from ProjectDetails JSON blob
         try {

@@ -8,9 +8,9 @@ export function GroupByProject(gates: IGateListItem[]): IGateListItem {
   let effort: number = 0;
   let count: number = 0;
 
-  let start: Date | null = null;
-  let end: Date | null = null;
-  let actualEnd: Date | null = null;
+  let start: Date | undefined;
+  let end: Date | undefined;
+  let actualEnd: Date | undefined;
 
 
   const data = [...gates].sort((a, b) => b.Gate.localeCompare(a.Gate));

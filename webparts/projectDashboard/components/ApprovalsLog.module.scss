@@ -308,9 +308,9 @@
 }
 
 // Status-tinted left border
-.chip-pending  { border-left: 3px solid #ffc107; }
-.chip-approved { border-left: 3px solid $c-ontime; }
-.chip-rejected { border-left: 3px solid #d32f2f; }
+.chipPending  { border-left: 3px solid #ffc107; }
+.chipApproved { border-left: 3px solid $c-ontime; }
+.chipRejected { border-left: 3px solid #d32f2f; }
 
 .chipAvatar {
   flex-shrink: 0;

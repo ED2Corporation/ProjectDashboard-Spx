@@ -5,9 +5,9 @@ export type GateStatus = "grey" | "white" | "yellow" | "green" | "red";
 
 export function GetGateStatus(
   complete: number,
-  start: string | Date | null,
-  finish: string | Date | null,
-  actualFinish: string | Date | null
+  start?: string | Date,
+  finish?: string | Date,
+  actualFinish?: string | Date
   ): GateStatus
 {
   const today = new Date();
@@ -37,7 +37,7 @@ export function GetBucketStatus(gates: IGateListItem[]): GateStatus {
   if (!gates || gates.length === 0) return "white";
 
   const statuses = gates.map(g =>
-    GetGateStatus(g.Complete, g.Start ?? null, g.Finish ?? null, g.ActualFinish ?? null)
+    GetGateStatus(g.Complete, g.Start, g.Finish, g.ActualFinish)
   );
 
   if (statuses.includes("red")) return "red";
@@ -53,7 +53,7 @@ export function GetBucketStatusFromTasks(tasks: ITaskListItem[]): GateStatus {
   if (!tasks || tasks.length === 0) return "white";
 
   const statuses = tasks.map(t =>
-    GetGateStatus(t.Complete, t.Start ?? null, t.Finish ?? null, t.ActualFinish ?? null)
+    GetGateStatus(t.Complete, t.Start, t.Finish, t.ActualFinish)
   );
 
   if (statuses.includes("red")) return "red";
@@ -90,11 +90,11 @@ export const getBackgroundImageByStatus = (status: GateStatus): any => {
 
 export const getCardClass = (
     complete: number,
-    start: string | Date | null,
-    finish: string | Date | null,
-    actualFinish: string | Date | null
+    start?: string | Date,
+    finish?: string | Date,
+    actualFinish?: string | Date
   ): string => {
-  const status = GetGateStatus(complete, start ?? null, finish ?? null, actualFinish ?? null);
+  const status = GetGateStatus(complete, start, finish, actualFinish);
   switch (status) {
     case "grey":   return styles.grey;
     case "white":  return styles.white;
@@ -107,11 +107,11 @@ export const getCardClass = (
 
 export const getCardDelay = (
   complete: number,
-  start: string | Date | null,
-  finish: string | Date | null,
-  actualFinish: string | Date | null
+  start?: string | Date,
+  finish?: string | Date,
+  actualFinish?: string | Date
 ): string => {
-  const status = GetGateStatus(complete, start ?? null, finish ?? null, actualFinish ?? null);
+  const status = GetGateStatus(complete, start, finish, actualFinish);
   switch (status) {
     case "grey":   return styles.greyFont;
     case "white":  return styles.whiteFont;

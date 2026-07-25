@@ -13,12 +13,12 @@ import { IProjectCatalogItem } from "../../../models/IProjectService";
 // ─── State ────────────────────────────────────────────────────────────────────
 
 interface IProjectDashboardState {
-  activeGate: string | null;       // null = tasks hidden; gate name = tasks visible filtered
+  activeGate?: string;       // undefined = tasks hidden; gate name = tasks visible filtered
   showCard: boolean;
   showProjectActions: boolean;
   showDashboard: boolean;
   showNewProject: boolean;
-  selectedTask: ITaskListItem | null;
+  selectedTask?: ITaskListItem;
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -30,21 +30,21 @@ export default class ProjectDashboard extends React.Component<
   constructor(props: IProjectDashboardProps) {
     super(props);
     this.state = {
-      activeGate:          null,
+      activeGate:          undefined,
       showCard:            false,
       showProjectActions:  false,
       showDashboard:       true,
       showNewProject:      false,
-      selectedTask:        this.props.selectedTask || null,
+      selectedTask:        this.props.selectedTask,
     };
   }
 
   // ── Gate segment click: toggle filtered view for that gate ─────────────────
   private handleGateClick = (gate: string): void => {
-    const next = this.state.activeGate === gate ? null : gate;
+    const next = this.state.activeGate === gate ? undefined : gate;
     this.setState({ activeGate: next, showCard: false });
 
-    if (next === null) {
+    if (next === undefined) {
       this.props.onGateFilterChange?.("all");
       this.props.onSelectItem("all", "gate");
     } else {
@@ -55,7 +55,7 @@ export default class ProjectDashboard extends React.Component<
 
   // ── Overall badge click: toggle all-tasks view ───────────────────────────
   private handleOverallClick = (): void => {
-    const next = this.state.activeGate === "all" ? null : "all";
+    const next = this.state.activeGate === "all" ? undefined : "all";
     this.setState({ activeGate: next, showCard: false });
 
     // Reset parent filter so spFilteredTaskItems = all tasks
@@ -77,7 +77,7 @@ export default class ProjectDashboard extends React.Component<
       showProjectActions, showNewProject, showDashboard,
     } = this.state;
 
-    const tasksVisible  = activeGate !== null;
+    const tasksVisible  = activeGate !== undefined;
     const showAllTasks  = activeGate === "all";
     const visibleTasks  = showAllTasks ? spTaskListItems : spFilteredTaskItems;
     const tasksHeading  = showAllTasks ? "All Tasks" : (spFilteredTaskItems[0]?.Gate || "No tasks defined...");
@@ -181,7 +181,7 @@ export default class ProjectDashboard extends React.Component<
                   this.setState({ showNewProject: false });
                 }}
                 getLastProjectFromCatalog={async () =>
-                  this.props.projectService.getLastProjectFromCatalog()
+                  (await this.props.projectService.getLastProjectFromCatalog()) ?? undefined
                 }
                 addProjectToCatalog={async (data: IProjectCatalogItem) => {
                   if (data) {
@@ -277,13 +277,14 @@ export default class ProjectDashboard extends React.Component<
 
   componentDidUpdate(prevProps: IProjectDashboardProps): void {
     if (prevProps.selectedTask !== this.props.selectedTask) {
-      this.setState({ selectedTask: this.props.selectedTask || null });
+      this.setState({ selectedTask: this.props.selectedTask });
     }
   }
 
   componentWillUnmount(): void {
-    if ((this.context as any).refreshInterval) { // eslint-disable-line @typescript-eslint/no-explicit-any
-      clearInterval((this.context as any).refreshInterval);
+    const contextWithInterval = this.context as unknown as { refreshInterval?: ReturnType<typeof setInterval> };
+    if (contextWithInterval?.refreshInterval) {
+      clearInterval(contextWithInterval.refreshInterval);
     }
   }
 }

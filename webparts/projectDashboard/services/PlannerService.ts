@@ -29,6 +29,41 @@ export interface IAttachements {
 
 }
 
+interface IPlannerExternalReference {
+  "@odata.type"?: "#microsoft.graph.plannerExternalReference";
+  alias?: string;
+  previewPriority?: string;
+  type?: string;
+  [key: string]: unknown;
+}
+
+interface IPlannerTaskDetails {
+  "@odata.etag"?: string;
+  description?: string;
+  references?: Record<string, IPlannerExternalReference>;
+}
+
+interface IPlannerTaskPatch {
+  percentComplete?: number;
+  title?: string;
+  startDateTime?: string;
+  dueDateTime?: string;
+  completedDateTime?: string;
+}
+
+interface IPlannerDetailsPatch {
+  description?: string;
+  // Graph requires explicit null values to remove planner references.
+  // eslint-disable-next-line @rushstack/no-new-null
+  references?: Record<string, IPlannerExternalReference | null>;
+  previewType?: "noPreview" | "reference" | "automatic";
+}
+
+interface IPlannerHttpError {
+  status?: number;
+  statusCode?: number;
+}
+
 export class PlannerService {
   private graphClient: MSGraphClientV3;
 
@@ -54,7 +89,7 @@ export class PlannerService {
       // Fetch /details for each task in parallel (be mindful of throttling for very large plans)
       const list: ITaskListItem[] = await Promise.all(
         tasks.map(async (t) => {
-          let details: any = undefined;
+          let details: IPlannerTaskDetails | undefined = undefined;
           try {
             details = await this.graphClient.api(`/planner/tasks/${t.id}/details`).get();
           } catch (err) {
@@ -126,7 +161,7 @@ export class PlannerService {
         return;
       }
 
-      const newReferences: any = { ...currentRefs };
+      const newReferences: Record<string, IPlannerExternalReference> = { ...currentRefs };
       newReferences[encodedKey] = {
         "@odata.type": "#microsoft.graph.plannerExternalReference",
         alias: evidenceDesc || "Evidence of completion",
@@ -175,7 +210,7 @@ export class PlannerService {
         return;
       }
 
-      const newReferences: any = { ...currentRefs };
+      const newReferences: Record<string, IPlannerExternalReference> = { ...currentRefs };
       newReferences[encodedKey] = {
         "@odata.type": "#microsoft.graph.plannerExternalReference",
         alias: evidenceDesc || "Evidence of completion",
@@ -193,9 +228,9 @@ export class PlannerService {
     }
   }
 
-  public stripReadOnlyPlannerRefProps(references: Record<string, any>): Record<string, any> {
+  public stripReadOnlyPlannerRefProps(references: Record<string, IPlannerExternalReference>): Record<string, IPlannerExternalReference> {
     const allowed = new Set(["@odata.type", "alias", "previewPriority", "type"]);
-    const cleaned: Record<string, any> = {};
+    const cleaned: Record<string, IPlannerExternalReference> = {};
     for (const key of Object.keys(references || {})) {
       const src = references[key] || {};
       cleaned[key] = {};
@@ -275,6 +310,14 @@ export class PlannerService {
     if (!url) return false;
     const u = url.trim();
     return /^https?:\/\//i.test(u);
+  }
+
+  private getDetailsEtag(details: IPlannerTaskDetails, taskId: string): string {
+    const etag = details["@odata.etag"];
+    if (!etag) {
+      throw new Error(`No details ETag found for planner task ${taskId}`);
+    }
+    return etag;
   }
 
   public async updateTaskStatus(payload: {
@@ -392,7 +435,7 @@ export class PlannerService {
   }
 
   // Local type-safe helper
-  private hasKeys = (o: any): boolean => !!o && typeof o === "object" && Object.keys(o).length > 0;
+  private hasKeys = (o: unknown): boolean => !!o && typeof o === "object" && Object.keys(o).length > 0;
 
   public async updateFromTaskItem(
     item: {
@@ -415,10 +458,10 @@ export class PlannerService {
 
     // 1) Read current task & details (ETags)
     const task = await this.graphClient.api(`/planner/tasks/${item.Id}`).get();
-    let details = await this.graphClient.api(`/planner/tasks/${item.Id}/details`).get();
+    let details = await this.graphClient.api(`/planner/tasks/${item.Id}/details`).get() as IPlannerTaskDetails;
 
     // 2) Build task patch
-    const taskPatch: any = {};
+    const taskPatch: IPlannerTaskPatch = {};
 
     if (typeof item.Complete === "number") {
       taskPatch.percentComplete = Math.max(0, Math.min(100, item.Complete));
@@ -444,18 +487,17 @@ export class PlannerService {
         .api(`/planner/tasks/${item.Id}`)
         .header("If-Match", task["@odata.etag"])
         .patch(taskPatch);
-    } else {
     }
 
     // 3) Build details patch (description + references)
-    const detailsPatch: any = {};
+    const detailsPatch: IPlannerDetailsPatch = {};
 
     if (typeof item.Description === "string") {
       detailsPatch.description = item.Description;
     }
 
     // references (Evidence of completion)
-    const currentRefs: Record<string, any> = details.references || {};
+    const currentRefs: Record<string, IPlannerExternalReference> = details.references || {};
     const currentKeys = Object.keys(currentRefs);
 
     const urlRaw = item.EvidenceOfCompletion?.Url ?? "";
@@ -466,7 +508,7 @@ export class PlannerService {
       // do nothing
     } else if (evidenceMode === "clear") {
       if (currentKeys.length > 0) {
-        const refs: Record<string, any> = {};
+        const refs: Record<string, IPlannerExternalReference | null> = {};
         for (const k of currentKeys) refs[k] = null;
         detailsPatch.references = refs;
         detailsPatch.previewType = "noPreview";
@@ -487,7 +529,7 @@ export class PlannerService {
         }
       }
     } else if (evidenceMode === "replace") {
-      const refs: Record<string, any> = {};
+      const refs: Record<string, IPlannerExternalReference | null> = {};
       for (const k of currentKeys) refs[k] = null;
 
       if (hasGui) {
@@ -507,26 +549,28 @@ export class PlannerService {
     }
 
     if (this.hasKeys(detailsPatch)) {
+      let detailsEtag = this.getDetailsEtag(details, item.Id);
       try {
         await this.graphClient
           .api(`/planner/tasks/${item.Id}/details`)
-          .header("If-Match", details["@odata.etag"])
+          .header("If-Match", detailsEtag)
           .header("Prefer", "return=representation")
           .patch(detailsPatch);
-      } catch (err: any) {
-        if (err?.statusCode === 412 || err?.status === 412) {
+      } catch (err: unknown) {
+        const plannerError = err as IPlannerHttpError;
+        if (plannerError?.statusCode === 412 || plannerError?.status === 412) {
           console.warn("[updateFromTaskItem] 412 on /details. Retrying with fresh ETag…");
-          details = await this.graphClient.api(`/planner/tasks/${item.Id}/details`).get();
+          details = await this.graphClient.api(`/planner/tasks/${item.Id}/details`).get() as IPlannerTaskDetails;
+          detailsEtag = this.getDetailsEtag(details, item.Id);
           await this.graphClient
             .api(`/planner/tasks/${item.Id}/details`)
-            .header("If-Match", details["@odata.etag"])
+            .header("If-Match", detailsEtag)
             .header("Prefer", "return=representation")
             .patch(detailsPatch);
         } else {
           throw err;
         }
       }
-    } else {
     }
   }
 
@@ -567,7 +611,7 @@ export class PlannerService {
       const plans: IPlanItem[] = plansResponse.value;
 
       if (plans.length > 0) {
-        const plan = plans.find((p: any) => p.title === planName);
+        const plan = plans.find((p) => p.title === planName);
         return plan ? plan.id : "";
       } else {
         console.error("[getPlanId] Error fetching plan details.");
@@ -584,7 +628,7 @@ export class PlannerService {
   private mapPlannerToTaskItem(
     task: IPlannerListItem,
     buckets: IBucketItem[],
-    details?: any
+    details?: IPlannerTaskDetails
   ): ITaskListItem {
     // Evidence (first reference, if any)
     let evidenceUrl = "";
@@ -619,3 +663,4 @@ export class PlannerService {
     };
   }
 }
+

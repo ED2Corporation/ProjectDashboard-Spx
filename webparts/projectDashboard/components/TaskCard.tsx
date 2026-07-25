@@ -804,10 +804,10 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
     ? taskSteps.steps.find(step => step.id === selectedTaskStepId)
     : undefined;
   const taskStepsPanel = !showTaskSteps ? null : (
-    <div className={styles["task-steps-card"]}>
-      <div className={styles["task-steps-header"]}>
+    <div className={styles.taskStepsCard}>
+      <div className={styles.taskStepsHeader}>
         <strong>TaskSteps</strong>
-        <label className={styles["gate-edit-toggle"]}>
+        <label className={styles.gateEditToggle}>
           <input
             type="checkbox"
             checked={taskSteps.enabled}
@@ -827,65 +827,65 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
               }
             }}
           />
-          <span className={styles["gate-edit-track"]}>
-            <span className={styles["gate-edit-thumb"]} />
+          <span className={styles.gateEditTrack}>
+            <span className={styles.gateEditThumb} />
           </span>
-          <span className={styles["gate-edit-label"]}>Use</span>
+          <span className={styles.gateEditLabel}>Use</span>
         </label>
       </div>
 
-      <div className={styles["task-steps-grid"]}>
-        <label className={styles["task-steps-field"]}>
+      <div className={styles.taskStepsGrid}>
+        <label className={styles.taskStepsField}>
           <span>Total Units</span>
-          <input type="number" value={totalProjectUnits || ""} className={styles["input-small"]} disabled />
+          <input type="number" value={totalProjectUnits || ""} className={styles.inputSmall} disabled />
         </label>
-        <label className={styles["task-steps-field"]}>
+        <label className={styles.taskStepsField}>
           <span># Pieces</span>
           <input
             type="number"
             min={1}
             value={taskStepsPieces || ""}
-            className={styles["input-small"]}
+            className={styles.inputSmall}
             onChange={e => applyTaskStepsFromPieces(Number(e.target.value) || 0, taskSteps.enabled)}
           />
         </label>
-        <label className={styles["task-steps-field"]}>
+        <label className={styles.taskStepsField}>
           <span># Lots</span>
           <input
             type="number"
             min={1}
             value={taskStepsLots || ""}
-            className={styles["input-small"]}
+            className={styles.inputSmall}
             onChange={e => applyTaskStepsFromLots(Number(e.target.value) || 0, taskSteps.enabled)}
           />
         </label>
       </div>
 
       {totalProjectUnits <= 0 && (
-        <div className={styles["task-steps-hint"]}>
+        <div className={styles.taskStepsHint}>
           TaskSteps need project Units defined in ED2-Projects.
         </div>
       )}
 
       {taskSteps.enabled && taskSteps.steps.length > 0 && (
         <>
-          <div className={styles["task-steps-summary"]}>
+          <div className={styles.taskStepsSummary}>
             <span>{taskSteps.steps.length} steps generated</span>
-            <div className={styles["task-steps-summary-actions"]}>
+            <div className={styles.taskStepsSummaryActions}>
               {selectedTaskStep && (
                 <button
                   type="button"
-                  className={`${styles["task-button"]} ${styles["task-button-save"]} ${((selectedTaskStep.subprocess?.subTasks?.length ?? 0) > 0) ? styles["task-button-subprocess-ready"] : ""}`}
+                  className={`${styles.taskButton} ${styles.taskButtonSave} ${((selectedTaskStep.subprocess?.subTasks?.length ?? 0) > 0) ? styles.taskButtonSubprocessReady : ""}`}
                   onClick={() => setShowTaskStepSubprocess(prev => !prev)}
                 >
-                  <span className={styles["task-button-label"]}>
+                  <span className={styles.taskButtonLabel}>
                     {showTaskStepSubprocess ? "Hide Step Flow" : "Step Flow"}
                   </span>
                 </button>
               )}
               <button
                 type="button"
-                className={`${styles["task-button"]} ${styles["task-button-save"]}`}
+                className={`${styles.taskButton} ${styles.taskButtonSave}`}
                 onClick={() => {
                   setTaskSteps(createEmptyTaskSteps());
                   setTaskStepsLots(0);
@@ -895,23 +895,23 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
                   setShowTaskStepSubprocess(false);
                 }}
               >
-                <span className={styles["task-button-label"]}>Reset</span>
+                <span className={styles.taskButtonLabel}>Reset</span>
               </button>
             </div>
           </div>
 
-          <div className={styles["task-steps-preview"]}>
+          <div className={styles.taskStepsPreview}>
             {taskSteps.steps.map(step => {
               const isSelectedStep = step.id === selectedTaskStepId;
               const stepDuration = daysBetween(step.start, step.finish);
 
               return (
-                <div key={step.id} className={styles["task-step-item"]}>
+                <div key={step.id} className={styles.taskStepItem}>
                   <button
                     type="button"
                     className={[
-                      styles["task-step-row"],
-                      isSelectedStep ? styles["task-step-row-active"] : "",
+                      styles.taskStepRow,
+                      isSelectedStep ? styles.taskStepRowActive : "",
                     ].filter(Boolean).join(" ")}
                     onClick={() => {
                       if (isSelectedStep) {
@@ -929,11 +929,11 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
                       setIsTaskStepExpanded(true);
                     }}
                   >
-                    <div className={styles["task-step-main"]}>
-                      <span className={styles["task-step-wbs"]}>{step.wbs}</span>
-                      <span className={styles["task-step-title"]}>{step.title}</span>
+                    <div className={styles.taskStepMain}>
+                      <span className={styles.taskStepWbs}>{step.wbs}</span>
+                      <span className={styles.taskStepTitle}>{step.title}</span>
                     </div>
-                    <div className={styles["task-step-meta"]}>
+                    <div className={styles.taskStepMeta}>
                       <span>{step.units} units</span>
                       <span>{step.subprocess?.subTasks?.length ?? 0} subprocess</span>
                       <span>{step.start || "-"} to {step.finish || "-"}</span>
@@ -941,86 +941,86 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
                   </button>
 
                   {isSelectedStep && isTaskStepExpanded && selectedTaskStep && (
-                    <div className={styles["task-step-workspace"]}>
-                      <div className={styles["task-step-detail"]}>
-                        <div className={styles["task-step-detail-header"]}>
+                    <div className={styles.taskStepWorkspace}>
+                      <div className={styles.taskStepDetail}>
+                        <div className={styles.taskStepDetailHeader}>
                           <div>
                             <strong>{selectedTaskStep.wbs}</strong>
                             <span>{selectedTaskStep.title}</span>
                           </div>
-                          <div className={styles["task-step-detail-meta"]}>
+                          <div className={styles.taskStepDetailMeta}>
                             <span>{selectedTaskStep.units} units</span>
                             <span>{stepDuration} days</span>
                             <span>{selectedTaskStep.subprocess?.subTasks?.length ?? 0} subprocess</span>
                           </div>
                         </div>
 
-                        <div className={styles["task-step-editor"]}>
-                          <label className={styles["task-step-editor-field"]}>
+                        <div className={styles.taskStepEditor}>
+                          <label className={styles.taskStepEditorField}>
                             <span>Task</span>
                             <input
                               type="text"
                               value={taskStepTitleEdit}
-                              className={styles["input-small"]}
+                              className={styles.inputSmall}
                               onChange={e => setTaskStepTitleEdit(e.target.value)}
                             />
                           </label>
-                          <label className={styles["task-step-editor-field"]}>
+                          <label className={styles.taskStepEditorField}>
                             <span>Units</span>
                             <input
                               type="number"
                               min={1}
                               value={taskStepUnitsEdit}
-                              className={styles["input-small"]}
+                              className={styles.inputSmall}
                               onChange={e => setTaskStepUnitsEdit(Math.max(1, Number(e.target.value) || 0))}
                             />
                           </label>
-                          <label className={styles["task-step-editor-field"]}>
+                          <label className={styles.taskStepEditorField}>
                             <span>% Complete</span>
                             <input
                               type="number"
                               min={0}
                               max={100}
                               value={taskStepCompleteEdit}
-                              className={styles["input-small"]}
+                              className={styles.inputSmall}
                               onChange={e => setTaskStepCompleteEdit(Number(e.target.value) || 0)}
                             />
                           </label>
-                          <label className={styles["task-step-editor-field"]}>
+                          <label className={styles.taskStepEditorField}>
                             <span>Start</span>
                             <input
                               type="date"
                               value={taskStepStartEdit}
-                              className={styles["input-small"]}
+                              className={styles.inputSmall}
                               onChange={e => setTaskStepStartEdit(e.target.value)}
                             />
                           </label>
-                          <label className={styles["task-step-editor-field"]}>
+                          <label className={styles.taskStepEditorField}>
                             <span>Delivery Date</span>
                             <input
                               type="date"
                               value={taskStepFinishEdit}
-                              className={styles["input-small"]}
+                              className={styles.inputSmall}
                               onChange={e => setTaskStepFinishEdit(e.target.value)}
                             />
                           </label>
-                          <label className={styles["task-step-editor-field"]}>
+                          <label className={styles.taskStepEditorField}>
                             <span>Actual Finish</span>
                             <input
                               type="date"
                               value={taskStepActualFinishEdit}
-                              className={styles["input-small"]}
+                              className={styles.inputSmall}
                               onChange={e => setTaskStepActualFinishEdit(e.target.value)}
                               disabled={taskStepCompleteEdit < 100}
                             />
                           </label>
-                          <div className={styles["task-step-editor-actions"]}>
+                          <div className={styles.taskStepEditorActions}>
                             <button
                               type="button"
-                              className={`${styles["task-button"]} ${styles["task-button-save"]}`}
+                              className={`${styles.taskButton} ${styles.taskButtonSave}`}
                               onClick={handleSaveSelectedTaskStep}
                             >
-                              <span className={styles["task-button-label"]}>Save Step</span>
+                              <span className={styles.taskButtonLabel}>Save Step</span>
                             </button>
                           </div>
                         </div>
@@ -1066,60 +1066,60 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
   );
 
   return (
-    <div className={styles["task-card"]}>
-        <div className={styles["task-card-header"]}>
-          <div className={styles["task-details-title-group"]}>
-            <div className={styles["task-details-kicker"]}>Task</div>
-            <h1 className={styles["task-title"]}>{task.Task}</h1>
+    <div className={styles.taskCard}>
+        <div className={styles.taskCardHeader}>
+          <div className={styles.taskDetailsTitleGroup}>
+            <div className={styles.taskDetailsKicker}>Task</div>
+            <h1 className={styles.taskTitle}>{task.Task}</h1>
           </div>
-          <div className={styles["task-btn-group"]}>
+          <div className={styles.taskBtnGroup}>
 
           {/* ── Prev / Next navigation — blue card ── */}
-          <div className={styles["task-nav-card"]}>
+          <div className={styles.taskNavCard}>
             <button
               type="button"
-              className={`${styles["task-button"]} ${styles["task-button-nav"]}`}
+              className={`${styles.taskButton} ${styles.taskButtonNav}`}
               onClick={() => onNavigate?.('prev')}
               disabled={!hasPrev}
               title={hasPrev ? "Previous task" : "No previous task"}
             >
-              <svg className={styles["icon-small"]} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <svg className={styles.iconSmall} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <path d="M4 10l4-5 4 5"/>
               </svg>
             </button>
             <button
               type="button"
-              className={`${styles["task-button"]} ${styles["task-button-nav"]}`}
+              className={`${styles.taskButton} ${styles.taskButtonNav}`}
               onClick={() => onNavigate?.('next')}
               disabled={!hasNext}
               title={hasNext ? "Next task" : "No next task"}
             >
-              <svg className={styles["icon-small"]} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <svg className={styles.iconSmall} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <path d="M4 6l4 5 4-5"/>
               </svg>
             </button>
           </div>
 
           {/* ── Delete / Add new — card ── */}
-          <div className={styles["task-actions-card"]}>
-            <button type="button" className={styles["task-button"]} onClick={handleDelete} title={isDeleting ? "Deleting…" : "Delete task"} disabled={isDeleting}>
+          <div className={styles.taskActionsCard}>
+            <button type="button" className={styles.taskButton} onClick={handleDelete} title={isDeleting ? "Deleting…" : "Delete task"} disabled={isDeleting}>
               {isDeleting ? (
-                <svg className={`${styles["icon-small"]} ${styles.spinning}`} viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                <svg className={`${styles.iconSmall} ${styles.spinning}`} viewBox="0 0 16 16" fill="none" aria-hidden="true">
                   <circle cx="8" cy="8" r="5.5" stroke="currentColor" strokeWidth="2" strokeDasharray="20 15" strokeLinecap="round"/>
                 </svg>
               ) : (
-                <svg className={styles["icon-small"]} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <svg className={styles.iconSmall} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <path d="M3 5h10M6 5V3h4v2M4.5 5l.7 8h6.6l.7-8"/>
                 </svg>
               )}
             </button>
-            <button type="button" className={styles["task-button"]} onClick={handleNew} title={isCreating ? "Creating…" : "Add new task"} disabled={isCreating}>
+            <button type="button" className={styles.taskButton} onClick={handleNew} title={isCreating ? "Creating…" : "Add new task"} disabled={isCreating}>
               {isCreating ? (
-                <svg className={`${styles["icon-small"]} ${styles.spinning}`} viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                <svg className={`${styles.iconSmall} ${styles.spinning}`} viewBox="0 0 16 16" fill="none" aria-hidden="true">
                   <circle cx="8" cy="8" r="5.5" stroke="currentColor" strokeWidth="2" strokeDasharray="20 15" strokeLinecap="round"/>
                 </svg>
               ) : (
-                <svg className={styles["icon-small"]} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+                <svg className={styles.iconSmall} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
                   <path d="M8 3v10M3 8h10"/>
                 </svg>
               )}
@@ -1128,24 +1128,24 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
 
           {/* ── Move order — card, between actions and Save ── */}
           {(onMoveFirst || onMoveUp || onMoveDown || onMoveLast) && (
-            <div className={styles["task-reorder-card"]}>
-              <button type="button" className={styles["task-button"]} onClick={onMoveFirst} disabled={!!isMoveFirst || !!isMoving} title="Move First">
-                <svg className={styles["icon-small"]} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <div className={styles.taskReorderCard}>
+              <button type="button" className={styles.taskButton} onClick={onMoveFirst} disabled={!!isMoveFirst || !!isMoving} title="Move First">
+                <svg className={styles.iconSmall} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <path d="M3 3h10M8 13V6M5 9l3-3 3 3"/>
                 </svg>
               </button>
-              <button type="button" className={styles["task-button"]} onClick={onMoveUp} disabled={!!isMoveFirst || !!isMoving} title="Move Up">
-                <svg className={styles["icon-small"]} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <button type="button" className={styles.taskButton} onClick={onMoveUp} disabled={!!isMoveFirst || !!isMoving} title="Move Up">
+                <svg className={styles.iconSmall} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <path d="M4 10l4-5 4 5"/>
                 </svg>
               </button>
-              <button type="button" className={styles["task-button"]} onClick={onMoveDown} disabled={!!isMoveLast || !!isMoving} title="Move Down">
-                <svg className={styles["icon-small"]} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <button type="button" className={styles.taskButton} onClick={onMoveDown} disabled={!!isMoveLast || !!isMoving} title="Move Down">
+                <svg className={styles.iconSmall} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <path d="M4 6l4 5 4-5"/>
                 </svg>
               </button>
-              <button type="button" className={styles["task-button"]} onClick={onMoveLast} disabled={!!isMoveLast || !!isMoving} title="Move Last">
-                <svg className={styles["icon-small"]} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <button type="button" className={styles.taskButton} onClick={onMoveLast} disabled={!!isMoveLast || !!isMoving} title="Move Last">
+                <svg className={styles.iconSmall} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <path d="M3 13h10M8 3v7M5 7l3 3 3-3"/>
                 </svg>
               </button>
@@ -1154,143 +1154,130 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
 
           <button
             type="button"
-            className={`${styles["task-button"]} ${styles["task-button-save"]} ${hasSubprocessWorkspace ? styles["task-button-subprocess-ready"] : ""}`}
+            className={`${styles.taskButton} ${styles.taskButtonSave} ${hasSubprocessWorkspace ? styles.taskButtonSubprocessReady : ""}`}
             onClick={handleToggleSubprocess}
             title={showSubprocess ? "Collapse subprocess workspace" : "Add subprocess"}
           >
-            <span className={styles["task-button-label"]}>Add Subprocess</span>
+            <span className={styles.taskButtonLabel}>Add Subprocess</span>
           </button>
 
           </div>
         </div>
-      <div className={styles["task-card-panels"]}>
-        <div className={styles["task-details-shell"]}>
-        <div className={styles["task-details-toolbar"]}>
+      <div className={styles.taskCardPanels}>
+        <div className={styles.taskDetailsShell}>
+        <div className={styles.taskDetailsToolbar}>
           {bodyCollapsed ? (
             <>
-              <div className={styles["task-details-summary"]}>
-                <div className={styles["task-details-summary-top"]}>
-                  <div className={styles["task-details-summary-heading"]}>
-                    <div className={styles["task-details-summary-title"]}>Task Details</div>
-                    <div className={styles["task-details-summary-subtitle"]}>Expand to edit task data and review its log.</div>
+              <div className={styles.taskDetailsSummary}>
+                <div className={styles.taskDetailsSummaryTop}>
+                  <div className={styles.taskDetailsSummaryHeading}>
+                    <div className={styles.taskDetailsSummaryTitle}>Task Details</div>
+                    <div className={styles.taskDetailsSummarySubtitle}>Expand to edit task data and review its log.</div>
                   </div>
                   <button
                     type="button"
-                    className={`${styles["task-button"]} ${styles["task-button-collapse"]} ${styles["task-details-summary-toggle"]}`}
+                    className={`${styles.taskButton} ${styles.taskButtonCollapse} ${styles.taskDetailsSummaryToggle}`}
                     onClick={() => setBodyCollapsed(false)}
                     title="Expand task card details"
                     aria-label="Expand task card details"
                   >
-                    <svg className={styles["icon-small"]} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <svg className={styles.iconSmall} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                       <path d="M3 6l5 5 5-5" />
                     </svg>
                   </button>
                 </div>
-                <div className={styles["task-details-summary-grid"]}>
-                  <div className={styles["task-details-summary-block"]}>
-                    <div className={styles["task-details-summary-label"]}>WBS</div>
+                <div className={styles.taskDetailsSummaryGrid}>
+                  <div className={styles.taskDetailsSummaryBlock}>
+                    <div className={styles.taskDetailsSummaryLabel}>WBS</div>
                   </div>
-                  <div className={styles["task-details-summary-block"]}>
-                    <div className={styles["task-details-summary-label"]}>Gate / Task</div>
+                  <div className={styles.taskDetailsSummaryBlock}>
+                    <div className={styles.taskDetailsSummaryLabel}>Gate / Task</div>
                   </div>
-                  <div className={styles["task-details-summary-block"]}>
-                    <div className={styles["task-details-summary-label"]}>% Complete</div>
+                  <div className={styles.taskDetailsSummaryBlock}>
+                    <div className={styles.taskDetailsSummaryLabel}>% Complete</div>
                   </div>
-                  <div className={styles["task-details-summary-block"]}>
-                    <div className={styles["task-details-summary-label"]}>Calendar</div>
+                  <div className={styles.taskDetailsSummaryBlock}>
+                    <div className={styles.taskDetailsSummaryLabel}>Calendar</div>
                   </div>
                 </div>
-                <div className={styles["task-details-summary-grid"]}>
-                  <div className={styles["task-details-summary-block"]}>
-                    <div className={styles["task-details-summary-value"]}>{wbs || "N/A"}</div>
+                <div className={styles.taskDetailsSummaryGrid}>
+                  <div className={styles.taskDetailsSummaryBlock}>
+                    <div className={styles.taskDetailsSummaryValue}>{wbs || "N/A"}</div>
                   </div>
-                  <div className={styles["task-details-summary-block"]}>
-                    <div className={styles["task-details-summary-value"]}>{`${gate || "N/A"} / ${taskTitle || "N/A"}`}</div>
+                  <div className={styles.taskDetailsSummaryBlock}>
+                    <div className={styles.taskDetailsSummaryValue}>{`${gate || "N/A"} / ${taskTitle || "N/A"}`}</div>
                   </div>
-                  <div className={styles["task-details-summary-block"]}>
-                    <div className={styles["task-details-summary-value"]}>{`${complete}%`}</div>
+                  <div className={styles.taskDetailsSummaryBlock}>
+                    <div className={styles.taskDetailsSummaryValue}>{`${complete}%`}</div>
                   </div>
-                  <div className={styles["task-details-summary-block"]}>
-                    <div className={styles["task-details-summary-value"]}>{`(${start || "N/A"} - ${finish || "N/A"})`}</div>
+                  <div className={styles.taskDetailsSummaryBlock}>
+                    <div className={styles.taskDetailsSummaryValue}>{`(${start || "N/A"} - ${finish || "N/A"})`}</div>
                   </div>
                 </div>
               </div>
             </>
           ) : (
           <>
-          <div className={styles["task-details-inline-header"]}>
-            <div className={styles["task-details-kicker"]}>Task Details</div>
-            <div className={styles["task-details-subtitle"]}>Edit task data and review its log.</div>
+          <div className={styles.taskDetailsInlineHeader}>
+            <div className={styles.taskDetailsKicker}>Task Details</div>
+            <div className={styles.taskDetailsSubtitle}>Edit task data and review its log.</div>
           </div>
-          <div className={styles["task-btn-group"]}>
-          <div className={styles["task-view-card"]}>
+          <div className={styles.taskBtnGroup}>
+          <div className={styles.taskViewCard}>
             <button
               type="button"
-              className={`${styles["task-button"]} ${columnFocus === 'right' ? styles["task-button-toggle-active"] : ""}`}
+              className={`${styles.taskButton} ${columnFocus === 'right' ? styles.taskButtonToggleActive : ""}`}
               onClick={() => setColumnFocus('right')}
               title="Expand right section"
               aria-label="Expand right section"
               disabled={bodyCollapsed}
             >
-              <span className={styles["task-button-label"]}>&lt;</span>
+              <span className={styles.taskButtonLabel}>&lt;</span>
             </button>
             <button
               type="button"
-              className={`${styles["task-button"]} ${columnFocus === 'balanced' ? styles["task-button-toggle-active"] : ""}`}
+              className={`${styles.taskButton} ${columnFocus === 'balanced' ? styles.taskButtonToggleActive : ""}`}
               onClick={() => setColumnFocus('balanced')}
               title="Balanced view"
               aria-label="Balanced view"
               disabled={bodyCollapsed}
             >
-              <span className={styles["task-button-label"]}>||</span>
+              <span className={styles.taskButtonLabel}>||</span>
             </button>
             <button
               type="button"
-              className={`${styles["task-button"]} ${columnFocus === 'left' ? styles["task-button-toggle-active"] : ""}`}
+              className={`${styles.taskButton} ${columnFocus === 'left' ? styles.taskButtonToggleActive : ""}`}
               onClick={() => setColumnFocus('left')}
               title="Expand left section"
               aria-label="Expand left section"
               disabled={bodyCollapsed}
             >
-              <span className={styles["task-button-label"]}>&gt;</span>
+              <span className={styles.taskButtonLabel}>&gt;</span>
             </button>
           </div>
-          {false && (
-          <button
-            type="button"
-            className={`${styles["task-button"]} ${styles["task-button-collapse"]} ${bodyCollapsed ? styles["task-button-toggle-active"] : ""}`}
-            onClick={() => setBodyCollapsed(prev => !prev)}
-            title={bodyCollapsed ? "Expand task card details" : "Collapse task card details"}
-            aria-label={bodyCollapsed ? "Expand task card details" : "Collapse task card details"}
-          >
-            <svg className={styles["icon-small"]} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              {bodyCollapsed ? <path d="M3 10l5-5 5 5" /> : <path d="M3 6l5 5 5-5" />}
-            </svg>
-          </button>
-          )}
 
           {/* ── Save / Close ── */}
           <button
             type="button"
-            className={`${styles["task-button"]} ${styles["task-button-save"]}`}
+            className={`${styles.taskButton} ${styles.taskButtonSave}`}
             onClick={handleSaveClick}
             title="Save"
           >
-            <span className={styles["task-button-label"]}>Save</span>
+            <span className={styles.taskButtonLabel}>Save</span>
           </button>
           {onClose && (
-            <button type="button" className={`${styles["task-button"]} ${styles["task-button-save"]} ${styles["task-button-close"]}`} onClick={onClose} title="Close">
-              <span className={styles["task-button-label"]}>Close</span>
+            <button type="button" className={`${styles.taskButton} ${styles.taskButtonSave} ${styles.taskButtonClose}`} onClick={onClose} title="Close">
+              <span className={styles.taskButtonLabel}>Close</span>
             </button>
           )}
           <button
             type="button"
-            className={`${styles["task-button"]} ${styles["task-button-collapse"]}`}
+            className={`${styles.taskButton} ${styles.taskButtonCollapse}`}
             onClick={() => setBodyCollapsed(true)}
             title="Collapse task card details"
             aria-label="Collapse task card details"
           >
-            <svg className={styles["icon-small"]} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <svg className={styles.iconSmall} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <path d="M3 10l5-5 5 5" />
             </svg>
           </button>
@@ -1299,46 +1286,46 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
           )}
         </div>
         {!bodyCollapsed && (
-        <div className={styles["task-details-body"]}>
+        <div className={styles.taskDetailsBody}>
         <div
           className={[
-            styles["task-card-row"],
-            columnFocus === 'left' ? styles["task-card-row-left-focus"] : "",
-            columnFocus === 'right' ? styles["task-card-row-right-focus"] : "",
+            styles.taskCardRow,
+            columnFocus === 'left' ? styles.taskCardRowLeftFocus : "",
+            columnFocus === 'right' ? styles.taskCardRowRightFocus : "",
           ].filter(Boolean).join(" ")}
         >
-          <div className={styles["task-card-body"]}>
-            <div className={styles["task-form"]}>
+          <div className={styles.taskCardBody}>
+            <div className={styles.taskForm}>
 
             {/* Row 1: Gate */}
-            <div className={styles["form-row"]}>
-              <label className={`${styles.field} ${styles["field-full"]}`}>
+            <div className={styles.formRow}>
+              <label className={`${styles.field} ${styles.fieldFull}`}>
                 <span>Gate</span>
                 <input
                   type="text"
                   value={gate}
                   onChange={e => { setGate(e.target.value); setRenameAllGateTasks(true); }}
-                  className={styles["input-small"]}
+                  className={styles.inputSmall}
                   disabled={!gateEditEnabled}
                 />
               </label>
-              <label className={styles["gate-edit-toggle"]}>
+              <label className={styles.gateEditToggle}>
                 <input
                   type="checkbox"
                   checked={gateEditEnabled}
                   onChange={e => setGateEditEnabled(e.target.checked)}
                 />
-                <span className={styles["gate-edit-track"]}>
-                  <span className={styles["gate-edit-thumb"]} />
+                <span className={styles.gateEditTrack}>
+                  <span className={styles.gateEditThumb} />
                 </span>
-                <span className={styles["gate-edit-label"]}>Edit</span>
+                <span className={styles.gateEditLabel}>Edit</span>
               </label>
             </div>
 
             {/* Gate rename checkbox — always visible when editing */}
             {gateEditEnabled && (
-              <div className={styles["gate-rename-toggle"]}>
-                <label className={styles["gate-rename-label"]}>
+              <div className={styles.gateRenameToggle}>
+                <label className={styles.gateRenameLabel}>
                   <input type="checkbox" checked={renameAllGateTasks} onChange={e => setRenameAllGateTasks(e.target.checked)} />
                   {renameAllGateTasks ? "Rename gate for all tasks in this gate" : "Move only this task to new gate"}
                 </label>
@@ -1346,12 +1333,12 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
             )}
  
             {/* Row 2: Task + Release toggle */}
-            <div className={styles["form-row"]}>
-              <label className={`${styles.field} ${styles["field-full"]}`}>
+            <div className={styles.formRow}>
+              <label className={`${styles.field} ${styles.fieldFull}`}>
                 <span>Task</span>
-                <input type="text" value={taskTitle} onChange={e => setTaskTitle(e.target.value)} className={styles["input-small"]} />
+                <input type="text" value={taskTitle} onChange={e => setTaskTitle(e.target.value)} className={styles.inputSmall} />
               </label>
-              <label className={styles["gate-edit-toggle"]}>
+              <label className={styles.gateEditToggle}>
                 <input
                   type="checkbox"
                   checked={isRelease}
@@ -1363,16 +1350,16 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
                     }
                   }}
                 />
-                <span className={styles["gate-edit-track"]}>
-                  <span className={styles["gate-edit-thumb"]} />
+                <span className={styles.gateEditTrack}>
+                  <span className={styles.gateEditThumb} />
                 </span>
-                <span className={styles["gate-edit-label"]}>Ship</span>
+                <span className={styles.gateEditLabel}>Ship</span>
               </label>
             </div>
 
             {isRelease && (
-              <div className={styles["form-row"]}>
-                <label className={`${styles.field} ${styles["field-half"]}`}>
+              <div className={styles.formRow}>
+                <label className={`${styles.field} ${styles.fieldHalf}`}>
                   <span>Release Units</span>
                   <input
                     type="number"
@@ -1380,49 +1367,49 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
                     step={1}
                     value={releaseUnits}
                     onChange={e => setReleaseUnits(Math.max(0, Number(e.target.value) || 0))}
-                    className={`${styles["input-small"]} ${styles["release-units-input"]}`}
+                    className={`${styles.inputSmall} ${styles.releaseUnitsInput}`}
                   />
                 </label>
               </div>
             )}
 
             {/* Row 3: Left=% Complete  |  Right=Duration+WBS */}
-            <div className={styles["form-row"]}>
+            <div className={styles.formRow}>
               {/* Left half: % Complete label + input */}
-              <label className={`${styles.field} ${styles["field-half"]}`}>
+              <label className={`${styles.field} ${styles.fieldHalf}`}>
                 <span>% Complete</span>
                 {isPlanner ? (
-                  <select value={complete} onChange={e => setComplete(Number(e.target.value) || 0)} className={styles["select-complete"]} onClick={e => e.stopPropagation()}>
+                  <select value={complete} onChange={e => setComplete(Number(e.target.value) || 0)} className={styles.selectComplete} onClick={e => e.stopPropagation()}>
                     <option value={0}>0%</option>
                     <option value={50}>50%</option>
                     <option value={100}>100%</option>
                   </select>
                 ) : (
-                  <input type="number" min={0} max={100} value={complete} onChange={e => setComplete(Number(e.target.value) || 0)} className={styles["input-small"]} onClick={e => e.stopPropagation()} />
+                  <input type="number" min={0} max={100} value={complete} onChange={e => setComplete(Number(e.target.value) || 0)} className={styles.inputSmall} onClick={e => e.stopPropagation()} />
                 )}
               </label>
               {/* Right half: Duration label + input + WBS label + input */}
-              <div className={styles["field-right-group"]}>
-                <span className={styles["field-group-label"]}>Duration</span>
+              <div className={styles.fieldRightGroup}>
+                <span className={styles.fieldGroupLabel}>Duration</span>
                 <input
                   type="number" min={0}
                   value={start && finish ? duration : ""}
                   onChange={e => handleDurationChange(Number(e.target.value) || 0)}
-                  className={`${styles["input-fixed"]} ${styles["input-fixed-50"]}`}
+                  className={`${styles.inputFixed} ${styles.inputFixed50}`}
                   disabled={!start}
                 />
-                <span className={styles["field-group-label"]}>WBS</span>
+                <span className={styles.fieldGroupLabel}>WBS</span>
                 <input
                   type="text"
                   value={wbs}
                   onChange={e => setWbs(e.target.value)}
-                  className={styles["input-fixed"]}
+                  className={styles.inputFixed}
                 />
               </div>
             </div>
 
             {/* Row 4: Start · Finish */}
-            <div className={styles["form-row"]}>
+            <div className={styles.formRow}>
               <label className={styles.field}>
                 <span>Start</span>
                 <input
@@ -1436,7 +1423,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
                     }
                     setStart(v);
                   }}
-                  className={styles["input-small"]}
+                  className={styles.inputSmall}
                 />
               </label>
               <label className={styles.field}>
@@ -1452,42 +1439,42 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
                     }
                     setFinish(v);
                   }}
-                  className={styles["input-small"]}
+                  className={styles.inputSmall}
                 />
               </label>
             </div>
 
             {/* Completion warning */}
             {complete === 100 && !hasCompletionEvidence && (
-              <div className={styles["completion-warning"]}>
+              <div className={styles.completionWarning}>
                 No file is marked as Evidence of Completion.
               </div>
             )}
 
             </div>
           </div>
-          <div className={styles["task-card-column"]}>
+          <div className={styles.taskCardColumn}>
           {/* Tab bar */}
-          <div className={styles["tab-bar"]}>
+          <div className={styles.tabBar}>
             <button
               type="button"
-              className={`${styles["tab-btn"]} ${activeTab === 'notes' ? styles["tab-active"] : ''}`}
+              className={`${styles.tabBtn} ${activeTab === 'notes' ? styles.tabActive : ''}`}
               onClick={() => setActiveTab('notes')}
             >Notes</button>
             <button
               type="button"
-              className={`${styles["tab-btn"]} ${activeTab === 'evidence' ? styles["tab-active"] : ''}`}
+              className={`${styles.tabBtn} ${activeTab === 'evidence' ? styles.tabActive : ''}`}
               onClick={() => setActiveTab('evidence')}
             >Evidence</button>
             <button
               type="button"
-              className={`${styles["tab-btn"]} ${activeTab === 'approvals' ? styles["tab-active"] : ''}`}
+              className={`${styles.tabBtn} ${activeTab === 'approvals' ? styles.tabActive : ''}`}
               onClick={() => setActiveTab('approvals')}
             >Approvals</button>
           </div>
 
           {/* Tab content */}
-          <div className={styles["tab-content"]}>
+          <div className={styles.tabContent}>
             {activeTab === 'notes' && (
               <NotesLog
                 notes={notesLog}
@@ -1542,7 +1529,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
             {activeTab === 'approvals' && (
               <ApprovalsLog
                 taskTitle={taskTitle || task.Task || 'Task'}
-                approvals={task.Approvals ?? null}
+                approvals={task.Approvals}
                 currentUserEmail={currentUserEmail ?? ''}
                 currentUserDisplayName={currentUserDisplayName ?? ''}
                 canManageApprovers={canManageApprovers}

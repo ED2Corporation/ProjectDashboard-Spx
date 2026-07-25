@@ -26,14 +26,14 @@ interface ArchivedProjectReportTask {
     fileName?: string;
     fileUrl?: string;
     isEvidenceOfCompletion?: boolean;
-  } | null;
+  };
   /** Flat fallback fields — used when evidenceOfCompletion is absent */
   EvidenceDescription?: string;
   EvidenceOfCompletion?: string;
   /** Raw SP list item — contains EvidenceOfCompletion/EvidenceDescription as flat SP columns */
   raw?: {
-    EvidenceOfCompletion?: string | null;
-    EvidenceDescription?: string | null;
+    EvidenceOfCompletion?: string;
+    EvidenceDescription?: string;
     [key: string]: unknown;
   };
   notes?: Array<{
@@ -60,7 +60,7 @@ interface ArchivedProjectReportTask {
 
 interface ArchivedProjectReportJson {
   generatedAt?: string;
-  project?: IProjectCatalogItem | null;
+  project?: IProjectCatalogItem;
   tasks?: ArchivedProjectReportTask[];
 }
 
@@ -80,8 +80,8 @@ export interface ProjectRowArchivedProps {
   project: IProjectCatalogItem;
 }
 
-const parseArchivedReport = (projectDetails?: string): ArchivedReportInfo | null => {
-  if (!projectDetails || !projectDetails.trim()) return null;
+const parseArchivedReport = (projectDetails?: string): ArchivedReportInfo | undefined => {
+  if (!projectDetails || !projectDetails.trim()) return undefined;
 
   try {
     const parsed = JSON.parse(projectDetails) as {
@@ -92,14 +92,14 @@ const parseArchivedReport = (projectDetails?: string): ArchivedReportInfo | null
     const report = parsed.archivedReport;
     const jsonFileUrl = report?.jsonFileUrl || parsed.fileArchivedJson;
     const jsonFileName = report?.jsonFileName || parsed.fileArchivedJsonName;
-    if (!report?.isArchivedReport && !jsonFileUrl) return null;
+    if (!report?.isArchivedReport && !jsonFileUrl) return undefined;
     return {
       ...report,
       jsonFileUrl,
       jsonFileName,
     };
   } catch {
-    return null;
+    return undefined;
   }
 };
 
@@ -125,7 +125,7 @@ const htmlEscape = (value: unknown): string =>
  *  V1 legacy: evidenceOfCompletion object
  *  Flat fallback: EvidenceOfCompletion URL + EvidenceDescription label
  */
-const resolveTaskEvidence = (task: ArchivedProjectReportTask): { url: string; label: string } | null => {
+const resolveTaskEvidence = (task: ArchivedProjectReportTask): { url: string; label: string } | undefined => {
   // V2 — evidence array
   const v2 = task.evidence?.find(e => e.isEvidenceOfCompletion);
   if (v2?.fileUrl) {
@@ -141,7 +141,7 @@ const resolveTaskEvidence = (task: ArchivedProjectReportTask): { url: string; la
   if (flatUrl) {
     return { url: flatUrl, label: flatLabel || "Evidence" };
   }
-  return null;
+  return undefined;
 };
 
 const ProjectRowArchived: React.FC<ProjectRowArchivedProps> = ({ project }) => {
@@ -149,7 +149,7 @@ const ProjectRowArchived: React.FC<ProjectRowArchivedProps> = ({ project }) => {
   const [reportView, setReportView] = useState<ArchivedReportView>("json");
   const [includedSections, setIncludedSections] = useState<ArchivedReportSections>(defaultReportSections);
   const [reportHtml, setReportHtml] = useState<string>("");
-  const [reportJson, setReportJson] = useState<ArchivedProjectReportJson | null>(null);
+  const [reportJson, setReportJson] = useState<ArchivedProjectReportJson | undefined>(undefined);
   const [isLoadingReport, setIsLoadingReport] = useState(false);
   const [reportError, setReportError] = useState<string>("");
   const archivedReport = useMemo(() => parseArchivedReport(project.ProjectDetails), [project.ProjectDetails]);
@@ -654,7 +654,7 @@ const ProjectRowArchived: React.FC<ProjectRowArchivedProps> = ({ project }) => {
               const hasNotes     = includedSections.notes     && group.tasks.some(t => (t.notes     ?? []).length > 0);
               const hasEvidence  = includedSections.evidence  && group.tasks.some(t => (t.evidence  ?? []).length > 0);
               const hasApprovals = includedSections.approvals && group.tasks.some(t => (t.approvals ?? []).length > 0);
-              if (!hasNotes && !hasEvidence && !hasApprovals) return null;
+              if (!hasNotes && !hasEvidence && !hasApprovals) return undefined;
               return (
                 <div className={styles.archivedLogGate} key={`${group.gate}-log`}>
                   <p className={styles.archivedLogGateName}>{group.gate}</p>

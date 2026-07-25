@@ -6,7 +6,7 @@ import { IEvidenceEntry } from '../../../models/ITaskLogFields';
 
 export interface EvidenceUploadButtonProps {
   /** Existing evidence entries — uploaded entry will be appended */
-  evidence:            IEvidenceEntry[] | null;
+  evidence?:           IEvidenceEntry[];
   taskTitle:           string;
   currentUser:         string;
   onUploadFile:        (file: File, taskTitle: string) => Promise<{ fileUrl: string; fileName: string }>;

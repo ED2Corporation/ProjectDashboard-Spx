@@ -9,7 +9,7 @@ import { ProjectService } from "../services/ProjectService";
 export interface IProjectDashboardProps {
   spTaskListItems: ITaskListItem[];
   spFilteredTaskItems: ITaskListItem[];
-  selectedTask?: ITaskListItem | null;
+  selectedTask?: ITaskListItem;
   spGateListItems: IGateListItem[];
 
   onReset: () => void;

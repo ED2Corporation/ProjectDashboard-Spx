@@ -57,10 +57,10 @@ export function resolveStorageVersion(project: IProjectCatalogItem): 'v1' | 'v2'
   return details?.storageVersion === 'v2' ? 'v2' : 'v1';
 }
 
-export function parseWorkOrder(project: IProjectCatalogItem): string | null {
+export function parseWorkOrder(project: IProjectCatalogItem): string | undefined {
   const details = parseProjectDetails(project.ProjectDetails);
   const wo = details?.WorkOrder;
-  return typeof wo === 'string' && wo.trim() ? wo.trim() : null;
+  return typeof wo === 'string' && wo.trim() ? wo.trim() : undefined;
 }
 
 export function getStorageEndpoint(

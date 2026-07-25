@@ -273,7 +273,7 @@ const SubprocessList: React.FC<ISubprocessListProps> = ({
                   key={item.id}
                   className={[
                     dashboardStyles.taskRowSubprocess,
-                    item.id === selectedSubTaskId ? dashboardStyles["task-row-active"] : "",
+                    item.id === selectedSubTaskId ? dashboardStyles.taskRowActive : "",
                   ].filter(Boolean).join(" ")}
                   onClick={() => onSelect(item.id)}
                 >
@@ -284,7 +284,7 @@ const SubprocessList: React.FC<ISubprocessListProps> = ({
                         type="text"
                         value={editTaskTitle}
                         onChange={(e) => setEditTaskTitle(e.target.value)}
-                        className={dashboardStyles["input-small"]}
+                        className={dashboardStyles.inputSmall}
                         onClick={(e) => e.stopPropagation()}
                         placeholder="Subtask title"
                       />
@@ -295,8 +295,8 @@ const SubprocessList: React.FC<ISubprocessListProps> = ({
                             dashboardStyles.taskName,
                             dashboardStyles.subprocessTaskName,
                             styles.subtaskName,
-                            item.id === selectedSubTaskId ? dashboardStyles["task-name-active"] : "",
-                            (item.task || "").startsWith("New subtask") ? dashboardStyles["task-name-new"] : "",
+                            item.id === selectedSubTaskId ? dashboardStyles.taskNameActive : "",
+                            (item.task || "").startsWith("New subtask") ? dashboardStyles.taskNameNew : "",
                           ].filter(Boolean).join(" ")}
                           onClick={(e) => {
                             e.stopPropagation();
@@ -309,14 +309,14 @@ const SubprocessList: React.FC<ISubprocessListProps> = ({
                       </div>
                     )}
                   </td>
-                  <td className={dashboardStyles["cell-complete"]}>
+                  <td className={dashboardStyles.cellComplete}>
                     {isEditing ? (
                       <>
                         <input
                           type="number"
                           value={editPercentComplete}
                           onChange={(e) => setEditPercentComplete(Number(e.target.value) || 0)}
-                          className={dashboardStyles["input-small"]}
+                          className={dashboardStyles.inputSmall}
                           onClick={(e) => e.stopPropagation()}
                           placeholder="% Complete"
                         />
@@ -333,7 +333,7 @@ const SubprocessList: React.FC<ISubprocessListProps> = ({
                         value={editStart}
                         onChange={(e) => setEditStart(e.target.value)}
                         onClick={(e) => e.stopPropagation()}
-                        className={dashboardStyles["input-small"]}
+                        className={dashboardStyles.inputSmall}
                       />
                     ) : (
                       item.start || ""
@@ -346,7 +346,7 @@ const SubprocessList: React.FC<ISubprocessListProps> = ({
                         value={editFinish}
                         onChange={(e) => setEditFinish(e.target.value)}
                         onClick={(e) => e.stopPropagation()}
-                        className={dashboardStyles["input-small"]}
+                        className={dashboardStyles.inputSmall}
                       />
                     ) : (
                       item.finish || ""
@@ -405,12 +405,12 @@ const SubprocessList: React.FC<ISubprocessListProps> = ({
                         >
                           <button
                             type="button"
-                            className={`${dashboardStyles["icon-button"]} ${dashboardStyles.actionMenuTrigger}`}
+                            className={`${dashboardStyles.iconButton} ${dashboardStyles.actionMenuTrigger}`}
                             onClick={(e) => e.stopPropagation()}
                             title="Open actions menu"
                             aria-label="Open actions menu"
                           >
-                            <svg className={dashboardStyles["icon-small"]} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true">
+                            <svg className={dashboardStyles.iconSmall} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true">
                               <path d="M3 4h10M3 8h10M3 12h10" />
                             </svg>
                           </button>
@@ -438,7 +438,7 @@ const SubprocessList: React.FC<ISubprocessListProps> = ({
                             </button>
                             <button
                               type="button"
-                              className={dashboardStyles["btn-danger"]}
+                              className={dashboardStyles.btnDanger}
                               onClick={() => {
                                 if (window.confirm(`Delete subtask "${item.task || item.wbs}"?`)) {
                                   onRemove(item.id);
@@ -448,7 +448,7 @@ const SubprocessList: React.FC<ISubprocessListProps> = ({
                               <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M2 3.5h8M4.5 3.5V2.5h3v1M3.5 3.5l.5 6h4l.5-6" /></svg>
                               Remove
                             </button>
-                            <div className={dashboardStyles["ctx-separator"]} />
+                            <div className={dashboardStyles.ctxSeparator} />
                             <button
                               type="button"
                               onClick={() => startQuickEdit(item)}
@@ -511,14 +511,14 @@ const SubprocessList: React.FC<ISubprocessListProps> = ({
                         </div>
                         <button
                           type="button"
-                          className={`${dashboardStyles["icon-button"]} ${dashboardStyles.actionAddTrigger}`}
+                          className={`${dashboardStyles.iconButton} ${dashboardStyles.actionAddTrigger}`}
                           onClick={(e) => {
                             e.stopPropagation();
                             onAddBelow(item.id);
                           }}
                           title="Add subtask below"
                         >
-                          <svg className={dashboardStyles["icon-small"]} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+                          <svg className={dashboardStyles.iconSmall} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
                             <path d="M8 3v10M3 8h10" />
                           </svg>
                         </button>

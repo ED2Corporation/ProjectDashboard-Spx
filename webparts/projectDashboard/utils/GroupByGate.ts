@@ -16,9 +16,9 @@ export function GroupByGate(tasks: ITaskListItem[]): IGateListItem[] {
     (gate, item) => {
       const { Gate, Complete, Start, Finish, ActualFinish, Effort } = item;
 
-      const startDate = Start ? new Date(Start) : null;
-      const finishDate = Finish ? new Date(Finish) : null;
-      const actualFinishDate = ActualFinish ? new Date(ActualFinish) : null;
+      const startDate = Start ? new Date(Start) : undefined;
+      const finishDate = Finish ? new Date(Finish) : undefined;
+      const actualFinishDate = ActualFinish ? new Date(ActualFinish) : undefined;
 
       if (!gate[Gate]) {
         gate[Gate] = {
@@ -27,9 +27,9 @@ export function GroupByGate(tasks: ITaskListItem[]): IGateListItem[] {
           Delay: 0,
           Count: 0,
           Effort: 0,
-          Start: null,
-          Finish: null,
-          ActualFinish: null,
+          Start: undefined,
+          Finish: undefined,
+          ActualFinish: undefined,
           Id: Gate.substring(0, 1),
         };
       }

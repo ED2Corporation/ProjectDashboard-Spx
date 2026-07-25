@@ -53,7 +53,7 @@ const ProjectDashboardApp: React.FC<IProjectDashboardAppProps> = (props) => {
           await onCreateNewProject(listName, repoName, projectTitle, firstGate, mode, file);
         }}
         getLastProjectFromCatalog={async () => {
-          return projectService.getLastProjectFromCatalog();
+          return (await projectService.getLastProjectFromCatalog()) ?? undefined;
         }}
         addProjectToCatalog={async (data: IProjectCatalogItem) => {
           if (data) await projectService.addProjectToCatalog(data);

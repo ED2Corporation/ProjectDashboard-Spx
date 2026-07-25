@@ -516,7 +516,7 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
           <GateProgressBar
             gates={gates}
             tasks={tasks}
-            activeGate={activeGate}
+            activeGate={activeGate ?? undefined}
             onGateClick={handleGateClick}
             onOverallClick={handleOverallClick}
             onSettingsClick={() => setShowProjectActions(prev => !prev)}

@@ -31,7 +31,7 @@ export interface ITaskListItem {
   };
 
   // ── Log fields (optional — null means the SP column does not exist yet) ──
-  Notes?: INoteEntry[] | null;
-  Evidence?: IEvidenceEntry[] | null;
-  Approvals?: IApprovalEntry[] | null;
+  Notes?: INoteEntry[];
+  Evidence?: IEvidenceEntry[];
+  Approvals?: IApprovalEntry[];
 }

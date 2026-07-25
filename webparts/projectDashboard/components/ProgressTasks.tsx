@@ -39,17 +39,17 @@ const sortedTasks = tasks.slice().sort((a, b) => {
               key={item.Id}
               className={`${styles.ed2Card} ${getCardClass(
                 item.Complete,
-                item.Start ?? null,
-                item.Finish ?? null,
-                item.ActualFinish ?? null
+                item.Start ?? undefined,
+                item.Finish ?? undefined,
+                item.ActualFinish ?? undefined
               )}`}
             >
               <div
                 className={`${styles.cardContent} ${getCardDelay(
                   item.Complete,
-                  item.Start ?? null,
-                  item.Finish ?? null,
-                  item.ActualFinish ?? null
+                  item.Start ?? undefined,
+                  item.Finish ?? undefined,
+                  item.ActualFinish ?? undefined
                 )}`}
                 onClick={() => {
                   onSelectItem(item.Task, "task");
@@ -67,9 +67,9 @@ const sortedTasks = tasks.slice().sort((a, b) => {
               key={item.Id}
               className={`${styles.progressCard} ${getCardClass(
                 item.Complete,
-                item.Start ?? null,
-                item.Finish ?? null,
-                item.ActualFinish ?? null
+                item.Start ?? undefined,
+                item.Finish ?? undefined,
+                item.ActualFinish ?? undefined
               )}`}
               onClick={() => {
                 onSelectItem(item.Task, "task");

@@ -2,6 +2,7 @@ import React, { useMemo } from "react";
 import { Doughnut } from "react-chartjs-2";
 import {
   Chart as ChartJS,
+  Chart,
   ArcElement,
   Tooltip,
   Legend,
@@ -17,7 +18,7 @@ ChartJS.register(ArcElement, Tooltip, Legend, Title, ChartDataLabels);
 
 interface DoughnutChartProps {
   gates: IGateListItem[];
-  tasks: ITaskListItem[] | null;
+  tasks?: ITaskListItem[];
   complete: number;
   showLegend?: boolean | true; 
   onSelectItem?: (item: string, group: string) => void;
@@ -59,7 +60,7 @@ const DoughnutChart: React.FC<DoughnutChartProps> = ({
 
   const centerTextPlugin = {
     id: "centerText",
-    beforeDraw: (chart: any) => {
+    beforeDraw: (chart: Chart<"doughnut">) => {
       const { width, height, ctx } = chart;
       ctx.restore();
       const fontSize = (height / 80).toFixed(2);
@@ -114,7 +115,6 @@ const DoughnutChart: React.FC<DoughnutChartProps> = ({
     
     // Section XOR Center
     onClick: (_event, elements: ActiveElement[]) => {
-      //console.log("[DoughnutChart] Click detected, elements:", elements.length);
       
       // CASE 1: Click on a section
       if (elements && elements.length > 0) {
@@ -124,7 +124,7 @@ const DoughnutChart: React.FC<DoughnutChartProps> = ({
         //console.log("[DoughnutChart] → Section:", gate.Gate);
         
         if (gate && onSelectItem) {
-          onSelectItem(gate.Gate, "gate");  
+          onSelectItem(gate.Gate, "gate");
         }
         return; 
       }
@@ -133,7 +133,7 @@ const DoughnutChart: React.FC<DoughnutChartProps> = ({
       //console.log("[DoughnutChart] → Center (Show all)");
       
       if (onSelectItem) {
-        onSelectItem("all", "gate");  // Show all sections
+        onSelectItem("all", "gate");
       }
     },
   };

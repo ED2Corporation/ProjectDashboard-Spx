@@ -205,8 +205,8 @@ const ListTasks = ({
   const getDelayClassName = (task: ITaskListItem): string => {
     if (Math.floor(task.Complete) >= 100) return "";
     const delayDays = GetDelay(task.Finish);
-    if (delayDays > 15) return styles["task-row-delay-critical"];
-    if (delayDays > 0) return styles["task-row-delay-warning"];
+    if (delayDays > 15) return styles.taskRowDelayCritical;
+    if (delayDays > 0) return styles.taskRowDelayWarning;
     return "";
   };
 
@@ -296,7 +296,7 @@ const ListTasks = ({
                         value={taskFilter}
                         onChange={(e) => setTaskFilter(e.target.value)}
                         placeholder="Filter..."
-                        className={styles["input-filter"]}
+                        className={styles.inputFilter}
                         onClick={(e) => e.stopPropagation()}
                       />
                     </div>
@@ -337,49 +337,12 @@ const ListTasks = ({
                     data-task-id={item.Id}
                     className={[
                       getDelayClassName(item),
-                      item.Id === selectedTaskId ? styles["task-row-active"] : "",
+                      item.Id === selectedTaskId ? styles.taskRowActive : "",
                     ].filter(Boolean).join(" ")}
                   >
                   {/* WBS */}
                   <td className={styles.colWbs}>
-                    {(() => {
-                      const completionEvidence = item.Evidence?.find(e => e.isEvidenceOfCompletion) || {
-                        fileUrl: "",
-                        fileName: "",
-                        note: "",
-                        isEvidenceOfCompletion: false,
-                      };
-                      const isComplete = Math.floor(item.Complete) === 100;
-                      return (
-                        <span className={styles.wbsCell}>
-                          {item.Title}
-                          {false && isComplete && completionEvidence && (
-                            <a
-                              href={completionEvidence.fileUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              title={completionEvidence.note || completionEvidence.fileName || "Evidence of Completion"}
-                              onClick={(e) => e.stopPropagation()}
-                              className={styles.wbsEvidenceLink}
-                            >
-                              <img
-                                src={require("../assets/Document.png")}
-                                alt="Evidence"
-                                className={styles["icon-small"]}
-                              />
-                            </a>
-                          )}
-                          {false && isComplete && !completionEvidence && (
-                            <span
-                              className={styles.wbsEvidenceAlert}
-                              title="Task is 100% complete but has no Evidence of Completion"
-                            >
-                              ⚠
-                            </span>
-                          )}
-                        </span>
-                      );
-                    })()}
+                    <span className={styles.wbsCell}>{item.Title}</span>
                   </td>
 
                   {/* Task */}
@@ -389,7 +352,7 @@ const ListTasks = ({
                         type="text"
                         value={editTaskTitle}
                         onChange={(e) => setEditTaskTitle(e.target.value)}
-                        className={styles["input-small"]}
+                        className={styles.inputSmall}
                         onClick={(e) => e.stopPropagation()}
                         placeholder="Task title"
                       />
@@ -397,8 +360,8 @@ const ListTasks = ({
                       <span
                         className={[
                           styles.taskName,
-                          item.Id === selectedTaskId ? styles["task-name-active"] : "",
-                          (item.Task || "").startsWith("New task...") ? styles["task-name-new"] : "",
+                          item.Id === selectedTaskId ? styles.taskNameActive : "",
+                          (item.Task || "").startsWith("New task...") ? styles.taskNameNew : "",
                         ].filter(Boolean).join(" ")}
                         onClick={(e) => { e.stopPropagation(); onSelectItem(item, "task", "list-edit"); }}
                       >{item.Task}</span>
@@ -406,7 +369,7 @@ const ListTasks = ({
                   </td>
 
                   {/* % Completed */}
-                  <td className={styles["cell-complete"]}>
+                  <td className={styles.cellComplete}>
                     {editingTaskId === item.Id ? (
                       <>
                         {isPlanner ? (
@@ -417,7 +380,7 @@ const ListTasks = ({
                                 Number(e.target.value) || 0
                               )
                             }
-                            className={styles["select-complete"]}
+                            className={styles.selectComplete}
                             onClick={(e) => e.stopPropagation()}
                           >
                             <option value={0}>0%</option>
@@ -433,7 +396,7 @@ const ListTasks = ({
                                 Number(e.target.value) || 0
                               )
                             }
-                            className={styles["input-small"]}
+                            className={styles.inputSmall}
                             onClick={(e) => e.stopPropagation()}
                             placeholder="% Complete"
                           />
@@ -469,7 +432,7 @@ const ListTasks = ({
                           setEditStart(newStart);
                         }}
                         onClick={(e) => e.stopPropagation()}
-                        className={styles["input-small"]}
+                        className={styles.inputSmall}
                       />
                     ) : (
                       GetFormatDate(item.Start)
@@ -501,7 +464,7 @@ const ListTasks = ({
                           setEditFinish(newFinish);
                         }}
                         onClick={(e) => e.stopPropagation()}
-                        className={styles["input-small"]}
+                        className={styles.inputSmall}
                       />
                     ) : (
                       GetFormatDate(item.Finish)
@@ -518,7 +481,7 @@ const ListTasks = ({
                       <td className={styles.colEvidence} onClick={e => e.stopPropagation()}>
                         {isEditing && onUploadFile && onSaveEvidence ? (
                           <EvidenceUploadButton
-                            evidence={item.Evidence ?? null}
+                            evidence={item.Evidence}
                             taskTitle={item.Task ?? ''}
                             currentUser={currentUserDisplayName ?? ''}
                             onUploadFile={onUploadFile}
@@ -571,12 +534,12 @@ const ListTasks = ({
                         >
                           <button
                             type="button"
-                            className={`${styles["icon-button"]} ${styles.actionMenuTrigger}`}
+                            className={`${styles.iconButton} ${styles.actionMenuTrigger}`}
                             onClick={(e) => e.stopPropagation()}
                             title="Open actions menu"
                             aria-label="Open actions menu"
                           >
-                            <svg className={styles["icon-small"]} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true">
+                            <svg className={styles.iconSmall} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true">
                               <path d="M3 4h10M3 8h10M3 12h10"/>
                             </svg>
                           </button>
@@ -607,7 +570,7 @@ const ListTasks = ({
                       </button>
                       <button
                         type="button"
-                        className={styles["btn-danger"]}
+                        className={styles.btnDanger}
                         onClick={(e) => {
                           e.stopPropagation();
                           if (window.confirm(`Delete task "${item.Task}"?`)) {
@@ -619,7 +582,7 @@ const ListTasks = ({
                         <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M2 3.5h8M4.5 3.5V2.5h3v1M3.5 3.5l.5 6h4l.5-6"/></svg>
                         Remove
                       </button>
-                      <div className={styles["ctx-separator"]} />
+                      <div className={styles.ctxSeparator} />
                       <button
                         type="button"
                         onClick={(e) => {
@@ -729,7 +692,7 @@ const ListTasks = ({
                           </div>
                         </div>
                       )}
-                      <div className={styles["ctx-separator"]} />
+                      <div className={styles.ctxSeparator} />
                       <button
                         type="button"
                         onClick={(e) => {
@@ -744,7 +707,7 @@ const ListTasks = ({
                         </div>
                         <button
                           type="button"
-                          className={`${styles["icon-button"]} ${styles.actionAddTrigger}`}
+                          className={`${styles.iconButton} ${styles.actionAddTrigger}`}
                           onClick={(e) => {
                             e.stopPropagation();
                             onSelectItem(item, "task", "list-create");
@@ -753,11 +716,11 @@ const ListTasks = ({
                           disabled={!!creatingTaskId}
                         >
                           {creatingTaskId === item.Id ? (
-                            <svg className={`${styles["icon-small"]} ${styles.spinning}`} viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                            <svg className={`${styles.iconSmall} ${styles.spinning}`} viewBox="0 0 16 16" fill="none" aria-hidden="true">
                               <circle cx="8" cy="8" r="5.5" stroke="currentColor" strokeWidth="2" strokeDasharray="20 15" strokeLinecap="round"/>
                             </svg>
                           ) : (
-                            <svg className={styles["icon-small"]} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+                            <svg className={styles.iconSmall} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
                               <path d="M8 3v10M3 8h10"/>
                             </svg>
                           )}
@@ -798,9 +761,9 @@ const ListTasks = ({
 
                   </tr>
                   {item.Id === selectedTaskId && expandedContent && (
-                    <tr className={styles["task-card-row"]}>
-                      <td colSpan={7} className={styles["task-card-cell"]}>
-                        <div className={styles["task-card-shell"]}>
+                    <tr className={styles.taskCardRow}>
+                      <td colSpan={7} className={styles.taskCardCell}>
+                        <div className={styles.taskCardShell}>
                           {expandedContent}
                         </div>
                       </td>

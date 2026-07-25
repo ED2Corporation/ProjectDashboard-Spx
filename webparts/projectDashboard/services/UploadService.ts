@@ -2,7 +2,7 @@ import { SPHttpClient, ISPHttpClientOptions } from "@microsoft/sp-http";
 
 export async function uploadEvidenceFile(
     spHttpClient: SPHttpClient,
-    context: any,
+    _context: unknown,
     siteUrl: string,            // siteUrl : https://ed2corp.sharepoint.com/
     relativePath: string,       // siteRelativePath : /
     folderPath: string,         // /Shared Documents/ProjectsEvidence/
@@ -10,6 +10,10 @@ export async function uploadEvidenceFile(
     file: File,                 // file : ProjectDashboardAll.png
     overrideBasePath?: string   // when set, bypasses isRootSite logic (e.g. '/WO-Plans/WODocs' for v2)
 ): Promise<{ fileUrl: string; fileName: string }> {
+    interface IUploadResponse {
+        ServerRelativeUrl: string;
+    }
+
     const doUpload = async (): Promise<{ fileUrl: string; fileName: string }> => {
 
         /** Controling Main Page - Production envitronment Root directory */
@@ -50,7 +54,7 @@ export async function uploadEvidenceFile(
             throw new Error(`Upload failed: ${res.status} - ${errorText}`);
         }
 
-        const data = await res.json();
+        const data = await res.json() as IUploadResponse;
         const fileUrl = new URL(data.ServerRelativeUrl, siteUrl).toString();
 
         return { fileUrl, fileName: file.name };
@@ -60,11 +64,11 @@ export async function uploadEvidenceFile(
         // Primer intento
         console.log(`DoUpload 1st Attempt...`);
         return await doUpload();
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error("Error in initial uploadEvidenceFile:", error);
 
         // Si es 404 por carpeta inexistente, crea el folder y reintenta
-        const msg = String(error?.message || "");
+        const msg = error instanceof Error ? error.message : String(error);
         if (msg.includes("404") && msg.includes("DirectoryNotFoundException")) {
             await ensureFolder(spHttpClient, siteUrl, relativePath, folderPath, folderName, overrideBasePath);
             return await doUpload();

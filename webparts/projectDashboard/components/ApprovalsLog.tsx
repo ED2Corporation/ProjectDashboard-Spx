@@ -5,7 +5,7 @@ import styles from './ApprovalsLog.module.scss';
 
 interface ApprovalsLogProps {
   taskTitle: string;
-  approvals: IApprovalEntry[] | null;
+  approvals?: IApprovalEntry[];
   currentUserEmail: string;
   currentUserDisplayName: string;
   canManageApprovers?: boolean;
