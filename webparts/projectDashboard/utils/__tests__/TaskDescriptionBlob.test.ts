@@ -146,6 +146,9 @@ describe('TaskDescriptionBlob subprocess support', () => {
                   complete: 100,
                   start: '2026-04-08',
                   finish: '2026-04-08',
+                  notes: [{ date: '2026-04-08', user: 'Ops', note: 'Prepared' }],
+                  evidence: [{ date: '2026-04-08', user: 'Ops', fileName: 'prep.pdf', fileUrl: '/prep.pdf', isEvidenceOfCompletion: true }],
+                  approvals: [{ date: '2026-04-08', user: 'QA', email: 'qa@example.com', status: 'approved', comment: 'ready' }],
                 },
               ],
             },
@@ -169,6 +172,9 @@ describe('TaskDescriptionBlob subprocess support', () => {
       sortOrder: 0,
       complete: 100,
     });
+    expect(parsed.steps[0].subprocess?.subTasks[0].notes?.[0].note).toBe('Prepared');
+    expect(parsed.steps[0].subprocess?.subTasks[0].evidence?.[0].isEvidenceOfCompletion).toBe(true);
+    expect(parsed.steps[0].subprocess?.subTasks[0].approvals?.[0].status).toBe('approved');
     expect(parsed.steps[0].subprocess?.subTasks[1]).toMatchObject({
       id: 'sp-2',
       sortOrder: 1,

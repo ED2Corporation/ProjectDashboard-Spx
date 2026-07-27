@@ -233,8 +233,8 @@ export default class ProjectDashboard extends React.Component<
                   this.props.onDeleteTask?.(taskId);
                 }}
                 onSave={(taskId, payloadJson) => {
-                  this.props.onUpdateTask?.(taskId, "full-update", payloadJson);
                   this.setState({ showCard: true });
+                  return this.props.onUpdateTask?.(taskId, "full-update", payloadJson);
                 }}
               />
             )}
@@ -246,7 +246,7 @@ export default class ProjectDashboard extends React.Component<
                 heading={tasksHeading}
                 showDetails={true}
                 onSave={(taskId, payloadJson) => {
-                  this.props.onUpdateTask?.(taskId, "quick-complete", payloadJson);
+                  return this.props.onUpdateTask?.(taskId, "quick-complete", payloadJson);
                 }}
                 onSelectItem={(item, _group, mode) => {
                   if (!item || !item.Task) return;

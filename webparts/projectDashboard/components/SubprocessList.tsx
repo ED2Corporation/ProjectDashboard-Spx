@@ -16,6 +16,8 @@ interface ISubprocessListProps {
   selectedSubTaskId?: string;
   editingSubTaskId?: string;
   movingSubTaskId?: string;
+  detailSubTaskId?: string;
+  detailCard?: React.ReactNode;
   onSelect: (subTaskId: string) => void;
   onAddBelow: (subTaskId: string) => void;
   onRemove: (subTaskId: string) => void;
@@ -62,6 +64,8 @@ const SubprocessList: React.FC<ISubprocessListProps> = ({
   selectedSubTaskId,
   editingSubTaskId,
   movingSubTaskId,
+  detailSubTaskId,
+  detailCard,
   onSelect,
   onAddBelow,
   onRemove,
@@ -269,14 +273,14 @@ const SubprocessList: React.FC<ISubprocessListProps> = ({
               const moveDisabled = movingSubTaskId === item.id;
 
               return (
-                <tr
-                  key={item.id}
-                  className={[
-                    dashboardStyles.taskRowSubprocess,
-                    item.id === selectedSubTaskId ? dashboardStyles.taskRowActive : "",
-                  ].filter(Boolean).join(" ")}
-                  onClick={() => onSelect(item.id)}
-                >
+                <React.Fragment key={item.id}>
+                  <tr
+                    className={[
+                      dashboardStyles.taskRowSubprocess,
+                      item.id === selectedSubTaskId ? dashboardStyles.taskRowActive : "",
+                    ].filter(Boolean).join(" ")}
+                    onClick={() => onSelect(item.id)}
+                  >
                   <td className={`${dashboardStyles.colWbs} ${styles.subtaskWbs}`}>{item.wbs}</td>
                   <td className={dashboardStyles.colText}>
                     {isEditing ? (
@@ -549,7 +553,15 @@ const SubprocessList: React.FC<ISubprocessListProps> = ({
                       </div>
                     )}
                   </td>
-                </tr>
+                  </tr>
+                  {detailSubTaskId === item.id && detailCard && (
+                    <tr className={styles.subtaskDetailRow}>
+                      <td colSpan={7} className={styles.subtaskDetailCell}>
+                        {detailCard}
+                      </td>
+                    </tr>
+                  )}
+                </React.Fragment>
               );
             })}
             {sortedTasks.length === 0 && (

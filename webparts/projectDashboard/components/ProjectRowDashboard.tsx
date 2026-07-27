@@ -466,8 +466,8 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
             console.error("[ProjectRowDashboard] Failed to parse TaskCard save payload", error);
           }
         }
-        void onUpdateTask?.(taskId, "full-update", payloadJson);
         setShowCard(true);
+        return onUpdateTask?.(taskId, "full-update", payloadJson);
       }}
       onUploadEvidenceFile={async (file, taskTitle) => {
         if (!onUploadFile) throw new Error("onUploadFile not provided");
@@ -611,7 +611,7 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
             deletingTaskId={deletingId ?? undefined}
             onSortedTasksChange={setNavTasks}
             onSave={(taskId, payloadJson) => {
-              void onUpdateTask?.(taskId, "quick-complete", payloadJson);
+              return onUpdateTask?.(taskId, "quick-complete", payloadJson);
             }}
             onSelectItem={(item, _group, mode) => {
               if (!item?.Task) return;

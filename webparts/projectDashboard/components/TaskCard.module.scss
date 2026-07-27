@@ -1,5 +1,7 @@
 @import './styles/tokens';
 
+$c-step-tasks: #2f6f78;
+
 // stylelint-disable selector-class-pattern
 
 // ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ Card shell ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬
@@ -771,9 +773,9 @@
   flex-direction: column;
   gap: $sp-3;
   padding: $sp-3;
-  border: 1px solid $c-border-subtle;
+  border: 1px solid rgba($c-step-tasks, 0.24);
   border-radius: $r-md;
-  background: linear-gradient(180deg, rgba($c-primary, 0.05) 0%, rgba($c-primary, 0.015) 100%);
+  background: linear-gradient(180deg, rgba($c-step-tasks, 0.07) 0%, rgba($c-step-tasks, 0.018) 100%);
 }
 
 .taskStepsHeader {
@@ -787,14 +789,160 @@
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.08em;
-    color: $c-primary;
+    color: $c-step-tasks;
   }
 }
 
-.taskStepsGrid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+.taskStepsHeaderActions {
+  display: inline-flex;
+  align-items: center;
   gap: $sp-2;
+
+  .taskButtonSave {
+    color: darken($c-step-tasks, 16%);
+    border-color: rgba($c-step-tasks, 0.34);
+    background: linear-gradient(180deg, #ffffff 0%, rgba($c-step-tasks, 0.08) 100%);
+
+    &:hover {
+      color: darken($c-step-tasks, 22%);
+      border-color: rgba($c-step-tasks, 0.46);
+      background: linear-gradient(180deg, #ffffff 0%, rgba($c-step-tasks, 0.13) 100%);
+    }
+  }
+
+  .taskButtonCollapse {
+    color: $c-step-tasks;
+    border-color: rgba($c-step-tasks, 0.2);
+    background: rgba($c-step-tasks, 0.04);
+
+    &:hover {
+      border-color: rgba($c-step-tasks, 0.32);
+      background: rgba($c-step-tasks, 0.08);
+    }
+  }
+}
+
+.taskStepsSectionBody {
+  display: flex;
+  flex-direction: column;
+  gap: $sp-3;
+}
+
+.taskStepsConfigCard {
+  display: flex;
+  flex-direction: column;
+  gap: $sp-2;
+  padding: $sp-2;
+  border: 1px solid rgba($c-step-tasks, 0.18);
+  border-radius: $r-sm;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.taskStepsConfigHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $sp-2;
+}
+
+.taskStepsConfigTitleGroup {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: $sp-2;
+  min-width: 0;
+
+  strong {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: $c-step-tasks;
+  }
+}
+
+.taskStepsConfigSummary {
+  font-size: $f-xs;
+  font-weight: 600;
+  color: rgba($c-text, 0.68);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.taskStepsConfigActions {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  gap: $sp-2;
+
+  .taskButtonSave {
+    color: darken($c-step-tasks, 16%);
+    border-color: rgba($c-step-tasks, 0.34);
+    background: linear-gradient(180deg, #ffffff 0%, rgba($c-step-tasks, 0.08) 100%);
+
+    &:hover {
+      color: darken($c-step-tasks, 22%);
+      border-color: rgba($c-step-tasks, 0.46);
+      background: linear-gradient(180deg, #ffffff 0%, rgba($c-step-tasks, 0.13) 100%);
+    }
+  }
+
+  .taskButtonCollapse {
+    color: $c-step-tasks;
+    border-color: rgba($c-step-tasks, 0.2);
+    background: rgba($c-step-tasks, 0.04);
+
+    &:hover {
+      border-color: rgba($c-step-tasks, 0.32);
+      background: rgba($c-step-tasks, 0.08);
+    }
+  }
+}
+
+.taskStepsCollapsedSummary {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.taskStepsSummaryGrid {
+  display: grid;
+  grid-template-columns: minmax(80px, 0.65fr) minmax(70px, 0.55fr) minmax(85px, 0.65fr) minmax(130px, 1fr) minmax(170px, 1.2fr);
+  gap: $sp-2;
+  align-items: start;
+}
+
+.taskStepsSummaryBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.taskStepsSummaryLabel {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: rgba($c-text, 0.58);
+}
+
+.taskStepsSummaryValue {
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba($c-text, 0.82);
+  min-width: 0;
+  line-height: 1.3;
+  word-break: break-word;
+}
+
+.taskStepsConfigRow {
+  display: grid;
+  grid-template-columns: minmax(150px, 1.2fr) minmax(90px, 0.7fr) minmax(90px, 0.7fr) minmax(90px, 0.7fr) minmax(220px, 1.6fr);
+  gap: $sp-2;
+  align-items: end;
 }
 
 .taskStepsField {
@@ -840,6 +988,9 @@
   display: flex;
   flex-wrap: wrap;
   gap: $sp-2;
+  align-items: center;
+  min-width: 0;
+  padding-bottom: 1px;
 }
 
 .taskStepsWeekdayOption {
@@ -847,7 +998,7 @@
   align-items: center;
   gap: 6px;
   padding: 4px 8px;
-  border: 1px solid rgba($c-primary, 0.14);
+  border: 1px solid rgba($c-step-tasks, 0.18);
   border-radius: $r-sm;
   background: rgba(255, 255, 255, 0.78);
   font-size: 11px;
@@ -862,8 +1013,7 @@
   display: flex;
   flex-direction: column;
   gap: $sp-2;
-  max-height: 180px;
-  overflow-y: auto;
+  overflow: visible;
 }
 
 .taskStepItem {
@@ -872,39 +1022,47 @@
   gap: $sp-2;
 }
 
+.taskStepHeaderLine {
+  display: flex;
+  align-items: stretch;
+  gap: $sp-2;
+}
+
 .taskStepRow {
   display: flex;
   flex-direction: column;
   gap: 2px;
   padding: $sp-2;
-  border: 1px solid rgba($c-primary, 0.12);
+  border: 1px solid rgba($c-step-tasks, 0.16);
   border-radius: $r-sm;
   background: rgba(255, 255, 255, 0.75);
+  flex: 1 1 auto;
+  min-width: 0;
   width: 100%;
   text-align: left;
   cursor: pointer;
   transition: $t-fast;
 
   &:hover {
-    border-color: rgba($c-primary, 0.28);
-    background: rgba($c-primary, 0.05);
+    border-color: rgba($c-step-tasks, 0.32);
+    background: rgba($c-step-tasks, 0.06);
   }
 }
 
 .taskStepRowActive {
-  border-color: rgba($c-primary, 0.42);
-  background: rgba($c-primary, 0.09);
-  box-shadow: inset 0 0 0 1px rgba($c-primary, 0.12);
+  border-color: rgba($c-step-tasks, 0.46);
+  background: rgba($c-step-tasks, 0.1);
+  box-shadow: inset 0 0 0 1px rgba($c-step-tasks, 0.14);
 }
 
 .taskStepWorkspace {
   margin-left: $sp-3;
   padding: $sp-2;
-  border: 1px solid rgba($c-primary, 0.2);
-  border-left: 3px solid rgba($c-primary, 0.55);
+  border: 1px solid rgba($c-step-tasks, 0.24);
+  border-left: 3px solid rgba($c-step-tasks, 0.58);
   border-radius: $r-sm;
-  background: linear-gradient(180deg, rgba($c-primary, 0.08), rgba(255, 255, 255, 0.94));
-  box-shadow: 0 8px 18px rgba($c-primary, 0.08);
+  background: linear-gradient(180deg, rgba($c-step-tasks, 0.08), rgba(255, 255, 255, 0.94));
+  box-shadow: 0 8px 18px rgba($c-step-tasks, 0.08);
 }
 
 .taskStepHeaderContent {
@@ -920,11 +1078,37 @@
 }
 
 .taskStepHeaderChevron {
+  display: inline-flex;
+  align-items: center;
   min-width: 20px;
   justify-content: center;
   font-size: 12px !important;
   font-weight: 700;
-  color: $c-primary !important;
+  color: $c-step-tasks !important;
+}
+
+.taskStepHeaderToggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  min-width: 34px;
+  border: 1px solid rgba($c-step-tasks, 0.16);
+  border-radius: $r-sm;
+  background: rgba(255, 255, 255, 0.75);
+  color: $c-step-tasks;
+  cursor: pointer;
+  transition: $t-fast;
+
+  &:hover {
+    border-color: rgba($c-step-tasks, 0.32);
+    background: rgba($c-step-tasks, 0.08);
+  }
+}
+
+.taskStepHeaderToggleActive {
+  border-color: rgba($c-step-tasks, 0.46);
+  background: rgba($c-step-tasks, 0.12);
 }
 
 .taskStepMain {
@@ -937,7 +1121,7 @@
 .taskStepWbs {
   font-size: $f-xs;
   font-weight: 700;
-  color: $c-primary;
+  color: $c-step-tasks;
   white-space: nowrap;
 }
 
@@ -971,7 +1155,7 @@
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: $sp-2;
   padding: $sp-2;
-  border: 1px solid rgba($c-primary, 0.12);
+  border: 1px solid rgba($c-step-tasks, 0.16);
   border-radius: $r-sm;
   background: rgba(255, 255, 255, 0.7);
 }
@@ -1006,7 +1190,7 @@
   strong {
     display: block;
     font-size: $f-xs;
-    color: $c-primary;
+    color: $c-step-tasks;
     margin-bottom: 2px;
   }
 
@@ -1029,7 +1213,7 @@
     color: $c-text-subtle;
     padding: 2px 6px;
     border-radius: 999px;
-    background: rgba($c-primary, 0.08);
+    background: rgba($c-step-tasks, 0.08);
   }
 }
 
@@ -1153,9 +1337,3 @@
 }
 
 // stylelint-enable selector-class-pattern
-
-.taskTemplateSubprocessSlot {
-  margin-top: $sp-3;
-  border-top: 1px solid rgba($c-primary, 0.08);
-  padding: $sp-3 $sp-3 0;
-}

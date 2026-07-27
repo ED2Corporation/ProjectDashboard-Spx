@@ -15,7 +15,7 @@ interface ISubprocessTaskCardProps {
   currentUserEmail?: string;
   currentUserDisplayName?: string;
   onClose: () => void;
-  onSave: (nextSubTask: ISubprocessSubTask) => void;
+  onSave: (nextSubTask: ISubprocessSubTask) => void | Promise<void>;
   onUploadEvidenceFile?: (
     file: File,
     taskTitle: string
@@ -69,6 +69,8 @@ const SubprocessTaskCard: React.FC<ISubprocessTaskCardProps> = ({
   const [approvals, setApprovals] = useState<IApprovalEntry[]>(subTask.approvals ?? []);
   const [columnFocus, setColumnFocus] = useState<SubprocessColumnFocus>("balanced");
   const notesRef = useRef<INoteEntry[]>(subTask.notes ?? []);
+  const evidenceRef = useRef<IEvidenceEntry[]>(subTask.evidence ?? []);
+  const approvalsRef = useRef<IApprovalEntry[]>(subTask.approvals ?? []);
 
   useEffect(() => {
     setTaskTitle(subTask.task || "");
@@ -80,7 +82,9 @@ const SubprocessTaskCard: React.FC<ISubprocessTaskCardProps> = ({
     setNotes(subTask.notes ?? []);
     notesRef.current = subTask.notes ?? [];
     setEvidence(subTask.evidence ?? []);
+    evidenceRef.current = subTask.evidence ?? [];
     setApprovals(subTask.approvals ?? []);
+    approvalsRef.current = subTask.approvals ?? [];
     setActiveTab("notes");
     setColumnFocus("balanced");
   }, [subTask]);
@@ -94,15 +98,16 @@ const SubprocessTaskCard: React.FC<ISubprocessTaskCardProps> = ({
     const nextEntries = [...notesRef.current, entry];
     notesRef.current = nextEntries;
     setNotes(nextEntries);
+    await Promise.resolve(onSave(buildNextSubTask({ notes: nextEntries })));
   };
 
-  const buildNextSubTask = (overrides?: {
+  function buildNextSubTask(overrides?: {
     complete?: number;
     actualFinish?: string;
     evidence?: IEvidenceEntry[];
     notes?: INoteEntry[];
     approvals?: IApprovalEntry[];
-  }): ISubprocessSubTask => {
+  }): ISubprocessSubTask {
     const nextComplete = overrides?.complete ?? complete;
     const nextActualFinish =
       overrides && Object.prototype.hasOwnProperty.call(overrides, "actualFinish")
@@ -119,14 +124,14 @@ const SubprocessTaskCard: React.FC<ISubprocessTaskCardProps> = ({
       start,
       finish,
       actualFinish: nextActualFinish,
-      notes: overrides?.notes ?? notes,
-      evidence: overrides?.evidence ?? evidence,
-      approvals: overrides?.approvals ?? approvals,
+      notes: overrides?.notes ?? notesRef.current,
+      evidence: overrides?.evidence ?? evidenceRef.current,
+      approvals: overrides?.approvals ?? approvalsRef.current,
     };
-  };
+  }
 
-  const handleSave = (): void => {
-    onSave(buildNextSubTask());
+  const handleSave = async (): Promise<void> => {
+    await Promise.resolve(onSave(buildNextSubTask()));
     onClose();
   };
 
@@ -155,11 +160,19 @@ const SubprocessTaskCard: React.FC<ISubprocessTaskCardProps> = ({
     });
 
     setEvidence(nextEntries);
-    await appendAuditNote(
-      nextEntries.some(current => current.fileUrl === entry.fileUrl && current.date === entry.date && current.isEvidenceOfCompletion)
+    evidenceRef.current = nextEntries;
+    const isMarked = nextEntries.some(current => current.fileUrl === entry.fileUrl && current.date === entry.date && current.isEvidenceOfCompletion);
+    const auditNote: INoteEntry = {
+      date: new Date().toISOString(),
+      user: currentUserDisplayName ?? "",
+      note: isMarked
         ? `Evidence of completion marked for file ${entry.fileName} by ${currentUserDisplayName ?? "system"}`
-        : `Evidence of completion removed for file ${entry.fileName} by ${currentUserDisplayName ?? "system"}`
-    );
+        : `Evidence of completion removed for file ${entry.fileName} by ${currentUserDisplayName ?? "system"}`,
+    };
+    const nextNotes = [...notesRef.current, auditNote];
+    notesRef.current = nextNotes;
+    setNotes(nextNotes);
+    await Promise.resolve(onSave(buildNextSubTask({ evidence: nextEntries, notes: nextNotes })));
   };
 
   const buildApprovalEmail = (requestedBy: string): { subject: string; body: string } => ({
@@ -351,6 +364,7 @@ const SubprocessTaskCard: React.FC<ISubprocessTaskCardProps> = ({
                 onSave={async (entries: INoteEntry[]) => {
                   notesRef.current = entries;
                   setNotes(entries);
+                  await Promise.resolve(onSave(buildNextSubTask({ notes: entries })));
                 }}
               />
             )}
@@ -362,18 +376,22 @@ const SubprocessTaskCard: React.FC<ISubprocessTaskCardProps> = ({
                 currentUserDisplayName={currentUserDisplayName ?? ""}
                 onSave={async (entries: IEvidenceEntry[], uploadedEntry?: IEvidenceEntry) => {
                   setEvidence(entries);
+                  evidenceRef.current = entries;
+                  let nextNotes = notesRef.current;
 
                   if (uploadedEntry) {
                     const uploadNote = uploadedEntry.note
                       ? `File uploaded by ${uploadedEntry.user}: ${uploadedEntry.fileName}. Note: ${uploadedEntry.note}`
                       : `File uploaded by ${uploadedEntry.user}: ${uploadedEntry.fileName}`;
-                    const nextNotes = [
+                    nextNotes = [
                       ...notesRef.current,
                       { date: uploadedEntry.date, user: uploadedEntry.user, note: uploadNote },
                     ];
                     notesRef.current = nextNotes;
                     setNotes(nextNotes);
                   }
+
+                  await Promise.resolve(onSave(buildNextSubTask({ evidence: entries, notes: nextNotes })));
                 }}
                 onToggleEvidenceOfCompletion={handleToggleEvidenceOfCompletion}
                 onUploadFile={onUploadEvidenceFile}
@@ -389,6 +407,8 @@ const SubprocessTaskCard: React.FC<ISubprocessTaskCardProps> = ({
                 canManageApprovers={true}
                 onSave={async (entries: IApprovalEntry[]) => {
                   setApprovals(entries);
+                  approvalsRef.current = entries;
+                  await Promise.resolve(onSave(buildNextSubTask({ approvals: entries })));
                 }}
                 onSendEmail={onSendEmail ?? (async () => undefined)}
                 onSearchUsers={onSearchUsers}

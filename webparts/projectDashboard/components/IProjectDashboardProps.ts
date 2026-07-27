@@ -26,7 +26,7 @@ export interface IProjectDashboardProps {
     taskName: string,
     action: "quick-complete" | "full-update",
     payloadJson?: string
-  ) => void;
+  ) => void | Promise<void>;
   onUploadFile?: UploadEvidenceHandler;
 
   onCreateNewProject?: (

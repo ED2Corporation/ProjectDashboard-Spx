@@ -290,7 +290,7 @@ describe('TaskCard', () => {
     expect(parsed.Complete).toBe(25);
   });
 
-  it('aggregates subprocess, task steps, and parent task complete in cascade', async () => {
+  it('aggregates subprocess, Step Tasks, and parent task complete in cascade', async () => {
     const onSave = jest.fn();
 
     render(
