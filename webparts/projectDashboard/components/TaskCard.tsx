@@ -1287,6 +1287,10 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
           <div className={styles.taskStepsPreview}>
             {taskSteps.steps.map(step => {
               const isSelectedStep = step.id === selectedTaskStepId;
+              const stepSubprocess = step.subprocess ?? { subTasks: [] };
+              const stepSubtasksComplete = stepSubprocess.subTasks.length > 0
+                ? aggregateSubprocessComplete(stepSubprocess)
+                : clampPercentValue(step.complete);
 
               return (
                 <div key={step.id} className={styles.taskStepItem}>
@@ -1318,7 +1322,8 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
                       </div>
                       <div className={styles.taskStepMeta}>
                         <span>{step.units} units</span>
-                        <span>{step.subprocess?.subTasks?.length ?? 0} subprocess</span>
+                        <span>{stepSubtasksComplete}% complete</span>
+                        <span>{stepSubprocess.subTasks.length} subprocess</span>
                         <span>{step.start || "-"} to {step.finish || "-"}</span>
                       </div>
                     </button>
@@ -1923,13 +1928,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
                       Description: uploadedEntry.note || uploadedEntry.fileName,
                     };
                     setEvidenceOfCompletion(nextEvidenceOfCompletion);
-                    skipNextCompleteEffectRef.current = true;
-                    previousCompleteRef.current = 100;
-                    setComplete(100);
-                    handleSave({
-                      complete: 100,
-                      evidenceOfCompletion: nextEvidenceOfCompletion,
-                    });
+                    handleSave({ evidenceOfCompletion: nextEvidenceOfCompletion });
                     await appendAuditNote(`Evidence of completion uploaded by ${uploadedEntry.user}: ${uploadedEntry.fileName}`);
                   } else {
                     handleSave();

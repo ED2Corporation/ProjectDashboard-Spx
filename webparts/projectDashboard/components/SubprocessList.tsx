@@ -365,7 +365,6 @@ const SubprocessList: React.FC<ISubprocessListProps> = ({
                         onUploadFile={onUploadEvidenceFile}
                         onSave={(entries) => onSaveEvidenceEntries(item.id, entries)}
                         isEvidenceOfCompletion={true}
-                        onUploaded={() => setEditPercentComplete(100)}
                         label={
                           <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: "inherit" }}>
                             <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ width: "1.1em", height: "1.1em", flexShrink: 0 }} aria-hidden="true">

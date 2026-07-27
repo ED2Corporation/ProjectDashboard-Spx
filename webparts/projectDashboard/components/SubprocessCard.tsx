@@ -250,7 +250,6 @@ const SubprocessCard: React.FC<SubprocessCardProps> = ({
     entries: IEvidenceEntry[]
   ): Promise<void> => {
     const uploadedEntry = entries[entries.length - 1];
-    const today = new Date().toISOString().slice(0, 10);
 
     const nextValue = commitSubTasks(
       normalizedSubTasks.map(entry => {
@@ -271,8 +270,6 @@ const SubprocessCard: React.FC<SubprocessCardProps> = ({
 
         return {
           ...entry,
-          complete: 100,
-          actualFinish: today,
           evidence: entries,
           notes: nextNotes,
         };
