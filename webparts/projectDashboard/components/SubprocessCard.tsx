@@ -13,7 +13,7 @@ interface SubprocessCardProps {
   parentFinish: string;
   value: ITaskSubprocessData;
   onChange: (nextValue: ITaskSubprocessData) => void;
-  onSaveSubprocess?: (nextValue: ITaskSubprocessData) => void;
+  onSaveSubprocess?: (nextValue: ITaskSubprocessData) => void | Promise<void>;
   onClose?: () => void;
   currentUserEmail?: string;
   currentUserDisplayName?: string;
@@ -30,6 +30,8 @@ interface SubprocessCardProps {
   taskStepsPanel?: React.ReactNode;
   isCollapsed?: boolean;
   closeLabel?: string;
+  headerKicker?: string;
+  headerTitle?: string;
 }
 
 type MoveDirection = "first" | "up" | "down" | "last";
@@ -100,6 +102,8 @@ const SubprocessCard: React.FC<SubprocessCardProps> = ({
   taskStepsPanel,
   isCollapsed = false,
   closeLabel,
+  headerKicker,
+  headerTitle,
 }) => {
   const [selectedSubTaskId, setSelectedSubTaskId] = useState<string | undefined>(undefined);
   const [editingSubTaskId, setEditingSubTaskId] = useState<string | undefined>(undefined);
@@ -200,7 +204,7 @@ const SubprocessCard: React.FC<SubprocessCardProps> = ({
       )
     );
     setEditingSubTaskId(undefined);
-    onSaveSubprocess?.(nextValue);
+    void onSaveSubprocess?.(nextValue);
   };
 
   const handleMove = (subTaskId: string, direction: MoveDirection): void => {
@@ -280,7 +284,7 @@ const SubprocessCard: React.FC<SubprocessCardProps> = ({
       ))
     );
     setSelectedSubTaskId(nextSubTask.id);
-    onSaveSubprocess?.(nextValue);
+    void onSaveSubprocess?.(nextValue);
   };
 
   const handleImportClick = (): void => {
@@ -302,7 +306,7 @@ const SubprocessCard: React.FC<SubprocessCardProps> = ({
       setSelectedSubTaskId(importedSubTasks[0]?.id);
       setEditingSubTaskId(undefined);
       setDetailSubTaskId(undefined);
-      onSaveSubprocess?.(nextValue);
+      void onSaveSubprocess?.(nextValue);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unable to import subprocess template.";
       alert(message);
@@ -319,8 +323,8 @@ const SubprocessCard: React.FC<SubprocessCardProps> = ({
     <div className={styles.card} data-testid="subprocess-workspace">
       <div className={styles.header}>
         <div>
-          <div className={styles.kicker}>Subprocess Workspace</div>
-          <h3 className={styles.title}>Subprocess</h3>
+          <div className={styles.kicker}>{headerKicker ?? "Subprocess Workspace"}</div>
+          <h3 className={styles.title}>{headerTitle ?? "Subprocess"}</h3>
         </div>
         <div className={styles.headerMeta}>
           <div className={styles.contextActions}>

@@ -40,6 +40,8 @@ export interface ITaskStepsData {
   totalUnits: number;
   unitsPerStep: number;
   stepCount: number;
+  mode?: "fixed" | "weekday";
+  weekdays?: number[];
   steps: ITaskStepEntry[];
 }
 
@@ -247,6 +249,12 @@ export const getTaskSteps = (raw?: string): ITaskStepsData => {
   const totalUnits = Math.max(0, Math.floor(asNumber(taskSteps.totalUnits)));
   const unitsPerStep = Math.max(0, Math.floor(asNumber(taskSteps.unitsPerStep)));
   const stepCount = Math.max(0, Math.floor(asNumber(taskSteps.stepCount)));
+  const mode = taskSteps.mode === "weekday" ? "weekday" : "fixed";
+  const weekdaysRaw = Array.isArray(taskSteps.weekdays) ? taskSteps.weekdays : [];
+  const weekdays = weekdaysRaw
+    .map((entry) => Math.floor(asNumber(entry)))
+    .filter((entry, index, array) => entry >= 1 && entry <= 6 && array.indexOf(entry) === index)
+    .sort((a, b) => a - b);
   const normalizedSteps = stepsRaw
     .map((entry, index) => normalizeTaskStep(entry, index))
     .sort((a, b) => a.sortOrder - b.sortOrder)
@@ -257,6 +265,8 @@ export const getTaskSteps = (raw?: string): ITaskStepsData => {
     totalUnits: totalUnits > 0 ? totalUnits : normalizedSteps.reduce((sum, entry) => sum + entry.units, 0),
     unitsPerStep: unitsPerStep > 0 ? unitsPerStep : (normalizedSteps[0]?.units ?? 0),
     stepCount: stepCount > 0 ? stepCount : normalizedSteps.length,
+    mode,
+    weekdays: weekdays.length > 0 ? weekdays : [1],
     steps: normalizedSteps,
   };
 };
@@ -324,11 +334,21 @@ export const buildTaskJsonTable = (
         sortOrder: index,
       }));
 
+    const taskStepMode = options.taskSteps.mode === "weekday" ? "weekday" : "fixed";
+    const taskStepWeekdays = Array.isArray(options.taskSteps.weekdays)
+      ? options.taskSteps.weekdays
+          .map((entry) => Math.floor(asNumber(entry)))
+          .filter((entry, index, array) => entry >= 1 && entry <= 6 && array.indexOf(entry) === index)
+          .sort((a, b) => a - b)
+      : [];
+
     next.taskSteps = {
       enabled: options.taskSteps.enabled === true || normalizedSteps.length > 0,
       totalUnits: Math.max(0, Math.floor(asNumber(options.taskSteps.totalUnits))),
       unitsPerStep: Math.max(0, Math.floor(asNumber(options.taskSteps.unitsPerStep))),
       stepCount: Math.max(0, Math.floor(asNumber(options.taskSteps.stepCount))),
+      mode: taskStepMode,
+      weekdays: taskStepMode === "weekday" ? (taskStepWeekdays.length > 0 ? taskStepWeekdays : [1]) : undefined,
       steps: normalizedSteps,
     };
   }
