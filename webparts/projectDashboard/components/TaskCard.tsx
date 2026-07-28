@@ -7,10 +7,10 @@ import EvidenceLog from "./EvidenceLog";
 import ApprovalsLog from "./ApprovalsLog";
 import SubprocessCard from "./SubprocessCard";
 import TaskStepsTable from "./TaskStepsTable";
+import { useQueuedTaskSave } from "../hooks/useQueuedTaskSave";
+import { buildTaskPersistencePayload, ITaskJsonTableSizeStatus } from "../utils/TaskPersistencePayload";
 import {
-  buildTaskJsonTable,
   getTaskReleaseUnits,
-  getTaskSortOrder,
   getTaskSteps,
   getTaskSubprocess,
   ITaskStepEntry,
@@ -306,6 +306,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
   const notesLogRef        = useRef<INoteEntry[]>(task.Notes ?? []);
   const previousCompleteRef = useRef<number>(task.Complete ?? 0);
   const previousTaskIdRef = useRef<string>(task.Id);
+  const latestJsonTableRef = useRef<string | undefined>(task.jsonTable);
   const skipNextCompleteEffectRef = useRef(false);
   const skipNextTaskStepsRecalcRef = useRef(true);
   const hasTaskSteps = taskSteps.enabled && taskSteps.steps.length > 0;
@@ -317,6 +318,17 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
       ? "Complete is calculated from subprocess tasks. Update progress in Subprocess Workspace."
       : undefined;
   const isTaskCompleteLocked = !!taskCompleteLockMessage;
+  const queueTaskSave = useQueuedTaskSave(task.Id, onSave);
+
+  const reportJsonTableSize = (jsonTableSize: ITaskJsonTableSizeStatus): void => {
+    if (jsonTableSize.level === "ok") return;
+    console.warn("[TaskCard] Large jsonTable payload", {
+      taskId: task.Id,
+      level: jsonTableSize.level,
+      length: jsonTableSize.length,
+      message: jsonTableSize.message,
+    });
+  };
 
   const buildTaskStepsData = (source: TaskStepsSource, rawValue: number, enabled = true): ITaskStepsData => {
     const totalUnits = asPositiveInteger(projectUnits ?? 0);
@@ -570,6 +582,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
 
   useEffect(() => {
     const isSameTask = previousTaskIdRef.current === task.Id;
+    if (!isSameTask) latestJsonTableRef.current = task.jsonTable;
     setWbs(task.Title ?? "");
     setGate(task.Gate ?? "");
     setGateEditEnabled(false);
@@ -717,120 +730,82 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
     const effectiveEvidence = overrides && Object.prototype.hasOwnProperty.call(overrides, 'evidenceOfCompletion')
       ? overrides.evidenceOfCompletion
       : evidenceOfCompletion;
-    const actualFinish: Date | null =
+    const actualFinish: Date | undefined =
       effectiveComplete === 100
         ? task.ActualFinish ? new Date(task.ActualFinish) : new Date()
-        : null;
-
+        : undefined;
     const gateChanged = gate !== task.Gate;
-    const sortOrder = getTaskSortOrder(task.jsonTable);
+    const sourceJsonTable = latestJsonTableRef.current ?? task.jsonTable;
     const nextTaskSteps = derivedTaskSteps;
     const hasTaskStepsData = nextTaskSteps.enabled && nextTaskSteps.steps.length > 0;
     const hasSubprocessData = subprocess.subTasks.length > 0;
-    const jsonTable = buildTaskJsonTable(task.jsonTable, {
-      sortOrder,
-      isRelease: isRelease || undefined,
-      releaseUnits: isRelease ? releaseUnits : undefined,
+    const { payload, jsonTable, jsonTableSize } = buildTaskPersistencePayload({
+      task,
+      sourceJsonTable,
+      title: wbs,
+      gate,
+      taskTitle,
+      complete: effectiveComplete,
+      effort,
+      barriers,
+      actionableStatus,
+      start,
+      finish,
+      actualFinish,
+      isRelease,
+      releaseUnits,
+      evidenceOfCompletion: effectiveEvidence,
       subprocess: hasSubprocessData ? subprocess : undefined,
       clearSubprocess: !hasSubprocessData,
       taskSteps: hasTaskStepsData ? nextTaskSteps : undefined,
       clearTaskSteps: !hasTaskStepsData,
-    });
-    const data = {
-      Id: task.Id,
-      Title: wbs,
-      Gate: gate,
-      Task: taskTitle,
-      Complete: effectiveComplete,
-      Effort: effort ? Number(effort) : undefined,
-      Barriers: barriers,
-      ActionableStatus: actionableStatus,
-      Start: start ? new Date(start) : undefined,
-      Finish: finish ? new Date(finish) : undefined,
-      ActualFinish: actualFinish,
-      Description: task.Description ?? "",
-      jsonTable: jsonTable ?? "",
-      isRelease,
-      releaseUnits: isRelease ? releaseUnits : 0,
-      EvidenceOfCompletion: effectiveEvidence,
       ...(gateChanged && { originalGate: task.Gate, renameGate: renameAllGateTasks }),
-    };
+    });
 
-    setComplete(effectiveComplete);
-    void onSave(task.Id, JSON.stringify(data));
+    setComplete(effectiveComplete); latestJsonTableRef.current = jsonTable;
+    reportJsonTableSize(jsonTableSize);
+    void queueTaskSave(payload).catch(error => { console.error("[TaskCard] Save failed", error); alert("Unable to save task changes. Refresh before continuing."); });
   };
 
   const handleSaveSubprocessOnly = async (nextSubprocess: ITaskSubprocessData): Promise<void> => {
     const hasSubprocessData = nextSubprocess.subTasks.length > 0;
     const aggregatedComplete = hasSubprocessData ? aggregateSubprocessComplete(nextSubprocess) : 0;
-    const jsonTable = buildTaskJsonTable(task.jsonTable, {
-      sortOrder: getTaskSortOrder(task.jsonTable),
-      isRelease: task.isRelease || undefined,
-      releaseUnits: task.isRelease ? task.releaseUnits : undefined,
+    const sourceJsonTable = latestJsonTableRef.current ?? task.jsonTable;
+    const { payload, jsonTable, jsonTableSize } = buildTaskPersistencePayload({
+      task,
+      sourceJsonTable,
+      complete: aggregatedComplete,
+      actualFinish: aggregatedComplete === 100 ? (task.ActualFinish ?? new Date()) : undefined,
       subprocess: hasSubprocessData ? nextSubprocess : undefined,
       clearSubprocess: !hasSubprocessData,
     });
 
-    const data = {
-      Id: task.Id,
-      Title: task.Title ?? "",
-      Gate: task.Gate ?? "",
-      Task: task.Task ?? "",
-      Complete: aggregatedComplete,
-      Effort: task.Effort,
-      Barriers: task.Barriers ?? "",
-      ActionableStatus: task.ActionableStatus ?? "",
-      Start: task.Start ?? undefined,
-      Finish: task.Finish ?? undefined,
-      ActualFinish: aggregatedComplete === 100 ? (task.ActualFinish ?? new Date()) : undefined,
-      Description: task.Description ?? "",
-      jsonTable: jsonTable ?? "",
-      isRelease: task.isRelease ?? false,
-      releaseUnits: task.isRelease ? (task.releaseUnits ?? 0) : 0,
-      EvidenceOfCompletion: task.EvidenceOfCompletion,
-    };
-
-    setSubprocess(nextSubprocess);
-    setComplete(aggregatedComplete);
-    await Promise.resolve(onSave(task.Id, JSON.stringify(data)));
+    setSubprocess(nextSubprocess); setComplete(aggregatedComplete);
+    latestJsonTableRef.current = jsonTable;
+    reportJsonTableSize(jsonTableSize);
+    await queueTaskSave(payload);
   };
 
   const handleSaveTaskStepsOnly = async (nextTaskSteps: ITaskStepsData): Promise<void> => {
     const normalizedTaskSteps = normalizeTaskStepsAggregation(nextTaskSteps);
     const hasTaskStepsData = normalizedTaskSteps.enabled && normalizedTaskSteps.steps.length > 0;
     const aggregatedComplete = hasTaskStepsData ? aggregateTaskStepsComplete(normalizedTaskSteps) : 0;
-    const jsonTable = buildTaskJsonTable(task.jsonTable, {
-      sortOrder: getTaskSortOrder(task.jsonTable),
-      isRelease: task.isRelease || undefined,
-      releaseUnits: task.isRelease ? task.releaseUnits : undefined,
+    const sourceJsonTable = latestJsonTableRef.current ?? task.jsonTable;
+    const { payload, jsonTable, jsonTableSize } = buildTaskPersistencePayload({
+      task,
+      sourceJsonTable,
+      complete: aggregatedComplete,
+      actualFinish: aggregatedComplete === 100 ? (task.ActualFinish ?? new Date()) : undefined,
       subprocess: subprocess.subTasks.length > 0 ? subprocess : undefined,
       clearSubprocess: subprocess.subTasks.length <= 0,
       taskSteps: hasTaskStepsData ? normalizedTaskSteps : undefined,
       clearTaskSteps: !hasTaskStepsData,
     });
 
-    const data = {
-      Id: task.Id,
-      Title: task.Title ?? "",
-      Gate: task.Gate ?? "",
-      Task: task.Task ?? "",
-      Complete: aggregatedComplete,
-      Effort: task.Effort,
-      Barriers: task.Barriers ?? "",
-      ActionableStatus: task.ActionableStatus ?? "",
-      Start: task.Start ?? undefined,
-      Finish: task.Finish ?? undefined,
-      ActualFinish: aggregatedComplete === 100 ? (task.ActualFinish ?? new Date()) : undefined,
-      Description: task.Description ?? "",
-      jsonTable: jsonTable ?? "",
-      isRelease: task.isRelease ?? false,
-      releaseUnits: task.isRelease ? (task.releaseUnits ?? 0) : 0,
-      EvidenceOfCompletion: task.EvidenceOfCompletion,
-    };
-
-    setTaskSteps(normalizedTaskSteps);
-    setComplete(aggregatedComplete);
-    await Promise.resolve(onSave(task.Id, JSON.stringify(data)));
+    setTaskSteps(normalizedTaskSteps); setComplete(aggregatedComplete);
+    latestJsonTableRef.current = jsonTable;
+    reportJsonTableSize(jsonTableSize);
+    await queueTaskSave(payload);
   };
 
   const handleSaveTaskStepSubprocessOnly = async (stepId: string, nextSubprocess: ITaskSubprocessData): Promise<void> => {
@@ -925,7 +900,6 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
 </div>`.trim();
     return { subject, body };
   };
-
 
   const saveNotesEntries = async (entries: INoteEntry[], shouldSaveTask = false): Promise<void> => {
     setNotesLog(entries);

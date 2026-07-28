@@ -187,4 +187,79 @@ describe('TaskDescriptionBlob subprocess support', () => {
       complete: 50,
     });
   });
+
+  it('preserves sibling persistence branches when updating subprocess or task steps', () => {
+    const raw = buildTaskJsonTable(undefined, {
+      subprocess: {
+        subTasks: [{
+          id: 'parent-sp-1',
+          wbs: '1.0.01',
+          sortOrder: 0,
+          task: 'Parent subprocess',
+          complete: 10,
+          start: '2026-04-08',
+          finish: '2026-04-08',
+          notes: [{ date: '2026-04-08', user: 'Ops', note: 'Parent note' }],
+        }],
+      },
+      taskSteps: {
+        enabled: true,
+        totalUnits: 20,
+        unitsPerStep: 10,
+        stepCount: 2,
+        steps: [{
+          id: 'step-1',
+          wbs: '1.0.01',
+          sortOrder: 0,
+          title: 'Lot 1',
+          units: 10,
+          complete: 50,
+          start: '2026-04-08',
+          finish: '2026-04-08',
+          subprocess: {
+            subTasks: [{
+              id: 'step-sp-1',
+              wbs: '1.0.01.01',
+              sortOrder: 0,
+              task: 'Step subprocess',
+              complete: 25,
+              start: '2026-04-08',
+              finish: '2026-04-08',
+              evidence: [{ date: '2026-04-08', user: 'Ops', fileName: 'step.pdf', fileUrl: '/step.pdf' }],
+            }],
+          },
+        }],
+      },
+    });
+
+    const subprocessOnlyUpdate = buildTaskJsonTable(raw, {
+      subprocess: {
+        subTasks: [{
+          id: 'parent-sp-1',
+          wbs: '1.0.01',
+          sortOrder: 0,
+          task: 'Parent subprocess updated',
+          complete: 100,
+          start: '2026-04-08',
+          finish: '2026-04-08',
+        }],
+      },
+    });
+    const preservedSteps = getTaskSteps(subprocessOnlyUpdate);
+    expect(getTaskSubprocess(subprocessOnlyUpdate).subTasks[0].task).toBe('Parent subprocess updated');
+    expect(preservedSteps.steps[0].subprocess?.subTasks[0].evidence?.[0].fileName).toBe('step.pdf');
+
+    const taskStepsOnlyUpdate = buildTaskJsonTable(subprocessOnlyUpdate, {
+      taskSteps: {
+        ...preservedSteps,
+        steps: preservedSteps.steps.map(step => ({
+          ...step,
+          complete: 75,
+        })),
+      },
+    });
+
+    expect(getTaskSubprocess(taskStepsOnlyUpdate).subTasks[0].complete).toBe(100);
+    expect(getTaskSteps(taskStepsOnlyUpdate).steps[0].complete).toBe(75);
+  });
 });

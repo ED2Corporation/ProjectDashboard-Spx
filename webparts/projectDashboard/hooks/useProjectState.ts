@@ -173,7 +173,12 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
     options?: { includeJsonTableDefault?: boolean }
   ): Record<string, unknown> => {
     const nextPayload = { ...payload };
-    const includeJsonTable = jsonTableFieldAvailableRef.current !== false && options?.includeJsonTableDefault !== false;
+    const payloadRequiresJsonTable =
+      typeof nextPayload.jsonTable === "string" &&
+      nextPayload.jsonTable.trim() !== "";
+    const includeJsonTable =
+      payloadRequiresJsonTable ||
+      (jsonTableFieldAvailableRef.current !== false && options?.includeJsonTableDefault !== false);
 
     if (!includeJsonTable) {
       delete nextPayload.jsonTable;
@@ -898,6 +903,7 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
       }
     } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
       MessageLog(`[onUpdateTask] Error: ${error.message}`, "error");
+      throw error;
     }
   }, [config.isPlanner, _updatePlannerTask, _updateListTask, onReset]);
 

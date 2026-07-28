@@ -112,7 +112,10 @@ const SubprocessCard: React.FC<SubprocessCardProps> = ({
   const [movingSubTaskId, setMovingSubTaskId] = useState<string | undefined>(undefined);
   const [detailSubTaskId, setDetailSubTaskId] = useState<string | undefined>(undefined);
   const [isImporting, setIsImporting] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [saveError, setSaveError] = useState<string>("");
   const importInputRef = useRef<HTMLInputElement | null>(null);
+  const saveStatusTimerRef = useRef<number | undefined>(undefined);
 
   const normalizedSubTasks = useMemo(
     () => normalizeSubTasks(parentWbs, value.subTasks),
@@ -149,6 +152,46 @@ const SubprocessCard: React.FC<SubprocessCardProps> = ({
     setSelectedSubTaskId(normalizedSubTasks[0].id);
   }, [normalizedSubTasks, selectedSubTaskId]);
 
+  useEffect(() => () => {
+    if (saveStatusTimerRef.current !== undefined) {
+      window.clearTimeout(saveStatusTimerRef.current);
+    }
+  }, []);
+
+  const clearSaveStatusTimer = (): void => {
+    if (saveStatusTimerRef.current !== undefined) {
+      window.clearTimeout(saveStatusTimerRef.current);
+      saveStatusTimerRef.current = undefined;
+    }
+  };
+
+  const scheduleSaveStatusClear = (): void => {
+    clearSaveStatusTimer();
+    const timerId = window.setTimeout(() => {
+      setSaveStatus("idle");
+      saveStatusTimerRef.current = undefined;
+    }, 1800);
+    saveStatusTimerRef.current = timerId;
+  };
+
+  const persistSubprocess = async (nextValue: ITaskSubprocessData): Promise<void> => {
+    if (!onSaveSubprocess) return;
+    clearSaveStatusTimer();
+    setSaveStatus("saving");
+    setSaveError("");
+
+    try {
+      await Promise.resolve(onSaveSubprocess(nextValue));
+      setSaveStatus("saved");
+      scheduleSaveStatusClear();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unable to save subprocess changes.";
+      setSaveStatus("error");
+      setSaveError(message);
+      throw error;
+    }
+  };
+
   const commitSubTasks = (subTasks: ISubprocessSubTask[]): ITaskSubprocessData => {
     const nextValue = {
       ...value,
@@ -160,7 +203,7 @@ const SubprocessCard: React.FC<SubprocessCardProps> = ({
 
   const saveSubTasks = (subTasks: ISubprocessSubTask[]): ITaskSubprocessData => {
     const nextValue = commitSubTasks(subTasks);
-    void onSaveSubprocess?.(nextValue);
+    void persistSubprocess(nextValue).catch(() => undefined);
     return nextValue;
   };
 
@@ -212,7 +255,7 @@ const SubprocessCard: React.FC<SubprocessCardProps> = ({
       )
     );
     setEditingSubTaskId(undefined);
-    void onSaveSubprocess?.(nextValue);
+    void persistSubprocess(nextValue).catch(() => undefined);
   };
 
   const handleMove = (subTaskId: string, direction: MoveDirection): void => {
@@ -275,7 +318,7 @@ const SubprocessCard: React.FC<SubprocessCardProps> = ({
         };
       })
     );
-    await Promise.resolve(onSaveSubprocess?.(nextValue));
+    await persistSubprocess(nextValue);
   };
 
   const handleSaveDetail = (nextSubTask: ISubprocessSubTask): void => {
@@ -290,7 +333,7 @@ const SubprocessCard: React.FC<SubprocessCardProps> = ({
       ))
     );
     setSelectedSubTaskId(nextSubTask.id);
-    void onSaveSubprocess?.(nextValue);
+    void persistSubprocess(nextValue).catch(() => undefined);
   };
 
   const handleImportClick = (): void => {
@@ -312,7 +355,7 @@ const SubprocessCard: React.FC<SubprocessCardProps> = ({
       setSelectedSubTaskId(importedSubTasks[0]?.id);
       setEditingSubTaskId(undefined);
       setDetailSubTaskId(undefined);
-      await Promise.resolve(onSaveSubprocess?.(nextValue));
+      await persistSubprocess(nextValue);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unable to import subprocess template.";
       alert(message);
@@ -336,6 +379,14 @@ const SubprocessCard: React.FC<SubprocessCardProps> = ({
   const subprocessFinishDates = normalizedSubTasks.map(entry => entry.finish).filter(Boolean).sort();
   const subprocessStart = subprocessStartDates[0] || parentStart || "N/A";
   const subprocessFinish = subprocessFinishDates[subprocessFinishDates.length - 1] || parentFinish || "N/A";
+  const saveStatusText =
+    saveStatus === "saving"
+      ? "Saving..."
+      : saveStatus === "saved"
+        ? "Saved"
+        : saveStatus === "error"
+          ? "Save failed"
+          : "";
   const detailCard = detailSubTask ? (
     <SubprocessTaskCard
       subTask={detailSubTask}
@@ -371,6 +422,20 @@ const SubprocessCard: React.FC<SubprocessCardProps> = ({
           )}
         </div>
         <div className={styles.headerMeta}>
+          {saveStatus !== "idle" && (
+            <div
+              className={[
+                styles.saveStatus,
+                saveStatus === "saving" ? styles.saveStatusSaving : "",
+                saveStatus === "saved" ? styles.saveStatusSaved : "",
+                saveStatus === "error" ? styles.saveStatusError : "",
+              ].filter(Boolean).join(" ")}
+              title={saveStatus === "error" ? saveError : saveStatusText}
+              aria-live="polite"
+            >
+              {saveStatusText}
+            </div>
+          )}
           <div className={styles.contextActions}>
             {!isCollapsed && (
               <>

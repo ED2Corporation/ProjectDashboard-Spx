@@ -5,7 +5,7 @@ import { IEvidenceEntry } from "../../../models/ITaskLogFields";
 import { GetDelay } from "../utils/GetDelay";
 import { GetFormatDate } from "../utils/GetFormatDate";
 import { compareWbs } from "../utils/ParseWBS";
-import { getTaskSteps, getTaskSubprocess } from "../utils/TaskDescriptionBlob";
+import { getTaskCompleteLockMessageFromJsonTable } from "../utils/TaskPersistencePayload";
 import EvidenceUploadButton from "./EvidenceUploadButton";
 import styles from "./ProjectDashboard.module.scss";
 
@@ -48,17 +48,7 @@ const SortIcon = ({ col, active, dir }: { col: string; active: boolean; dir: Sor
 );
 
 const getTaskCompleteLockMessage = (task: ITaskListItem): string | undefined => {
-  const taskSteps = getTaskSteps(task.jsonTable);
-  if (taskSteps.enabled && taskSteps.steps.length > 0) {
-    return "Complete is calculated from Step Tasks. Update progress in Step Tasks.";
-  }
-
-  const subprocess = getTaskSubprocess(task.jsonTable);
-  if (subprocess.subTasks.length > 0) {
-    return "Complete is calculated from subprocess tasks. Update progress in Subprocess Workspace.";
-  }
-
-  return undefined;
+  return getTaskCompleteLockMessageFromJsonTable(task.jsonTable);
 };
 
 const ListTasks = ({

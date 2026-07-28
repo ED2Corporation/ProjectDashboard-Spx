@@ -99,6 +99,37 @@
   justify-content: flex-end;
 }
 
+.saveStatus {
+  align-self: flex-end;
+  padding: 3px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba($c-border, 0.8);
+  background: rgba($c-surface-soft, 0.92);
+  color: rgba($c-text, 0.72);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.saveStatusSaving {
+  border-color: rgba(14, 116, 144, 0.28);
+  background: rgba(224, 247, 250, 0.9);
+  color: #0e7490;
+}
+
+.saveStatusSaved {
+  border-color: rgba(22, 101, 52, 0.24);
+  background: rgba(220, 252, 231, 0.9);
+  color: #166534;
+}
+
+.saveStatusError {
+  border-color: rgba(185, 28, 28, 0.28);
+  background: rgba(254, 226, 226, 0.92);
+  color: #991b1b;
+}
+
 .kicker {
   margin-bottom: $sp-1;
   font-size: 10px;

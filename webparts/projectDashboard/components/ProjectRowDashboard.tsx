@@ -20,7 +20,7 @@ import TaskCard from "./TaskCard";
 import ProjectActionsBar from "./ProjectActionsBar";
 import ProjectCatalogEditor from "./ProjectCatalogEditor";
 import styles from "./ProjectRowDashboard.module.scss";
-import { buildTaskJsonTable } from "../utils/TaskDescriptionBlob";
+import { buildTaskSortOrderJsonTable, getTaskCompleteLockMessageFromJsonTable } from "../utils/TaskPersistencePayload";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -282,7 +282,7 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
         if (t.sortOrder !== newOrder) {
           updates.push({
             id: Number(t.Id),
-            jsonTable: buildTaskJsonTable(t.jsonTable, { sortOrder: newOrder }) || JSON.stringify({ sortOrder: newOrder })
+            jsonTable: buildTaskSortOrderJsonTable(t.jsonTable, newOrder)
           });
         }
       });
@@ -346,6 +346,12 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
 
   const handleTaskCompleted = (): void => {
     if (!selectedTask) return;
+    const completeLockMessage = getTaskCompleteLockMessageFromJsonTable(selectedTask.jsonTable);
+    if (completeLockMessage) {
+      alert(completeLockMessage);
+      return;
+    }
+
     const payload = JSON.stringify({ ...selectedTask, Complete: 100, ActualFinish: new Date() });
     void onUpdateTask?.(selectedTask.Id, 'quick-complete', payload);
   };
