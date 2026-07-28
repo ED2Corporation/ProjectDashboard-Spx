@@ -5,6 +5,7 @@ import { IEvidenceEntry } from "../../../models/ITaskLogFields";
 import { GetDelay } from "../utils/GetDelay";
 import { GetFormatDate } from "../utils/GetFormatDate";
 import { compareWbs } from "../utils/ParseWBS";
+import { getTaskSteps, getTaskSubprocess } from "../utils/TaskDescriptionBlob";
 import EvidenceUploadButton from "./EvidenceUploadButton";
 import styles from "./ProjectDashboard.module.scss";
 
@@ -45,6 +46,20 @@ const SortIcon = ({ col, active, dir }: { col: string; active: boolean; dir: Sor
     {active ? (dir === "asc" ? "▲" : "▼") : "▲"}
   </span>
 );
+
+const getTaskCompleteLockMessage = (task: ITaskListItem): string | undefined => {
+  const taskSteps = getTaskSteps(task.jsonTable);
+  if (taskSteps.enabled && taskSteps.steps.length > 0) {
+    return "Complete is calculated from Step Tasks. Update progress in Step Tasks.";
+  }
+
+  const subprocess = getTaskSubprocess(task.jsonTable);
+  if (subprocess.subTasks.length > 0) {
+    return "Complete is calculated from subprocess tasks. Update progress in Subprocess Workspace.";
+  }
+
+  return undefined;
+};
 
 const ListTasks = ({
   tasks,
@@ -227,9 +242,11 @@ const ListTasks = ({
   };
 
   const handleQuickSave = (task: ITaskListItem): void => {
+    const completeLocked = !!getTaskCompleteLockMessage(task);
+    const nextComplete = completeLocked ? (task.Complete || 0) : editPercentComplete;
     let actualFinish: Date | null | undefined;
 
-    if (editPercentComplete === 100) {
+    if (nextComplete === 100) {
       actualFinish = task.ActualFinish ? new Date(task.ActualFinish) : new Date();
     } else {
       actualFinish = null;
@@ -239,7 +256,7 @@ const ListTasks = ({
       Id: task.Id,
       Gate: task.Gate,
       Task: editTaskTitle || task.Task,
-      Complete: editPercentComplete,
+      Complete: nextComplete,
       Start: editStart || null,
       Finish: editFinish || null,
       ActualFinish: actualFinish,
@@ -309,14 +326,14 @@ const ListTasks = ({
                     Completed<SortIcon col="complete" active={sortCol === "complete"} dir={sortDir} />
                   </th>
                   <th
-                    className={`${styles.colDate} ${styles.colSortable}`}
+                    className={`${styles.colDateNarrow} ${styles.colSortable}`}
                     onClick={() => handleColSort("start")}
                     title="Sort by Start"
                   >
                     Start<SortIcon col="start" active={sortCol === "start"} dir={sortDir} />
                   </th>
                   <th
-                    className={`${styles.colDate} ${styles.colSortable}`}
+                    className={`${styles.colDateNarrow} ${styles.colSortable}`}
                     onClick={() => handleColSort("finish")}
                     title="Sort by Finish"
                   >
@@ -370,46 +387,53 @@ const ListTasks = ({
 
                   {/* % Completed */}
                   <td className={styles.cellComplete}>
-                    {editingTaskId === item.Id ? (
-                      <>
-                        {isPlanner ? (
-                          <select
-                            value={editPercentComplete}
-                            onChange={(e) =>
-                              setEditPercentComplete(
-                                Number(e.target.value) || 0
-                              )
-                            }
-                            className={styles.selectComplete}
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <option value={0}>0%</option>
-                            <option value={50}>50%</option>
-                            <option value={100}>100%</option>
-                          </select>
-                        ) : (
-                          <input
-                            type="number"
-                            value={editPercentComplete}
-                            onChange={(e) =>
-                              setEditPercentComplete(
-                                Number(e.target.value) || 0
-                              )
-                            }
-                            className={styles.inputSmall}
-                            onClick={(e) => e.stopPropagation()}
-                            placeholder="% Complete"
-                          />
-                        )}
-                        %
-                      </>
-                    ) : (
-                      <span>{Math.floor(item.Complete)}%</span>
-                    )}
+                    {(() => {
+                      const completeLockMessage = getTaskCompleteLockMessage(item);
+                      if (editingTaskId === item.Id && completeLockMessage) {
+                        return <span title={completeLockMessage}>{Math.floor(item.Complete)}%</span>;
+                      }
+
+                      return editingTaskId === item.Id ? (
+                        <>
+                          {isPlanner ? (
+                            <select
+                              value={editPercentComplete}
+                              onChange={(e) =>
+                                setEditPercentComplete(
+                                  Number(e.target.value) || 0
+                                )
+                              }
+                              className={styles.selectComplete}
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <option value={0}>0%</option>
+                              <option value={50}>50%</option>
+                              <option value={100}>100%</option>
+                            </select>
+                          ) : (
+                            <input
+                              type="number"
+                              value={editPercentComplete}
+                              onChange={(e) =>
+                                setEditPercentComplete(
+                                  Number(e.target.value) || 0
+                                )
+                              }
+                              className={styles.inputSmall}
+                              onClick={(e) => e.stopPropagation()}
+                              placeholder="% Complete"
+                            />
+                          )}
+                          %
+                        </>
+                      ) : (
+                        <span>{Math.floor(item.Complete)}%</span>
+                      );
+                    })()}
                   </td>
 
                   {/* Start */}
-                  <td className={styles.colDate}>
+                  <td className={styles.colDateNarrow}>
                     {editingTaskId === item.Id ? (
                       <input
                         type="date"
@@ -440,7 +464,7 @@ const ListTasks = ({
                   </td>
 
                   {/* Finish */}
-                  <td className={styles.colDate}>
+                  <td className={styles.colDateNarrow}>
                     {editingTaskId === item.Id ? (
                       <input
                         type="date"
@@ -710,20 +734,13 @@ const ListTasks = ({
                           className={`${styles.iconButton} ${styles.actionAddTrigger}`}
                           onClick={(e) => {
                             e.stopPropagation();
-                            onSelectItem(item, "task", "list-create");
+                            startQuickEdit(item);
                           }}
-                          title={creatingTaskId === item.Id ? "Creating…" : "Add / New row"}
-                          disabled={!!creatingTaskId}
+                          title="Complete / Quick edit"
                         >
-                          {creatingTaskId === item.Id ? (
-                            <svg className={`${styles.iconSmall} ${styles.spinning}`} viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                              <circle cx="8" cy="8" r="5.5" stroke="currentColor" strokeWidth="2" strokeDasharray="20 15" strokeLinecap="round"/>
-                            </svg>
-                          ) : (
-                            <svg className={styles.iconSmall} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
-                              <path d="M8 3v10M3 8h10"/>
-                            </svg>
-                          )}
+                          <svg className={styles.iconSmall} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                            <path d="M3 8.5 6.5 12 13 4" />
+                          </svg>
                         </button>
                       </div>
                     )}

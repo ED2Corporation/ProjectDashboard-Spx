@@ -909,7 +909,7 @@ $c-step-tasks: #2f6f78;
 
 .taskStepsSummaryGrid {
   display: grid;
-  grid-template-columns: minmax(80px, 0.65fr) minmax(70px, 0.55fr) minmax(85px, 0.65fr) minmax(130px, 1fr) minmax(170px, 1.2fr);
+  grid-template-columns: minmax(170px, 1.45fr) minmax(85px, 0.65fr) minmax(130px, 1fr) minmax(170px, 1.2fr);
   gap: $sp-2;
   align-items: start;
 }
@@ -1010,10 +1010,53 @@ $c-step-tasks: #2f6f78;
 }
 
 .taskStepsPreview {
-  display: flex;
-  flex-direction: column;
-  gap: $sp-2;
   overflow: visible;
+}
+
+.taskStepNameButton {
+  display: inline;
+  width: 100%;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: $c-primary;
+  font: inherit;
+  font-size: $f-xs;
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+
+  &:hover {
+    color: darken($c-primary, 8%);
+    text-decoration: underline;
+  }
+}
+
+.taskStepDetailRow {
+  background: rgba($c-step-tasks, 0.04) !important;
+}
+
+.taskStepDetailCell {
+  padding: $sp-2 !important;
+  border-top: 0 !important;
+}
+
+.taskStepActionsCell {
+  width: 44px;
+  text-align: center;
+  vertical-align: top;
+  position: relative;
+}
+
+.taskStepsEmptyState {
+  padding: $sp-4;
+  text-align: center;
+  color: $c-text-subtle;
+  font-size: $f-xs;
+  font-style: italic;
 }
 
 .taskStepItem {

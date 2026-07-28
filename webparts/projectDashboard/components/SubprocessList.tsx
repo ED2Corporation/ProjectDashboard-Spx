@@ -218,7 +218,7 @@ const SubprocessList: React.FC<ISubprocessListProps> = ({
       </div>
 
       <div className={`${dashboardStyles.tableViewport} ${isShortListMode ? dashboardStyles.tableViewportShort : ""}`}>
-        <table className={dashboardStyles.ed2Table}>
+        <table className={`${dashboardStyles.ed2Table} ${styles.subprocessTable}`}>
           <thead>
             <tr>
               <th
@@ -247,14 +247,14 @@ const SubprocessList: React.FC<ISubprocessListProps> = ({
                 Completed<SortIcon active={sortCol === "complete"} dir={sortDir} />
               </th>
               <th
-                className={`${dashboardStyles.colDate} ${dashboardStyles.colSortable}`}
+                className={`${dashboardStyles.colDateNarrow} ${dashboardStyles.colSortable}`}
                 onClick={() => handleColSort("start")}
                 title="Sort by Start"
               >
                 Start<SortIcon active={sortCol === "start"} dir={sortDir} />
               </th>
               <th
-                className={`${dashboardStyles.colDate} ${dashboardStyles.colSortable}`}
+                className={`${dashboardStyles.colDateNarrow} ${dashboardStyles.colSortable}`}
                 onClick={() => handleColSort("finish")}
                 title="Sort by Finish"
               >
@@ -330,7 +330,7 @@ const SubprocessList: React.FC<ISubprocessListProps> = ({
                       <span>{Math.floor(item.complete)}%</span>
                     )}
                   </td>
-                  <td className={dashboardStyles.colDate}>
+                  <td className={dashboardStyles.colDateNarrow}>
                     {isEditing ? (
                       <input
                         type="date"
@@ -343,7 +343,7 @@ const SubprocessList: React.FC<ISubprocessListProps> = ({
                       item.start || ""
                     )}
                   </td>
-                  <td className={dashboardStyles.colDate}>
+                  <td className={dashboardStyles.colDateNarrow}>
                     {isEditing ? (
                       <input
                         type="date"
@@ -517,12 +517,13 @@ const SubprocessList: React.FC<ISubprocessListProps> = ({
                           className={`${dashboardStyles.iconButton} ${dashboardStyles.actionAddTrigger}`}
                           onClick={(e) => {
                             e.stopPropagation();
-                            onAddBelow(item.id);
+                            startQuickEdit(item);
                           }}
-                          title="Add subtask below"
+                          title="% Complete / Quick edit"
+                          aria-label="% Complete / Quick edit"
                         >
-                          <svg className={dashboardStyles.iconSmall} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
-                            <path d="M8 3v10M3 8h10" />
+                          <svg className={dashboardStyles.iconSmall} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                            <path d="M3 8.5 6.5 12 13 4" />
                           </svg>
                         </button>
                       </div>

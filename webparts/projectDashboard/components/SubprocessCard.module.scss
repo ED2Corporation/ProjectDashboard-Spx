@@ -15,7 +15,7 @@
 }
 
 .cardExpanded {
-  min-height: 500px;
+  min-height: 350px;
 }
 
 .cardTask {
@@ -335,6 +335,14 @@
   width: 50px;
   min-width: 50px;
   max-width: 50px;
+}
+
+.subprocessTable {
+  th {
+    padding: 5px 4px;
+    font-size: 10px;
+    line-height: 1.15;
+  }
 }
 
 .subtaskName {

@@ -545,6 +545,11 @@
   width: 92px;
 }
 
+.ed2Table th.colDateNarrow,
+.ed2Table td.colDateNarrow {
+  width: 76px;
+}
+
 .ed2Table th.colEvidence,
 .ed2Table td.colEvidence {
   width: 92px;
@@ -832,13 +837,22 @@
 
 .actionSubmenuWrap {
   position: relative;
+
+  &::after {
+    content: "";
+    position: absolute;
+    top: -10px;
+    bottom: -10px;
+    left: -12px;
+    width: 12px;
+  }
 }
 
 .actionSubmenu {
   display: none;
   position: absolute;
   top: 0;
-  right: 100%;
+  right: calc(100% - 1px);
   z-index: 35;
   min-width: 180px;
   max-width: 260px;
