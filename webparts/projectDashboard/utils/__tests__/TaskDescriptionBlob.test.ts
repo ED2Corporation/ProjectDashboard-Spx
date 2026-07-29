@@ -1,4 +1,4 @@
-import { buildTaskJsonTable, getTaskReleaseUnits, getTaskSteps, getTaskSubprocess } from '../TaskDescriptionBlob';
+import { buildTaskJsonTable, getTaskReleaseUnits, getTaskSteps, getTaskSubprocess, getTodayDateInputValue } from '../TaskDescriptionBlob';
 
 describe('TaskDescriptionBlob subprocess support', () => {
   it('normalizes legacy subprocess entries and preserves embedded logs', () => {
@@ -261,5 +261,54 @@ describe('TaskDescriptionBlob subprocess support', () => {
 
     expect(getTaskSubprocess(taskStepsOnlyUpdate).subTasks[0].complete).toBe(100);
     expect(getTaskSteps(taskStepsOnlyUpdate).steps[0].complete).toBe(75);
+  });
+
+  it('sets missing finish dates to today when subprocess or step tasks reach 100 percent', () => {
+    const expectedToday = getTodayDateInputValue();
+
+    const next = buildTaskJsonTable(undefined, {
+      subprocess: {
+        subTasks: [{
+          id: 'parent-sp-1',
+          wbs: '1.0.01',
+          sortOrder: 0,
+          task: 'Parent subprocess',
+          complete: 100,
+          start: '2026-07-20',
+          finish: '',
+        }],
+      },
+      taskSteps: {
+        enabled: true,
+        totalUnits: 10,
+        unitsPerStep: 10,
+        stepCount: 1,
+        steps: [{
+          id: 'step-1',
+          wbs: '1.0.01',
+          sortOrder: 0,
+          title: 'Lot 1',
+          units: 10,
+          complete: 100,
+          start: '2026-07-20',
+          finish: '',
+          subprocess: {
+            subTasks: [{
+              id: 'step-sp-1',
+              wbs: '1.0.01.01',
+              sortOrder: 0,
+              task: 'Step subprocess',
+              complete: 100,
+              start: '2026-07-20',
+              finish: '',
+            }],
+          },
+        }],
+      },
+    });
+
+    expect(getTaskSubprocess(next).subTasks[0].finish).toBe(expectedToday);
+    expect(getTaskSteps(next).steps[0].finish).toBe(expectedToday);
+    expect(getTaskSteps(next).steps[0].subprocess?.subTasks[0].finish).toBe(expectedToday);
   });
 });

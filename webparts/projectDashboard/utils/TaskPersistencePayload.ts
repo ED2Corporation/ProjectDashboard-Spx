@@ -1,6 +1,7 @@
 import { ITaskListItem } from "../../../models";
 import {
   buildTaskJsonTable,
+  getTodayDateInputValue,
   getTaskSteps,
   getTaskSortOrder,
   getTaskSubprocess,
@@ -69,6 +70,9 @@ const toDate = (value?: Date | string): Date | undefined => {
   if (!value) return undefined;
   return value instanceof Date ? value : new Date(value);
 };
+
+const getCompletionFinishDate = (complete: number, finish?: Date): Date | undefined =>
+  complete >= 100 && !finish ? toDate(getTodayDateInputValue()) : finish;
 
 const toEffort = (value?: number | string): number | undefined => {
   if (typeof value === "number") return value;
@@ -163,7 +167,7 @@ export const buildTaskPersistencePayload = ({
     Barriers: barriers ?? task.Barriers ?? "",
     ActionableStatus: actionableStatus ?? task.ActionableStatus ?? "",
     Start: toDate(start ?? task.Start),
-    Finish: toDate(finish ?? task.Finish),
+    Finish: getCompletionFinishDate(complete, toDate(finish ?? task.Finish)),
     ActualFinish: actualFinish,
     Description: description ?? task.Description ?? "",
     jsonTable: jsonTable ?? "",

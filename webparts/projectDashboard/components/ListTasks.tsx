@@ -5,6 +5,7 @@ import { IEvidenceEntry } from "../../../models/ITaskLogFields";
 import { GetDelay } from "../utils/GetDelay";
 import { GetFormatDate } from "../utils/GetFormatDate";
 import { compareWbs } from "../utils/ParseWBS";
+import { getTodayDateInputValue } from "../utils/TaskDescriptionBlob";
 import { getTaskCompleteLockMessageFromJsonTable } from "../utils/TaskPersistencePayload";
 import EvidenceUploadButton from "./EvidenceUploadButton";
 import styles from "./ProjectDashboard.module.scss";
@@ -234,6 +235,7 @@ const ListTasks = ({
   const handleQuickSave = (task: ITaskListItem): void => {
     const completeLocked = !!getTaskCompleteLockMessage(task);
     const nextComplete = completeLocked ? (task.Complete || 0) : editPercentComplete;
+    const nextFinish = nextComplete === 100 && !editFinish ? getTodayDateInputValue() : editFinish;
     let actualFinish: Date | null | undefined;
 
     if (nextComplete === 100) {
@@ -248,7 +250,7 @@ const ListTasks = ({
       Task: editTaskTitle || task.Task,
       Complete: nextComplete,
       Start: editStart || null,
-      Finish: editFinish || null,
+      Finish: nextFinish || null,
       ActualFinish: actualFinish,
     });
 

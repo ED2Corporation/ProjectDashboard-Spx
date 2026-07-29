@@ -752,13 +752,14 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
     releaseDebugTaskIdRef.current = String(data.Id);
     const curr = completeSafe ?? data.Complete;
     const actualFinishValue = curr === 100 ? new Date() : null;
+    const finishValue = curr === 100 && !data.Finish ? new Date() : data.Finish;
     const itemRef = sp.web.lists.getByTitle(listTitle).items.getById(Number(data.Id));
 
     if (action === "quick-complete") {
       await itemRef.update({
         Task: data.Task,
         Complete: curr,
-        Finish: data.Finish,
+        Finish: finishValue,
         ActualFinish: actualFinishValue,
       });
     } else {
@@ -767,7 +768,7 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
         Task: data.Task,
         Complete: curr,
         Start: data.Start,
-        Finish: data.Finish,
+        Finish: finishValue,
         ActualFinish: actualFinishValue,
         Description: data.Description,
         jsonTable: data.jsonTable
@@ -846,11 +847,12 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
   ): Promise<void> => {
     const graphClient: MSGraphClientV3 = await context.msGraphClientFactory.getClient("3");
     const plannerService = new PlannerService(graphClient);
+    const finishValue = completeSafe === 100 && !data.Finish ? new Date() : data.Finish;
     if (action === "quick-complete") {
       await plannerService.updateTaskStatus({
         taskId: data.Id,
         percentComplete: completeSafe,
-        finish: data.Finish,
+        finish: finishValue,
         evidenceUrl: data.EvidenceOfCompletion?.Url,
         evidenceDesc: data.EvidenceOfCompletion?.Description,
       });
@@ -864,7 +866,7 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
           Description: data.EvidenceOfCompletion?.Description,
         },
         Start: data.Start,
-        Finish: data.Finish,
+        Finish: finishValue,
       });
     }
   }, [context]);

@@ -1,7 +1,7 @@
 import * as React from "react";
 import { useMemo, useState } from "react";
 import { IEvidenceEntry } from "../../../models/ITaskLogFields";
-import { ISubprocessSubTask } from "../utils/TaskDescriptionBlob";
+import { getTodayDateInputValue, ISubprocessSubTask } from "../utils/TaskDescriptionBlob";
 import EvidenceUploadButton from "./EvidenceUploadButton";
 import dashboardStyles from "./ProjectDashboard.module.scss";
 import styles from "./SubprocessCard.module.scss";
@@ -186,16 +186,18 @@ const SubprocessList: React.FC<ISubprocessListProps> = ({
   };
 
   const handleQuickSave = (item: ISubprocessSubTask): void => {
+    const complete = Math.max(0, Math.min(100, Math.floor(editPercentComplete || 0)));
+    const finish = complete === 100 && !editFinish ? getTodayDateInputValue() : editFinish;
     const actualFinish =
-      editPercentComplete === 100
-        ? (item.actualFinish || new Date().toISOString().slice(0, 10))
+      complete === 100
+        ? (item.actualFinish || getTodayDateInputValue())
         : "";
 
     onSaveQuickEdit(item.id, {
       task: editTaskTitle || item.task,
-      complete: editPercentComplete,
+      complete,
       start: editStart,
-      finish: editFinish,
+      finish,
       actualFinish,
     });
   };

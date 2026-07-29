@@ -87,6 +87,17 @@ const asNumber = (value: unknown): number => {
   return 0;
 };
 
+export const getTodayDateInputValue = (): string => {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, "0");
+  const day = String(today.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
+const getCompletionFinish = (complete: number, finish: string): string =>
+  complete >= 100 && !finish ? getTodayDateInputValue() : finish;
+
 const normalizeNotes = (value: unknown): INoteEntry[] => {
   if (!isArray<unknown>(value)) return [];
 
@@ -159,6 +170,8 @@ const normalizeApprovals = (value: unknown): IApprovalEntry[] => {
 
 const normalizeSubTask = (value: unknown, index: number): ISubprocessSubTask => {
   const record = isRecord(value) ? value : {};
+  const complete = Math.max(0, Math.min(100, asNumber(record.complete)));
+  const finish = asString(record.finish);
   return {
     id: asString(record.id) || `sp-${index + 1}`,
     wbs: asString(record.wbs),
@@ -167,9 +180,9 @@ const normalizeSubTask = (value: unknown, index: number): ISubprocessSubTask => 
     duration: record.duration !== undefined && record.duration !== null && `${record.duration}`.trim() !== ""
       ? asNumber(record.duration)
       : undefined,
-    complete: Math.max(0, Math.min(100, asNumber(record.complete))),
+    complete,
     start: asString(record.start),
-    finish: asString(record.finish),
+    finish: getCompletionFinish(complete, finish),
     actualFinish: asString(record.actualFinish),
     notes: normalizeNotes(record.notes),
     evidence: normalizeEvidence(record.evidence),
@@ -181,15 +194,17 @@ const normalizeTaskStep = (value: unknown, index: number): ITaskStepEntry => {
   const record = isRecord(value) ? value : {};
   const subprocess = isRecord(record.subprocess) ? record.subprocess : {};
   const subTasksRaw = Array.isArray(subprocess.subTasks) ? subprocess.subTasks : [];
+  const complete = Math.max(0, Math.min(100, asNumber(record.complete)));
+  const finish = asString(record.finish);
   return {
     id: asString(record.id) || `step-${index + 1}`,
     wbs: asString(record.wbs),
     sortOrder: Math.max(0, Math.floor(asNumber(record.sortOrder) || index)),
     title: asString(record.title),
     units: Math.max(0, Math.floor(asNumber(record.units))),
-    complete: Math.max(0, Math.min(100, asNumber(record.complete))),
+    complete,
     start: asString(record.start),
-    finish: asString(record.finish),
+    finish: getCompletionFinish(complete, finish),
     actualFinish: asString(record.actualFinish),
     notes: normalizeNotes(record.notes),
     evidence: normalizeEvidence(record.evidence),

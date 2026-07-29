@@ -1,7 +1,7 @@
 import * as React from "react";
 import { useEffect, useRef, useState } from "react";
 import { IApprovalEntry, IEvidenceEntry, INoteEntry } from "../../../models/ITaskLogFields";
-import { ISubprocessSubTask } from "../utils/TaskDescriptionBlob";
+import { getTodayDateInputValue, ISubprocessSubTask } from "../utils/TaskDescriptionBlob";
 import ApprovalsLog from "./ApprovalsLog";
 import EvidenceLog from "./EvidenceLog";
 import NotesLog from "./NotesLog";
@@ -109,11 +109,12 @@ const SubprocessTaskCard: React.FC<ISubprocessTaskCardProps> = ({
     approvals?: IApprovalEntry[];
   }): ISubprocessSubTask {
     const nextComplete = overrides?.complete ?? complete;
+    const nextFinish = nextComplete === 100 && !finish ? getTodayDateInputValue() : finish;
     const nextActualFinish =
       overrides && Object.prototype.hasOwnProperty.call(overrides, "actualFinish")
         ? overrides.actualFinish
         : (nextComplete === 100
-            ? actualFinish || new Date().toISOString().slice(0, 10)
+            ? actualFinish || getTodayDateInputValue()
             : "");
 
     return {
@@ -122,7 +123,7 @@ const SubprocessTaskCard: React.FC<ISubprocessTaskCardProps> = ({
       duration,
       complete: clampPercent(nextComplete),
       start,
-      finish,
+      finish: nextFinish,
       actualFinish: nextActualFinish,
       notes: overrides?.notes ?? notesRef.current,
       evidence: overrides?.evidence ?? evidenceRef.current,

@@ -7,7 +7,7 @@ import {
   JSON_TABLE_SIZE_CRITICAL_THRESHOLD,
   JSON_TABLE_SIZE_WARNING_THRESHOLD,
 } from "../TaskPersistencePayload";
-import { buildTaskJsonTable, getTaskSteps, getTaskSubprocess } from "../TaskDescriptionBlob";
+import { buildTaskJsonTable, getTaskSteps, getTaskSubprocess, getTodayDateInputValue } from "../TaskDescriptionBlob";
 
 describe("buildTaskPersistencePayload", () => {
   const task: ITaskListItem = {
@@ -143,6 +143,27 @@ describe("buildTaskPersistencePayload", () => {
     }));
     expect(getTaskSubprocess(payload.jsonTable).subTasks).toHaveLength(1);
     expect(getTaskSteps(payload.jsonTable).steps).toHaveLength(1);
+  });
+
+  it("sets task finish to today when complete is 100 and finish is missing", () => {
+    const expectedToday = getTodayDateInputValue();
+
+    const { payload } = buildTaskPersistencePayload({
+      task: { ...task, Finish: undefined, jsonTable: rawJsonTable },
+      complete: 100,
+      finish: "",
+    });
+
+    expect(payload.Finish?.toISOString().slice(0, 10)).toBe(expectedToday);
+  });
+
+  it("preserves existing task finish when complete reaches 100", () => {
+    const { payload } = buildTaskPersistencePayload({
+      task: { ...task, jsonTable: rawJsonTable },
+      complete: 100,
+    });
+
+    expect(payload.Finish?.toISOString().slice(0, 10)).toBe("2026-04-05");
   });
 
   it("clears direct subprocess without removing task steps", () => {

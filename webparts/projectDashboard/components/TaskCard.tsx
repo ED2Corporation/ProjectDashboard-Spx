@@ -13,6 +13,7 @@ import {
   getTaskReleaseUnits,
   getTaskSteps,
   getTaskSubprocess,
+  getTodayDateInputValue,
   ITaskStepEntry,
   ITaskStepsData,
   ITaskSubprocessData,
@@ -509,9 +510,8 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
       return {
         ...step,
         complete: derivedComplete,
-        actualFinish: derivedComplete === 100
-          ? (step.actualFinish || new Date().toISOString().slice(0, 10))
-          : "",
+        finish: derivedComplete === 100 && !step.finish ? getTodayDateInputValue() : step.finish,
+        actualFinish: derivedComplete === 100 ? (step.actualFinish || getTodayDateInputValue()) : "",
       };
     }),
   });
@@ -732,6 +732,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
     const effectiveEvidence = overrides && Object.prototype.hasOwnProperty.call(overrides, 'evidenceOfCompletion')
       ? overrides.evidenceOfCompletion
       : evidenceOfCompletion;
+    const effectiveFinish = effectiveComplete === 100 && !finish ? getTodayDateInputValue() : finish;
     const actualFinish: Date | undefined =
       effectiveComplete === 100
         ? task.ActualFinish ? new Date(task.ActualFinish) : new Date()
@@ -752,7 +753,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
       barriers,
       actionableStatus,
       start,
-      finish,
+      finish: effectiveFinish,
       actualFinish,
       isRelease,
       releaseUnits,
@@ -764,7 +765,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
       ...(gateChanged && { originalGate: task.Gate, renameGate: renameAllGateTasks }),
     });
 
-    setComplete(effectiveComplete); latestJsonTableRef.current = jsonTable;
+    setComplete(effectiveComplete); setFinish(effectiveFinish); latestJsonTableRef.current = jsonTable;
     reportJsonTableSize(jsonTableSize);
     void queueTaskSave(payload).catch(error => { console.error("[TaskCard] Save failed", error); alert("Unable to save task changes. Refresh before continuing."); });
   };
@@ -772,6 +773,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
   const handleSaveSubprocessOnly = async (nextSubprocess: ITaskSubprocessData): Promise<void> => {
     const hasSubprocessData = nextSubprocess.subTasks.length > 0;
     const aggregatedComplete = hasSubprocessData ? aggregateSubprocessComplete(nextSubprocess) : 0;
+    const aggregatedFinish = aggregatedComplete === 100 && !finish ? getTodayDateInputValue() : finish;
     const sourceJsonTable = latestJsonTableRef.current ?? task.jsonTable;
     const { payload, jsonTable, jsonTableSize } = buildTaskPersistencePayload({
       task,
@@ -784,7 +786,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
       barriers,
       actionableStatus,
       start,
-      finish,
+      finish: aggregatedFinish,
       actualFinish: aggregatedComplete === 100 ? (task.ActualFinish ?? new Date()) : undefined,
       isRelease,
       releaseUnits,
@@ -794,7 +796,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
       ...(gate !== task.Gate && { originalGate: task.Gate, renameGate: renameAllGateTasks }),
     });
 
-    setSubprocess(nextSubprocess); setComplete(aggregatedComplete);
+    setSubprocess(nextSubprocess); setComplete(aggregatedComplete); setFinish(aggregatedFinish);
     latestJsonTableRef.current = jsonTable;
     reportJsonTableSize(jsonTableSize);
     await queueTaskSave(payload);
@@ -804,6 +806,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
     const normalizedTaskSteps = normalizeTaskStepsAggregation(nextTaskSteps);
     const hasTaskStepsData = normalizedTaskSteps.enabled && normalizedTaskSteps.steps.length > 0;
     const aggregatedComplete = hasTaskStepsData ? aggregateTaskStepsComplete(normalizedTaskSteps) : 0;
+    const aggregatedFinish = aggregatedComplete === 100 && !finish ? getTodayDateInputValue() : finish;
     const sourceJsonTable = latestJsonTableRef.current ?? task.jsonTable;
     const { payload, jsonTable, jsonTableSize } = buildTaskPersistencePayload({
       task,
@@ -816,7 +819,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
       barriers,
       actionableStatus,
       start,
-      finish,
+      finish: aggregatedFinish,
       actualFinish: aggregatedComplete === 100 ? (task.ActualFinish ?? new Date()) : undefined,
       isRelease,
       releaseUnits,
@@ -828,7 +831,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
       ...(gate !== task.Gate && { originalGate: task.Gate, renameGate: renameAllGateTasks }),
     });
 
-    setTaskSteps(normalizedTaskSteps); setComplete(aggregatedComplete);
+    setTaskSteps(normalizedTaskSteps); setComplete(aggregatedComplete); setFinish(aggregatedFinish);
     latestJsonTableRef.current = jsonTable;
     reportJsonTableSize(jsonTableSize);
     await queueTaskSave(payload);
@@ -873,9 +876,8 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
     const normalizedComplete = isStepCompleteLocked
       ? aggregateSubprocessComplete(stepSubprocess)
       : Math.max(0, Math.min(100, Math.floor(taskStepCompleteEdit || 0)));
-    const normalizedActualFinish = normalizedComplete === 100
-      ? (taskStepActualFinishEdit || new Date().toISOString().slice(0, 10))
-      : "";
+    const normalizedFinish = normalizedComplete === 100 && !taskStepFinishEdit ? getTodayDateInputValue() : taskStepFinishEdit;
+    const normalizedActualFinish = normalizedComplete === 100 ? (taskStepActualFinishEdit || getTodayDateInputValue()) : "";
 
     const nextTaskSteps: ITaskStepsData = {
       ...taskSteps,
@@ -888,7 +890,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
               units: normalizedUnits,
               complete: normalizedComplete,
               start: taskStepStartEdit,
-              finish: taskStepFinishEdit,
+              finish: normalizedFinish,
               actualFinish: normalizedActualFinish,
             }
           : step
