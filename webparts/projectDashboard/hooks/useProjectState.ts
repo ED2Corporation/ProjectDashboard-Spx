@@ -181,6 +181,9 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
       (jsonTableFieldAvailableRef.current !== false && options?.includeJsonTableDefault !== false);
 
     if (!includeJsonTable) {
+      if (Object.prototype.hasOwnProperty.call(nextPayload, "jsonTable")) {
+        console.warn("[useProjectState] jsonTable omitted because the field is unavailable for this list.");
+      }
       delete nextPayload.jsonTable;
     }
 
@@ -886,7 +889,6 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
       } else {
         await _updateListTask(data, action, completeSafe);
       }
-      await onReset();
 
       const touchesReleaseBlob =
         action === "full-update" &&
@@ -896,8 +898,9 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
           Object.prototype.hasOwnProperty.call(data ?? {}, "isRelease") ||
           Object.prototype.hasOwnProperty.call(data ?? {}, "releaseUnits")
         );
+      const requiresReload = action === "quick-complete" || data?.renameGate === true || touchesReleaseBlob;
 
-      if (touchesReleaseBlob) {
+      if (requiresReload) {
         await new Promise<void>(resolve => setTimeout(resolve, 650));
         await onReset();
       }

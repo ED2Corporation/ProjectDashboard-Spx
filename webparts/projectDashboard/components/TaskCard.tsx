@@ -632,8 +632,10 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
     }
     setIsTaskStepsProcessing(false);
     skipNextTaskStepsRecalcRef.current = true;
-    setColumnFocus('balanced');
-    setBodyCollapsed(nextHasSubprocessWorkspace);
+    if (!isSameTask) {
+      setColumnFocus('balanced');
+      setBodyCollapsed(nextHasSubprocessWorkspace);
+    }
     previousCompleteRef.current = task.Complete ?? 0;
     previousTaskIdRef.current = task.Id;
   }, [projectUnits, task]);
@@ -774,10 +776,22 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
     const { payload, jsonTable, jsonTableSize } = buildTaskPersistencePayload({
       task,
       sourceJsonTable,
+      title: wbs,
+      gate,
+      taskTitle,
       complete: aggregatedComplete,
+      effort,
+      barriers,
+      actionableStatus,
+      start,
+      finish,
       actualFinish: aggregatedComplete === 100 ? (task.ActualFinish ?? new Date()) : undefined,
+      isRelease,
+      releaseUnits,
+      evidenceOfCompletion,
       subprocess: hasSubprocessData ? nextSubprocess : undefined,
       clearSubprocess: !hasSubprocessData,
+      ...(gate !== task.Gate && { originalGate: task.Gate, renameGate: renameAllGateTasks }),
     });
 
     setSubprocess(nextSubprocess); setComplete(aggregatedComplete);
@@ -794,12 +808,24 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
     const { payload, jsonTable, jsonTableSize } = buildTaskPersistencePayload({
       task,
       sourceJsonTable,
+      title: wbs,
+      gate,
+      taskTitle,
       complete: aggregatedComplete,
+      effort,
+      barriers,
+      actionableStatus,
+      start,
+      finish,
       actualFinish: aggregatedComplete === 100 ? (task.ActualFinish ?? new Date()) : undefined,
+      isRelease,
+      releaseUnits,
+      evidenceOfCompletion,
       subprocess: subprocess.subTasks.length > 0 ? subprocess : undefined,
       clearSubprocess: subprocess.subTasks.length <= 0,
       taskSteps: hasTaskStepsData ? normalizedTaskSteps : undefined,
       clearTaskSteps: !hasTaskStepsData,
+      ...(gate !== task.Gate && { originalGate: task.Gate, renameGate: renameAllGateTasks }),
     });
 
     setTaskSteps(normalizedTaskSteps); setComplete(aggregatedComplete);
