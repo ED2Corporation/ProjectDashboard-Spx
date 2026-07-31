@@ -1,6 +1,7 @@
 import {
   buildListName,
   buildRepoName,
+  getCatalogWebUrl,
   getProjectWebUrl,
   getStorageEndpoint,
   parseWorkOrder,
@@ -40,13 +41,24 @@ describe('StorageVersionResolver', () => {
   it('returns the correct v2 endpoints for staging and production', () => {
     expect(getProjectWebUrl('v2', 'https://ed2corp.sharepoint.com/sites/ED2-Team/SitePages/Inbounds.aspx'))
       .toBe('https://ed2corp.sharepoint.com/sites/ED2-Team/WO-Plans');
+    expect(getProjectWebUrl('v2', 'https://ed2corp.sharepoint.com/sites/StagingApps/SitePages/Inbounds.aspx'))
+      .toBe('https://ed2corp.sharepoint.com/sites/ED2-Team/WO-Plans');
     expect(getProjectWebUrl('v2', 'https://ed2corp.sharepoint.com/SitePages/Inbounds.aspx'))
       .toBe('https://ed2corp.sharepoint.com/WO-Plans');
 
     expect(getStorageEndpoint('v2', '/sites/ED2-Team').siteRelPath)
       .toBe('/sites/ED2-Team/WO-Plans');
+    expect(getStorageEndpoint('v2', '/sites/StagingApps').siteRelPath)
+      .toBe('/sites/ED2-Team/WO-Plans');
     expect(getStorageEndpoint('v2', '/').siteRelPath)
       .toBe('/WO-Plans');
+  });
+
+  it('resolves the catalog web by environment', () => {
+    expect(getCatalogWebUrl('https://ed2corp.sharepoint.com/sites/ed2-staging/SitePages/Home.aspx'))
+      .toBe('https://ed2corp.sharepoint.com/sites/ED2-Team');
+    expect(getCatalogWebUrl('https://ed2corp.sharepoint.com/SitePages/Home.aspx'))
+      .toBe('https://ed2corp.sharepoint.com');
   });
 
   it('keeps v1 bound to the current site path and extracts WorkOrder safely', () => {

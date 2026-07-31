@@ -49,7 +49,8 @@ function parseProjectDetails(raw: unknown): Record<string, unknown> | undefined 
 
 function resolveEnvironmentFromPath(value: string): 'staging' | 'production' {
   const normalized = value.toLowerCase();
-  return normalized.includes('/sites/ed2-team') ? 'staging' : 'production';
+  if (normalized.includes('/sites/')) return 'staging';
+  return 'production';
 }
 
 export function resolveStorageVersion(project: IProjectCatalogItem): 'v1' | 'v2' {
@@ -92,4 +93,11 @@ export function getProjectWebUrl(version: 'v1' | 'v2', fallbackWebUrl: string): 
 
   const env = resolveEnvironmentFromPath(fallbackWebUrl);
   return `${TENANT_ROOT}${STORAGE_CONFIG.v2[env].siteRelPath}`;
+}
+
+export function getCatalogWebUrl(fallbackWebUrl: string): string {
+  const env = resolveEnvironmentFromPath(fallbackWebUrl);
+  return env === 'staging'
+    ? `${TENANT_ROOT}${STORAGE_CONFIG.v1.siteRelPath}`
+    : TENANT_ROOT;
 }

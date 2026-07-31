@@ -115,13 +115,15 @@ const AggregatorBadge: React.FC<AggregatorBadgeProps> = ({ label, count, variant
 
 export interface IProjectsCatalogCardProps {
   sp: SPFI;
+  catalogSp: SPFI;
   context: AnyContext;
+  solutionVersion?: string;
   onSelectProject?: (project: IProjectCatalogItem) => void;
   onNewProject?: () => void;
 }
 
-const ProjectsCatalogCard: React.FC<IProjectsCatalogCardProps> = ({ sp, context, onSelectProject, onNewProject }) => {
-  const { projects, isLoading, error, reload } = useProjectsCatalog(sp);
+const ProjectsCatalogCard: React.FC<IProjectsCatalogCardProps> = ({ sp, catalogSp, context, solutionVersion, onSelectProject, onNewProject }) => {
+  const { projects, isLoading, error, reload } = useProjectsCatalog(catalogSp);
 
   const [isCollapsed, setIsCollapsed]   = useState(false);
   const [showManual, setShowManual]     = useState(false);
@@ -132,7 +134,7 @@ const ProjectsCatalogCard: React.FC<IProjectsCatalogCardProps> = ({ sp, context,
   const [sortDir, setSortDir]           = useState<SortDir>('asc');
   const [isReordering, setIsReordering] = useState(false);
 
-  const catalogService = useMemo(() => new ProjectService(sp), [sp]);
+  const catalogService = useMemo(() => new ProjectService(catalogSp), [catalogSp]);
 
   const handleStatusReady = useCallback((projectId: string, key: "ontime" | "stalled" | "delayed" | "archived") => {
     setStatusMap((prev) => {
@@ -283,6 +285,11 @@ const ProjectsCatalogCard: React.FC<IProjectsCatalogCardProps> = ({ sp, context,
           <span className={styles.headerCount}>({openProjects.length})</span>
         </span>
         <div className={styles.headerActions}>
+          {solutionVersion && (
+            <span className={styles.solutionVersion} title="Solution version">
+              v{solutionVersion}
+            </span>
+          )}
           {onNewProject && (
             <button
               type="button"
@@ -432,6 +439,7 @@ const ProjectsCatalogCard: React.FC<IProjectsCatalogCardProps> = ({ sp, context,
                   project={proj}
                   context={context}
                   sp={sp}
+                  catalogSp={catalogSp}
                   onStatusReady={handleStatusReady}
                   onCatalogItemSaved={reload}
                   isMoveFirst={idx === 0}

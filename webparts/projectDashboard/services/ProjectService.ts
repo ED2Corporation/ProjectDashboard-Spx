@@ -30,7 +30,7 @@ export class ProjectService implements IProjectService {
             this._context = contextOrSp;
             this._listName = listName;
             this._sp = spfi().using(SPFx(this._context));
-            this._catalogSp = this._sp;
+            this._catalogSp = catalogSp ?? this._sp;
         } else {
             this._sp = contextOrSp as SPFI;
             this._listName = listName;

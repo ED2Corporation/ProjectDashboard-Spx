@@ -36,6 +36,7 @@ import { BaseComponentContext } from '@microsoft/sp-component-base';
 describe('ProjectsCatalogCard', () => {
   const context = {} as BaseComponentContext;
   const sp = {} as SPFI;
+  const catalogSp = { catalog: true } as unknown as SPFI;
 
   const projects: IProjectCatalogItem[] = [
     {
@@ -75,12 +76,13 @@ describe('ProjectsCatalogCard', () => {
   });
 
   it('tracks open-project status by Title and updates delayed counts', async () => {
-    render(<ProjectsCatalogCard sp={sp} context={context} />);
+    render(<ProjectsCatalogCard sp={sp} catalogSp={catalogSp} context={context} />);
 
     await waitFor(() => {
       expect(screen.getByRole('button', { name: /Delayed/i })).toBeInTheDocument();
     });
 
+    expect(mockUseProjectsCatalog).toHaveBeenCalledWith(catalogSp);
     expect(screen.getByText('Work Orders')).toBeInTheDocument();
     expect(screen.getByText('(2)')).toBeInTheDocument();
     expect(within(screen.getByRole('button', { name: /Delayed/i })).getByText('1')).toBeInTheDocument();
@@ -89,7 +91,7 @@ describe('ProjectsCatalogCard', () => {
   });
 
   it('filters archived projects and renders the archived row component', async () => {
-    render(<ProjectsCatalogCard sp={sp} context={context} />);
+    render(<ProjectsCatalogCard sp={sp} catalogSp={catalogSp} context={context} />);
 
     await userEvent.click(screen.getByRole('button', { name: /Archived/i }));
 
@@ -98,7 +100,7 @@ describe('ProjectsCatalogCard', () => {
   });
 
   it('supports search over report fields without affecting Title identity', async () => {
-    render(<ProjectsCatalogCard sp={sp} context={context} />);
+    render(<ProjectsCatalogCard sp={sp} catalogSp={catalogSp} context={context} />);
 
     await userEvent.type(screen.getByPlaceholderText(/Search part number, job ID, customer/i), 'report delay');
 

@@ -31,6 +31,7 @@ export interface ProjectRowDashboardProps {
   project: IProjectCatalogItem;
   context: AnyContext;
   sp: SPFI;
+  catalogSp: SPFI;
   /** Called once gate data is ready so the parent can compute aggregate counts */
   onStatusReady?: (projectId: string, statusKey: "ontime" | "stalled" | "delayed" | "archived") => void;
   /** Called after a catalog item is saved — use to reload the parent catalog list */
@@ -107,7 +108,7 @@ const SettingsIcon: React.FC = () => (
 // ─── Component ────────────────────────────────────────────────────────────────
 
 const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
-  project, context, sp, onStatusReady, onCatalogItemSaved,
+  project, context, sp, catalogSp, onStatusReady, onCatalogItemSaved,
   isMoveFirst, isMoveLast, isReordering, onMoveFirst, onMoveUp, onMoveDown, onMoveLast,
 }) => {
   const [localProject, setLocalProject] = useState(project);
@@ -184,11 +185,11 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
     return () => { disposed = true; };
   }, [projectSp, siteUrl, listName, projectListUrlFallback]);
 
-  // projectSp → task lists (may target WO-Plans for v2)
-  // sp        → catalog (ED2-Projects always lives in ED2-Team)
+  // projectSp -> task lists (may target WO-Plans for v2)
+  // catalogSp -> ED2-Projects catalog (environment-specific)
   const projectService = useMemo(
-    () => new ProjectService(projectSp, listName, sp),
-    [projectSp, listName, sp]
+    () => new ProjectService(projectSp, listName, catalogSp),
+    [projectSp, listName, catalogSp]
   );
 
   // no-op: properties are fixed per catalog row

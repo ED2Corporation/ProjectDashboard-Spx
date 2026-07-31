@@ -18,14 +18,16 @@ type AnyContext = BaseComponentContext & { spHttpClient: SPHttpClient; msGraphCl
 export interface IProjectDashboardAppProps {
   context: AnyContext;
   sp: SPFI;
+  catalogSp: SPFI;
   projectService: ProjectService;
+  solutionVersion: string;
   properties: IProjectDashboardWebPartProps;
   onPatchProperties: (patch: Partial<IProjectDashboardWebPartProps>) => void;
 }
 
 // ─── Component ───────────────────────────────────────────────────────────────
 const ProjectDashboardApp: React.FC<IProjectDashboardAppProps> = (props) => {
-  const { context, sp, projectService, properties, onPatchProperties } = props;
+  const { context, sp, catalogSp, projectService, solutionVersion, properties, onPatchProperties } = props;
 
   const [showSetup, setShowSetup] = useState(false);
 
@@ -67,7 +69,9 @@ const ProjectDashboardApp: React.FC<IProjectDashboardAppProps> = (props) => {
   return (
     <ProjectsCatalogCard
       sp={sp}
+      catalogSp={catalogSp}
       context={context}
+      solutionVersion={solutionVersion}
       onNewProject={() => setShowSetup(true)}
     />
   );

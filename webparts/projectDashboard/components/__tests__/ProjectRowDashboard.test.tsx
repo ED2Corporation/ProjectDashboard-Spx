@@ -104,6 +104,7 @@ describe('ProjectRowDashboard', () => {
         project={project}
         context={context as never}
         sp={createSp(false) as never}
+        catalogSp={createSp(false) as never}
       />
     );
 
@@ -139,6 +140,7 @@ describe('ProjectRowDashboard', () => {
         project={project}
         context={context as never}
         sp={createSp(true) as never}
+        catalogSp={createSp(true) as never}
         onStatusReady={onStatusReady}
       />
     );

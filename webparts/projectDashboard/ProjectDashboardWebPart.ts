@@ -13,17 +13,27 @@ import { BaseClientSideWebPart } from '@microsoft/sp-webpart-base';
 import { IProjectDashboardWebPartProps } from '../../models';
 import { ProjectService } from "./services/ProjectService";
 import { MessageLog } from './utils/MessageLog';
+import { getCatalogWebUrl } from './utils/StorageVersionResolver';
 
 import ProjectDashboardApp, { IProjectDashboardAppProps } from './components/ProjectDashboardApp';
+
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const packageSolution = require('../../../config/package-solution.json') as {
+  solution?: {
+    version?: string;
+  };
+};
 
 export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProjectDashboardWebPartProps> {
 
   private _sp!: SPFI;
+  private _catalogSp!: SPFI;
   private _projectService!: ProjectService;
 
   protected async onInit(): Promise<void> {
     this._sp = spfi().using(SPFx(this.context));
-    this._projectService = new ProjectService(this.context, "Projects");
+    this._catalogSp = spfi(getCatalogWebUrl(this.context.pageContext.web.absoluteUrl)).using(SPFx(this.context));
+    this._projectService = new ProjectService(this.context, "Projects", this._catalogSp);
 
     return super.onInit();
   }
@@ -38,7 +48,9 @@ export default class ProjectDashboardWebPart extends BaseClientSideWebPart<IProj
       {
         context: this.context as any, // eslint-disable-line @typescript-eslint/no-explicit-any
         sp: this._sp,
+        catalogSp: this._catalogSp,
         projectService: this._projectService,
+        solutionVersion: packageSolution.solution?.version ?? '',
         properties: this.properties,
         onPatchProperties: (patch) => {
           Object.assign(this.properties, patch);
