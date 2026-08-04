@@ -79,6 +79,7 @@ const ListTasks = ({
   const [sortCol, setSortCol] = useState<SortCol>("wbs");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
   const [taskFilter, setTaskFilter] = useState<string>("");
+  const [actionsExpanded, setActionsExpanded] = useState<boolean>(false);
   const [actionMenuUpKey, setActionMenuUpKey] = useState<string | null>(null);
   const [actionMenuDownKey, setActionMenuDownKey] = useState<string | null>(null);
   const [actionMenuShortKey, setActionMenuShortKey] = useState<string | null>(null);
@@ -258,6 +259,52 @@ const ListTasks = ({
     cancelQuickEdit();
   };
 
+  const handleCompleteActionClick = (task: ITaskListItem): void => {
+    const isComplete = Math.floor(task.Complete || 0) >= 100;
+
+    if (isComplete) {
+      startQuickEdit(task);
+      return;
+    }
+
+    const completeLockMessage = getTaskCompleteLockMessage(task);
+    if (completeLockMessage) {
+      alert(completeLockMessage);
+      return;
+    }
+
+    const today = getTodayDateInputValue();
+    const payload = JSON.stringify({
+      Id: task.Id,
+      Gate: task.Gate,
+      Task: task.Task,
+      Complete: 100,
+      Start: toDateInputValue(task.Start) || null,
+      Finish: toDateInputValue(task.Finish) || today,
+      ActualFinish: new Date(),
+    });
+
+    onSave(task.Id, payload);
+  };
+
+  const moveTask = (task: ITaskListItem, direction: "first" | "up" | "down" | "last"): void => {
+    if (!onMoveTask || movingTaskId === task.Id) return;
+    setMovingTaskId(task.Id);
+    onMoveTask(task.Id, task.Gate, direction).then(
+      () => setMovingTaskId(null),
+      () => setMovingTaskId(null)
+    );
+  };
+
+  const getMoveDisabled = (task: ITaskListItem, direction: "first" | "up" | "down" | "last"): boolean => {
+    if (!onMoveTask || movingTaskId === task.Id) return true;
+    const gateItems = sortedTasks.filter(item => item.Gate === task.Gate);
+    const index = gateItems.findIndex(item => item.Id === task.Id);
+    return index < 0
+      || ((direction === "first" || direction === "up") && index === 0)
+      || ((direction === "down" || direction === "last") && index === gateItems.length - 1);
+  };
+
   return (
     <>
       {(showDetails
@@ -281,7 +328,7 @@ const ListTasks = ({
             <p className={styles.taskSectionHeading}>{heading}</p>
           </div>
           <div className={`${styles.tableViewport} ${isShortListMode ? styles.tableViewportShort : ''}`}>
-            <table className={styles.ed2Table}>
+            <table className={`${styles.ed2Table} ${actionsExpanded ? styles.ed2TableActionsExpanded : ""}`}>
               <thead>
                 <tr>
                   <th
@@ -300,14 +347,16 @@ const ListTasks = ({
                       >
                         Task<SortIcon col="task" active={sortCol === "task"} dir={sortDir} />
                       </span>
-                      <input
-                        type="text"
-                        value={taskFilter}
-                        onChange={(e) => setTaskFilter(e.target.value)}
-                        placeholder="Filter..."
-                        className={styles.inputFilter}
-                        onClick={(e) => e.stopPropagation()}
-                      />
+                      {!actionsExpanded && (
+                        <input
+                          type="text"
+                          value={taskFilter}
+                          onChange={(e) => setTaskFilter(e.target.value)}
+                          placeholder="Filter..."
+                          className={styles.inputFilter}
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                      )}
                     </div>
                   </th>
                   <th
@@ -331,11 +380,26 @@ const ListTasks = ({
                   >
                     Finish<SortIcon col="finish" active={sortCol === "finish"} dir={sortDir} />
                   </th>
-                  <th className={styles.colEvidence}>
+                  <th className={`${styles.colEvidence} ${actionsExpanded ? styles.colEvidenceCompact : ""}`}>
                     Evidence
                   </th>
                   <th className={`${styles.colActions} ${styles.actionsFixed}`}>
-
+                    <div className={styles.actionsHeader}>
+                      <span>Actions</span>
+                      <button
+                        type="button"
+                        className={`${styles.actionsToggle} ${actionsExpanded ? styles.actionsToggleOn : ""}`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setActionsExpanded(current => !current);
+                        }}
+                        aria-pressed={actionsExpanded}
+                        aria-label={actionsExpanded ? "Hide action toolbar" : "Show action toolbar"}
+                        title={actionsExpanded ? "Show regular evidence column" : "Show action toolbar"}
+                      >
+                        <span />
+                      </button>
+                    </div>
                   </th>
                 </tr>
               </thead>
@@ -494,7 +558,7 @@ const ListTasks = ({
                     const isEditing  = editingTaskId === item.Id;
 
                     return (
-                      <td className={styles.colEvidence} onClick={e => e.stopPropagation()}>
+                      <td className={`${styles.colEvidence} ${actionsExpanded ? styles.colEvidenceCompact : ""}`} onClick={e => e.stopPropagation()}>
                         {isEditing && onUploadFile && onSaveEvidence ? (
                           <EvidenceUploadButton
                             evidence={item.Evidence}
@@ -520,10 +584,12 @@ const ListTasks = ({
                             href={completionEvidence.fileUrl}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className={styles.evidenceLink}
+                            className={`${styles.evidenceLink} ${actionsExpanded ? styles.evidenceIconLink : ""}`}
                             title={completionEvidence.note || completionEvidence.fileName}
                           >
-                            {completionEvidence.fileName}
+                            {actionsExpanded ? (
+                              <span aria-label={completionEvidence.fileName || "Open evidence"}>Evidence</span>
+                            ) : completionEvidence.fileName}
                           </a>
                         ) : isComplete ? (
                           <span
@@ -543,7 +609,121 @@ const ListTasks = ({
                   {/* ACTIONS */}
                   <td className={`${styles.colActions} ${styles.actionsFixed}`}>
                     {editingTaskId !== item.Id && (
+                      actionsExpanded ? (
+                        <div className={styles.actionsToolbar}>
+                          <button
+                            type="button"
+                            className={styles.toolbarIconButton}
+                            title="Add task"
+                            aria-label="Add task"
+                            disabled={!!creatingTaskId}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onSelectItem(item, "task", "list-create");
+                            }}
+                          >
+                            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M3 8h10"/></svg>
+                          </button>
+                          <button
+                            type="button"
+                            className={`${styles.toolbarIconButton} ${styles.toolbarDangerButton}`}
+                            title="Remove task"
+                            aria-label="Remove task"
+                            disabled={!!creatingTaskId || !!deletingTaskId}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (window.confirm(`Delete task "${item.Task}"?`)) {
+                                onSelectItem(item, "task", "list-delete");
+                              }
+                            }}
+                          >
+                            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4h10M6 4V3h4v1M5 6l.4 7h5.2L11 6"/></svg>
+                          </button>
+                          <span className={styles.toolbarSeparator} />
+                          {(['first', 'up', 'down', 'last'] as const).map(direction => (
+                            <button
+                              key={direction}
+                              type="button"
+                              className={styles.toolbarIconButton}
+                              title={`Move ${direction}`}
+                              aria-label={`Move ${direction}`}
+                              disabled={getMoveDisabled(item, direction)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                moveTask(item, direction);
+                              }}
+                            >
+                              {direction === 'first' && <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 3h8M8 5l-4 4h3v4h2V9h3L8 5z"/></svg>}
+                              {direction === 'up' && <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 4l-4 5h3v4h2V9h3L8 4z"/></svg>}
+                              {direction === 'down' && <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 12l4-5H9V3H7v4H4l4 5z"/></svg>}
+                              {direction === 'last' && <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 13h8M8 11l4-4H9V3H7v4H4l4 4z"/></svg>}
+                            </button>
+                          ))}
+                          <span className={styles.toolbarSeparator} />
+                          <button
+                            type="button"
+                            className={[
+                              styles.toolbarIconButton,
+                              styles.actionCompleteTrigger,
+                              Math.floor(item.Complete || 0) >= 100 ? styles.actionCompleteTriggerDone : "",
+                            ].filter(Boolean).join(" ")}
+                            title={Math.floor(item.Complete || 0) >= 100 ? "Open quick update" : "Mark complete"}
+                            aria-label={Math.floor(item.Complete || 0) >= 100 ? "Open quick update" : "Mark complete"}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleCompleteActionClick(item);
+                            }}
+                          >
+                            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2.5a.5.5 0 0 1 .5-.5h7.1c.5 0 .76.6.41.95L10.2 4.75l1.81 1.8a.56.56 0 0 1-.41.95H5v6a.5.5 0 0 1-1 0v-11z" /></svg>
+                          </button>
+                          <button
+                            type="button"
+                            className={styles.toolbarIconButton}
+                            title="Edit task"
+                            aria-label="Edit task"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onSelectItem(item, "task", "list-edit");
+                            }}
+                          >
+                            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M11.5 2.5l2 2-7.5 7.5H4v-2l7.5-7.5zM3 14h10"/></svg>
+                          </button>
+                        </div>
+                      ) : (
                       <div className={styles.actionButtonsRow}>
+                        {onUploadFile && onSaveEvidence ? (
+                          <EvidenceUploadButton
+                            evidence={item.Evidence}
+                            taskTitle={item.Task ?? ""}
+                            currentUser={currentUserDisplayName ?? ""}
+                            onUploadFile={onUploadFile}
+                            onSave={(entries) => onSaveEvidence(item.Id, entries)}
+                            isEvidenceOfCompletion={true}
+                            label={
+                              <svg className={styles.iconSmall} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                <path d="M8 10V3" />
+                                <path d="M5 6l3-3 3 3" />
+                                <path d="M3 13h10" />
+                              </svg>
+                            }
+                            className={`${styles.iconButton} ${styles.actionEvidenceUploadTrigger}`}
+                          />
+                        ) : (
+                          <button
+                            type="button"
+                            className={`${styles.iconButton} ${styles.actionEvidenceUploadTrigger}`}
+                            title="Upload Evidence of Completion"
+                            aria-label="Upload Evidence of Completion"
+                            disabled
+                          >
+                            <svg className={styles.iconSmall} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                              <path d="M8 10V3" />
+                              <path d="M5 6l3-3 3 3" />
+                              <path d="M3 13h10" />
+                            </svg>
+                          </button>
+                        )}
+                        {false && (
                         <div
                           className={styles.actionMenuArea}
                           onMouseEnter={(e) => handleActionMenuEnter(`actions-${item.Id}`, e)}
@@ -603,11 +783,11 @@ const ListTasks = ({
                         type="button"
                         onClick={(e) => {
                           e.stopPropagation();
-                          startQuickEdit(item);
+                          handleCompleteActionClick(item);
                         }}
                       >
                         <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M2 7.5 4.5 10 10 3"/></svg>
-                        Complete
+                        {Math.floor(item.Complete || 0) >= 100 ? "Quick update" : "Complete"}
                       </button>
                       {(() => {
                         const files = item.Evidence?.filter(file => !!file.fileUrl) ?? [];
@@ -619,7 +799,7 @@ const ListTasks = ({
                                 type="button"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  window.open(completionEvidence.fileUrl, "_blank", "noopener,noreferrer");
+                                  window.open(completionEvidence?.fileUrl || "", "_blank", "noopener,noreferrer");
                                 }}
                               >
                                 Evidence
@@ -695,7 +875,7 @@ const ListTasks = ({
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     setMovingTaskId(item.Id);
-                                    onMoveTask(item.Id, item.Gate, dir).then(
+                                    onMoveTask!(item.Id, item.Gate, dir).then(
                                       () => setMovingTaskId(null),
                                       () => setMovingTaskId(null)
                                     );
@@ -721,21 +901,28 @@ const ListTasks = ({
                       </button>
                           </div>
                         </div>
+                        )}
                         <button
                           type="button"
-                          className={`${styles.iconButton} ${styles.actionAddTrigger}`}
+                          className={[
+                            styles.iconButton,
+                            styles.actionAddTrigger,
+                            styles.actionCompleteTrigger,
+                            Math.floor(item.Complete || 0) >= 100 ? styles.actionCompleteTriggerDone : "",
+                          ].filter(Boolean).join(" ")}
                           onClick={(e) => {
                             e.stopPropagation();
-                            startQuickEdit(item);
+                            handleCompleteActionClick(item);
                           }}
-                          title="Complete / Quick edit"
+                          title={Math.floor(item.Complete || 0) >= 100 ? "Open quick update" : "Mark complete"}
+                          aria-label={Math.floor(item.Complete || 0) >= 100 ? "Open quick update" : "Mark complete"}
                         >
-                          <svg className={styles.iconSmall} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                            <path d="M3 8.5 6.5 12 13 4" />
+                          <svg className={styles.iconSmall} viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+                            <path d="M4 2.5a.5.5 0 0 1 .5-.5h7.1c.5 0 .76.6.41.95L10.2 4.75l1.81 1.8a.56.56 0 0 1-.41.95H5v6a.5.5 0 0 1-1 0v-11z" />
                           </svg>
                         </button>
                       </div>
-                    )}
+                    ))}
                     {editingTaskId === item.Id && (
                       <div className={styles.quickEditActions}>
                         <button

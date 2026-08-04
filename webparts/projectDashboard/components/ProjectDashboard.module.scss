@@ -280,6 +280,23 @@
   }
 }
 
+.evidenceIconLink {
+  width: 24px;
+  max-width: 24px;
+  text-align: center;
+  color: transparent;
+
+  &:hover {
+    color: transparent;
+  }
+
+  &::before {
+    content: '📎';
+    color: $c-primary;
+    font-size: 13px;
+  }
+}
+
 .evidenceAlert {
   color: $c-delayed;
   display: inline-flex;
@@ -555,11 +572,27 @@
   width: 92px;
 }
 
+.ed2Table th.colEvidenceCompact,
+.ed2Table td.colEvidenceCompact {
+  width: 36px;
+  max-width: 36px;
+  padding-left: 2px;
+  padding-right: 2px;
+  text-align: center;
+}
+
 .ed2Table th.colActions,
 .ed2Table td.colActions,
 .ed2Table th.actionsFixed,
 .ed2Table td.actionsFixed {
   width: 72px;
+}
+
+.ed2TableActionsExpanded th.colActions,
+.ed2TableActionsExpanded td.colActions,
+.ed2TableActionsExpanded th.actionsFixed,
+.ed2TableActionsExpanded td.actionsFixed {
+  width: 178px;
 }
 
 // ─── Shared inline controls (kebab-case — accessed via styles["name"]) ─────
@@ -680,6 +713,112 @@
   width: 100%;
 }
 
+.actionsHeader {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  font-size: $f-xs;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.actionsToggle {
+  position: relative;
+  width: 26px;
+  height: 14px;
+  border: 1px solid $c-border;
+  border-radius: 999px;
+  background: $c-surface;
+  padding: 0;
+  cursor: pointer;
+
+  span {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 8px;
+    height: 8px;
+    border-radius: 999px;
+    background: $c-text-subtle;
+    transition: left 0.15s ease, background 0.15s ease;
+  }
+}
+
+.actionsToggleOn {
+  background: $c-primary-bg;
+  border-color: rgba($c-primary, 0.45);
+
+  span {
+    left: 14px;
+    background: $c-primary;
+  }
+}
+
+.actionsToolbar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  width: 100%;
+  min-width: 0;
+  white-space: nowrap;
+}
+
+.toolbarIconButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
+  border: 1px solid transparent;
+  border-radius: $r-sm;
+  background: transparent;
+  color: $c-text-secondary;
+  padding: 0;
+  cursor: pointer;
+  transition: background 0.14s ease, border-color 0.14s ease, color 0.14s ease;
+
+  svg {
+    width: 13px;
+    height: 13px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.6;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  &:hover:not(:disabled) {
+    background: $c-primary-bg;
+    border-color: rgba($c-primary, 0.25);
+    color: $c-primary;
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.32;
+  }
+}
+
+.toolbarDangerButton {
+  &:hover:not(:disabled) {
+    background: #fef2f2;
+    border-color: #fecaca;
+    color: #dc2626;
+  }
+}
+
+.toolbarSeparator {
+  width: 1px;
+  height: 16px;
+  flex: 0 0 1px;
+  margin: 0 2px;
+  background: $c-border-subtle;
+}
+
 .actionMenuArea {
   position: relative;
   display: inline-flex;
@@ -692,6 +831,32 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
+}
+
+.actionCompleteTrigger {
+  color: #7b8794;
+  transition: color 0.15s ease, transform 0.12s ease;
+
+  &:hover:not(:disabled) {
+    color: #4b5563;
+    transform: translateY(-1px);
+  }
+}
+
+.actionCompleteTriggerDone {
+  color: #16833a;
+
+  &:hover:not(:disabled) {
+    color: #0f6b2f;
+  }
+}
+
+.actionEvidenceUploadTrigger {
+  color: #64748b;
+
+  &:hover:not(:disabled) {
+    color: $c-primary;
+  }
 }
 
 .actionContextMenu {

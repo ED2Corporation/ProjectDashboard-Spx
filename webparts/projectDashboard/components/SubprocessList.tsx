@@ -9,7 +9,6 @@ import styles from "./SubprocessCard.module.scss";
 type SortCol = "wbs" | "task" | "complete" | "start" | "finish";
 type SortDir = "asc" | "desc";
 type MoveDirection = "first" | "up" | "down" | "last";
-type ActionMenuStyle = React.CSSProperties & Record<"--menu-notch-offset" | "--menu-short-shift", string>;
 
 interface ISubprocessListProps {
   subTasks: ISubprocessSubTask[];
@@ -84,14 +83,7 @@ const SubprocessList: React.FC<ISubprocessListProps> = ({
   const [editPercentComplete, setEditPercentComplete] = useState(0);
   const [editStart, setEditStart] = useState("");
   const [editFinish, setEditFinish] = useState("");
-  const [actionMenuUpKey, setActionMenuUpKey] = useState<string | null>(null);
-  const [actionMenuDownKey, setActionMenuDownKey] = useState<string | null>(null);
-  const [actionMenuShortKey, setActionMenuShortKey] = useState<string | null>(null);
-  const [actionMenuShortOffset, setActionMenuShortOffset] = useState<Record<string, string>>({});
-  const [actionMenuShortShift, setActionMenuShortShift] = useState<Record<string, string>>({});
-  const [submenuShortKey, setSubmenuShortKey] = useState<string | null>(null);
-  const [submenuUpKey, setSubmenuUpKey] = useState<string | null>(null);
-  const [submenuDownKey, setSubmenuDownKey] = useState<string | null>(null);
+  const [actionsExpanded, setActionsExpanded] = useState<boolean>(false);
 
   const handleColSort = (col: SortCol): void => {
     if (sortCol === col) {
@@ -130,48 +122,6 @@ const SubprocessList: React.FC<ISubprocessListProps> = ({
     return next;
   }, [subTasks, sortCol, sortDir]);
 
-  const handleSubmenuEnter = (
-    key: string,
-    event: React.MouseEvent<HTMLDivElement>
-  ): void => {
-    const wrap = event.currentTarget;
-    const submenu = wrap.querySelector(`.${dashboardStyles.actionSubmenu}`) as HTMLDivElement | null;
-    if (!submenu) return;
-
-    const itemId = key.replace(/^move-/, "");
-    const hoveredIndex = sortedTasks.findIndex(task => task.id === itemId);
-    const shouldOpenDown = !isShortListMode && hoveredIndex >= 0 && hoveredIndex <= 1;
-    const shouldOpenUp = !isShortListMode && hoveredIndex >= Math.max(0, sortedTasks.length - 2);
-
-    setSubmenuShortKey(current => (current === key && isShortListMode) ? current : (isShortListMode ? key : null));
-    setSubmenuUpKey(current => (current === key && shouldOpenUp) ? current : (shouldOpenUp ? key : null));
-    setSubmenuDownKey(current => (current === key && shouldOpenDown) ? current : (shouldOpenDown ? key : null));
-  };
-
-  const handleActionMenuEnter = (
-    key: string,
-    event: React.MouseEvent<HTMLElement>
-  ): void => {
-    const cell = event.currentTarget.closest(`.${dashboardStyles.colActions}`) as HTMLElement | null;
-    const menu = cell?.querySelector(`.${dashboardStyles.actionContextMenu}`) as HTMLDivElement | null;
-    if (!cell || !menu) return;
-
-    const itemId = key.replace("actions-", "");
-    const hoveredIndex = sortedTasks.findIndex(task => task.id === itemId);
-    const shouldOpenDown = !isShortListMode && hoveredIndex >= 0 && hoveredIndex <= 1;
-    const shouldOpenUp = !isShortListMode && hoveredIndex >= Math.max(0, sortedTasks.length - 2);
-    if (isShortListMode) {
-      const notchOffset = `${54 + Math.max(0, hoveredIndex) * 28}px`;
-      const shortShift = `${32 + Math.max(0, hoveredIndex) * 28}px`;
-      setActionMenuShortOffset(current => ({ ...current, [key]: notchOffset }));
-      setActionMenuShortShift(current => ({ ...current, [key]: shortShift }));
-    }
-
-    setActionMenuShortKey(current => (current === key && isShortListMode) ? current : (isShortListMode ? key : null));
-    setActionMenuUpKey(current => (current === key && shouldOpenUp) ? current : (shouldOpenUp ? key : null));
-    setActionMenuDownKey(current => (current === key && shouldOpenDown) ? current : (shouldOpenDown ? key : null));
-  };
-
   const selectedItem = selectedSubTaskId
     ? subTasks.find(item => item.id === selectedSubTaskId)
     : undefined;
@@ -202,6 +152,24 @@ const SubprocessList: React.FC<ISubprocessListProps> = ({
     });
   };
 
+  const handleCompleteActionClick = (item: ISubprocessSubTask): void => {
+    if (Math.floor(item.complete || 0) >= 100) {
+      startQuickEdit(item);
+      return;
+    }
+
+    const today = getTodayDateInputValue();
+    onSelect(item.id);
+    onSaveQuickEdit(item.id, {
+      task: item.task,
+      duration: item.duration,
+      complete: 100,
+      start: item.start,
+      finish: item.finish || today,
+      actualFinish: today,
+    });
+  };
+
   return (
     <div className={styles.listShell}>
       <div className={styles.listToolbar}>
@@ -220,7 +188,7 @@ const SubprocessList: React.FC<ISubprocessListProps> = ({
       </div>
 
       <div className={`${dashboardStyles.tableViewport} ${isShortListMode ? dashboardStyles.tableViewportShort : ""}`}>
-        <table className={`${dashboardStyles.ed2Table} ${styles.subprocessTable}`}>
+        <table className={`${dashboardStyles.ed2Table} ${styles.subprocessTable} ${actionsExpanded ? dashboardStyles.ed2TableActionsExpanded : ""}`}>
           <thead>
             <tr>
               <th
@@ -262,8 +230,25 @@ const SubprocessList: React.FC<ISubprocessListProps> = ({
               >
                 Finish<SortIcon active={sortCol === "finish"} dir={sortDir} />
               </th>
-              <th className={dashboardStyles.colEvidence}>Evidence</th>
-              <th className={`${dashboardStyles.colActions} ${dashboardStyles.actionsFixed}`}></th>
+              <th className={`${dashboardStyles.colEvidence} ${actionsExpanded ? dashboardStyles.colEvidenceCompact : ""}`}>Evidence</th>
+              <th className={`${dashboardStyles.colActions} ${dashboardStyles.actionsFixed}`}>
+                <div className={dashboardStyles.actionsHeader}>
+                  <span>Actions</span>
+                  <button
+                    type="button"
+                    className={`${dashboardStyles.actionsToggle} ${actionsExpanded ? dashboardStyles.actionsToggleOn : ""}`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setActionsExpanded(current => !current);
+                    }}
+                    aria-pressed={actionsExpanded}
+                    aria-label={actionsExpanded ? "Hide action toolbar" : "Show action toolbar"}
+                    title={actionsExpanded ? "Show regular evidence column" : "Show action toolbar"}
+                  >
+                    <span />
+                  </button>
+                </div>
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -358,7 +343,7 @@ const SubprocessList: React.FC<ISubprocessListProps> = ({
                       item.finish || ""
                     )}
                   </td>
-                  <td className={dashboardStyles.colEvidence} onClick={(e) => e.stopPropagation()}>
+                  <td className={`${dashboardStyles.colEvidence} ${actionsExpanded ? dashboardStyles.colEvidenceCompact : ""}`} onClick={(e) => e.stopPropagation()}>
                     {isEditing && onUploadEvidenceFile && onSaveEvidenceEntries ? (
                       <EvidenceUploadButton
                         evidence={item.evidence ?? []}
@@ -384,10 +369,17 @@ const SubprocessList: React.FC<ISubprocessListProps> = ({
                         href={completionEvidence.fileUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className={dashboardStyles.evidenceLink}
+                        className={`${dashboardStyles.evidenceLink} ${actionsExpanded ? dashboardStyles.evidenceIconLink : ""}`}
                         title={completionEvidence.note || completionEvidence.fileName}
                       >
-                        {completionEvidence.fileName}
+                        {actionsExpanded ? (
+                          <svg viewBox="0 0 16 16" aria-label={completionEvidence.fileName}>
+                            <path d="M5 2h4l3 3v9H5a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z" />
+                            <path d="M9 2v3h3" />
+                          </svg>
+                        ) : (
+                          completionEvidence.fileName
+                        )}
                       </a>
                     ) : isComplete ? (
                       <span
@@ -403,132 +395,148 @@ const SubprocessList: React.FC<ISubprocessListProps> = ({
                   </td>
                   <td className={`${dashboardStyles.colActions} ${dashboardStyles.actionsFixed}`}>
                     {!isEditing && (
-                      <div className={dashboardStyles.actionButtonsRow}>
-                        <div
-                          className={dashboardStyles.actionMenuArea}
-                          onMouseEnter={(e) => handleActionMenuEnter(`actions-${item.id}`, e)}
-                        >
+                      actionsExpanded ? (
+                        <div className={dashboardStyles.actionsToolbar}>
                           <button
                             type="button"
-                            className={`${dashboardStyles.iconButton} ${dashboardStyles.actionMenuTrigger}`}
-                            onClick={(e) => e.stopPropagation()}
-                            title="Open actions menu"
-                            aria-label="Open actions menu"
+                            className={dashboardStyles.toolbarIconButton}
+                            title="Add subtask"
+                            aria-label="Add subtask"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onAddBelow(item.id);
+                            }}
                           >
-                            <svg className={dashboardStyles.iconSmall} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true">
-                              <path d="M3 4h10M3 8h10M3 12h10" />
+                            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M3 8h10" /></svg>
+                          </button>
+                          <button
+                            type="button"
+                            className={`${dashboardStyles.toolbarIconButton} ${dashboardStyles.toolbarDangerButton}`}
+                            title="Remove subtask"
+                            aria-label="Remove subtask"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (window.confirm(`Delete subtask "${item.task || item.wbs}"?`)) {
+                                onRemove(item.id);
+                              }
+                            }}
+                          >
+                            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4h10M6 4V3h4v1M5 6l.4 7h5.2L11 6" /></svg>
+                          </button>
+                          <span className={dashboardStyles.toolbarSeparator} />
+                          {(["first", "up", "down", "last"] as const).map((direction) => {
+                            const disabled =
+                              moveDisabled ||
+                              (direction === "first" && visibleIndex === 0) ||
+                              (direction === "up" && visibleIndex === 0) ||
+                              (direction === "down" && visibleIndex === subTasks.length - 1) ||
+                              (direction === "last" && visibleIndex === subTasks.length - 1);
+                            return (
+                              <button
+                                key={direction}
+                                type="button"
+                                className={dashboardStyles.toolbarIconButton}
+                                title={`Move ${direction}`}
+                                aria-label={`Move ${direction}`}
+                                disabled={disabled}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onMove(item.id, direction);
+                                }}
+                              >
+                                {direction === "first" && <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 3h8M8 5l-4 4h3v4h2V9h3L8 5z" /></svg>}
+                                {direction === "up" && <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 4l-4 5h3v4h2V9h3L8 4z" /></svg>}
+                                {direction === "down" && <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 12l4-5H9V3H7v4H4l4 5z" /></svg>}
+                                {direction === "last" && <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 13h8M8 11l4-4H9V3H7v4H4l4 4z" /></svg>}
+                              </button>
+                            );
+                          })}
+                          <span className={dashboardStyles.toolbarSeparator} />
+                          <button
+                            type="button"
+                            className={[
+                              dashboardStyles.toolbarIconButton,
+                              dashboardStyles.actionCompleteTrigger,
+                              isComplete ? dashboardStyles.actionCompleteTriggerDone : "",
+                            ].filter(Boolean).join(" ")}
+                            title={isComplete ? "Open quick update" : "Mark complete"}
+                            aria-label={isComplete ? "Open quick update" : "Mark complete"}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleCompleteActionClick(item);
+                            }}
+                          >
+                            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2.5a.5.5 0 0 1 .5-.5h7.1c.5 0 .76.6.41.95L10.2 4.75l1.81 1.8a.56.56 0 0 1-.41.95H5v6a.5.5 0 0 1-1 0v-11z" /></svg>
+                          </button>
+                          <button
+                            type="button"
+                            className={dashboardStyles.toolbarIconButton}
+                            title="Edit subtask"
+                            aria-label="Edit subtask"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onSelect(item.id);
+                              onEditDetail?.(item.id);
+                            }}
+                          >
+                            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M11.5 2.5l2 2-7.5 7.5H4v-2l7.5-7.5zM3 14h10" /></svg>
+                          </button>
+                        </div>
+                      ) : (
+                        <div className={dashboardStyles.actionButtonsRow}>
+                          {onUploadEvidenceFile && onSaveEvidenceEntries ? (
+                            <EvidenceUploadButton
+                              evidence={item.evidence ?? []}
+                              taskTitle={item.task || "Subtask"}
+                              currentUser={currentUserDisplayName ?? ""}
+                              onUploadFile={onUploadEvidenceFile}
+                              onSave={(entries) => onSaveEvidenceEntries(item.id, entries)}
+                              isEvidenceOfCompletion={true}
+                              label={
+                                <svg className={dashboardStyles.iconSmall} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                  <path d="M8 10V3" />
+                                  <path d="M5 6l3-3 3 3" />
+                                  <path d="M3 13h10" />
+                                </svg>
+                              }
+                              className={`${dashboardStyles.iconButton} ${dashboardStyles.actionEvidenceUploadTrigger}`}
+                            />
+                          ) : (
+                            <button
+                              type="button"
+                              className={`${dashboardStyles.iconButton} ${dashboardStyles.actionEvidenceUploadTrigger}`}
+                              title="Upload Evidence of Completion"
+                              aria-label="Upload Evidence of Completion"
+                              disabled
+                            >
+                              <svg className={dashboardStyles.iconSmall} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                <path d="M8 10V3" />
+                                <path d="M5 6l3-3 3 3" />
+                                <path d="M3 13h10" />
+                              </svg>
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            className={[
+                              dashboardStyles.iconButton,
+                              dashboardStyles.actionAddTrigger,
+                              dashboardStyles.actionCompleteTrigger,
+                              isComplete ? dashboardStyles.actionCompleteTriggerDone : "",
+                            ].filter(Boolean).join(" ")}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleCompleteActionClick(item);
+                            }}
+                            title={isComplete ? "Open quick update" : "Mark complete"}
+                            aria-label={isComplete ? "Open quick update" : "Mark complete"}
+                          >
+                            <svg className={dashboardStyles.iconSmall} viewBox="0 0 16 16" aria-hidden="true">
+                              <path d="M4 2.5a.5.5 0 0 1 .5-.5h7.1c.5 0 .76.6.41.95L10.2 4.75l1.81 1.8a.56.56 0 0 1-.41.95H5v6a.5.5 0 0 1-1 0v-11z" />
                             </svg>
                           </button>
-                          <div
-                            className={[
-                              dashboardStyles.actionContextMenu,
-                              actionMenuShortKey === `actions-${item.id}` ? dashboardStyles.actionContextMenuShort : "",
-                              actionMenuDownKey === `actions-${item.id}` ? dashboardStyles.actionContextMenuDown : "",
-                              actionMenuUpKey === `actions-${item.id}` ? dashboardStyles.actionContextMenuUp : "",
-                            ].filter(Boolean).join(" ")}
-                            style={actionMenuShortKey === `actions-${item.id}`
-                              ? ({
-                                  "--menu-notch-offset": actionMenuShortOffset[`actions-${item.id}`] ?? "22px",
-                                  "--menu-short-shift": actionMenuShortShift[`actions-${item.id}`] ?? "0px",
-                                } as ActionMenuStyle)
-                              : undefined}
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <button
-                              type="button"
-                              onClick={() => onAddBelow(item.id)}
-                            >
-                              <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M6 2v8M2 6h8" /></svg>
-                              Add
-                            </button>
-                            <button
-                              type="button"
-                              className={dashboardStyles.btnDanger}
-                              onClick={() => {
-                                if (window.confirm(`Delete subtask "${item.task || item.wbs}"?`)) {
-                                  onRemove(item.id);
-                                }
-                              }}
-                            >
-                              <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M2 3.5h8M4.5 3.5V2.5h3v1M3.5 3.5l.5 6h4l.5-6" /></svg>
-                              Remove
-                            </button>
-                            <div className={dashboardStyles.ctxSeparator} />
-                            <button
-                              type="button"
-                              onClick={() => startQuickEdit(item)}
-                            >
-                              <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M2 7.5 4.5 10 10 3" /></svg>
-                              Complete
-                            </button>
-                            {onEditDetail && (
-                              <button
-                                type="button"
-                                onClick={() => onEditDetail(item.id)}
-                              >
-                                <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M8 2l2 2-6 6H2V8L8 2z" /></svg>
-                                Edit
-                              </button>
-                            )}
-                            <div
-                              className={dashboardStyles.actionSubmenuWrap}
-                              onMouseEnter={(e) => handleSubmenuEnter(`move-${item.id}`, e)}
-                            >
-                              <button type="button" disabled={moveDisabled}>
-                                <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M6 2v8M3 5l3-3 3 3M3 7l3 3 3-3" /></svg>
-                                {moveDisabled ? "Moving..." : "Move"}
-                              </button>
-                              <div
-                                className={[
-                                  dashboardStyles.actionSubmenu,
-                                  submenuShortKey === `move-${item.id}` ? dashboardStyles.actionSubmenuShort : "",
-                                  submenuDownKey === `move-${item.id}` ? dashboardStyles.actionSubmenuDown : "",
-                                  submenuUpKey === `move-${item.id}` ? dashboardStyles.actionSubmenuUp : "",
-                                ].filter(Boolean).join(" ")}
-                              >
-                                {(["first", "up", "down", "last"] as const).map((direction) => {
-                                  const disabled =
-                                    moveDisabled ||
-                                    (direction === "first" && visibleIndex === 0) ||
-                                    (direction === "up" && visibleIndex === 0) ||
-                                    (direction === "down" && visibleIndex === subTasks.length - 1) ||
-                                    (direction === "last" && visibleIndex === subTasks.length - 1);
-                                  const labels: Record<MoveDirection, string> = {
-                                    first: "First",
-                                    up: "Up",
-                                    down: "Down",
-                                    last: "Last",
-                                  };
-                                  return (
-                                    <button
-                                      key={direction}
-                                      type="button"
-                                      disabled={disabled}
-                                      onClick={() => onMove(item.id, direction)}
-                                    >
-                                      {labels[direction]}
-                                    </button>
-                                  );
-                                })}
-                              </div>
-                            </div>
-                          </div>
                         </div>
-                        <button
-                          type="button"
-                          className={`${dashboardStyles.iconButton} ${dashboardStyles.actionAddTrigger}`}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            startQuickEdit(item);
-                          }}
-                          title="% Complete / Quick edit"
-                          aria-label="% Complete / Quick edit"
-                        >
-                          <svg className={dashboardStyles.iconSmall} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                            <path d="M3 8.5 6.5 12 13 4" />
-                          </svg>
-                        </button>
-                      </div>
+                      )
                     )}
                     {isEditing && (
                       <div className={dashboardStyles.quickEditActions} onClick={(e) => e.stopPropagation()}>
