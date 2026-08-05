@@ -180,6 +180,12 @@ const hasTaskStepExecutionData = (value: ITaskStepsData): boolean =>
     (step.approvals?.length ?? 0) > 0 ||
     hasSubprocessExecutionData(step.subprocess)
   );
+
+const hasTaskStepSubprocessStructure = (value: ITaskStepsData): boolean =>
+  value.steps.some(step => (step.subprocess?.subTasks.length ?? 0) > 0);
+
+const hasTaskStepPreservedData = (value: ITaskStepsData): boolean =>
+  hasTaskStepExecutionData(value) || hasTaskStepSubprocessStructure(value);
 const aggregateWeightedComplete = (entries: Array<{ complete: number; weight: number }>): number => {
   if (!entries.length) return 0;
 
@@ -334,8 +340,8 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
     initialTaskSteps.stepCount > 0 && initialTaskSteps.unitsPerStep <= 0 ? "lots" : "pieces"
   );
   const [isTaskStepsProcessing, setIsTaskStepsProcessing] = useState(false);
-  const [selectedTaskStepId, setSelectedTaskStepId] = useState<string | undefined>(initialTaskSteps.steps[0]?.id);
-  const [isTaskStepWorkspaceExpanded, setIsTaskStepWorkspaceExpanded] = useState(initialTaskSteps.steps.length > 0);
+  const [selectedTaskStepId, setSelectedTaskStepId] = useState<string | undefined>(undefined);
+  const [isTaskStepWorkspaceExpanded, setIsTaskStepWorkspaceExpanded] = useState(false);
   const [isTaskStepDetailsExpanded, setIsTaskStepDetailsExpanded] = useState(false);
   const [isTaskStepSubprocessExpanded, setIsTaskStepSubprocessExpanded] = useState(true);
   const [taskStepTitleEdit, setTaskStepTitleEdit] = useState(initialTaskSteps.steps[0]?.title ?? "");
@@ -578,7 +584,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
     return clampPercentValue(complete);
   };
 
-  const applyTaskStepsFromPieces = (piecesValue: number, enabled = true): void => {
+  const applyTaskStepsFromPieces = (piecesValue: number, enabled = true): ITaskStepsData => {
     const normalizedPieces = asPositiveInteger(piecesValue);
     const nextTaskSteps = normalizeTaskStepsAggregation(buildTaskStepsData("pieces", normalizedPieces, enabled));
     setTaskStepsMode("fixed");
@@ -587,9 +593,10 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
     setTaskStepsLots(nextTaskSteps.stepCount);
     setTaskSteps(nextTaskSteps);
     setComplete(deriveTaskComplete(nextTaskSteps, undefined));
+    return nextTaskSteps;
   };
 
-  const applyTaskStepsFromLots = (lotsValue: number, enabled = true): void => {
+  const applyTaskStepsFromLots = (lotsValue: number, enabled = true): ITaskStepsData => {
     const normalizedLots = asPositiveInteger(lotsValue);
     const nextTaskSteps = normalizeTaskStepsAggregation(buildTaskStepsData("lots", normalizedLots, enabled));
     setTaskStepsMode("fixed");
@@ -598,9 +605,10 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
     setTaskStepsPieces(nextTaskSteps.unitsPerStep);
     setTaskSteps(nextTaskSteps);
     setComplete(deriveTaskComplete(nextTaskSteps, undefined));
+    return nextTaskSteps;
   };
 
-  const applyTaskStepsFromWeekdays = (weekdays: number[], enabled = true): void => {
+  const applyTaskStepsFromWeekdays = (weekdays: number[], enabled = true): ITaskStepsData => {
     const normalizedWeekdays = weekdays
       .map(value => Math.floor(value))
       .filter((value, index, array) => value >= 1 && value <= 6 && array.indexOf(value) === index)
@@ -614,11 +622,12 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
     setTaskStepsPieces(nextTaskSteps.unitsPerStep);
     setTaskSteps(nextTaskSteps);
     setComplete(deriveTaskComplete(nextTaskSteps, undefined));
+    return nextTaskSteps;
   };
 
   const commitTaskSteps = (nextTaskSteps: ITaskStepsData): ITaskStepsData => {
     setTaskSteps(nextTaskSteps);
-    setSelectedTaskStepId(current => (current && nextTaskSteps.steps.some(step => step.id === current) ? current : nextTaskSteps.steps[0]?.id));
+    setSelectedTaskStepId(current => (current && nextTaskSteps.steps.some(step => step.id === current) ? current : undefined));
     return nextTaskSteps;
   };
 
@@ -666,8 +675,8 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
     setTaskStepsMode(nextTaskSteps.mode === "weekday" ? "weekday" : "fixed");
     setTaskStepsWeekdays(nextTaskSteps.weekdays && nextTaskSteps.weekdays.length > 0 ? nextTaskSteps.weekdays : [1]);
     setTaskStepsSource(nextTaskSteps.stepCount > 0 && nextTaskSteps.unitsPerStep <= 0 ? "lots" : "pieces");
-    setSelectedTaskStepId(current => (isSameTask && current && nextTaskSteps.steps.some(step => step.id === current) ? current : nextTaskSteps.steps[0]?.id));
-    setIsTaskStepWorkspaceExpanded(current => (isSameTask ? nextTaskSteps.steps.length > 0 && current : nextTaskSteps.steps.length > 0));
+    setSelectedTaskStepId(current => (isSameTask && current && nextTaskSteps.steps.some(step => step.id === current) ? current : undefined));
+    setIsTaskStepWorkspaceExpanded(current => isSameTask && current);
     if (!isSameTask) {
       setIsTaskStepDetailsExpanded(false);
       setIsTaskStepSubprocessExpanded(true);
@@ -689,7 +698,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
     }
 
     if (!taskSteps.enabled) return;
-    if (hasTaskStepExecutionData(taskSteps)) return;
+    if (hasTaskStepPreservedData(taskSteps)) return;
 
     if (taskStepsMode === "weekday") {
       setTaskSteps(buildTaskStepsDataFromWeekdays(taskStepsWeekdays, true));
@@ -736,8 +745,8 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
       return;
     }
 
-    setSelectedTaskStepId(taskSteps.steps[0].id);
-    setIsTaskStepWorkspaceExpanded(true);
+    setSelectedTaskStepId(undefined);
+    setIsTaskStepWorkspaceExpanded(false);
     setIsTaskStepDetailsExpanded(false);
     setIsTaskStepSubprocessExpanded(true);
   }, [taskSteps.steps, selectedTaskStepId]);
@@ -816,6 +825,8 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
     const hasSubprocessData = nextSubprocess.subTasks.length > 0;
     const aggregatedComplete = hasSubprocessData ? aggregateSubprocessComplete(nextSubprocess) : 0;
     const aggregatedFinish = aggregatedComplete === 100 && !finish ? getTodayDateInputValue() : finish;
+    const currentTaskSteps = taskSteps.enabled ? normalizeTaskStepsAggregation(taskSteps) : createEmptyTaskSteps();
+    const hasTaskStepsData = currentTaskSteps.enabled && currentTaskSteps.steps.length > 0;
     const sourceJsonTable = latestJsonTableRef.current ?? task.jsonTable;
     const { payload, jsonTable, jsonTableSize } = buildTaskPersistencePayload({
       task,
@@ -835,6 +846,8 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
       evidenceOfCompletion,
       subprocess: hasSubprocessData ? nextSubprocess : undefined,
       clearSubprocess: !hasSubprocessData,
+      taskSteps: hasTaskStepsData ? currentTaskSteps : undefined,
+      clearTaskSteps: !hasTaskStepsData,
       ...(gate !== task.Gate && { originalGate: task.Gate, renameGate: renameAllGateTasks }),
     });
 
@@ -1127,13 +1140,23 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
   };
 
   const handleRegenerateTaskSteps = (source: TaskStepsSource, rawValue: number, enabled = true): void => {
-    if (taskSteps.steps.length > 0 && hasTaskStepExecutionData(taskSteps)) {
-      const confirmed = window.confirm(
-        "Regenerating Step Tasks will replace the current step structure and reset step progress. Continue?"
-      );
-      if (!confirmed) {
+    if (taskSteps.steps.length > 0 && hasTaskStepPreservedData(taskSteps)) {
+      const normalizedValue = asPositiveInteger(rawValue);
+      if (source === "lots") {
+        setTaskStepsSource("lots");
+        setTaskStepsLots(normalizedValue);
+        setTaskStepsPieces(
+          totalProjectUnits > 0 && normalizedValue > 0
+            ? Math.max(1, Math.floor(totalProjectUnits / normalizedValue))
+            : 0
+        );
         return;
       }
+
+      setTaskStepsSource("pieces");
+      setTaskStepsPieces(normalizedValue || DEFAULT_TASK_STEP_PIECES);
+      setTaskStepsLots(calculateFixedStepCount(totalProjectUnits, normalizedValue));
+      return;
     }
 
     if (source === "lots") {
@@ -1178,17 +1201,54 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
 
     setIsTaskStepsProcessing(true);
     window.setTimeout(() => {
+      let nextTaskSteps: ITaskStepsData;
       if (taskStepsMode === "weekday") {
-        applyTaskStepsFromWeekdays(taskStepsWeekdays, true);
+        if (taskSteps.steps.length > 0 && hasTaskStepPreservedData(taskSteps)) {
+          const confirmed = window.confirm(
+            "Regenerating Step Tasks will replace the current step structure and reset step progress. Continue?"
+          );
+          if (!confirmed) {
+            setIsTaskStepsProcessing(false);
+            return;
+          }
+        }
+        nextTaskSteps = applyTaskStepsFromWeekdays(taskStepsWeekdays, true);
       } else if (taskStepsSource === "lots" && taskStepsLots > 0) {
-        handleRegenerateTaskSteps("lots", taskStepsLots, true);
+        if (taskSteps.steps.length > 0 && hasTaskStepPreservedData(taskSteps)) {
+          const confirmed = window.confirm(
+            "Regenerating Step Tasks will replace the current step structure and reset step progress. Continue?"
+          );
+          if (!confirmed) {
+            setIsTaskStepsProcessing(false);
+            return;
+          }
+        }
+        nextTaskSteps = applyTaskStepsFromLots(taskStepsLots, true);
       } else {
-        handleRegenerateTaskSteps("pieces", taskStepsPieces > 0 ? taskStepsPieces : DEFAULT_TASK_STEP_PIECES, true);
+        if (taskSteps.steps.length > 0 && hasTaskStepPreservedData(taskSteps)) {
+          const confirmed = window.confirm(
+            "Regenerating Step Tasks will replace the current step structure and reset step progress. Continue?"
+          );
+          if (!confirmed) {
+            setIsTaskStepsProcessing(false);
+            return;
+          }
+        }
+        nextTaskSteps = applyTaskStepsFromPieces(taskStepsPieces > 0 ? taskStepsPieces : DEFAULT_TASK_STEP_PIECES, true);
       }
 
       setIsTaskStepsSectionExpanded(true);
       setIsTaskStepsConfigExpanded(false);
-      window.setTimeout(() => setIsTaskStepsProcessing(false), 150);
+      setSelectedTaskStepId(undefined);
+      setIsTaskStepWorkspaceExpanded(false);
+      setIsTaskStepDetailsExpanded(false);
+      setIsTaskStepSubprocessExpanded(true);
+      void handleSaveTaskStepsOnly(nextTaskSteps)
+        .catch(error => {
+          console.error("[TaskCard] Step Task save failed", error);
+          alert("Unable to save Step Tasks. Refresh before continuing.");
+        })
+        .finally(() => setIsTaskStepsProcessing(false));
     }, 0);
   };
 

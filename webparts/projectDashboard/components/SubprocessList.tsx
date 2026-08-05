@@ -466,7 +466,16 @@ const SubprocessList: React.FC<ISubprocessListProps> = ({
                               handleCompleteActionClick(item);
                             }}
                           >
-                            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2.5a.5.5 0 0 1 .5-.5h7.1c.5 0 .76.6.41.95L10.2 4.75l1.81 1.8a.56.56 0 0 1-.41.95H5v6a.5.5 0 0 1-1 0v-11z" /></svg>
+                            {isComplete ? (
+                              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                <path d="M11.5 2.5l2 2-7.5 7.5H4v-2l7.5-7.5z" />
+                                <path d="M3 14h10" />
+                              </svg>
+                            ) : (
+                              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                <path d="M3.5 8.5 6.5 11.5 12.5 4.5" />
+                              </svg>
+                            )}
                           </button>
                           <button
                             type="button"
@@ -531,9 +540,16 @@ const SubprocessList: React.FC<ISubprocessListProps> = ({
                             title={isComplete ? "Open quick update" : "Mark complete"}
                             aria-label={isComplete ? "Open quick update" : "Mark complete"}
                           >
-                            <svg className={dashboardStyles.iconSmall} viewBox="0 0 16 16" aria-hidden="true">
-                              <path d="M4 2.5a.5.5 0 0 1 .5-.5h7.1c.5 0 .76.6.41.95L10.2 4.75l1.81 1.8a.56.56 0 0 1-.41.95H5v6a.5.5 0 0 1-1 0v-11z" />
-                            </svg>
+                            {isComplete ? (
+                              <svg className={dashboardStyles.iconSmall} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                <path d="M11.5 2.5l2 2-7.5 7.5H4v-2l7.5-7.5z" />
+                                <path d="M3 14h10" />
+                              </svg>
+                            ) : (
+                              <svg className={dashboardStyles.iconSmall} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                <path d="M3.5 8.5 6.5 11.5 12.5 4.5" />
+                              </svg>
+                            )}
                           </button>
                         </div>
                       )

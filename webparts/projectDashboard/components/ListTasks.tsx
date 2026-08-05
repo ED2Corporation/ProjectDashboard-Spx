@@ -419,22 +419,14 @@ const ListTasks = ({
               <tbody>
                 {sortedTasks.map((item, index) => {
                   const previousTask = index > 0 ? sortedTasks[index - 1] : undefined;
-                  const showGateSeparator = !!showGateSeparators && item.Gate !== previousTask?.Gate;
+                  const showGateSeparator = !!showGateSeparators && !!previousTask && item.Gate !== previousTask.Gate;
 
                   return (
                   <React.Fragment key={item.Id}>
-                  {showGateSeparator && (
-                    <tr className={styles.gateStepRow}>
-                      <td colSpan={7}>
-                        <div className={styles.gateStepDivider}>
-                          <span className={styles.gateStepMarker}>{item.Gate || "No Gate"}</span>
-                        </div>
-                      </td>
-                    </tr>
-                  )}
                   <tr
                     data-task-id={item.Id}
                     className={[
+                      showGateSeparator ? styles.gateStepRow : "",
                       getDelayClassName(item),
                       item.Id === selectedTaskId ? styles.taskRowActive : "",
                     ].filter(Boolean).join(" ")}
@@ -686,6 +678,38 @@ const ListTasks = ({
                             </button>
                           ))}
                           <span className={styles.toolbarSeparator} />
+                          {onUploadFile && onSaveEvidence ? (
+                            <EvidenceUploadButton
+                              evidence={item.Evidence}
+                              taskTitle={item.Task ?? ""}
+                              currentUser={currentUserDisplayName ?? ""}
+                              onUploadFile={onUploadFile}
+                              onSave={(entries) => onSaveEvidence(item.Id, entries)}
+                              isEvidenceOfCompletion={true}
+                              label={
+                                <svg viewBox="0 0 16 16" aria-hidden="true">
+                                  <path d="M8 10V3" />
+                                  <path d="M5 6l3-3 3 3" />
+                                  <path d="M3 13h10" />
+                                </svg>
+                              }
+                              className={`${styles.toolbarIconButton} ${styles.actionEvidenceUploadTrigger}`}
+                            />
+                          ) : (
+                            <button
+                              type="button"
+                              className={`${styles.toolbarIconButton} ${styles.actionEvidenceUploadTrigger}`}
+                              title="Upload Evidence of Completion"
+                              aria-label="Upload Evidence of Completion"
+                              disabled
+                            >
+                              <svg viewBox="0 0 16 16" aria-hidden="true">
+                                <path d="M8 10V3" />
+                                <path d="M5 6l3-3 3 3" />
+                                <path d="M3 13h10" />
+                              </svg>
+                            </button>
+                          )}
                           <button
                             type="button"
                             className={[
@@ -700,19 +724,16 @@ const ListTasks = ({
                               handleCompleteActionClick(item);
                             }}
                           >
-                            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2.5a.5.5 0 0 1 .5-.5h7.1c.5 0 .76.6.41.95L10.2 4.75l1.81 1.8a.56.56 0 0 1-.41.95H5v6a.5.5 0 0 1-1 0v-11z" /></svg>
-                          </button>
-                          <button
-                            type="button"
-                            className={styles.toolbarIconButton}
-                            title="Edit task"
-                            aria-label="Edit task"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onSelectItem(item, "task", "list-edit");
-                            }}
-                          >
-                            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M11.5 2.5l2 2-7.5 7.5H4v-2l7.5-7.5zM3 14h10"/></svg>
+                            {Math.floor(item.Complete || 0) >= 100 ? (
+                              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                <path d="M11.5 2.5l2 2-7.5 7.5H4v-2l7.5-7.5z" />
+                                <path d="M3 14h10" />
+                              </svg>
+                            ) : (
+                              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                <path d="M3.5 8.5 6.5 11.5 12.5 4.5" />
+                              </svg>
+                            )}
                           </button>
                         </div>
                       ) : (
@@ -943,9 +964,16 @@ const ListTasks = ({
                           title={Math.floor(item.Complete || 0) >= 100 ? "Open quick update" : "Mark complete"}
                           aria-label={Math.floor(item.Complete || 0) >= 100 ? "Open quick update" : "Mark complete"}
                         >
-                          <svg className={styles.iconSmall} viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
-                            <path d="M4 2.5a.5.5 0 0 1 .5-.5h7.1c.5 0 .76.6.41.95L10.2 4.75l1.81 1.8a.56.56 0 0 1-.41.95H5v6a.5.5 0 0 1-1 0v-11z" />
-                          </svg>
+                          {Math.floor(item.Complete || 0) >= 100 ? (
+                            <svg className={styles.iconSmall} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                              <path d="M11.5 2.5l2 2-7.5 7.5H4v-2l7.5-7.5z" />
+                              <path d="M3 14h10" />
+                            </svg>
+                          ) : (
+                            <svg className={styles.iconSmall} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                              <path d="M3.5 8.5 6.5 11.5 12.5 4.5" />
+                            </svg>
+                          )}
                         </button>
                       </div>
                     ))}

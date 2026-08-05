@@ -626,6 +626,14 @@
   width: 64px;
 }
 
+.ed2TableDenseActions th.colEvidenceCompact,
+.ed2TableDenseActions td.colEvidenceCompact {
+  width: 30px;
+  max-width: 30px;
+  padding-left: 1px;
+  padding-right: 1px;
+}
+
 .ed2TableDenseActions th.colActions,
 .ed2TableDenseActions td.colActions,
 .ed2TableDenseActions th.actionsFixed,
@@ -661,8 +669,8 @@
 .ed2TableDenseActions.ed2TableActionsExpanded td.colActions,
 .ed2TableDenseActions.ed2TableActionsExpanded th.actionsFixed,
 .ed2TableDenseActions.ed2TableActionsExpanded td.actionsFixed {
-  width: 154px;
-  min-width: 154px;
+  width: 178px;
+  min-width: 178px;
 }
 
 .ed2TableStepTasks th.colWbs,
@@ -706,11 +714,7 @@
 
 .gateStepRow {
   td {
-    height: 22px;
-    padding: 0;
-    background: linear-gradient(90deg, rgba($c-border-subtle, 0.46), rgba($c-surface, 0));
-    border-top: 1px solid rgba($c-border-mid, 0.4);
-    border-bottom: 0;
+    border-top: 2px solid rgba($c-border-mid, 0.78);
   }
 }
 
@@ -964,10 +968,10 @@
 }
 
 .actionCompleteTriggerDone {
-  color: #16833a;
+  color: #6b7280;
 
   &:hover:not(:disabled) {
-    color: #0f6b2f;
+    color: #374151;
   }
 }
 

@@ -6,7 +6,7 @@ jest.mock('../EvidenceLog', () => () => <div data-testid="EvidenceLog">EvidenceL
 jest.mock('../ApprovalsLog', () => () => <div data-testid="ApprovalsLog">ApprovalsLog</div>);
 
 import * as React from 'react';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
@@ -258,6 +258,51 @@ describe('TaskCard', () => {
     }));
   });
 
+  it('persists generated Step Task lots immediately when Create Lots is clicked', async () => {
+    const onSave = jest.fn();
+
+    render(
+      <TaskCard
+        task={{
+          ...task,
+          Complete: 0,
+          Start: new Date('2026-04-08'),
+          Finish: new Date('2026-04-10'),
+          jsonTable: JSON.stringify({
+            taskSteps: {
+              enabled: true,
+              totalUnits: 60,
+              unitsPerStep: 30,
+              stepCount: 0,
+              mode: 'fixed',
+              steps: [],
+            },
+          }),
+        }}
+        projectUnits={60}
+        onDelete={jest.fn()}
+        onNew={jest.fn()}
+        onSave={onSave}
+        onClose={jest.fn()}
+      />
+    );
+
+    await userEvent.click(screen.getByRole('button', { name: /Lots/ }));
+
+    await waitFor(() => expect(onSave).toHaveBeenCalled());
+    const [, payload] = onSave.mock.calls[0];
+    const parsed = JSON.parse(payload);
+    const jsonTable = JSON.parse(parsed.jsonTable);
+
+    expect(jsonTable.taskSteps.enabled).toBe(true);
+    expect(jsonTable.taskSteps.steps).toHaveLength(2);
+    expect(jsonTable.taskSteps.steps[0]).toEqual(expect.objectContaining({
+      title: 'Review drawing - Step 1',
+      units: 30,
+      wbs: '1.0.01',
+    }));
+  });
+
   it('aggregates parent task complete from direct subprocess subtasks', async () => {
     const onSave = jest.fn();
 
@@ -387,5 +432,82 @@ describe('TaskCard', () => {
     expect(jsonTable.taskSteps.steps[0].complete).toBe(25);
     expect(jsonTable.taskSteps.steps[1].complete).toBe(50);
     expect(parsed.Complete).toBe(45);
+  });
+
+  it('preserves recovered Step Task subprocess rows when parent fields change before save', async () => {
+    const onSave = jest.fn();
+
+    render(
+      <TaskCard
+        task={{
+          ...task,
+          Complete: 0,
+          jsonTable: JSON.stringify({
+            taskSteps: {
+              enabled: true,
+              totalUnits: 160,
+              unitsPerStep: 20,
+              stepCount: 1,
+              mode: 'weekday',
+              weekdays: [2, 5],
+              steps: [
+                {
+                  id: 'step-1',
+                  wbs: '4.03.01',
+                  sortOrder: 0,
+                  title: 'LOT 3a - Package 1',
+                  units: 20,
+                  complete: 0,
+                  start: '2026-11-20',
+                  finish: '2026-11-20',
+                  actualFinish: '',
+                  notes: [],
+                  evidence: [],
+                  approvals: [],
+                  subprocess: {
+                    subTasks: [
+                      {
+                        id: 'sp-step-1',
+                        wbs: '4.03.01.01',
+                        sortOrder: 0,
+                        task: 'Upload BOM',
+                        duration: 1,
+                        complete: 0,
+                        start: '2026-07-24',
+                        finish: '2026-07-24',
+                        actualFinish: '',
+                        notes: [],
+                        evidence: [],
+                        approvals: [],
+                      },
+                    ],
+                  },
+                },
+              ],
+            },
+          }),
+        }}
+        projectUnits={160}
+        onDelete={jest.fn()}
+        onNew={jest.fn()}
+        onSave={onSave}
+        onClose={jest.fn()}
+      />
+    );
+
+    await userEvent.click(screen.getByRole('button', { name: 'Expand task card details' }));
+    fireEvent.change(screen.getByLabelText('Start'), { target: { value: '2026-04-09' } });
+    await clickTaskSave();
+
+    const [, payload] = onSave.mock.calls[0];
+    const parsed = JSON.parse(payload);
+    const jsonTable = JSON.parse(parsed.jsonTable);
+
+    expect(jsonTable.taskSteps.steps[0].subprocess.subTasks).toHaveLength(1);
+    expect(jsonTable.taskSteps.steps[0].subprocess.subTasks[0]).toEqual(expect.objectContaining({
+      id: 'sp-step-1',
+      task: 'Upload BOM',
+      complete: 0,
+    }));
   });
 });
