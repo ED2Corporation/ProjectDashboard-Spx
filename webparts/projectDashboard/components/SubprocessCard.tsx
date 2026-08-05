@@ -282,8 +282,12 @@ const SubprocessCard: React.FC<SubprocessCardProps> = ({
     }
 
     next.splice(targetIndex, 0, current);
+    // Reassign sortOrder to reflect the new positions before saving.
+    // normalizeSubTasks sorts by sortOrder first, so without this the
+    // move would be silently reverted to the original order.
+    const reindexed = next.map((entry, index) => ({ ...entry, sortOrder: index }));
     setMovingSubTaskId(subTaskId);
-    saveSubTasks(next);
+    saveSubTasks(reindexed);
     setSelectedSubTaskId(subTaskId);
     window.setTimeout(() => setMovingSubTaskId(undefined), 0);
   };

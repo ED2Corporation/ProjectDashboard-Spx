@@ -452,6 +452,38 @@ const SubprocessList: React.FC<ISubprocessListProps> = ({
                             );
                           })}
                           <span className={dashboardStyles.toolbarSeparator} />
+                          {onUploadEvidenceFile && onSaveEvidenceEntries ? (
+                            <EvidenceUploadButton
+                              evidence={item.evidence ?? []}
+                              taskTitle={item.task || "Subtask"}
+                              currentUser={currentUserDisplayName ?? ""}
+                              onUploadFile={onUploadEvidenceFile}
+                              onSave={(entries) => onSaveEvidenceEntries(item.id, entries)}
+                              isEvidenceOfCompletion={true}
+                              label={
+                                <svg viewBox="0 0 16 16" aria-hidden="true">
+                                  <path d="M8 10V3" />
+                                  <path d="M5 6l3-3 3 3" />
+                                  <path d="M3 13h10" />
+                                </svg>
+                              }
+                              className={`${dashboardStyles.toolbarIconButton} ${dashboardStyles.actionEvidenceUploadTrigger}`}
+                            />
+                          ) : (
+                            <button
+                              type="button"
+                              className={`${dashboardStyles.toolbarIconButton} ${dashboardStyles.actionEvidenceUploadTrigger}`}
+                              title="Upload Evidence of Completion"
+                              aria-label="Upload Evidence of Completion"
+                              disabled
+                            >
+                              <svg viewBox="0 0 16 16" aria-hidden="true">
+                                <path d="M8 10V3" />
+                                <path d="M5 6l3-3 3 3" />
+                                <path d="M3 13h10" />
+                              </svg>
+                            </button>
+                          )}
                           <button
                             type="button"
                             className={[
@@ -476,19 +508,6 @@ const SubprocessList: React.FC<ISubprocessListProps> = ({
                                 <path d="M3.5 8.5 6.5 11.5 12.5 4.5" />
                               </svg>
                             )}
-                          </button>
-                          <button
-                            type="button"
-                            className={dashboardStyles.toolbarIconButton}
-                            title="Edit subtask"
-                            aria-label="Edit subtask"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onSelect(item.id);
-                              onEditDetail?.(item.id);
-                            }}
-                          >
-                            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M11.5 2.5l2 2-7.5 7.5H4v-2l7.5-7.5zM3 14h10" /></svg>
                           </button>
                         </div>
                       ) : (
