@@ -373,7 +373,7 @@ const SubprocessList: React.FC<ISubprocessListProps> = ({
                         title={completionEvidence.note || completionEvidence.fileName}
                       >
                         {actionsExpanded ? (
-                          <svg viewBox="0 0 16 16" aria-label={completionEvidence.fileName}>
+                          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ width: 13, height: 13, verticalAlign: "middle" }} aria-hidden="true">
                             <path d="M5 2h4l3 3v9H5a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z" />
                             <path d="M9 2v3h3" />
                           </svg>

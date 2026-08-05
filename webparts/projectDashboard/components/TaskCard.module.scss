@@ -81,6 +81,7 @@ $c-step-tasks: #2f6f78;
 
 .taskDetailsBody {
   background: $c-surface;
+  padding: $sp-2 $sp-4 $sp-4;
 }
 
 .taskDetailsToolbar {
@@ -96,8 +97,11 @@ $c-step-tasks: #2f6f78;
 
 .taskDetailsInlineHeader {
   display: flex;
-  flex-direction: column;
-  gap: 2px;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: $sp-2;
+  flex: 1 1 auto;
   min-width: 0;
 }
 
@@ -153,6 +157,14 @@ $c-step-tasks: #2f6f78;
 .taskDetailsSummaryGrid {
   display: grid;
   grid-template-columns: minmax(80px, 0.55fr) minmax(220px, 1.8fr) minmax(90px, 0.55fr) minmax(170px, 1.1fr);
+  gap: $sp-2;
+  align-items: start;
+}
+
+// StepTask summary: Step Name wide, Units narrow
+.taskDetailsSummaryGridStepTask {
+  display: grid;
+  grid-template-columns: minmax(140px, 2.5fr) minmax(50px, 0.35fr) minmax(80px, 0.5fr) minmax(150px, 1.1fr);
   gap: $sp-2;
   align-items: start;
 }
@@ -1218,6 +1230,11 @@ $c-step-tasks: #2f6f78;
   border: 1px solid rgba($c-step-tasks, 0.16);
   border-radius: $r-sm;
   background: rgba(255, 255, 255, 0.7);
+  font-size: $f-base;
+
+  input, select {
+    font-size: $f-base;
+  }
 }
 
 .taskStepEditorField {

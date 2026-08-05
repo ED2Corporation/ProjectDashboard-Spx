@@ -12,11 +12,9 @@ interface ITaskStepsTableProps {
   steps: ITaskStepEntry[];
   selectedTaskStepId?: string;
   isTaskStepWorkspaceExpanded: boolean;
-  isTaskStepDetailsExpanded: boolean;
   getStepComplete: (step: ITaskStepEntry) => number;
   onMoveStep?: (stepId: string, direction: "first" | "up" | "down" | "last") => void;
   onToggleWorkspace: (step: ITaskStepEntry) => void;
-  onToggleDetails: (step: ITaskStepEntry) => void;
   renderWorkspace: (step: ITaskStepEntry) => React.ReactNode;
 }
 
@@ -39,11 +37,9 @@ const TaskStepsTable: React.FC<ITaskStepsTableProps> = ({
   steps,
   selectedTaskStepId,
   isTaskStepWorkspaceExpanded,
-  isTaskStepDetailsExpanded,
   getStepComplete,
   onMoveStep,
   onToggleWorkspace,
-  onToggleDetails,
   renderWorkspace,
 }) => {
   const [sortCol, setSortCol] = useState<StepTaskSortCol>("wbs");
@@ -163,20 +159,6 @@ const TaskStepsTable: React.FC<ITaskStepsTableProps> = ({
                           })}
                         </div>
                       )}
-                      <button
-                        type="button"
-                        className={[
-                          styles.taskStepHeaderToggle,
-                          isSelectedStep && isTaskStepDetailsExpanded ? styles.taskStepHeaderToggleActive : "",
-                        ].filter(Boolean).join(" ")}
-                        onClick={() => onToggleDetails(step)}
-                        title={isSelectedStep && isTaskStepDetailsExpanded ? "Collapse step details" : "Expand step details"}
-                        aria-label={isSelectedStep && isTaskStepDetailsExpanded ? "Collapse step details" : "Expand step details"}
-                      >
-                        <span className={styles.taskStepHeaderChevron}>
-                          {isSelectedStep && isTaskStepDetailsExpanded ? "v" : ">"}
-                        </span>
-                      </button>
                     </td>
                   </tr>
 

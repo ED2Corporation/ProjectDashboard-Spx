@@ -35,10 +35,10 @@ const EvidenceUploadButton: React.FC<EvidenceUploadButtonProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const successTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Auto-clear success banner after 3 s
+  // Auto-clear success banner after 1.5 s
   useEffect(() => {
     if (!uploadedName) return;
-    successTimer.current = setTimeout(() => setUploadedName(null), 3000);
+    successTimer.current = setTimeout(() => setUploadedName(null), 1500);
     return () => { if (successTimer.current) clearTimeout(successTimer.current); };
   }, [uploadedName]);
 
@@ -84,14 +84,22 @@ const EvidenceUploadButton: React.FC<EvidenceUploadButtonProps> = ({
         className={className}
         disabled={disabled || uploading}
         onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }}
-        title="Upload Evidence of Completion"
+        title={uploading ? 'Uploading…' : 'Upload Evidence of Completion'}
+        aria-busy={uploading}
       >
-        {uploading ? 'Uploading…' : label}
+        {label}
       </button>
-      {uploadedName && (
+      {uploading && (
+        <span style={{
+          fontSize: 10, color: '#605E5C', whiteSpace: 'nowrap', lineHeight: 1,
+        }}>
+          Uploading…
+        </span>
+      )}
+      {uploadedName && !uploading && (
         <span style={{
           display: 'inline-flex', alignItems: 'center', gap: 3,
-          fontSize: 'inherit', color: '#107C10', whiteSpace: 'nowrap',
+          fontSize: 10, color: '#107C10', whiteSpace: 'nowrap', lineHeight: 1,
         }}>
           <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{width:'1em',height:'1em',flexShrink:0}} aria-hidden="true">
             <path d="M2 6.5 4.5 9 10 3"/>

@@ -1454,7 +1454,6 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
             steps={taskSteps.steps}
             selectedTaskStepId={selectedTaskStepId}
             isTaskStepWorkspaceExpanded={isTaskStepWorkspaceExpanded}
-            isTaskStepDetailsExpanded={isTaskStepDetailsExpanded}
             getStepComplete={getTaskStepDerivedCompleteValue}
             onMoveStep={handleMoveTaskStep}
             onToggleWorkspace={(step) => {
@@ -1468,103 +1467,167 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
               setIsTaskStepDetailsExpanded(false);
               setIsTaskStepSubprocessExpanded(true);
             }}
-            onToggleDetails={(step) => {
-              if (step.id !== selectedTaskStepId) {
-                setSelectedTaskStepId(step.id);
-                setIsTaskStepWorkspaceExpanded(true);
-                setIsTaskStepDetailsExpanded(true);
-                setIsTaskStepSubprocessExpanded(true);
-                return;
-              }
-
-              setIsTaskStepWorkspaceExpanded(true);
-              setIsTaskStepDetailsExpanded(prev => !prev);
-            }}
             renderWorkspace={(selectedStep) => (
               <div className={styles.taskStepWorkspace}>
                 <div className={styles.taskStepDetail}>
-                  {isTaskStepDetailsExpanded && (
-                    <div className={styles.taskStepEditor}>
-                      <label className={styles.taskStepEditorField}>
-                        <span>Step Name</span>
-                        <input
-                          type="text"
-                          value={taskStepTitleEdit}
-                          className={styles.inputSmall}
-                          onChange={e => setTaskStepTitleEdit(e.target.value)}
-                          placeholder="Mnemonic step name"
-                        />
-                      </label>
-                      <label className={styles.taskStepEditorField}>
-                        <span>Units</span>
-                        <input
-                          type="number"
-                          min={1}
-                          value={taskStepUnitsEdit}
-                          className={styles.inputSmall}
-                          onChange={e => setTaskStepUnitsEdit(Math.max(1, Number(e.target.value) || 0))}
-                        />
-                      </label>
-                      <label
-                        className={styles.taskStepEditorField}
-                        title={(selectedStep.subprocess?.subTasks.length ?? 0) > 0
-                          ? "Complete is calculated from this Step Task subprocess. Update progress in its Subprocess Workspace."
-                          : undefined}
-                      >
-                        <span>% Complete</span>
-                        <input
-                          type="number"
-                          min={0}
-                          max={100}
-                          value={taskStepCompleteEdit}
-                          className={styles.inputSmall}
-                          onChange={e => setTaskStepCompleteEdit(Number(e.target.value) || 0)}
-                          disabled={(selectedStep.subprocess?.subTasks.length ?? 0) > 0}
-                          title={(selectedStep.subprocess?.subTasks.length ?? 0) > 0
-                            ? "Complete is calculated from this Step Task subprocess. Update progress in its Subprocess Workspace."
-                            : undefined}
-                        />
-                      </label>
-                      <label className={styles.taskStepEditorField}>
-                        <span>Start</span>
-                        <input
-                          type="date"
-                          value={taskStepStartEdit}
-                          className={styles.inputSmall}
-                          onChange={e => setTaskStepStartEdit(e.target.value)}
-                        />
-                      </label>
-                      <label className={styles.taskStepEditorField}>
-                        <span>Delivery Date</span>
-                        <input
-                          type="date"
-                          value={taskStepFinishEdit}
-                          className={styles.inputSmall}
-                          onChange={e => setTaskStepFinishEdit(e.target.value)}
-                        />
-                      </label>
-                      <label className={styles.taskStepEditorField}>
-                        <span>Actual Finish</span>
-                        <input
-                          type="date"
-                          value={taskStepActualFinishEdit}
-                          className={styles.inputSmall}
-                          onChange={e => setTaskStepActualFinishEdit(e.target.value)}
-                          disabled={taskStepCompleteEdit < 100}
-                        />
-                      </label>
-                      <div className={styles.taskStepEditorActions}>
-                        <button
-                          type="button"
-                          className={`${styles.taskButton} ${styles.taskButtonSave}`}
-                          onClick={handleSaveSelectedTaskStep}
-                        >
-                          <span className={styles.taskButtonLabel}>Save Step</span>
-                        </button>
-                      </div>
-                    </div>
-                  )}
 
+                  {/* ── Step Task Detail card (collapsible) ── */}
+                  <div className={styles.taskDetailsShell}>
+                    <div className={styles.taskDetailsToolbar}>
+                      {!isTaskStepDetailsExpanded ? (
+                        <div className={styles.taskDetailsSummary}>
+                          <div className={styles.taskDetailsSummaryTop}>
+                            <div className={styles.taskDetailsSummaryHeading}>
+                              <div className={styles.taskDetailsSummaryTitle}>Step Task Detail</div>
+                              <div className={styles.taskDetailsSummarySubtitle}>Expand to edit step data.</div>
+                            </div>
+                            <button
+                              type="button"
+                              className={`${styles.taskButton} ${styles.taskButtonCollapse} ${styles.taskDetailsSummaryToggle}`}
+                              onClick={() => setIsTaskStepDetailsExpanded(true)}
+                              title="Expand step task details"
+                              aria-label="Expand step task details"
+                            >
+                              <svg className={styles.iconSmall} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                <path d="M3 6l5 5 5-5" />
+                              </svg>
+                            </button>
+                          </div>
+                          <div className={styles.taskDetailsSummaryGridStepTask}>
+                            <div className={styles.taskDetailsSummaryBlock}>
+                              <div className={styles.taskDetailsSummaryLabel}>Step Name</div>
+                            </div>
+                            <div className={styles.taskDetailsSummaryBlock}>
+                              <div className={styles.taskDetailsSummaryLabel}>Units</div>
+                            </div>
+                            <div className={styles.taskDetailsSummaryBlock}>
+                              <div className={styles.taskDetailsSummaryLabel}>% Complete</div>
+                            </div>
+                            <div className={styles.taskDetailsSummaryBlock}>
+                              <div className={styles.taskDetailsSummaryLabel}>Calendar</div>
+                            </div>
+                          </div>
+                          <div className={styles.taskDetailsSummaryGridStepTask}>
+                            <div className={styles.taskDetailsSummaryBlock}>
+                              <div className={styles.taskDetailsSummaryValue}>{selectedStep.title || "N/A"}</div>
+                            </div>
+                            <div className={styles.taskDetailsSummaryBlock}>
+                              <div className={styles.taskDetailsSummaryValue}>{selectedStep.units ?? 0}</div>
+                            </div>
+                            <div className={styles.taskDetailsSummaryBlock}>
+                              <div className={styles.taskDetailsSummaryValue}>{`${taskStepCompleteEdit}%`}</div>
+                            </div>
+                            <div className={styles.taskDetailsSummaryBlock}>
+                              <div className={styles.taskDetailsSummaryValue}>{`(${selectedStep.start || "N/A"} - ${selectedStep.finish || "N/A"})`}</div>
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className={styles.taskDetailsInlineHeader}>
+                          <div>
+                            <div className={styles.taskDetailsKicker}>Step Task Detail</div>
+                            <div className={styles.taskDetailsSubtitle}>Edit step data.</div>
+                          </div>
+                          <button
+                            type="button"
+                            className={`${styles.taskButton} ${styles.taskButtonCollapse} ${styles.taskDetailsSummaryToggle}`}
+                            onClick={() => setIsTaskStepDetailsExpanded(false)}
+                            title="Collapse step task details"
+                            aria-label="Collapse step task details"
+                          >
+                            <svg className={styles.iconSmall} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                              <path d="M3 10l5-5 5 5" />
+                            </svg>
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                    {isTaskStepDetailsExpanded && (
+                      <div className={styles.taskDetailsBody}>
+                        <div className={styles.taskStepEditor}>
+                          <label className={styles.taskStepEditorField}>
+                            <span>Step Name</span>
+                            <input
+                              type="text"
+                              value={taskStepTitleEdit}
+                              className={styles.inputSmall}
+                              onChange={e => setTaskStepTitleEdit(e.target.value)}
+                              placeholder="Mnemonic step name"
+                            />
+                          </label>
+                          <label className={styles.taskStepEditorField}>
+                            <span>Units</span>
+                            <input
+                              type="number"
+                              min={1}
+                              value={taskStepUnitsEdit}
+                              className={styles.inputSmall}
+                              onChange={e => setTaskStepUnitsEdit(Math.max(1, Number(e.target.value) || 0))}
+                            />
+                          </label>
+                          <label
+                            className={styles.taskStepEditorField}
+                            title={(selectedStep.subprocess?.subTasks.length ?? 0) > 0
+                              ? "Complete is calculated from this Step Task subprocess. Update progress in its Subprocess Workspace."
+                              : undefined}
+                          >
+                            <span>% Complete</span>
+                            <input
+                              type="number"
+                              min={0}
+                              max={100}
+                              value={taskStepCompleteEdit}
+                              className={styles.inputSmall}
+                              onChange={e => setTaskStepCompleteEdit(Number(e.target.value) || 0)}
+                              disabled={(selectedStep.subprocess?.subTasks.length ?? 0) > 0}
+                              title={(selectedStep.subprocess?.subTasks.length ?? 0) > 0
+                                ? "Complete is calculated from this Step Task subprocess. Update progress in its Subprocess Workspace."
+                                : undefined}
+                            />
+                          </label>
+                          <label className={styles.taskStepEditorField}>
+                            <span>Start</span>
+                            <input
+                              type="date"
+                              value={taskStepStartEdit}
+                              className={styles.inputSmall}
+                              onChange={e => setTaskStepStartEdit(e.target.value)}
+                            />
+                          </label>
+                          <label className={styles.taskStepEditorField}>
+                            <span>Delivery Date</span>
+                            <input
+                              type="date"
+                              value={taskStepFinishEdit}
+                              className={styles.inputSmall}
+                              onChange={e => setTaskStepFinishEdit(e.target.value)}
+                            />
+                          </label>
+                          <label className={styles.taskStepEditorField}>
+                            <span>Actual Finish</span>
+                            <input
+                              type="date"
+                              value={taskStepActualFinishEdit}
+                              className={styles.inputSmall}
+                              onChange={e => setTaskStepActualFinishEdit(e.target.value)}
+                              disabled={taskStepCompleteEdit < 100}
+                            />
+                          </label>
+                          <div className={styles.taskStepEditorActions}>
+                            <button
+                              type="button"
+                              className={`${styles.taskButton} ${styles.taskButtonSave}`}
+                              onClick={handleSaveSelectedTaskStep}
+                            >
+                              <span className={styles.taskButtonLabel}>Save Step</span>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* ── StepTask Subprocesses card ── */}
                   <SubprocessCard
                     parentWbs={selectedStep.wbs}
                     parentStart={selectedStep.start}
@@ -1590,6 +1653,8 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
                     onSendEmail={onSendEmail}
                     onSearchUsers={onSearchUsers}
                     visualLevel="taskStep"
+                    headerKicker="SUBPROCESS WORKAREA"
+                    headerTitle="Step Task"
                     isCollapsed={!isTaskStepSubprocessExpanded}
                     onClose={() => setIsTaskStepSubprocessExpanded(prev => !prev)}
                   />
@@ -1695,8 +1760,10 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
           ) : (
           <>
           <div className={styles.taskDetailsInlineHeader}>
-            <div className={styles.taskDetailsKicker}>Task Details</div>
-            <div className={styles.taskDetailsSubtitle}>Edit task data and review its log.</div>
+            <div>
+              <div className={styles.taskDetailsKicker}>Task Details</div>
+              <div className={styles.taskDetailsSubtitle}>Edit task data and review its log.</div>
+            </div>
           </div>
           <div className={styles.taskBtnGroup}>
           <div className={styles.taskViewCard}>

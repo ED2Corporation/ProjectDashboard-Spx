@@ -285,16 +285,13 @@
   width: 24px;
   max-width: 24px;
   text-align: center;
-  color: transparent;
+  color: $c-primary;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 
   &:hover {
-    color: transparent;
-  }
-
-  &::before {
-    content: '📎';
-    color: $c-primary;
-    font-size: 13px;
+    color: $c-primary-hover;
   }
 }
 
