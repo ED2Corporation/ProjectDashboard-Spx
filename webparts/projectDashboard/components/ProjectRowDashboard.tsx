@@ -20,7 +20,7 @@ import TaskCard from "./TaskCard";
 import ProjectActionsBar from "./ProjectActionsBar";
 import ProjectCatalogEditor from "./ProjectCatalogEditor";
 import styles from "./ProjectRowDashboard.module.scss";
-import { buildTaskSortOrderJsonTable, getTaskCompleteLockMessageFromJsonTable } from "../utils/TaskPersistencePayload";
+import { getTaskCompleteLockMessageFromJsonTable } from "../utils/TaskPersistencePayload";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -207,7 +207,7 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
   const {
     tasks, gates, filteredTasks,
     onReset, onGateFilterChange, onSelectItem,
-    onNewTask, onDeleteTask, onUpdateTask, onUploadFile,
+    onNewTask, onDeleteTask, onMoveTask: onMoveTaskPersist, onUpdateTask, onUploadFile,
     onSaveLogField: _onSaveLogField, onSendEmail, onSearchUsers,
   } = useProjectState({
     context,
@@ -256,51 +256,15 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
     if (movingTaskId) return;
     setMovingTaskId(taskId);
     try {
-      // Get all tasks in this gate, sorted by current order
-      const gateTasks = [...filteredTasks.filter(t => t.Gate === gate)]
-        .sort((a, b) => (a.sortOrder ?? Infinity) - (b.sortOrder ?? Infinity) ||
-          (a.Title ?? '').localeCompare(b.Title ?? ''));
-
-      const idx = gateTasks.findIndex(t => t.Id === taskId);
-      if (idx === -1) return;
-
-      // Bounds guard
-      if ((direction === 'first' || direction === 'up') && idx === 0) return;
-      if ((direction === 'last' || direction === 'down') && idx === gateTasks.length - 1) return;
-
-      // Reorder in memory
-      const reordered = [...gateTasks];
-      const [moved] = reordered.splice(idx, 1);
-      if      (direction === 'first') reordered.unshift(moved);
-      else if (direction === 'last')  reordered.push(moved);
-      else if (direction === 'up')    reordered.splice(idx - 1, 0, moved);
-      else                            reordered.splice(idx + 1, 0, moved);
+      await onMoveTaskPersist(taskId, gate, direction);
 
       // Assign sequential sortOrders — only update changed items
-      const updates: Array<{ id: number; jsonTable: string }> = [];
-      reordered.forEach((t, i) => {
-        const newOrder = i + 1;
-        if (t.sortOrder !== newOrder) {
-          updates.push({
-            id: Number(t.Id),
-            jsonTable: buildTaskSortOrderJsonTable(t.jsonTable, newOrder)
-          });
-        }
-      });
-
-      await Promise.all(
-        updates.map(u =>
-          projectSp.web.lists.getByTitle(listName).items.getById(u.id).update({ jsonTable: u.jsonTable })
-        )
-      );
-
-      await onReset();
     } catch (e) {
       console.error('[handleMoveTask] Error:', e);
     } finally {
       setMovingTaskId(null);
     }
-  }, [movingTaskId, filteredTasks, projectSp, listName, onReset]);
+  }, [movingTaskId, onMoveTaskPersist]);
 
   // Local copy of catalog fields — updated optimistically after a successful save
 
@@ -609,10 +573,11 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
             isPlanner={false}
             heading={tasksHeading}
             showDetails={true}
+            showGateSeparators={showAllTasks}
             onReload={() => {
               void onReset();
             }}
-            selectedTaskId={showCard ? selectedTask?.Id : undefined}
+            selectedTaskId={selectedTask?.Id}
             expandedContent={expandedTaskCard}
             creatingTaskId={creatingId ?? undefined}
             deletingTaskId={deletingId ?? undefined}
@@ -637,11 +602,13 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
                   break;
                 case "list-create":
                   if (creatingId) break;
+                  setSelectedTask(resolveFreshTaskById(item.Id) ?? item);
+                  setShowCard(false);
                   setCreatingId(item.Id);
                   void (async () => {
                     try {
                       const newTask = await (onNewTask?.(item.Gate, item.Title || undefined) ?? Promise.resolve(null));
-                      if (newTask) { setSelectedTask(newTask); setShowCard(true); }
+                      if (newTask) { setSelectedTask(newTask); setShowCard(false); }
                     } finally {
                       setCreatingId(null);
                     }
@@ -649,16 +616,23 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
                   break;
                 case "list-delete":
                   if (deletingId) break;
+                  setSelectedTask(resolveFreshTaskById(item.Id) ?? item);
+                  setShowCard(false);
                   setDeletingId(item.Id);
                   void (async () => {
                     try {
                       const nextTask = await onDeleteTask?.(item.Id, item.Gate, item.Title || undefined);
-                      if (nextTask) { setSelectedTask(nextTask); setShowCard(true); }
+                      if (nextTask) { setSelectedTask(nextTask); setShowCard(false); }
                       else { setShowCard(false); }
                     } finally {
                       setDeletingId(null);
                     }
                   })();
+                  break;
+                case "list-pivot":
+                  setSelectedTask(resolveFreshTaskById(item.Id) ?? item);
+                  setShowCard(false);
+                  onSelectItem(item.Task, "task");
                   break;
                 default:
                   {

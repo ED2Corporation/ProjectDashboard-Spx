@@ -188,7 +188,7 @@ const SubprocessList: React.FC<ISubprocessListProps> = ({
       </div>
 
       <div className={`${dashboardStyles.tableViewport} ${isShortListMode ? dashboardStyles.tableViewportShort : ""}`}>
-        <table className={`${dashboardStyles.ed2Table} ${styles.subprocessTable} ${actionsExpanded ? dashboardStyles.ed2TableActionsExpanded : ""}`}>
+        <table className={`${dashboardStyles.ed2Table} ${dashboardStyles.ed2TableDenseActions} ${styles.subprocessTable} ${actionsExpanded ? dashboardStyles.ed2TableActionsExpanded : ""}`}>
           <thead>
             <tr>
               <th

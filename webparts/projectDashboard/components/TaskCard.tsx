@@ -1,3 +1,4 @@
+/* eslint-disable max-lines */
 import React, { useEffect, useRef, useState } from "react";
 import { ITaskListItem } from "../../../models";
 import { INoteEntry, IEvidenceEntry, IApprovalEntry } from "../../../models/ITaskLogFields";
@@ -119,6 +120,47 @@ const cloneSubprocessTemplateForStep = (
     approvals: [],
   })),
 });
+
+const formatTaskStepWbs = (parentWbs: string, index: number): string => {
+  const prefix = parentWbs.trim();
+  const suffix = String(index + 1).padStart(2, "0");
+  return prefix ? `${prefix}.${suffix}` : suffix;
+};
+
+const normalizeTaskStepSubprocessWbs = (
+  subprocessValue: ITaskSubprocessData | undefined,
+  stepWbs: string
+): ITaskSubprocessData | undefined => {
+  if (!subprocessValue) return undefined;
+
+  return {
+    subTasks: subprocessValue.subTasks
+      .slice()
+      .sort((a, b) => a.sortOrder - b.sortOrder)
+      .map((subTask, index) => ({
+        ...subTask,
+        sortOrder: index,
+        wbs: `${stepWbs}.${String(index + 1).padStart(2, "0")}`,
+      })),
+  };
+};
+
+const normalizeTaskStepOrder = (
+  parentWbs: string,
+  steps: ITaskStepEntry[]
+): ITaskStepEntry[] =>
+  steps
+    .slice()
+    .sort((a, b) => a.sortOrder - b.sortOrder)
+    .map((step, index) => {
+      const stepWbs = formatTaskStepWbs(parentWbs, index);
+      return {
+        ...step,
+        sortOrder: index,
+        wbs: stepWbs,
+        subprocess: normalizeTaskStepSubprocessWbs(step.subprocess, stepWbs),
+      };
+    });
 
 const hasSubprocessExecutionData = (value?: ITaskSubprocessData): boolean =>
   (value?.subTasks ?? []).some(subTask =>
@@ -504,7 +546,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
 
   const normalizeTaskStepsAggregation = (value: ITaskStepsData): ITaskStepsData => ({
     ...value,
-    steps: value.steps.map(step => {
+    steps: normalizeTaskStepOrder(wbs || task.Title || "1", value.steps).map(step => {
       const derivedComplete = getTaskStepDerivedCompleteValue(step);
 
       return {
@@ -903,6 +945,49 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
     void handleSaveTaskStepsOnly(normalizedTaskSteps);
   };
 
+  const handleMoveTaskStep = (stepId: string, direction: "first" | "up" | "down" | "last"): void => {
+    const orderedSteps = normalizeTaskStepOrder(wbs || task.Title || "1", taskSteps.steps);
+    const currentIndex = orderedSteps.findIndex(step => step.id === stepId);
+    if (currentIndex < 0) return;
+
+    if ((direction === "first" || direction === "up") && currentIndex === 0) return;
+    if ((direction === "last" || direction === "down") && currentIndex === orderedSteps.length - 1) return;
+
+    const nextSteps = orderedSteps.slice();
+    const [currentStep] = nextSteps.splice(currentIndex, 1);
+    let targetIndex = currentIndex;
+
+    switch (direction) {
+      case "first":
+        targetIndex = 0;
+        break;
+      case "up":
+        targetIndex = currentIndex - 1;
+        break;
+      case "down":
+        targetIndex = currentIndex + 1;
+        break;
+      case "last":
+        targetIndex = nextSteps.length;
+        break;
+    }
+
+    nextSteps.splice(targetIndex, 0, currentStep);
+    const normalizedTaskSteps = normalizeTaskStepsAggregation({
+      ...taskSteps,
+      enabled: true,
+      steps: nextSteps.map((step, index) => ({
+        ...step,
+        sortOrder: index,
+      })),
+    });
+
+    setSelectedTaskStepId(stepId);
+    setIsTaskStepWorkspaceExpanded(true);
+    commitTaskSteps(normalizedTaskSteps);
+    void handleSaveTaskStepsOnly(normalizedTaskSteps);
+  };
+
   const buildApprovalEmail = (requestedBy: string): { subject: string; body: string } => {
     const jobNumber  = projectInfo?.projectNumber ?? '';
     const partNumber = projectInfo?.partNumber    ?? '';
@@ -1019,8 +1104,6 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
     appendAuditNote(`Task marked as 100% complete by ${currentUserDisplayName ?? 'system'}`).catch(() => undefined);
   }, [complete]); // eslint-disable-line react-hooks/exhaustive-deps
   const hasCompletionEvidence = evidenceLog.some(entry => entry.isEvidenceOfCompletion);
-  const handleNew = (): void => onNew(task);
-  const handleDelete = (): void => onDelete(task.Id);
   const handleToggleSubprocess = (): void => {
     setShowSubprocess(prev => {
       const next = !prev;
@@ -1313,6 +1396,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
             isTaskStepWorkspaceExpanded={isTaskStepWorkspaceExpanded}
             isTaskStepDetailsExpanded={isTaskStepDetailsExpanded}
             getStepComplete={getTaskStepDerivedCompleteValue}
+            onMoveStep={handleMoveTaskStep}
             onToggleWorkspace={(step) => {
               if (step.id === selectedTaskStepId) {
                 setIsTaskStepWorkspaceExpanded(prev => !prev);
@@ -1342,12 +1426,13 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
                   {isTaskStepDetailsExpanded && (
                     <div className={styles.taskStepEditor}>
                       <label className={styles.taskStepEditorField}>
-                        <span>Task</span>
+                        <span>Step Name</span>
                         <input
                           type="text"
                           value={taskStepTitleEdit}
                           className={styles.inputSmall}
                           onChange={e => setTaskStepTitleEdit(e.target.value)}
+                          placeholder="Mnemonic step name"
                         />
                       </label>
                       <label className={styles.taskStepEditorField}>
@@ -1475,84 +1560,6 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
             >
               <span className={styles.taskButtonLabel}>Add Subprocess</span>
             </button>
-          )}
-
-          {/* Completion warning */}
-          <div className={styles.taskNavCard}>
-            <button
-              type="button"
-              className={`${styles.taskButton} ${styles.taskButtonNav}`}
-              onClick={() => onNavigate?.('prev')}
-              disabled={!hasPrev}
-              title={hasPrev ? "Previous task" : "No previous task"}
-            >
-              <svg className={styles.iconSmall} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M4 10l4-5 4 5"/>
-              </svg>
-            </button>
-            <button
-              type="button"
-              className={`${styles.taskButton} ${styles.taskButtonNav}`}
-              onClick={() => onNavigate?.('next')}
-              disabled={!hasNext}
-              title={hasNext ? "Next task" : "No next task"}
-            >
-              <svg className={styles.iconSmall} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M4 6l4 5 4-5"/>
-              </svg>
-            </button>
-          </div>
-
-          {/* Completion warning */}
-          <div className={styles.taskActionsCard}>
-            <button type="button" className={styles.taskButton} onClick={handleDelete} title={isDeleting ? "Deleting..." : "Delete task"} disabled={isDeleting}>
-              {isDeleting ? (
-                <svg className={`${styles.iconSmall} ${styles.spinning}`} viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                  <circle cx="8" cy="8" r="5.5" stroke="currentColor" strokeWidth="2" strokeDasharray="20 15" strokeLinecap="round"/>
-                </svg>
-              ) : (
-                <svg className={styles.iconSmall} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <path d="M3 5h10M6 5V3h4v2M4.5 5l.7 8h6.6l.7-8"/>
-                </svg>
-              )}
-            </button>
-            <button type="button" className={styles.taskButton} onClick={handleNew} title={isCreating ? "Creating..." : "New task"} disabled={isCreating}>
-              {isCreating ? (
-                <svg className={`${styles.iconSmall} ${styles.spinning}`} viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                  <circle cx="8" cy="8" r="5.5" stroke="currentColor" strokeWidth="2" strokeDasharray="20 15" strokeLinecap="round"/>
-                </svg>
-              ) : (
-                <svg className={styles.iconSmall} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
-                  <path d="M8 3v10M3 8h10"/>
-                </svg>
-              )}
-            </button>
-          </div>
-
-          {/* Completion warning */}
-          {(onMoveFirst || onMoveUp || onMoveDown || onMoveLast) && (
-            <div className={styles.taskReorderCard}>
-              <button type="button" className={styles.taskButton} onClick={onMoveFirst} disabled={!!isMoveFirst || !!isMoving} title="Move First">
-                <svg className={styles.iconSmall} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <path d="M3 3h10M8 13V6M5 9l3-3 3 3"/>
-                </svg>
-              </button>
-              <button type="button" className={styles.taskButton} onClick={onMoveUp} disabled={!!isMoveFirst || !!isMoving} title="Move Up">
-                <svg className={styles.iconSmall} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <path d="M4 10l4-5 4 5"/>
-                </svg>
-              </button>
-              <button type="button" className={styles.taskButton} onClick={onMoveDown} disabled={!!isMoveLast || !!isMoving} title="Move Down">
-                <svg className={styles.iconSmall} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <path d="M4 6l4 5 4-5"/>
-                </svg>
-              </button>
-              <button type="button" className={styles.taskButton} onClick={onMoveLast} disabled={!!isMoveLast || !!isMoving} title="Move Last">
-                <svg className={styles.iconSmall} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <path d="M3 13h10M8 3v7M5 7l3 3 3-3"/>
-                </svg>
-              </button>
-            </div>
           )}
 
           {onClose && (

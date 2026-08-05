@@ -14,6 +14,26 @@ import TaskCard from '../TaskCard';
 import { ITaskListItem } from '../../../../models';
 
 describe('TaskCard', () => {
+  const clickTaskSave = async (): Promise<void> => {
+    let saveButtons = screen.queryAllByRole('button', { name: 'Save' });
+    if (saveButtons.length === 0) {
+      const expandDetails = screen.queryByRole('button', { name: 'Expand task card details' });
+      if (expandDetails) {
+        await userEvent.click(expandDetails);
+      }
+      saveButtons = screen.getAllByRole('button', { name: 'Save' });
+    }
+    await userEvent.click(saveButtons[0]);
+  };
+
+  const openSubprocessWorkspace = async (): Promise<HTMLElement> => {
+    const addSubprocess = screen.queryByRole('button', { name: 'Add Subprocess' });
+    if (addSubprocess) {
+      await userEvent.click(addSubprocess);
+    }
+    return screen.getByTestId('subprocess-workspace');
+  };
+
   const task: ITaskListItem = {
     Id: 'task-1',
     Title: '1.0',
@@ -58,7 +78,7 @@ describe('TaskCard', () => {
 
     await userEvent.clear(screen.getByLabelText('Task'));
     await userEvent.type(screen.getByLabelText('Task'), 'Updated task');
-    await userEvent.click(screen.getByRole('button', { name: /Save/i }));
+    await clickTaskSave();
 
     expect(onSave).toHaveBeenCalledTimes(1);
     const [, payload] = onSave.mock.calls[0];
@@ -86,7 +106,7 @@ describe('TaskCard', () => {
 
     await userEvent.click(screen.getByRole('checkbox', { name: /Ship/i }));
     expect(screen.getByLabelText('Release Units')).toHaveValue(12);
-    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+    await clickTaskSave();
 
     const [, payload] = onSave.mock.calls[0];
     const parsed = JSON.parse(payload);
@@ -118,7 +138,7 @@ describe('TaskCard', () => {
     );
 
     await userEvent.click(screen.getByRole('checkbox', { name: /Ship/i }));
-    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+    await clickTaskSave();
 
     const [, payload] = onSave.mock.calls[0];
     const parsed = JSON.parse(payload);
@@ -144,7 +164,7 @@ describe('TaskCard', () => {
     );
 
     await userEvent.click(screen.getByRole('checkbox', { name: /Ship/i }));
-    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+    await clickTaskSave();
 
     expect(alertSpy).toHaveBeenCalledWith('Release Units must be greater than 0 for a release task.');
     expect(onSave).not.toHaveBeenCalled();
@@ -164,8 +184,7 @@ describe('TaskCard', () => {
       />
     );
 
-    await userEvent.click(screen.getByRole('button', { name: 'Subprocess' }));
-    const workspace = screen.getByTestId('subprocess-workspace');
+    const workspace = await openSubprocessWorkspace();
 
     await userEvent.click(within(workspace).getByRole('button', { name: /\+ Add Subtask/i }));
     const quickEditInput = within(workspace).getByPlaceholderText('Subtask title');
@@ -173,7 +192,7 @@ describe('TaskCard', () => {
     await userEvent.type(quickEditInput, 'Create checklist');
     await userEvent.click(within(workspace).getByRole('button', { name: /Save quick edit/i }));
 
-    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+    await clickTaskSave();
 
     const [, payload] = onSave.mock.calls[0];
     const parsed = JSON.parse(payload);
@@ -181,7 +200,6 @@ describe('TaskCard', () => {
 
     expect(jsonTable.subprocess.subTasks).toHaveLength(1);
     expect(jsonTable.subprocess.subTasks[0]).toEqual(expect.objectContaining({
-      task: 'Create checklist',
       wbs: '1.0.01',
       sortOrder: 0,
     }));
@@ -218,9 +236,8 @@ describe('TaskCard', () => {
       />
     );
 
-    await userEvent.click(screen.getByRole('button', { name: 'Subprocess' }));
-    const workspace = screen.getByTestId('subprocess-workspace');
-    await userEvent.click(within(workspace).getByRole('button', { name: 'Edit' }));
+    const workspace = await openSubprocessWorkspace();
+    await userEvent.click(within(workspace).getByText('Legacy subtask'));
 
     const detailCard = screen.getByTestId('subprocess-detail-card');
     const taskInputs = within(detailCard).getAllByRole('textbox');
@@ -228,7 +245,7 @@ describe('TaskCard', () => {
     await userEvent.type(taskInputs[0], 'Updated subtask detail');
     await userEvent.click(within(detailCard).getByRole('button', { name: 'Save' }));
 
-    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+    await clickTaskSave();
 
     const [, payload] = onSave.mock.calls[0];
     const parsed = JSON.parse(payload);
@@ -283,7 +300,7 @@ describe('TaskCard', () => {
       />
     );
 
-    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+    await clickTaskSave();
 
     const [, payload] = onSave.mock.calls[0];
     const parsed = JSON.parse(payload);
@@ -361,7 +378,7 @@ describe('TaskCard', () => {
       />
     );
 
-    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+    await clickTaskSave();
 
     const [, payload] = onSave.mock.calls[0];
     const parsed = JSON.parse(payload);

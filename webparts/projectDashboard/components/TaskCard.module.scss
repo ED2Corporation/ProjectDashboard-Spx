@@ -1045,10 +1045,42 @@ $c-step-tasks: #2f6f78;
 }
 
 .taskStepActionsCell {
-  width: 44px;
+  width: 118px;
   text-align: center;
   vertical-align: top;
   position: relative;
+}
+
+.taskStepMoveButtons {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-right: $sp-1;
+  vertical-align: middle;
+}
+
+.taskStepMoveButton {
+  width: 20px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid rgba($c-step-tasks, 0.16);
+  border-radius: $r-sm;
+  background: rgba(255, 255, 255, 0.8);
+  color: $c-step-tasks;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    border-color: rgba($c-step-tasks, 0.36);
+    background: rgba($c-step-tasks, 0.08);
+  }
+
+  &:disabled {
+    opacity: 0.35;
+    cursor: default;
+  }
 }
 
 .taskStepsEmptyState {

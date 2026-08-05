@@ -136,4 +136,32 @@ describe('ListTasks', () => {
     await userEvent.click(within(firstTaskRow).getByRole('button', { name: /Edit task/i }));
     expect(onSelectItem).toHaveBeenCalledWith(expect.objectContaining({ Id: '1' }), 'task', 'list-edit');
   });
+
+  it('shows gate step separators when all gates are displayed', () => {
+    render(
+      <ListTasks
+        tasks={[
+          ...tasks,
+          {
+            Id: '3',
+            Title: '1.0',
+            Gate: 'Gate B',
+            Task: 'Beta task',
+            Complete: 0,
+            Start: new Date('2026-04-13'),
+            Finish: new Date('2026-04-14'),
+            Evidence: [],
+          },
+        ] as ITaskListItem[]}
+        heading="All Tasks"
+        showDetails={true}
+        showGateSeparators={true}
+        onSave={jest.fn()}
+        onSelectItem={jest.fn()}
+      />
+    );
+
+    expect(screen.getByText('Gate A')).toBeInTheDocument();
+    expect(screen.getByText('Gate B')).toBeInTheDocument();
+  });
 });

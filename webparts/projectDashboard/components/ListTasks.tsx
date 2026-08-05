@@ -18,6 +18,7 @@ interface ListGroupProps {
   isPlanner?: boolean;
   selectedTaskId?: string;
   expandedContent?: React.ReactNode;
+  showGateSeparators?: boolean;
   creatingTaskId?: string;
   deletingTaskId?: string;
   onSortedTasksChange?: (tasks: ITaskListItem[]) => void;
@@ -33,7 +34,7 @@ interface ListGroupProps {
   onSelectItem: (
     item: ITaskListItem,
     group: string,
-    mode?: "list" | "list-edit" | "list-save" | "list-delete" | "list-create",
+    mode?: "list" | "list-edit" | "list-save" | "list-delete" | "list-create" | "list-pivot",
     payload?: string
   ) => void;
 }
@@ -61,6 +62,7 @@ const ListTasks = ({
   isPlanner,
   selectedTaskId,
   expandedContent,
+  showGateSeparators,
   creatingTaskId,
   deletingTaskId,
   onSortedTasksChange,
@@ -133,8 +135,18 @@ const ListTasks = ({
 
   // Use sortOrder when available (manual order), fall back to WBS
   const gateHasSortOrder = textFiltered.some(t => t.sortOrder !== undefined);
+  const gateOrder = new Map<string, number>();
+  textFiltered.forEach(item => {
+    if (!gateOrder.has(item.Gate)) {
+      gateOrder.set(item.Gate, gateOrder.size);
+    }
+  });
 
   const sortedTasks = textFiltered.slice().sort((a, b) => {
+    if (showGateSeparators && a.Gate !== b.Gate) {
+      return (gateOrder.get(a.Gate) ?? 0) - (gateOrder.get(b.Gate) ?? 0);
+    }
+
     let cmp = 0;
     switch (sortCol) {
       case "wbs":
@@ -289,6 +301,7 @@ const ListTasks = ({
 
   const moveTask = (task: ITaskListItem, direction: "first" | "up" | "down" | "last"): void => {
     if (!onMoveTask || movingTaskId === task.Id) return;
+    onSelectItem(task, "task", "list-pivot");
     setMovingTaskId(task.Id);
     onMoveTask(task.Id, task.Gate, direction).then(
       () => setMovingTaskId(null),
@@ -404,8 +417,21 @@ const ListTasks = ({
                 </tr>
               </thead>
               <tbody>
-                {sortedTasks.map((item) => (
+                {sortedTasks.map((item, index) => {
+                  const previousTask = index > 0 ? sortedTasks[index - 1] : undefined;
+                  const showGateSeparator = !!showGateSeparators && item.Gate !== previousTask?.Gate;
+
+                  return (
                   <React.Fragment key={item.Id}>
+                  {showGateSeparator && (
+                    <tr className={styles.gateStepRow}>
+                      <td colSpan={7}>
+                        <div className={styles.gateStepDivider}>
+                          <span className={styles.gateStepMarker}>{item.Gate || "No Gate"}</span>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
                   <tr
                     data-task-id={item.Id}
                     className={[
@@ -966,7 +992,8 @@ const ListTasks = ({
                     </tr>
                   )}
                   </React.Fragment>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>

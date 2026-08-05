@@ -14,6 +14,7 @@ interface ITaskStepsTableProps {
   isTaskStepWorkspaceExpanded: boolean;
   isTaskStepDetailsExpanded: boolean;
   getStepComplete: (step: ITaskStepEntry) => number;
+  onMoveStep?: (stepId: string, direction: "first" | "up" | "down" | "last") => void;
   onToggleWorkspace: (step: ITaskStepEntry) => void;
   onToggleDetails: (step: ITaskStepEntry) => void;
   renderWorkspace: (step: ITaskStepEntry) => React.ReactNode;
@@ -40,6 +41,7 @@ const TaskStepsTable: React.FC<ITaskStepsTableProps> = ({
   isTaskStepWorkspaceExpanded,
   isTaskStepDetailsExpanded,
   getStepComplete,
+  onMoveStep,
   onToggleWorkspace,
   onToggleDetails,
   renderWorkspace,
@@ -66,7 +68,7 @@ const TaskStepsTable: React.FC<ITaskStepsTableProps> = ({
     let cmp = 0;
     switch (sortCol) {
       case "wbs":
-        cmp = compareWbs(a.wbs || "", b.wbs || "");
+        cmp = (a.sortOrder ?? Infinity) - (b.sortOrder ?? Infinity) || compareWbs(a.wbs || "", b.wbs || "");
         break;
       case "task":
         cmp = (a.title || "").localeCompare(b.title || "");
@@ -124,6 +126,9 @@ const TaskStepsTable: React.FC<ITaskStepsTableProps> = ({
             {sortedSteps.map(step => {
               const isSelectedStep = step.id === selectedTaskStepId;
               const stepComplete = clampPercentValue(getStepComplete(step));
+              const visualIndex = steps.findIndex(entry => entry.id === step.id);
+              const isFirstStep = visualIndex <= 0;
+              const isLastStep = visualIndex < 0 || visualIndex >= steps.length - 1;
 
               return (
                 <React.Fragment key={step.id}>
@@ -145,6 +150,28 @@ const TaskStepsTable: React.FC<ITaskStepsTableProps> = ({
                     <td className={dashboardStyles.colDateNarrow}>{step.start || ""}</td>
                     <td className={dashboardStyles.colDateNarrow}>{step.finish || ""}</td>
                     <td className={styles.taskStepActionsCell}>
+                      {onMoveStep && (
+                        <div className={styles.taskStepMoveButtons}>
+                          {(["first", "up", "down", "last"] as const).map(direction => {
+                            const disabled =
+                              (direction === "first" || direction === "up") ? isFirstStep : isLastStep;
+
+                            return (
+                              <button
+                                key={direction}
+                                type="button"
+                                className={styles.taskStepMoveButton}
+                                disabled={disabled}
+                                onClick={() => onMoveStep(step.id, direction)}
+                                title={`Move ${direction}`}
+                                aria-label={`Move ${direction}`}
+                              >
+                                {direction === "first" ? "<<" : direction === "up" ? "<" : direction === "down" ? ">" : ">>"}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
                       <button
                         type="button"
                         className={[

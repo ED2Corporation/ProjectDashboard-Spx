@@ -12,10 +12,11 @@ import { FilterTasks } from '../utils/FilterTasks';
 import { PlannerService } from '../services/PlannerService';
 import { ProjectService } from '../services/ProjectService';
 import { MessageLog } from '../utils/MessageLog';
-import { compareWbs, computeShiftedWbs, computeUnshiftedWbs, nextWbsAfterInsert } from '../utils/ParseWBS';
+import { compareWbs, computeShiftedWbs, computeUnshiftedWbs, nextWbsAfterInsert, reorderWbsEntriesForMove } from '../utils/ParseWBS';
 import { ensureFolder, uploadEvidenceFile } from '../services/UploadService';
 import { StorageEndpoint } from '../utils/StorageVersionResolver';
 import { getTaskSortOrder, getTaskIsRelease, getTaskReleaseUnits } from '../utils/TaskDescriptionBlob';
+import { buildTaskSortOrderJsonTable } from '../utils/TaskPersistencePayload';
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 const MSG_INFO = 0;
@@ -70,6 +71,7 @@ export interface UseProjectStateResult {
   onNewTask: (gate: string, sourceWbs?: string) => Promise<ITaskListItem | null>;
   // eslint-disable-next-line @rushstack/no-new-null
   onDeleteTask: (taskId: string, gate?: string, wbs?: string) => Promise<ITaskListItem | null>;
+  onMoveTask: (taskId: string, gate: string, direction: 'first' | 'up' | 'down' | 'last') => Promise<void>;
   onUpdateTask: (taskName: string, action: "quick-complete" | "full-update", payloadJson?: string) => Promise<void>;
   onUploadFile: (file: File, taskTitle: string) => Promise<{ fileUrl: string; fileName: string }>;
   onPopulateAttachements: () => Promise<void>;
@@ -581,17 +583,71 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
     const listTitle = config.sourceName;
     const today = new Date();
     const newWbs = nextWbsAfterInsert(sourceWbs);
+    const gateTasks = tasksRef.current
+      .filter(t => t.Gate === gate && !!t.Title)
+      .slice()
+      .sort((a, b) =>
+        (a.sortOrder ?? Infinity) - (b.sortOrder ?? Infinity) ||
+        compareWbs(a.Title || "", b.Title || "")
+      );
+    const sourceIndex = gateTasks.findIndex(t => t.Title === sourceWbs);
+    const insertSortOrder = sourceIndex >= 0 ? sourceIndex + 2 : gateTasks.length + 1;
+    const nextSortOrders = new Map<string, number>();
+    gateTasks.forEach((task, index) => {
+      const currentOrder = index + 1;
+      const nextOrder = sourceIndex >= 0 && index > sourceIndex ? currentOrder + 1 : currentOrder;
+      nextSortOrders.set(task.Id, nextOrder);
+    });
 
     // Identify tasks that need to shift, using the in-memory list (avoids extra SP query)
     const toShift = tasksRef.current
       .filter(t => t.Gate === gate && !!t.Title)
-      .map(t => ({ id: t.Id, wbs: t.Title as string, newWbs: computeShiftedWbs(sourceWbs, t.Title as string) }))
-      .filter((t): t is { id: string; wbs: string; newWbs: string } => t.newWbs !== null);
+      .map(t => ({
+        id: t.Id,
+        wbs: t.Title as string,
+        jsonTable: t.jsonTable,
+        sortOrder: t.sortOrder,
+        newWbs: computeShiftedWbs(sourceWbs, t.Title as string),
+        newSortOrder: nextSortOrders.get(t.Id),
+      }))
+      .filter((t): t is {
+        id: string;
+        wbs: string;
+        jsonTable: string | undefined;
+        sortOrder: number | undefined;
+        newWbs: string;
+        newSortOrder: number;
+      } => typeof t.newWbs === "string" && typeof t.newSortOrder === "number");
 
     // Patch from highest WBS to lowest to avoid transient collisions in SP
     toShift.sort((a, b) => -compareWbs(a.wbs, b.wbs));
     for (const t of toShift) {
-      await sp.web.lists.getByTitle(listTitle).items.getById(Number(t.id)).update({ Title: t.newWbs }); // eslint-disable-line @typescript-eslint/no-explicit-any
+      await sp.web.lists.getByTitle(listTitle).items.getById(Number(t.id)).update(withAvailableTaskFields({
+        Title: t.newWbs,
+        jsonTable: buildTaskSortOrderJsonTable(t.jsonTable, t.newSortOrder)
+      })); // eslint-disable-line @typescript-eslint/no-explicit-any
+    }
+
+    const shiftedIds = new Set(toShift.map(t => t.id));
+    const sortOnlyUpdates = gateTasks
+      .filter(t => !shiftedIds.has(t.Id))
+      .map(t => ({
+        id: t.Id,
+        jsonTable: t.jsonTable,
+        sortOrder: t.sortOrder,
+        newSortOrder: nextSortOrders.get(t.Id),
+      }))
+      .filter((t): t is {
+        id: string;
+        jsonTable: string | undefined;
+        sortOrder: number | undefined;
+        newSortOrder: number;
+      } => typeof t.newSortOrder === "number" && t.sortOrder !== t.newSortOrder);
+
+    for (const t of sortOnlyUpdates) {
+      await sp.web.lists.getByTitle(listTitle).items.getById(Number(t.id)).update(withAvailableTaskFields({
+        jsonTable: buildTaskSortOrderJsonTable(t.jsonTable, t.newSortOrder)
+      }));
     }
 
     // Create the new task at the freed WBS slot
@@ -601,7 +657,8 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
       Task: "New task...",
       Start: today.toISOString(),
       Finish: today.toISOString(),
-      Complete: 0
+      Complete: 0,
+      jsonTable: buildTaskSortOrderJsonTable(undefined, insertSortOrder)
     }));
 
     const addedId = addResult.Id as number | undefined;
@@ -617,7 +674,9 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
       Start: r.Start ? new Date(r.Start) : today,
       Finish: r.Finish ? new Date(r.Finish) : today,
       ActualFinish: r.ActualFinish ? new Date(r.ActualFinish) : undefined,
-      Title: r.Title ?? newWbs
+      Title: r.Title ?? newWbs,
+      jsonTable: r.jsonTable ?? r.JsonTable ?? buildTaskSortOrderJsonTable(undefined, insertSortOrder),
+      sortOrder: getTaskSortOrder(r.jsonTable ?? r.JsonTable) ?? insertSortOrder
     };
     setSelectedTask(newTask);
     return newTask;
@@ -647,6 +706,53 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
       return null;
     }
   }, [config.isPlanner, _createPlannerTask, _createListTask, _insertTaskAfter, onReset]);
+
+  const onMoveTask = useCallback(async (
+    taskId: string,
+    gate: string,
+    direction: 'first' | 'up' | 'down' | 'last'
+  ): Promise<void> => {
+    if (!taskId || !gate) return;
+
+    const listTitle = config.sourceName;
+    const gateTasks = tasksRef.current.filter(t => t.Gate === gate && !!t.Title);
+    const reordered = reorderWbsEntriesForMove(
+      gateTasks.map(task => ({
+        id: task.Id,
+        wbs: task.Title,
+        sortOrder: task.sortOrder,
+        task,
+      })),
+      taskId,
+      direction
+    );
+
+    const updates: Array<{ id: number; title: string; jsonTable: string }> = [];
+    reordered.forEach(({ item, wbs: nextWbs, sortOrder }) => {
+      const currentTask = item.task;
+      if (currentTask.Title !== nextWbs || currentTask.sortOrder !== sortOrder) {
+        updates.push({
+          id: Number(currentTask.Id),
+          title: nextWbs,
+          jsonTable: buildTaskSortOrderJsonTable(currentTask.jsonTable, sortOrder),
+        });
+      }
+    });
+
+    if (!updates.length) return;
+
+    const list = sp.web.lists.getByTitle(listTitle);
+    await Promise.all(
+      updates.map(update =>
+        list.items.getById(update.id).update(withAvailableTaskFields({
+          Title: update.title,
+          jsonTable: update.jsonTable,
+        }))
+      )
+    );
+
+    await onReset();
+  }, [config.sourceName, sp, tasksRef, withAvailableTaskFields, onReset]);
 
   // ── Delete task ────────────────────────────────────────────────────────────
   const _deleteListTask = useCallback(async (itemId: string): Promise<void> => {
@@ -1155,7 +1261,11 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
     // Update in-memory state so UI reflects the change without reload
     const patchTask = (t: ITaskListItem): ITaskListItem =>
       t.Id === taskId ? { ...t, [field]: entries } : t;
-    syncTasks(tasksRef.current.map(patchTask));
+    const nextTasks = tasksRef.current.map(patchTask);
+    syncTasks(nextTasks);
+    setFilteredTasks(current =>
+      current.map(patchTask)
+    );
     setSelectedTask(prev => (prev?.Id === taskId ? { ...prev, [field]: entries } : prev));
 
   }, [config.sourceName, sp, syncTasks, setLogFieldsAvailable]);
@@ -1221,6 +1331,7 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
     onSelectItem,
     onNewTask,
     onDeleteTask,
+    onMoveTask,
     onUpdateTask,
     onUploadFile,
     onPopulateAttachements,

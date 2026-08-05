@@ -524,24 +524,22 @@ const SubprocessCard: React.FC<SubprocessCardProps> = ({
             }}
           />
 
-          <div className={styles.footer}>
-            <button
-              type="button"
-              className={styles.addBtn}
-              onClick={() => {
-                if (selectedSubTaskId) {
-                  handleAddBelow(selectedSubTaskId);
-                } else {
+          {normalizedSubTasks.length === 0 && (
+            <div className={styles.footer}>
+              <button
+                type="button"
+                className={styles.addBtn}
+                onClick={() => {
                   const nextSubTask = createEmptySubTask(parentWbs, parentStart, parentFinish, normalizedSubTasks.length);
                   saveSubTasks([...normalizedSubTasks, nextSubTask]);
                   setSelectedSubTaskId(nextSubTask.id);
                   setEditingSubTaskId(nextSubTask.id);
-                }
-              }}
-            >
-              + Add Subtask
-            </button>
-          </div>
+                }}
+              >
+                + Add Subtask
+              </button>
+            </div>
+          )}
         </>
       )}
     </div>

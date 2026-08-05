@@ -16,6 +16,127 @@ export const compareWbs = (a: string, b: string): number => {
     return 0;
 };
 
+export type WbsMoveDirection = "first" | "up" | "down" | "last";
+
+export interface IWbsReorderEntry {
+    id: string;
+    wbs: string;
+    sortOrder?: number;
+}
+
+export interface IWbsReorderResult<T extends IWbsReorderEntry> {
+    item: T;
+    wbs: string;
+    sortOrder: number;
+}
+
+const getParentWbs = (wbs: string): string => {
+    const parts = wbs.split(".");
+    parts.pop();
+    return parts.join(".");
+};
+
+const isDescendantOrSelf = (candidateWbs: string, rootWbs: string): boolean =>
+    candidateWbs === rootWbs || candidateWbs.startsWith(`${rootWbs}.`);
+
+const formatWbsSibling = (parentWbs: string, index: number, width: number): string => {
+    const suffix = String(index + 1).padStart(width, "0");
+    return parentWbs ? `${parentWbs}.${suffix}` : suffix;
+};
+
+export function reorderWbsEntriesForMove<T extends IWbsReorderEntry>(
+    entries: T[],
+    targetId: string,
+    direction: WbsMoveDirection
+): IWbsReorderResult<T>[] {
+    const orderedEntries = entries
+        .slice()
+        .sort((a, b) =>
+            (a.sortOrder ?? Infinity) - (b.sortOrder ?? Infinity) ||
+            compareWbs(a.wbs || "", b.wbs || "")
+        );
+
+    const target = orderedEntries.find(entry => entry.id === targetId);
+    if (!target?.wbs) {
+        return orderedEntries.map((item, index) => ({
+            item,
+            wbs: item.wbs,
+            sortOrder: index + 1,
+        }));
+    }
+
+    const targetParts = target.wbs.split(".");
+    const targetDepth = targetParts.length;
+    const parentWbs = getParentWbs(target.wbs);
+    const siblingRoots = orderedEntries.filter(entry =>
+        entry.wbs &&
+        entry.wbs.split(".").length === targetDepth &&
+        getParentWbs(entry.wbs) === parentWbs
+    );
+    const currentIndex = siblingRoots.findIndex(entry => entry.id === targetId);
+
+    if (currentIndex < 0) {
+        return orderedEntries.map((item, index) => ({
+            item,
+            wbs: item.wbs,
+            sortOrder: index + 1,
+        }));
+    }
+
+    if ((direction === "first" || direction === "up") && currentIndex === 0) {
+        return orderedEntries.map((item, index) => ({
+            item,
+            wbs: item.wbs,
+            sortOrder: index + 1,
+        }));
+    }
+
+    if ((direction === "last" || direction === "down") && currentIndex === siblingRoots.length - 1) {
+        return orderedEntries.map((item, index) => ({
+            item,
+            wbs: item.wbs,
+            sortOrder: index + 1,
+        }));
+    }
+
+    const reorderedRoots = siblingRoots.slice();
+    const [movedRoot] = reorderedRoots.splice(currentIndex, 1);
+
+    if (direction === "first") {
+        reorderedRoots.unshift(movedRoot);
+    } else if (direction === "last") {
+        reorderedRoots.push(movedRoot);
+    } else if (direction === "up") {
+        reorderedRoots.splice(currentIndex - 1, 0, movedRoot);
+    } else {
+        reorderedRoots.splice(currentIndex + 1, 0, movedRoot);
+    }
+
+    const segmentWidth = Math.max(
+        ...siblingRoots.map(entry => entry.wbs.split(".")[targetDepth - 1]?.length ?? 1)
+    );
+    const rootMap = new Map<string, string>();
+    reorderedRoots.forEach((entry, index) => {
+        rootMap.set(entry.wbs, formatWbsSibling(parentWbs, index, segmentWidth));
+    });
+
+    const withUpdatedWbs = orderedEntries.map(item => {
+        const owningRoot = siblingRoots.find(root => isDescendantOrSelf(item.wbs, root.wbs));
+        if (!owningRoot) return { item, wbs: item.wbs };
+
+        const nextRootWbs = rootMap.get(owningRoot.wbs) ?? owningRoot.wbs;
+        const suffix = item.wbs.slice(owningRoot.wbs.length);
+        return { item, wbs: `${nextRootWbs}${suffix}` };
+    });
+
+    return withUpdatedWbs
+        .sort((a, b) => compareWbs(a.wbs, b.wbs))
+        .map((entry, index) => ({
+            ...entry,
+            sortOrder: index + 1,
+        }));
+}
+
 /**
  * Returns the WBS that should be assigned to a new task inserted immediately
  * after `sourceWbs`. Increments the last numeric segment preserving zero-padding.
