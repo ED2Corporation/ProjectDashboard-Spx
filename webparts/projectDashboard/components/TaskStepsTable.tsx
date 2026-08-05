@@ -48,7 +48,6 @@ const TaskStepsTable: React.FC<ITaskStepsTableProps> = ({
 }) => {
   const [sortCol, setSortCol] = useState<StepTaskSortCol>("wbs");
   const [sortDir, setSortDir] = useState<StepTaskSortDir>("asc");
-  const [filter, setFilter] = useState("");
 
   const handleSort = (col: StepTaskSortCol): void => {
     if (sortCol === col) {
@@ -60,11 +59,7 @@ const TaskStepsTable: React.FC<ITaskStepsTableProps> = ({
     setSortDir("asc");
   };
 
-  const filteredSteps = filter.trim()
-    ? steps.filter(step => (step.title || "").toLowerCase().includes(filter.trim().toLowerCase()))
-    : steps;
-
-  const sortedSteps = filteredSteps.slice().sort((a, b) => {
+  const sortedSteps = steps.slice().sort((a, b) => {
     let cmp = 0;
     switch (sortCol) {
       case "wbs":
@@ -90,7 +85,7 @@ const TaskStepsTable: React.FC<ITaskStepsTableProps> = ({
   return (
     <div className={styles.taskStepsPreview}>
       <div className={dashboardStyles.tableViewport}>
-        <table className={dashboardStyles.ed2Table}>
+        <table className={`${dashboardStyles.ed2Table} ${dashboardStyles.ed2TableStepTasks}`}>
           <thead>
             <tr>
               <th className={`${dashboardStyles.colWbs} ${dashboardStyles.colSortable}`} onClick={() => handleSort("wbs")} title="Sort by WBS">
@@ -101,13 +96,6 @@ const TaskStepsTable: React.FC<ITaskStepsTableProps> = ({
                   <span className={dashboardStyles.colSortable} onClick={() => handleSort("task")} title="Sort by Task">
                     Task<SortIcon active={sortCol === "task"} dir={sortDir} />
                   </span>
-                  <input
-                    type="text"
-                    value={filter}
-                    onChange={(event) => setFilter(event.target.value)}
-                    placeholder="Filter..."
-                    className={dashboardStyles.inputFilter}
-                  />
                 </div>
               </th>
               <th className={`${dashboardStyles.colDate} ${dashboardStyles.colSortable}`} onClick={() => handleSort("complete")} title="Sort by Completed">
@@ -160,13 +148,16 @@ const TaskStepsTable: React.FC<ITaskStepsTableProps> = ({
                               <button
                                 key={direction}
                                 type="button"
-                                className={styles.taskStepMoveButton}
+                                className={dashboardStyles.toolbarIconButton}
                                 disabled={disabled}
                                 onClick={() => onMoveStep(step.id, direction)}
                                 title={`Move ${direction}`}
                                 aria-label={`Move ${direction}`}
                               >
-                                {direction === "first" ? "<<" : direction === "up" ? "<" : direction === "down" ? ">" : ">>"}
+                                {direction === "first" && <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 3h8M8 5l-4 4h3v4h2V9h3L8 5z" /></svg>}
+                                {direction === "up" && <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 4l-4 5h3v4h2V9h3L8 4z" /></svg>}
+                                {direction === "down" && <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 12l4-5H9V3H7v4H4l4 5z" /></svg>}
+                                {direction === "last" && <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 13h8M8 11l4-4H9V3H7v4H4l4 4z" /></svg>}
                               </button>
                             );
                           })}
@@ -202,7 +193,7 @@ const TaskStepsTable: React.FC<ITaskStepsTableProps> = ({
             {sortedSteps.length === 0 && (
               <tr>
                 <td colSpan={6} className={styles.taskStepsEmptyState}>
-                  No step tasks match the current filter.
+                  No step tasks available.
                 </td>
               </tr>
             )}

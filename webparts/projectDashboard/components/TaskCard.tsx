@@ -1263,6 +1263,20 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
           <div className={styles.taskStepsConfigHeader}>
             <div className={styles.taskStepsConfigTitleGroup}>
               <strong>Lot Configuration</strong>
+              {isTaskStepsConfigExpanded && taskStepsMode === "weekday" && (
+                <div className={styles.taskStepsWeekdayRow}>
+                  {TASK_STEP_WEEKDAY_OPTIONS.map(option => (
+                    <label key={option.value} className={styles.taskStepsWeekdayOption}>
+                      <input
+                        type="checkbox"
+                        checked={taskStepsWeekdays.includes(option.value)}
+                        onChange={() => handleToggleTaskStepWeekday(option.value)}
+                      />
+                      <span>{option.label}</span>
+                    </label>
+                  ))}
+                </div>
+              )}
               {!isTaskStepsConfigExpanded && (
                 <span className={styles.taskStepsConfigSummary}>{taskStepsConfigSummary}</span>
               )}
@@ -1360,20 +1374,6 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
                   </label>
                 )}
 
-                {taskStepsMode === "weekday" && (
-                  <div className={styles.taskStepsWeekdayRow}>
-                    {TASK_STEP_WEEKDAY_OPTIONS.map(option => (
-                      <label key={option.value} className={styles.taskStepsWeekdayOption}>
-                        <input
-                          type="checkbox"
-                          checked={taskStepsWeekdays.includes(option.value)}
-                          onChange={() => handleToggleTaskStepWeekday(option.value)}
-                        />
-                        <span>{option.label}</span>
-                      </label>
-                    ))}
-                  </div>
-                )}
               </div>
 
               {totalProjectUnits <= 0 && (

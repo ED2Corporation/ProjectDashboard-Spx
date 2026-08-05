@@ -398,7 +398,6 @@ const ListTasks = ({
                   </th>
                   <th className={`${styles.colActions} ${styles.actionsFixed}`}>
                     <div className={styles.actionsHeader}>
-                      <span>Actions</span>
                       <button
                         type="button"
                         className={`${styles.actionsToggle} ${actionsExpanded ? styles.actionsToggleOn : ""}`}
@@ -412,6 +411,7 @@ const ListTasks = ({
                       >
                         <span />
                       </button>
+                      <span>Actions</span>
                     </div>
                   </th>
                 </tr>

@@ -847,12 +847,14 @@ $c-step-tasks: #2f6f78;
 
 .taskStepsConfigTitleGroup {
   display: flex;
-  align-items: baseline;
-  flex-wrap: wrap;
+  align-items: center;
+  flex-wrap: nowrap;
   gap: $sp-2;
   min-width: 0;
+  flex: 1 1 auto;
 
   strong {
+    flex: 0 0 auto;
     font-size: 10px;
     font-weight: 700;
     text-transform: uppercase;
@@ -940,7 +942,7 @@ $c-step-tasks: #2f6f78;
 
 .taskStepsConfigRow {
   display: grid;
-  grid-template-columns: minmax(150px, 1.2fr) minmax(90px, 0.7fr) minmax(90px, 0.7fr) minmax(90px, 0.7fr) minmax(220px, 1.6fr);
+  grid-template-columns: minmax(150px, 1.1fr) minmax(90px, 0.65fr) minmax(90px, 0.65fr) minmax(90px, 0.65fr);
   gap: $sp-2;
   align-items: end;
 }
@@ -986,18 +988,20 @@ $c-step-tasks: #2f6f78;
 
 .taskStepsWeekdayRow {
   display: flex;
-  flex-wrap: wrap;
-  gap: $sp-2;
+  flex-wrap: nowrap;
+  gap: $sp-1;
   align-items: center;
   min-width: 0;
+  overflow: visible;
   padding-bottom: 1px;
 }
 
 .taskStepsWeekdayOption {
   display: inline-flex;
+  flex: 0 0 auto;
   align-items: center;
   gap: 6px;
-  padding: 4px 8px;
+  padding: 4px 7px;
   border: 1px solid rgba($c-step-tasks, 0.18);
   border-radius: $r-sm;
   background: rgba(255, 255, 255, 0.78);
@@ -1010,6 +1014,9 @@ $c-step-tasks: #2f6f78;
 }
 
 .taskStepsPreview {
+  max-width: calc(100% - #{$sp-2});
+  margin-right: $sp-2;
+  box-sizing: border-box;
   overflow: visible;
 }
 
@@ -1045,10 +1052,12 @@ $c-step-tasks: #2f6f78;
 }
 
 .taskStepActionsCell {
-  width: 118px;
-  text-align: center;
+  width: 122px;
+  min-width: 122px;
+  text-align: left;
   vertical-align: top;
   position: relative;
+  white-space: nowrap;
 }
 
 .taskStepMoveButtons {
@@ -1057,30 +1066,6 @@ $c-step-tasks: #2f6f78;
   gap: 2px;
   margin-right: $sp-1;
   vertical-align: middle;
-}
-
-.taskStepMoveButton {
-  width: 20px;
-  height: 22px;
-  padding: 0;
-  border: 1px solid rgba($c-step-tasks, 0.16);
-  border-radius: $r-sm;
-  background: rgba(255, 255, 255, 0.8);
-  color: $c-step-tasks;
-  font-size: 10px;
-  font-weight: 700;
-  line-height: 1;
-  cursor: pointer;
-
-  &:hover:not(:disabled) {
-    border-color: rgba($c-step-tasks, 0.36);
-    background: rgba($c-step-tasks, 0.08);
-  }
-
-  &:disabled {
-    opacity: 0.35;
-    cursor: default;
-  }
 }
 
 .taskStepsEmptyState {

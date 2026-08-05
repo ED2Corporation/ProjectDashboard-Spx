@@ -231,7 +231,7 @@
 
 .colText {
   width: auto;
-  min-width: 220px;
+  min-width: 0;
   text-align: left;
   vertical-align: top;
   white-space: normal;
@@ -506,7 +506,7 @@
 .tableViewport {
   width: 100%;
   max-width: 100%;
-  overflow-x: auto;
+  overflow-x: hidden;
   overflow-y: hidden;
 }
 
@@ -516,7 +516,6 @@
 
 .ed2Table {
   width: 100%;
-  min-width: 760px;
   max-width: 100%;
   border-collapse: collapse;
   table-layout: fixed;
@@ -561,7 +560,8 @@
 
 .ed2Table th.colText,
 .ed2Table td.colText {
-  min-width: 220px;
+  width: auto;
+  min-width: 0;
 }
 
 .ed2Table th.colDate,
@@ -592,14 +592,46 @@
 .ed2Table td.colActions,
 .ed2Table th.actionsFixed,
 .ed2Table td.actionsFixed {
-  width: 72px;
+  width: 84px;
+  min-width: 84px;
+}
+
+.ed2TableDenseActions {
+  width: 100%;
+  max-width: 100%;
+}
+
+.ed2TableDenseActions th.colText,
+.ed2TableDenseActions td.colText {
+  min-width: 0;
+}
+
+.ed2TableDenseActions th.colWbs,
+.ed2TableDenseActions td.colWbs {
+  width: 54px;
+}
+
+.ed2TableDenseActions th.colDate,
+.ed2TableDenseActions td.colDate {
+  width: 62px;
+}
+
+.ed2TableDenseActions th.colDateNarrow,
+.ed2TableDenseActions td.colDateNarrow {
+  width: 66px;
+}
+
+.ed2TableDenseActions th.colEvidence,
+.ed2TableDenseActions td.colEvidence {
+  width: 64px;
 }
 
 .ed2TableDenseActions th.colActions,
 .ed2TableDenseActions td.colActions,
 .ed2TableDenseActions th.actionsFixed,
 .ed2TableDenseActions td.actionsFixed {
-  width: 56px;
+  width: 72px;
+  min-width: 72px;
 }
 
 .ed2TableActionsExpanded th.colActions,
@@ -607,11 +639,45 @@
 .ed2TableActionsExpanded th.actionsFixed,
 .ed2TableActionsExpanded td.actionsFixed {
   width: 178px;
+  min-width: 178px;
 }
 
 .ed2TableActionsExpanded th.colText,
 .ed2TableActionsExpanded td.colText {
-  min-width: 200px;
+  min-width: 0;
+}
+
+.ed2TableDenseActions.ed2TableActionsExpanded {
+  width: 100%;
+  max-width: 100%;
+}
+
+.ed2TableDenseActions.ed2TableActionsExpanded th.colText,
+.ed2TableDenseActions.ed2TableActionsExpanded td.colText {
+  min-width: 0;
+}
+
+.ed2TableDenseActions.ed2TableActionsExpanded th.colActions,
+.ed2TableDenseActions.ed2TableActionsExpanded td.colActions,
+.ed2TableDenseActions.ed2TableActionsExpanded th.actionsFixed,
+.ed2TableDenseActions.ed2TableActionsExpanded td.actionsFixed {
+  width: 154px;
+  min-width: 154px;
+}
+
+.ed2TableStepTasks th.colWbs,
+.ed2TableStepTasks td.colWbs {
+  width: 54px;
+}
+
+.ed2TableStepTasks th.colDate,
+.ed2TableStepTasks td.colDate {
+  width: 62px;
+}
+
+.ed2TableStepTasks th.colDateNarrow,
+.ed2TableStepTasks td.colDateNarrow {
+  width: 66px;
 }
 
 // ─── Shared inline controls (kebab-case — accessed via styles["name"]) ─────
@@ -770,7 +836,7 @@
 .actionsHeader {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   gap: 6px;
   width: 100%;
   font-size: $f-xs;

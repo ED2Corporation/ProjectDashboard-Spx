@@ -233,7 +233,6 @@ const SubprocessList: React.FC<ISubprocessListProps> = ({
               <th className={`${dashboardStyles.colEvidence} ${actionsExpanded ? dashboardStyles.colEvidenceCompact : ""}`}>Evidence</th>
               <th className={`${dashboardStyles.colActions} ${dashboardStyles.actionsFixed}`}>
                 <div className={dashboardStyles.actionsHeader}>
-                  <span>Actions</span>
                   <button
                     type="button"
                     className={`${dashboardStyles.actionsToggle} ${actionsExpanded ? dashboardStyles.actionsToggleOn : ""}`}
@@ -247,6 +246,7 @@ const SubprocessList: React.FC<ISubprocessListProps> = ({
                   >
                     <span />
                   </button>
+                  <span>Actions</span>
                 </div>
               </th>
             </tr>
