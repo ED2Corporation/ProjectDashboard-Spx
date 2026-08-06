@@ -1,4 +1,4 @@
-import { ApprovalStatus, ApproverRole, IApprovalEntry, IEvidenceEntry, INoteEntry } from "../../../models";
+import { ApprovalStatus, ApproverRole, IApprovalEntry, IEvidenceEntry, INoteEntry, NoteBadge } from "../../../models";
 
 export interface ISubprocessSubTask {
   id: string;
@@ -95,8 +95,32 @@ export const getTodayDateInputValue = (): string => {
   return `${year}-${month}-${day}`;
 };
 
+/**
+ * Converts a Date or date string to YYYY-MM-DD using LOCAL time.
+ * Avoids the UTC midnight timezone shift bug of toISOString().slice(0,10).
+ */
+export const toLocaleDateInputValue = (value?: Date | string | null): string => {
+  if (!value) return "";
+  if (typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
+  const date = value instanceof Date ? value : new Date(value);
+  if (isNaN(date.getTime())) return "";
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
 const getCompletionFinish = (complete: number, finish: string): string =>
   complete >= 100 && !finish ? getTodayDateInputValue() : finish;
+
+const asNoteBadge = (value: unknown): NoteBadge | undefined => {
+  switch (asString(value).toLowerCase()) {
+    case "issue":  return "issue";
+    case "fix":    return "fix";
+    case "action": return "action";
+    default:       return undefined;
+  }
+};
 
 const normalizeNotes = (value: unknown): INoteEntry[] => {
   if (!isArray<unknown>(value)) return [];
@@ -108,9 +132,12 @@ const normalizeNotes = (value: unknown): INoteEntry[] => {
     const note = asString(record.note);
     const date = asString(record.date);
     const user = asString(record.user);
+    const badge = asNoteBadge(record.badge);
 
     if (!note && !date && !user) return;
-    entries.push({ note, date, user });
+    const nextEntry: INoteEntry = { note, date, user };
+    if (badge) nextEntry.badge = badge;
+    entries.push(nextEntry);
   });
 
   return entries;

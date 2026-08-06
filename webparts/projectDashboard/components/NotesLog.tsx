@@ -1,7 +1,13 @@
 import * as React from 'react';
 import { useState } from 'react';
-import { INoteEntry } from '../../../models/ITaskLogFields';
+import { INoteEntry, NoteBadge } from '../../../models/ITaskLogFields';
 import styles from './NotesLog.module.scss';
+
+const BADGES: { value: NoteBadge; label: string }[] = [
+  { value: 'issue',  label: 'Issue'  },
+  { value: 'fix',    label: 'Fix'    },
+  { value: 'action', label: 'Action' },
+];
 
 interface NotesLogProps {
   notes?: INoteEntry[];
@@ -11,6 +17,7 @@ interface NotesLogProps {
 
 const NotesLog: React.FC<NotesLogProps> = ({ notes, currentUserDisplayName, onSave }) => {
   const [text, setText] = useState('');
+  const [badge, setBadge] = useState<NoteBadge>('issue');
   const [saving, setSaving] = useState(false);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [editingText, setEditingText] = useState('');
@@ -24,9 +31,11 @@ const NotesLog: React.FC<NotesLogProps> = ({ notes, currentUserDisplayName, onSa
         date: new Date().toISOString(),
         user: currentUserDisplayName,
         note: trimmed,
+        badge,
       };
       await onSave([...(notes ?? []), entry]);
       setText('');
+      setBadge('issue');
     } finally {
       setSaving(false);
     }
@@ -62,6 +71,12 @@ const NotesLog: React.FC<NotesLogProps> = ({ notes, currentUserDisplayName, onSa
     }
   };
 
+  const badgeCls = (v: NoteBadge): string => {
+    if (v === 'fix')    return styles.badge_fix;
+    if (v === 'action') return styles.badge_action;
+    return styles.badge_issue;
+  };
+
   const entries = [...(notes ?? [])]
     .map((entry, sourceIndex) => ({ entry, sourceIndex }))
     .reverse();
@@ -69,8 +84,19 @@ const NotesLog: React.FC<NotesLogProps> = ({ notes, currentUserDisplayName, onSa
   return (
     <div className={styles.container}>
       <div className={styles.addForm}>
-        <input
-          type="text"
+        <div className={styles.badgeRow}>
+          {BADGES.map(b => (
+            <button
+              key={b.value}
+              type="button"
+              className={`${styles.badgeBtn} ${badgeCls(b.value)} ${badge === b.value ? styles.badgeBtnActive : ''}`}
+              onClick={() => setBadge(b.value)}
+            >
+              {b.label}
+            </button>
+          ))}
+        </div>
+        <textarea
           value={text}
           onChange={e => setText(e.target.value)}
           placeholder="Add a note..."
@@ -83,7 +109,7 @@ const NotesLog: React.FC<NotesLogProps> = ({ notes, currentUserDisplayName, onSa
           onClick={handleAdd}
           disabled={saving || !text.trim()}
         >
-          {saving ? 'Saving...' : 'Add'}
+          {saving ? 'Saving…' : 'Add Note'}
         </button>
       </div>
       <div className={styles.feed}>
@@ -131,28 +157,16 @@ const NotesLog: React.FC<NotesLogProps> = ({ notes, currentUserDisplayName, onSa
                 onClick={() => handleEditStart(sourceIndex, entry.note)}
                 title="Click to edit"
               >
+                {entry.badge && (
+                  <span className={`${styles.noteBadge} ${badgeCls(entry.badge)}`}>
+                    {entry.badge.charAt(0).toUpperCase() + entry.badge.slice(1)}
+                  </span>
+                )}
                 {entry.note}
               </p>
             )}
           </div>
         ))}
-      </div>
-      <div style={{ display: 'none' }}>
-        <textarea
-          value={text}
-          onChange={e => setText(e.target.value)}
-          placeholder="Add a note..."
-          className={styles.noteInput}
-          rows={2}
-        />
-        <button
-          type="button"
-          className={styles.addBtn}
-          onClick={handleAdd}
-          disabled={saving || !text.trim()}
-        >
-          {saving ? 'Saving…' : 'Add Note'}
-        </button>
       </div>
     </div>
   );

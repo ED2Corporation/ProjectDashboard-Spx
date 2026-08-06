@@ -381,8 +381,13 @@ const SubprocessCard: React.FC<SubprocessCardProps> = ({
     : 0;
   const subprocessStartDates = normalizedSubTasks.map(entry => entry.start).filter(Boolean).sort();
   const subprocessFinishDates = normalizedSubTasks.map(entry => entry.finish).filter(Boolean).sort();
-  const subprocessStart = subprocessStartDates[0] || parentStart || "N/A";
-  const subprocessFinish = subprocessFinishDates[subprocessFinishDates.length - 1] || parentFinish || "N/A";
+  const fmtDate = (v?: string): string => {
+    if (!v) return "N/A";
+    const p = v.split("-");
+    return p.length === 3 ? `${p[1]}/${p[2]}/${p[0]}` : v;
+  };
+  const subprocessStart = fmtDate(subprocessStartDates[0] || parentStart);
+  const subprocessFinish = fmtDate(subprocessFinishDates[subprocessFinishDates.length - 1] || parentFinish);
   const saveStatusText =
     saveStatus === "saving"
       ? "Saving..."

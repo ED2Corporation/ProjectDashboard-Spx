@@ -7,6 +7,8 @@
   flex-direction: column;
   gap: $sp-3;
   height: 100%;
+  padding: 2px;
+  box-sizing: border-box;
 }
 
 .feed {
@@ -18,7 +20,7 @@
 }
 
 .empty {
-  font-size: $f-xs;
+  font-size: $f-tiny;
   color: $c-text-muted;
   font-style: italic;
   margin: 0;
@@ -45,13 +47,13 @@
 }
 
 .user {
-  font-size: $f-xs;
+  font-size: $f-tiny;
   font-weight: 600;
   color: $c-primary;
 }
 
 .date {
-  font-size: $f-xs;
+  font-size: $f-tiny;
   color: $c-text-muted;
   margin-left: auto;
 }
@@ -88,7 +90,7 @@
 }
 
 .noteText {
-  font-size: $f-xs;
+  font-size: $f-tiny;
   color: $c-text;
   margin: 0;
   white-space: pre-wrap;
@@ -112,16 +114,95 @@
 
 .addForm {
   display: flex;
-  align-items: center;
+  flex-direction: column;
   gap: $sp-2;
   flex-shrink: 0;
+
+  textarea { font-size: $f-xs; padding-right: calc(#{$sp-3} + 5px); }
 }
 
+.badgeRow {
+  display: flex;
+  gap: $sp-2;
+}
+
+.badgeBtn {
+  flex: 1 1 0;
+  padding: 2px $sp-2;
+  font-family: $f-family;
+  font-size: $f-tiny;
+  font-weight: 600;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  opacity: 0.45;
+  transition: $t-fast;
+
+  &:hover { opacity: 0.75; }
+}
+
+.badgeBtnActive {
+  opacity: 1;
+}
+
+// per-badge colors (inactive = very subtle tint, active = solid)
+.badge_issue {
+  background: rgba(220, 38, 38, 0.06);
+  color: #b91c1c;
+  border-color: rgba(220, 38, 38, 0.18);
+
+  &.badgeBtnActive {
+    background: #dc2626;
+    color: #fff;
+    border-color: #dc2626;
+  }
+}
+
+.badge_fix {
+  background: rgba(22, 163, 74, 0.06);
+  color: #15803d;
+  border-color: rgba(22, 163, 74, 0.18);
+
+  &.badgeBtnActive {
+    background: #16a34a;
+    color: #fff;
+    border-color: #16a34a;
+  }
+}
+
+.badge_action {
+  background: rgba(217, 119, 6, 0.06);
+  color: #92400e;
+  border-color: rgba(217, 119, 6, 0.18);
+
+  &.badgeBtnActive {
+    background: #d97706;
+    color: #fff;
+    border-color: #d97706;
+  }
+}
+
+.noteBadge {
+  display: inline-block;
+  font-size: $f-tiny;
+  font-weight: 700;
+  border-radius: 999px;
+  padding: 0 5px;
+  margin-right: $sp-1;
+  line-height: 1.5;
+  vertical-align: middle;
+}
+
+// reuse badge colors for the inline feed badge
+.noteBadge.badge_issue  { background: #fde8e8; color: #b91c1c; }
+.noteBadge.badge_fix    { background: #dcfce7; color: #15803d; }
+.noteBadge.badge_action { background: #fef3c7; color: #92400e; }
+
 .noteInput {
-  flex: 1 1 auto;
+  width: 100%;
   min-width: 0;
   font-family: $f-family;
-  font-size: $f-xs;
+  font-size: $f-tiny;
   color: $c-text;
   border: 1px solid $c-input-border;
   border-radius: $r-sm;
@@ -129,6 +210,8 @@
   box-sizing: border-box;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
   background: $c-surface;
+  resize: vertical;
+  min-height: 50px;
 
   &:focus {
     outline: none;
@@ -140,19 +223,19 @@
 }
 
 .addBtn {
-  flex: 0 0 72px;
+  width: 100%;
   padding: $sp-1 $sp-4;
   font-family: $f-family;
-  font-size: $f-xs;
+  font-size: $f-tiny;
   font-weight: 500;
-  color: $c-primary;
-  background: $c-primary-bg;
+  color: $c-surface;
+  background: $c-primary;
   border: 1px solid $c-primary;
   border-radius: $r-sm;
   cursor: pointer;
   transition: $t-fast;
 
-  &:hover:not(:disabled) { background: $c-primary-focus; }
+  &:hover:not(:disabled) { background: $c-primary-hover; border-color: $c-primary-hover; }
   &:disabled { opacity: 0.5; cursor: not-allowed; }
 }
 
@@ -160,7 +243,7 @@
   flex: 0 0 auto;
   padding: 2px $sp-3;
   font-family: $f-family;
-  font-size: $f-xs;
+  font-size: $f-tiny;
   font-weight: 600;
   color: $c-primary;
   background: $c-primary-bg;
@@ -186,17 +269,6 @@
 }
 
 @media (max-width: 640px) {
-  .addForm {
-    flex-wrap: wrap;
-    align-items: stretch;
-  }
-
-  .noteInput,
-  .addBtn {
-    flex-basis: 100%;
-    width: 100%;
-  }
-
   .editRow {
     flex-wrap: wrap;
     align-items: stretch;

@@ -2,6 +2,7 @@ import * as React from "react";
 import { useState } from "react";
 import { IProjectCatalogItem, IReleaseRecord } from "../../../models/IProjectService";
 import { ProjectService } from "../services/ProjectService";
+import { toLocaleDateInputValue } from "../utils/TaskDescriptionBlob";
 import styles from "./ProjectCatalogEditor.module.scss";
 
 // ─── Status options ───────────────────────────────────────────────────────────
@@ -96,12 +97,7 @@ const serializeProjectDetailsFields = (fields: IProjectDetailsField[]): string |
   return JSON.stringify(serialized);
 };
 
-const toDateInputValue = (value?: string): string => {
-  if (!value) return "";
-  const date = new Date(value);
-  if (isNaN(date.getTime())) return "";
-  return date.toISOString().slice(0, 10);
-};
+const toDateInputValue = (value?: string): string => toLocaleDateInputValue(value);
  
 // ─── Props ────────────────────────────────────────────────────────────────────
  

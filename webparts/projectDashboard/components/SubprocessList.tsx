@@ -1,7 +1,7 @@
 import * as React from "react";
 import { useMemo, useState } from "react";
 import { IEvidenceEntry } from "../../../models/ITaskLogFields";
-import { getTodayDateInputValue, ISubprocessSubTask } from "../utils/TaskDescriptionBlob";
+import { getTodayDateInputValue, toLocaleDateInputValue, ISubprocessSubTask } from "../utils/TaskDescriptionBlob";
 import EvidenceUploadButton from "./EvidenceUploadButton";
 import dashboardStyles from "./ProjectDashboard.module.scss";
 import styles from "./SubprocessCard.module.scss";
@@ -42,17 +42,21 @@ const SortIcon = ({ active, dir }: { active: boolean; dir: SortDir }): JSX.Eleme
   </span>
 );
 
-const toDateInputValue = (value?: string): string => {
-  if (!value) return "";
-  const date = new Date(value);
-  if (isNaN(date.getTime())) return value;
-  return date.toISOString().slice(0, 10);
-};
+const toDateInputValue = (value?: string): string => toLocaleDateInputValue(value) || value || "";
 
 const toMs = (value?: string): number => {
   if (!value) return 0;
   const date = new Date(value);
   return isNaN(date.getTime()) ? 0 : date.getTime();
+};
+
+// Display YYYY-MM-DD as MM/DD/YYYY without Date object (avoids UTC timezone shift)
+const formatDateDisplay = (value?: string): string => {
+  if (!value) return "";
+  const parts = value.split("-");
+  if (parts.length !== 3) return value;
+  const [y, m, d] = parts;
+  return `${m}/${d}/${y}`;
 };
 
 const getCompletionEvidence = (evidence?: IEvidenceEntry[]): IEvidenceEntry | undefined =>
@@ -327,7 +331,7 @@ const SubprocessList: React.FC<ISubprocessListProps> = ({
                         className={dashboardStyles.inputSmall}
                       />
                     ) : (
-                      item.start || ""
+                      formatDateDisplay(item.start)
                     )}
                   </td>
                   <td className={dashboardStyles.colDateNarrow}>
@@ -340,7 +344,7 @@ const SubprocessList: React.FC<ISubprocessListProps> = ({
                         className={dashboardStyles.inputSmall}
                       />
                     ) : (
-                      item.finish || ""
+                      formatDateDisplay(item.finish)
                     )}
                   </td>
                   <td className={`${dashboardStyles.colEvidence} ${actionsExpanded ? dashboardStyles.colEvidenceCompact : ""}`} onClick={(e) => e.stopPropagation()}>

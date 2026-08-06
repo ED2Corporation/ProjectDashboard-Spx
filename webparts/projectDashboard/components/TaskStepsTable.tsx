@@ -33,6 +33,15 @@ const toMs = (value?: string): number => {
   return Number.isFinite(ms) ? ms : 0;
 };
 
+// Display YYYY-MM-DD as MM/DD/YYYY without Date object (avoids UTC timezone shift)
+const formatDateDisplay = (value?: string): string => {
+  if (!value) return "";
+  const parts = value.split("-");
+  if (parts.length !== 3) return value;
+  const [y, m, d] = parts;
+  return `${m}/${d}/${y}`;
+};
+
 const TaskStepsTable: React.FC<ITaskStepsTableProps> = ({
   steps,
   selectedTaskStepId,
@@ -44,6 +53,7 @@ const TaskStepsTable: React.FC<ITaskStepsTableProps> = ({
 }) => {
   const [sortCol, setSortCol] = useState<StepTaskSortCol>("wbs");
   const [sortDir, setSortDir] = useState<StepTaskSortDir>("asc");
+  const [actionsExpanded, setActionsExpanded] = useState(false);
 
   const handleSort = (col: StepTaskSortCol): void => {
     if (sortCol === col) {
@@ -81,7 +91,7 @@ const TaskStepsTable: React.FC<ITaskStepsTableProps> = ({
   return (
     <div className={styles.taskStepsPreview}>
       <div className={dashboardStyles.tableViewport}>
-        <table className={`${dashboardStyles.ed2Table} ${dashboardStyles.ed2TableStepTasks}`}>
+        <table className={`${dashboardStyles.ed2Table} ${dashboardStyles.ed2TableStepTasks} ${actionsExpanded ? dashboardStyles.ed2TableActionsExpanded : ""}`}>
           <thead>
             <tr>
               <th className={`${dashboardStyles.colWbs} ${dashboardStyles.colSortable}`} onClick={() => handleSort("wbs")} title="Sort by WBS">
@@ -103,7 +113,21 @@ const TaskStepsTable: React.FC<ITaskStepsTableProps> = ({
               <th className={`${dashboardStyles.colDateNarrow} ${dashboardStyles.colSortable}`} onClick={() => handleSort("finish")} title="Sort by Finish">
                 Finish<SortIcon active={sortCol === "finish"} dir={sortDir} />
               </th>
-              <th className={styles.taskStepActionsCell}></th>
+              <th className={`${dashboardStyles.colActions} ${dashboardStyles.actionsFixed}`}>
+                <div className={dashboardStyles.actionsHeader}>
+                  <button
+                    type="button"
+                    className={`${dashboardStyles.actionsToggle} ${actionsExpanded ? dashboardStyles.actionsToggleOn : ""}`}
+                    onClick={(e) => { e.stopPropagation(); setActionsExpanded(prev => !prev); }}
+                    aria-pressed={actionsExpanded}
+                    aria-label={actionsExpanded ? "Hide action toolbar" : "Show action toolbar"}
+                    title={actionsExpanded ? "Hide action toolbar" : "Show action toolbar"}
+                  >
+                    <span />
+                  </button>
+                  <span>Actions</span>
+                </div>
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -131,22 +155,21 @@ const TaskStepsTable: React.FC<ITaskStepsTableProps> = ({
                       </button>
                     </td>
                     <td className={dashboardStyles.colDate}>{stepComplete}%</td>
-                    <td className={dashboardStyles.colDateNarrow}>{step.start || ""}</td>
-                    <td className={dashboardStyles.colDateNarrow}>{step.finish || ""}</td>
-                    <td className={styles.taskStepActionsCell}>
-                      {onMoveStep && (
-                        <div className={styles.taskStepMoveButtons}>
-                          {(["first", "up", "down", "last"] as const).map(direction => {
+                    <td className={dashboardStyles.colDateNarrow}>{formatDateDisplay(step.start)}</td>
+                    <td className={dashboardStyles.colDateNarrow}>{formatDateDisplay(step.finish)}</td>
+                    <td className={`${dashboardStyles.colActions} ${dashboardStyles.actionsFixed}`}>
+                      {actionsExpanded ? (
+                        <div className={dashboardStyles.actionsToolbar}>
+                          {onMoveStep && (["first", "up", "down", "last"] as const).map(direction => {
                             const disabled =
                               (direction === "first" || direction === "up") ? isFirstStep : isLastStep;
-
                             return (
                               <button
                                 key={direction}
                                 type="button"
                                 className={dashboardStyles.toolbarIconButton}
                                 disabled={disabled}
-                                onClick={() => onMoveStep(step.id, direction)}
+                                onClick={(e) => { e.stopPropagation(); onMoveStep(step.id, direction); }}
                                 title={`Move ${direction}`}
                                 aria-label={`Move ${direction}`}
                               >
@@ -157,6 +180,44 @@ const TaskStepsTable: React.FC<ITaskStepsTableProps> = ({
                               </button>
                             );
                           })}
+                          <span className={dashboardStyles.toolbarSeparator} />
+                          <button
+                            type="button"
+                            className={dashboardStyles.toolbarIconButton}
+                            onClick={(e) => { e.stopPropagation(); onToggleWorkspace(step); }}
+                            title={isSelectedStep && isTaskStepWorkspaceExpanded ? "Collapse step workspace" : "Expand step workspace"}
+                            aria-label={isSelectedStep && isTaskStepWorkspaceExpanded ? "Collapse step workspace" : "Expand step workspace"}
+                          >
+                            {isSelectedStep && isTaskStepWorkspaceExpanded ? (
+                              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                <path d="M3 10l5-5 5 5" />
+                              </svg>
+                            ) : (
+                              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                <path d="M3 6l5 5 5-5" />
+                              </svg>
+                            )}
+                          </button>
+                        </div>
+                      ) : (
+                        <div className={dashboardStyles.actionButtonsRow}>
+                          <button
+                            type="button"
+                            className={dashboardStyles.iconButton}
+                            onClick={(e) => { e.stopPropagation(); onToggleWorkspace(step); }}
+                            title={isSelectedStep && isTaskStepWorkspaceExpanded ? "Collapse step workspace" : "Expand step workspace"}
+                            aria-label={isSelectedStep && isTaskStepWorkspaceExpanded ? "Collapse step workspace" : "Expand step workspace"}
+                          >
+                            {isSelectedStep && isTaskStepWorkspaceExpanded ? (
+                              <svg className={dashboardStyles.iconSmall} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                <path d="M3 10l5-5 5 5" />
+                              </svg>
+                            ) : (
+                              <svg className={dashboardStyles.iconSmall} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                <path d="M3 6l5 5 5-5" />
+                              </svg>
+                            )}
+                          </button>
                         </div>
                       )}
                     </td>

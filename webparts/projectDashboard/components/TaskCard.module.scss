@@ -492,10 +492,8 @@ $c-step-tasks: #2f6f78;
 }
 
 .taskCardBody {
-  flex: 0 0 380px;
-  width: 380px;
-  min-width: 380px;
-  max-width: 380px;
+  flex: 1 1 0;
+  min-width: 0;
   padding: $sp-4 $sp-5 20px;
   border-right: 1px solid $c-border-subtle;
   overflow-y: auto;
@@ -503,7 +501,7 @@ $c-step-tasks: #2f6f78;
 }
 
 .taskCardColumn {
-  flex: 1 1 auto;
+  flex: 1 1 0;
   display: flex;
   flex-direction: column;
   padding: $sp-4 $sp-5;
@@ -539,7 +537,7 @@ $c-step-tasks: #2f6f78;
   min-width: 0;
 
   > span {
-    font-size: 11px;
+    font-size: 10px;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.06em;
@@ -572,7 +570,7 @@ $c-step-tasks: #2f6f78;
 }
 
 .fieldGroupLabel {
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -631,7 +629,7 @@ $c-step-tasks: #2f6f78;
 .inputSmall {
   width: 100%;
   font-family: $f-family;
-  font-size: $f-body;
+  font-size: 10px;
   color: $c-text;
   border: 1px solid $c-input-border;
   border-radius: $r-sm;

@@ -15,6 +15,7 @@ import {
   getTaskSteps,
   getTaskSubprocess,
   getTodayDateInputValue,
+  toLocaleDateInputValue,
   ITaskStepEntry,
   ITaskStepsData,
   ITaskSubprocessData,
@@ -275,6 +276,13 @@ const getTaskStepWeekdayDates = (
       return day >= 1 && day <= 6 && selected.includes(day);
     });
 };
+
+const fmtDate = (v?: string): string => {
+  if (!v) return "N/A";
+  const p = v.split("-");
+  return p.length === 3 ? `${p[1]}/${p[2]}/${p[0]}` : v;
+};
+
 const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDeleting, hasPrev, hasNext, onNavigate, isMoveFirst, isMoveLast, isMoving, onMoveFirst, onMoveUp, onMoveDown, onMoveLast, currentUserEmail, currentUserDisplayName, projectInfo, projectUnits, remainingReleaseUnits, onClose, onSave, onDelete, onNew, onUploadEvidenceFile, onSaveLogField, onSendEmail, onSearchUsers, onTaskCompleted }) => {
   const [activeTab, setActiveTab] = useState<TaskTab>('notes');
   const canManageApprovers = true; // All users can manage approvers
@@ -286,12 +294,8 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
   const [releaseUnits, setReleaseUnits] = useState<number>(task.releaseUnits ?? getTaskReleaseUnits(task.jsonTable) ?? 0);
   const [taskTitle, setTaskTitle] = useState(task.Task ?? "");
   const [complete, setComplete] = useState<number>(task.Complete ?? 0);
-  const [start, setStart] = useState<string>(
-    task.Start ? new Date(task.Start).toISOString().slice(0, 10) : ""
-  );
-  const [finish, setFinish] = useState<string>(
-    task.Finish ? new Date(task.Finish).toISOString().slice(0, 10) : ""
-  );
+  const [start, setStart] = useState<string>(toLocaleDateInputValue(task.Start));
+  const [finish, setFinish] = useState<string>(toLocaleDateInputValue(task.Finish));
 
   // Duration (days) derived from start/finish; editing it adjusts finish
   const durationDays = (s: string, f: string): number => {
@@ -524,7 +528,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
         id: `step-${index + 1}`,
         wbs: stepWbs,
         sortOrder: index,
-        title: `${baseTitle} - Package ${index + 1}`,
+        title: `${baseTitle} - Batch ${index + 1}`,
         units,
         complete: previousStep?.complete ?? 0,
         start: dateValue,
@@ -642,8 +646,8 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
     setReleaseUnits(task.releaseUnits ?? getTaskReleaseUnits(task.jsonTable) ?? 0);
     setTaskTitle(task.Task ?? "");
     setComplete(task.Complete ?? 0);
-    setStart(task.Start ? new Date(task.Start).toISOString().slice(0, 10) : "");
-    setFinish(task.Finish ? new Date(task.Finish).toISOString().slice(0, 10) : "");
+    setStart(toLocaleDateInputValue(task.Start));
+    setFinish(toLocaleDateInputValue(task.Finish));
     setEffort(task.Effort !== undefined ? task.Effort.toString() : "");
     setBarriers(task.Barriers ?? "");
     setActionableStatus(task.ActionableStatus ?? "");
@@ -1270,10 +1274,10 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
     };
   }, {});
   const taskStepsPackagesSummary = Object.entries(taskStepUnitGroups).sort(([left], [right]) => Number(left) - Number(right))
-    .map(([units, count]) => `${count} ${Number(count) === 1 ? "package" : "packages"} of ${units} units`).join(" + ")
-    || `${taskStepsGeneratedCount || taskStepsLots || 0} packages`;
+    .map(([units, count]) => `${count} ${Number(count) === 1 ? "batch" : "batches"} of ${units} units`).join(" + ")
+    || `${taskStepsGeneratedCount || taskStepsLots || 0} batches`;
   const taskStepsConfigSummary = taskStepsMode === "weekday"
-    ? `${taskStepsLots || 0} packages by weekday`
+    ? `${taskStepsLots || 0} batches by weekday`
     : `${taskStepsPieces || DEFAULT_TASK_STEP_PIECES} pieces / ${taskStepsLots || 0} lots`;
   const taskStepsPanel = !showTaskSteps ? null : (
     <div className={styles.taskStepsCard}>
@@ -1298,7 +1302,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
         <div className={styles.taskStepsCollapsedSummary}>
           <div className={styles.taskStepsSummaryGrid}>
             <div className={styles.taskStepsSummaryBlock}>
-              <div className={styles.taskStepsSummaryLabel}>Packages</div>
+              <div className={styles.taskStepsSummaryLabel}>Batches</div>
               <div className={styles.taskStepsSummaryValue}>{taskStepsPackagesSummary}</div>
             </div>
             <div className={styles.taskStepsSummaryBlock}>
@@ -1396,8 +1400,8 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
                     value={taskStepsMode}
                     onChange={e => handleTaskStepsModeChange(e.target.value === "weekday" ? "weekday" : "fixed")}
                   >
-                    <option value="fixed">Fixed packages</option>
-                    <option value="weekday">Packages by weekday</option>
+                    <option value="fixed">Fixed batches</option>
+                    <option value="weekday">Batches by weekday</option>
                   </select>
                 </label>
                 <label className={styles.taskStepsField}>
@@ -1429,7 +1433,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
                   </>
                 ) : (
                   <label className={styles.taskStepsField}>
-                    <span># Packages</span>
+                    <span># Batches</span>
                     <input type="number" value={taskStepsLots || ""} className={styles.inputSmall} disabled />
                   </label>
                 )}
@@ -1518,7 +1522,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
                               <div className={styles.taskDetailsSummaryValue}>{`${taskStepCompleteEdit}%`}</div>
                             </div>
                             <div className={styles.taskDetailsSummaryBlock}>
-                              <div className={styles.taskDetailsSummaryValue}>{`(${selectedStep.start || "N/A"} - ${selectedStep.finish || "N/A"})`}</div>
+                              <div className={styles.taskDetailsSummaryValue}>{`(${fmtDate(selectedStep.start)} - ${fmtDate(selectedStep.finish)})`}</div>
                             </div>
                           </div>
                         </div>
@@ -1911,9 +1915,8 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
               </div>
             )}
 
-            {/* Row 3: Left=% Complete  |  Right=Duration+WBS */}
+            {/* Row 3: % Complete | Duration + WBS (compact group) */}
             <div className={styles.formRow}>
-              {/* Left half: % Complete label + input */}
               <label className={`${styles.field} ${styles.fieldHalf}`} title={taskCompleteLockMessage}>
                 <span>% Complete</span>
                 {isPlanner ? (
@@ -1943,7 +1946,6 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
                   />
                 )}
               </label>
-              {/* Right half: Duration label + input + WBS label + input */}
               <div className={styles.fieldRightGroup}>
                 <span className={styles.fieldGroupLabel}>Duration</span>
                 <input
@@ -1963,9 +1965,9 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
               </div>
             </div>
 
-            {/* Row 4: Start and finish */}
+            {/* Row 4: Start (full width) */}
             <div className={styles.formRow}>
-              <label className={styles.field}>
+              <label className={`${styles.field} ${styles.fieldFull}`}>
                 <span>Start</span>
                 <input
                   type="date" value={start}
@@ -1981,7 +1983,11 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
                   className={styles.inputSmall}
                 />
               </label>
-              <label className={styles.field}>
+            </div>
+
+            {/* Row 5: Finish (full width) */}
+            <div className={styles.formRow}>
+              <label className={`${styles.field} ${styles.fieldFull}`}>
                 <span>Finish</span>
                 <input
                   type="date" value={finish}

@@ -1,7 +1,7 @@
 import * as React from "react";
 import { useEffect, useRef, useState } from "react";
 import { IApprovalEntry, IEvidenceEntry, INoteEntry } from "../../../models/ITaskLogFields";
-import { getTodayDateInputValue, ISubprocessSubTask } from "../utils/TaskDescriptionBlob";
+import { getTodayDateInputValue, toLocaleDateInputValue, ISubprocessSubTask } from "../utils/TaskDescriptionBlob";
 import ApprovalsLog from "./ApprovalsLog";
 import EvidenceLog from "./EvidenceLog";
 import NotesLog from "./NotesLog";
@@ -24,12 +24,7 @@ interface ISubprocessTaskCardProps {
   onSearchUsers?: (query: string) => Promise<{ displayName: string; email: string }[]>;
 }
 
-const toDateInputValue = (value?: string): string => {
-  if (!value) return "";
-  const date = new Date(value);
-  if (isNaN(date.getTime())) return value;
-  return date.toISOString().slice(0, 10);
-};
+const toDateInputValue = (value?: string): string => toLocaleDateInputValue(value) || value || "";
 
 const clampPercent = (value: number): number =>
   Math.max(0, Math.min(100, Math.floor(Number.isFinite(value) ? value : 0)));

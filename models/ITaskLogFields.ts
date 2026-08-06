@@ -3,10 +3,13 @@
 // All three are OPTIONAL — if the column does not exist in a list the app silently
 // returns null and renders nothing.
 
+export type NoteBadge = 'issue' | 'fix' | 'action';
+
 export interface INoteEntry {
-  date:  string;   // ISO 8601 — "2026-03-30T13:45:00Z"
-  user:  string;   // displayName of the author
-  note:  string;
+  date:   string;   // ISO 8601 — "2026-03-30T13:45:00Z"
+  user:   string;   // displayName of the author
+  note:   string;
+  badge?: NoteBadge;
 }
 
 export interface IEvidenceEntry {
