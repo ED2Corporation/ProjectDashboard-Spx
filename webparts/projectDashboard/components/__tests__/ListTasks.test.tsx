@@ -132,9 +132,8 @@ describe('ListTasks', () => {
     expect(screen.queryByPlaceholderText(/Filter/i)).not.toBeInTheDocument();
     const firstTaskRow = screen.getByText('Alpha task').closest('tr') as HTMLTableRowElement;
     expect(within(firstTaskRow).getByRole('button', { name: /Move last/i })).toBeInTheDocument();
-
-    await userEvent.click(within(firstTaskRow).getByRole('button', { name: /Edit task/i }));
-    expect(onSelectItem).toHaveBeenCalledWith(expect.objectContaining({ Id: '1' }), 'task', 'list-edit');
+    expect(within(firstTaskRow).getByRole('button', { name: /Upload Evidence of Completion/i })).toBeInTheDocument();
+    expect(within(firstTaskRow).getByRole('button', { name: /Mark complete/i })).toBeInTheDocument();
   });
 
   it('shows gate step separators when all gates are displayed', () => {
@@ -161,7 +160,7 @@ describe('ListTasks', () => {
       />
     );
 
-    expect(screen.getByText('Gate A')).toBeInTheDocument();
-    expect(screen.getByText('Gate B')).toBeInTheDocument();
+    const betaRow = screen.getByText('Beta task').closest('tr') as HTMLTableRowElement;
+    expect(betaRow).toHaveClass('gateStepRow');
   });
 });

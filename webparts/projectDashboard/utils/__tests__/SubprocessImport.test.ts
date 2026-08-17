@@ -1,5 +1,12 @@
 import { parseSubprocessExcelFile } from "../SubprocessImport";
 
+const createTestFile = (arrayBuffer: ArrayBuffer, fileName: string): File => {
+  return {
+    name: fileName,
+    arrayBuffer: async () => arrayBuffer,
+  } as File;
+};
+
 describe("parseSubprocessExcelFile", () => {
   it("maps the subprocess template rows into subprocess subTasks", async () => {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -13,7 +20,7 @@ describe("parseSubprocessExcelFile", () => {
     const sheet = XLSX.utils.json_to_sheet(rows);
     XLSX.utils.book_append_sheet(workbook, sheet, "Plan");
     const arrayBuffer = XLSX.write(workbook, { type: "array", bookType: "xlsx" }) as ArrayBuffer;
-    const file = new File([arrayBuffer], "Upload-Subprocess Ver1.xlsx");
+    const file = createTestFile(arrayBuffer, "Upload-Subprocess Ver1.xlsx");
 
     const subTasks = await parseSubprocessExcelFile(file, "1.01", "2026-07-24", "2026-07-24");
 
@@ -50,7 +57,7 @@ describe("parseSubprocessExcelFile", () => {
     const sheet = XLSX.utils.json_to_sheet(rows);
     XLSX.utils.book_append_sheet(workbook, sheet, "Plan");
     const arrayBuffer = XLSX.write(workbook, { type: "array", bookType: "xlsx" }) as ArrayBuffer;
-    const file = new File([arrayBuffer], "subprocess-minimal.xlsx");
+    const file = createTestFile(arrayBuffer, "subprocess-minimal.xlsx");
 
     const subTasks = await parseSubprocessExcelFile(file, "2.01", "2026-07-20", "2026-07-24");
 

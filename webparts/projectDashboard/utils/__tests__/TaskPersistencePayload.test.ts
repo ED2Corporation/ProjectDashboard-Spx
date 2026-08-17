@@ -231,6 +231,6 @@ describe("buildTaskPersistencePayload", () => {
 
     expect(getTaskCompleteLockMessageFromJsonTable(undefined)).toBeUndefined();
     expect(getTaskCompleteLockMessageFromJsonTable(subprocessOnly)).toContain("subprocess tasks");
-    expect(getTaskCompleteLockMessageFromJsonTable(taskStepsOnly)).toContain("Step Tasks");
+    expect(getTaskCompleteLockMessageFromJsonTable(taskStepsOnly)).toContain("Batches");
   });
 });

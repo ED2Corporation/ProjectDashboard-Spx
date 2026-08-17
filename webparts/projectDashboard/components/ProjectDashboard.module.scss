@@ -685,6 +685,14 @@
   width: 66px;
 }
 
+.ed2TableStepTasks.ed2TableActionsExpanded th.colActions,
+.ed2TableStepTasks.ed2TableActionsExpanded td.colActions,
+.ed2TableStepTasks.ed2TableActionsExpanded th.actionsFixed,
+.ed2TableStepTasks.ed2TableActionsExpanded td.actionsFixed {
+  width: 218px;
+  min-width: 218px;
+}
+
 // ─── Shared inline controls (kebab-case — accessed via styles["name"]) ─────
 
 // stylelint-disable selector-class-pattern

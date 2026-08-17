@@ -475,9 +475,9 @@ const SubprocessCard: React.FC<SubprocessCardProps> = ({
                   taskStepsToggleActive ? styles.contextActionBtnActive : "",
                 ].filter(Boolean).join(" ")}
                 onClick={onToggleTaskSteps}
-                title="Step Tasks"
+                title="Create Batches"
               >
-                <span>Step Tasks</span>
+                <span>Create Batches</span>
               </button>
             )}
             {!isCollapsed && (

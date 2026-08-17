@@ -1,4 +1,4 @@
-import { buildTaskJsonTable, getTaskReleaseUnits, getTaskSteps, getTaskSubprocess, getTodayDateInputValue } from '../TaskDescriptionBlob';
+import { buildTaskJsonTable, getTaskReleaseUnits, getTaskSteps, getTaskSubprocess, getTodayDateInputValue, toLocaleDateInputValue } from '../TaskDescriptionBlob';
 
 describe('TaskDescriptionBlob subprocess support', () => {
   it('normalizes legacy subprocess entries and preserves embedded logs', () => {
@@ -263,6 +263,35 @@ describe('TaskDescriptionBlob subprocess support', () => {
     expect(getTaskSteps(taskStepsOnlyUpdate).steps[0].complete).toBe(75);
   });
 
+  it('preserves badge field on subprocess note entries through jsonTable roundtrip', () => {
+    const raw = buildTaskJsonTable(undefined, {
+      subprocess: {
+        subTasks: [{
+          id: 'sp-1',
+          wbs: '1.0.01',
+          sortOrder: 0,
+          task: 'Install module',
+          complete: 0,
+          start: '2026-06-01',
+          finish: '2026-06-02',
+          notes: [
+            { date: '2026-06-01', user: 'Saul', note: 'Blocked on parts', badge: 'issue' as const },
+            { date: '2026-06-02', user: 'Saul', note: 'Parts arrived', badge: 'fix' as const },
+            { date: '2026-06-03', user: 'Saul', note: 'Scheduled install', badge: 'action' as const },
+          ],
+        }],
+      },
+    });
+
+    const parsed = getTaskSubprocess(raw);
+    const notes = parsed.subTasks[0].notes ?? [];
+
+    expect(notes).toHaveLength(3);
+    expect(notes[0].badge).toBe('issue');
+    expect(notes[1].badge).toBe('fix');
+    expect(notes[2].badge).toBe('action');
+  });
+
   it('sets missing finish dates to today when subprocess or step tasks reach 100 percent', () => {
     const expectedToday = getTodayDateInputValue();
 
@@ -310,5 +339,43 @@ describe('TaskDescriptionBlob subprocess support', () => {
     expect(getTaskSubprocess(next).subTasks[0].finish).toBe(expectedToday);
     expect(getTaskSteps(next).steps[0].finish).toBe(expectedToday);
     expect(getTaskSteps(next).steps[0].subprocess?.subTasks[0].finish).toBe(expectedToday);
+  });
+});
+
+describe('toLocaleDateInputValue', () => {
+  it('returns empty string for falsy inputs', () => {
+    expect(toLocaleDateInputValue(undefined)).toBe('');
+    expect(toLocaleDateInputValue('')).toBe('');
+  });
+
+  it('returns YYYY-MM-DD string as-is without any timezone conversion', () => {
+    // This is the core timezone bug fix: new Date("2026-01-15") parses as UTC midnight
+    // and getDate() in negative-offset timezones would return 14.
+    // The passthrough regex prevents that shift entirely.
+    expect(toLocaleDateInputValue('2026-01-15')).toBe('2026-01-15');
+    expect(toLocaleDateInputValue('2026-12-31')).toBe('2026-12-31');
+    expect(toLocaleDateInputValue('2026-02-28')).toBe('2026-02-28');
+  });
+
+  it('returns empty string for unparseable strings', () => {
+    expect(toLocaleDateInputValue('not-a-date')).toBe('');
+    expect(toLocaleDateInputValue('invalid')).toBe('');
+    // Note: '2026-13-01' matches YYYY-MM-DD regex and is returned as-is (passthrough by design)
+    expect(toLocaleDateInputValue('2026-13-01')).toBe('2026-13-01');
+  });
+
+  it('converts a Date object to YYYY-MM-DD using local time', () => {
+    // In Jest (UTC environment) local and UTC match, so this verifies the format.
+    const d = new Date(2026, 5, 15); // June 15 2026 local midnight
+    expect(toLocaleDateInputValue(d)).toBe('2026-06-15');
+  });
+
+  it('converts an ISO datetime string with time component to YYYY-MM-DD', () => {
+    // A SharePoint Date field typically returns a full ISO string.
+    // In UTC test environment, UTC noon stays on the same date.
+    const iso = '2026-06-15T12:00:00Z';
+    const result = toLocaleDateInputValue(iso);
+    expect(result).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect(result.startsWith('2026-06-1')).toBe(true);
   });
 });

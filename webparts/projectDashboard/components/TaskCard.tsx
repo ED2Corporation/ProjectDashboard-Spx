@@ -366,7 +366,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
   const totalProjectUnits = asPositiveInteger(projectUnits ?? 0);
   const hasSubprocessWorkspace = showSubprocess || subprocess.subTasks.length > 0 || hasTaskSteps;
   const taskCompleteLockMessage = hasTaskSteps
-    ? "Complete is calculated from Step Tasks. Update progress in Step Tasks."
+    ? "Complete is calculated from Batches. Update progress in Batches."
     : subprocess.subTasks.length > 0
       ? "Complete is calculated from subprocess tasks. Update progress in Subprocess Workspace."
       : undefined;
@@ -432,7 +432,6 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
 
     const dateRanges = getStepDateRanges(start, finish, stepCount);
     const baseWbs = wbs || task.Title || "1";
-    const baseTitle = taskTitle || task.Task || "Task";
     const previousSteps = taskSteps.steps;
     let remainingUnits = totalUnits;
 
@@ -452,7 +451,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
         id: `step-${index + 1}`,
         wbs: stepWbs,
         sortOrder: index,
-        title: `${baseTitle} - Step ${index + 1}`,
+        title: `Batch ${index + 1}`,
         units,
         complete: previousStep?.complete ?? 0,
         start: dateRanges[index]?.start ?? start,
@@ -511,7 +510,6 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
 
     const unitsPerStep = Math.max(1, Math.floor(totalUnits / stepCount));
     const baseWbs = wbs || task.Title || "1";
-    const baseTitle = taskTitle || task.Task || "Task";
     const previousSteps = taskSteps.steps;
     let remainingUnits = totalUnits;
 
@@ -528,7 +526,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
         id: `step-${index + 1}`,
         wbs: stepWbs,
         sortOrder: index,
-        title: `${baseTitle} - Batch ${index + 1}`,
+        title: `Batch ${index + 1}`,
         units,
         complete: previousStep?.complete ?? 0,
         start: dateValue,
@@ -915,6 +913,65 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
     await handleSaveTaskStepsOnly(normalizedTaskSteps);
   };
 
+  const handleSaveTaskStepEvidenceEntries = async (stepId: string, entries: IEvidenceEntry[]): Promise<void> => {
+    const nextTaskSteps: ITaskStepsData = {
+      ...taskSteps,
+      enabled: true,
+      steps: taskSteps.steps.map(step => (
+        step.id === stepId
+          ? {
+              ...step,
+              evidence: entries,
+            }
+          : step
+      )),
+    };
+
+    const normalizedTaskSteps = normalizeTaskStepsAggregation(nextTaskSteps);
+    commitTaskSteps(normalizedTaskSteps);
+    await handleSaveTaskStepsOnly(normalizedTaskSteps);
+  };
+
+  const handleTaskStepCompleteAction = (step: ITaskStepEntry): void => {
+    const stepComplete = getTaskStepDerivedCompleteValue(step);
+    if (stepComplete >= 100) {
+      setSelectedTaskStepId(step.id);
+      setIsTaskStepWorkspaceExpanded(true);
+      setIsTaskStepDetailsExpanded(true);
+      setIsTaskStepSubprocessExpanded(true);
+      return;
+    }
+
+    const hasStepSubprocess = (step.subprocess?.subTasks.length ?? 0) > 0;
+    if (hasStepSubprocess) {
+      setSelectedTaskStepId(step.id);
+      setIsTaskStepWorkspaceExpanded(true);
+      setIsTaskStepDetailsExpanded(false);
+      setIsTaskStepSubprocessExpanded(true);
+      return;
+    }
+
+    const today = getTodayDateInputValue();
+    const nextTaskSteps: ITaskStepsData = {
+      ...taskSteps,
+      enabled: true,
+      steps: taskSteps.steps.map(currentStep => (
+        currentStep.id === step.id
+          ? {
+              ...currentStep,
+              complete: 100,
+              finish: currentStep.finish || today,
+              actualFinish: currentStep.actualFinish || today,
+            }
+          : currentStep
+      )),
+    };
+
+    const normalizedTaskSteps = normalizeTaskStepsAggregation(nextTaskSteps);
+    commitTaskSteps(normalizedTaskSteps);
+    void handleSaveTaskStepsOnly(normalizedTaskSteps);
+  };
+
   const handleSaveSelectedTaskStep = (): void => {
     if (!selectedTaskStepId) return;
     const selectedStep = taskSteps.steps.find(step => step.id === selectedTaskStepId);
@@ -999,8 +1056,97 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
       })),
     });
 
+    const keepCurrentStepExpanded = selectedTaskStepId === stepId && isTaskStepWorkspaceExpanded;
     setSelectedTaskStepId(stepId);
-    setIsTaskStepWorkspaceExpanded(true);
+    setIsTaskStepWorkspaceExpanded(keepCurrentStepExpanded);
+    commitTaskSteps(normalizedTaskSteps);
+    void handleSaveTaskStepsOnly(normalizedTaskSteps);
+  };
+
+  const handleAddTaskStepAfter = (stepId: string): void => {
+    const orderedSteps = normalizeTaskStepOrder(wbs || task.Title || "1", taskSteps.steps);
+    const pivotIndex = orderedSteps.findIndex(step => step.id === stepId);
+    if (pivotIndex < 0) return;
+
+    const pivotStep = orderedSteps[pivotIndex];
+    const nextIndex = pivotIndex + 1;
+    const nextWbs = formatTaskStepWbs(wbs || task.Title || "1", nextIndex);
+    const nextUnits = taskSteps.unitsPerStep > 0
+      ? taskSteps.unitsPerStep
+      : Math.max(1, pivotStep.units || 1);
+    const nextStep: ITaskStepEntry = {
+      id: `step-${Date.now()}`,
+      wbs: nextWbs,
+      sortOrder: nextIndex,
+      title: `Batch ${nextIndex + 1}`,
+      units: nextUnits,
+      complete: 0,
+      start: pivotStep.finish || pivotStep.start || start,
+      finish: pivotStep.finish || finish,
+      actualFinish: "",
+      notes: [],
+      evidence: [],
+      approvals: [],
+      subprocess: subprocess.subTasks.length > 0
+        ? cloneSubprocessTemplateForStep(subprocess, nextWbs)
+        : createEmptySubprocess(),
+    };
+
+    const nextSteps = orderedSteps.slice();
+    nextSteps.splice(nextIndex, 0, nextStep);
+
+    const normalizedTaskSteps = normalizeTaskStepsAggregation({
+      ...taskSteps,
+      enabled: true,
+      stepCount: nextSteps.length,
+      totalUnits: nextSteps.reduce((sum, step) => sum + Math.max(0, step.units || 0), 0),
+      steps: nextSteps.map((step, index) => ({
+        ...step,
+        sortOrder: index,
+      })),
+    });
+
+    setSelectedTaskStepId(nextStep.id);
+    setIsTaskStepWorkspaceExpanded(false);
+    setIsTaskStepDetailsExpanded(false);
+    setIsTaskStepSubprocessExpanded(true);
+    commitTaskSteps(normalizedTaskSteps);
+    void handleSaveTaskStepsOnly(normalizedTaskSteps);
+  };
+
+  const handleRemoveTaskStep = (stepId: string): void => {
+    const orderedSteps = normalizeTaskStepOrder(wbs || task.Title || "1", taskSteps.steps);
+    const stepToRemove = orderedSteps.find(step => step.id === stepId);
+    if (!stepToRemove) return;
+
+    const hasExecutionData =
+      clampPercentValue(stepToRemove.complete) > 0 ||
+      !!stepToRemove.actualFinish ||
+      (stepToRemove.notes?.length ?? 0) > 0 ||
+      (stepToRemove.evidence?.length ?? 0) > 0 ||
+      (stepToRemove.approvals?.length ?? 0) > 0 ||
+      hasSubprocessExecutionData(stepToRemove.subprocess);
+
+    if (hasExecutionData && !window.confirm("This Batch has execution data. Remove it anyway?")) {
+      return;
+    }
+
+    const nextSteps = orderedSteps.filter(step => step.id !== stepId);
+    const normalizedTaskSteps = normalizeTaskStepsAggregation({
+      ...taskSteps,
+      enabled: nextSteps.length > 0,
+      stepCount: nextSteps.length,
+      totalUnits: nextSteps.reduce((sum, step) => sum + Math.max(0, step.units || 0), 0),
+      steps: nextSteps.map((step, index) => ({
+        ...step,
+        sortOrder: index,
+      })),
+    });
+
+    if (selectedTaskStepId === stepId) {
+      setSelectedTaskStepId(undefined);
+      setIsTaskStepWorkspaceExpanded(false);
+    }
     commitTaskSteps(normalizedTaskSteps);
     void handleSaveTaskStepsOnly(normalizedTaskSteps);
   };
@@ -1209,7 +1355,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
       if (taskStepsMode === "weekday") {
         if (taskSteps.steps.length > 0 && hasTaskStepPreservedData(taskSteps)) {
           const confirmed = window.confirm(
-            "Regenerating Step Tasks will replace the current step structure and reset step progress. Continue?"
+            "Regenerating Batches will replace the current batch structure and reset batch progress. Continue?"
           );
           if (!confirmed) {
             setIsTaskStepsProcessing(false);
@@ -1220,7 +1366,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
       } else if (taskStepsSource === "lots" && taskStepsLots > 0) {
         if (taskSteps.steps.length > 0 && hasTaskStepPreservedData(taskSteps)) {
           const confirmed = window.confirm(
-            "Regenerating Step Tasks will replace the current step structure and reset step progress. Continue?"
+            "Regenerating Batches will replace the current batch structure and reset batch progress. Continue?"
           );
           if (!confirmed) {
             setIsTaskStepsProcessing(false);
@@ -1231,7 +1377,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
       } else {
         if (taskSteps.steps.length > 0 && hasTaskStepPreservedData(taskSteps)) {
           const confirmed = window.confirm(
-            "Regenerating Step Tasks will replace the current step structure and reset step progress. Continue?"
+            "Regenerating Batches will replace the current batch structure and reset batch progress. Continue?"
           );
           if (!confirmed) {
             setIsTaskStepsProcessing(false);
@@ -1249,8 +1395,8 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
       setIsTaskStepSubprocessExpanded(true);
       void handleSaveTaskStepsOnly(nextTaskSteps)
         .catch(error => {
-          console.error("[TaskCard] Step Task save failed", error);
-          alert("Unable to save Step Tasks. Refresh before continuing.");
+          console.error("[TaskCard] Batch save failed", error);
+          alert("Unable to save Batches. Refresh before continuing.");
         })
         .finally(() => setIsTaskStepsProcessing(false));
     }, 0);
@@ -1278,18 +1424,18 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
     || `${taskStepsGeneratedCount || taskStepsLots || 0} batches`;
   const taskStepsConfigSummary = taskStepsMode === "weekday"
     ? `${taskStepsLots || 0} batches by weekday`
-    : `${taskStepsPieces || DEFAULT_TASK_STEP_PIECES} pieces / ${taskStepsLots || 0} lots`;
+    : `${taskStepsPieces || DEFAULT_TASK_STEP_PIECES} pieces / ${taskStepsLots || 0} batches`;
   const taskStepsPanel = !showTaskSteps ? null : (
     <div className={styles.taskStepsCard}>
       <div className={styles.taskStepsHeader}>
-        <strong>Step Tasks</strong>
+        <strong>Batches</strong>
         <div className={styles.taskStepsHeaderActions}>
           <button
             type="button"
             className={`${styles.taskButton} ${styles.taskButtonCollapse}`}
             onClick={() => setIsTaskStepsSectionExpanded(prev => !prev)}
-            title={isTaskStepsSectionExpanded ? "Collapse Step Tasks" : "Expand Step Tasks"}
-            aria-label={isTaskStepsSectionExpanded ? "Collapse Step Tasks" : "Expand Step Tasks"}
+            title={isTaskStepsSectionExpanded ? "Collapse Batches" : "Expand Batches"}
+            aria-label={isTaskStepsSectionExpanded ? "Collapse Batches" : "Expand Batches"}
           >
             <svg className={styles.iconSmall} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               {isTaskStepsSectionExpanded ? <path d="M3 10l5-5 5 5" /> : <path d="M3 6l5 5 5-5" />}
@@ -1326,7 +1472,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
         <div className={styles.taskStepsConfigCard}>
           <div className={styles.taskStepsConfigHeader}>
             <div className={styles.taskStepsConfigTitleGroup}>
-              <strong>Lot Configuration</strong>
+              <strong>Batch Configuration</strong>
               {isTaskStepsConfigExpanded && taskStepsMode === "weekday" && (
                 <div className={styles.taskStepsWeekdayRow}>
                   {TASK_STEP_WEEKDAY_OPTIONS.map(option => (
@@ -1351,10 +1497,10 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
                 className={`${styles.taskButton} ${styles.taskButtonSave}`}
                 onClick={handleCreateTaskStepsClick}
                 disabled={totalProjectUnits <= 0 || isTaskStepsProcessing}
-                title={taskSteps.enabled && taskSteps.steps.length > 0 ? "Recreate Step Tasks" : "Create Step Tasks"}
+                title={taskSteps.enabled && taskSteps.steps.length > 0 ? "Recreate Batches" : "Create Batches"}
               >
                 <span className={styles.taskButtonLabel}>
-                  {isTaskStepsProcessing ? "Processing..." : taskSteps.enabled && taskSteps.steps.length > 0 ? "Recreate Lots" : "Create Lots"}
+                  {isTaskStepsProcessing ? "Processing..." : taskSteps.enabled && taskSteps.steps.length > 0 ? "Recreate Batches" : "Create Batches"}
                 </span>
               </button>
               {taskSteps.enabled && taskSteps.steps.length > 0 && (
@@ -1374,15 +1520,15 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
                     setIsTaskStepsConfigExpanded(true);
                   }}
                 >
-                  <span className={styles.taskButtonLabel}>Reset</span>
+                  <span className={styles.taskButtonLabel}>Clear Batches</span>
                 </button>
               )}
               <button
                 type="button"
                 className={`${styles.taskButton} ${styles.taskButtonCollapse}`}
                 onClick={() => setIsTaskStepsConfigExpanded(prev => !prev)}
-                title={isTaskStepsConfigExpanded ? "Collapse Lot Configuration" : "Expand Lot Configuration"}
-                aria-label={isTaskStepsConfigExpanded ? "Collapse Lot Configuration" : "Expand Lot Configuration"}
+                title={isTaskStepsConfigExpanded ? "Collapse Batch Configuration" : "Expand Batch Configuration"}
+                aria-label={isTaskStepsConfigExpanded ? "Collapse Batch Configuration" : "Expand Batch Configuration"}
               >
                 <svg className={styles.iconSmall} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   {isTaskStepsConfigExpanded ? <path d="M3 10l5-5 5 5" /> : <path d="M3 6l5 5 5-5" />}
@@ -1421,7 +1567,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
                       />
                     </label>
                     <label className={styles.taskStepsField}>
-                      <span># Lots</span>
+                      <span># Batches</span>
                       <input
                         type="number"
                         min={1}
@@ -1442,7 +1588,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
 
               {totalProjectUnits <= 0 && (
                 <div className={styles.taskStepsHint}>
-                  Step Tasks need project Units defined in ED2-Projects.
+                  Batches need project Units defined in ED2-Projects.
                 </div>
               )}
             </>
@@ -1451,7 +1597,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
         {taskSteps.enabled && taskSteps.steps.length > 0 && (
           <>
             <div className={styles.taskStepsSummary}>
-              <span>{taskSteps.steps.length} steps generated</span>
+              <span>{taskSteps.steps.length} batches generated</span>
             </div>
 
           <TaskStepsTable
@@ -1460,6 +1606,12 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
             isTaskStepWorkspaceExpanded={isTaskStepWorkspaceExpanded}
             getStepComplete={getTaskStepDerivedCompleteValue}
             onMoveStep={handleMoveTaskStep}
+            onAddStepAfter={handleAddTaskStepAfter}
+            onRemoveStep={handleRemoveTaskStep}
+            onCompleteStepAction={handleTaskStepCompleteAction}
+            onSaveStepEvidenceEntries={handleSaveTaskStepEvidenceEntries}
+            onUploadEvidenceFile={onUploadEvidenceFile}
+            currentUserDisplayName={currentUserDisplayName}
             onToggleWorkspace={(step) => {
               if (step.id === selectedTaskStepId) {
                 setIsTaskStepWorkspaceExpanded(prev => !prev);
@@ -1475,22 +1627,22 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
               <div className={styles.taskStepWorkspace}>
                 <div className={styles.taskStepDetail}>
 
-                  {/* ── Step Task Detail card (collapsible) ── */}
+                  {/* Batch Detail card (collapsible) */}
                   <div className={styles.taskDetailsShell}>
                     <div className={styles.taskDetailsToolbar}>
                       {!isTaskStepDetailsExpanded ? (
                         <div className={styles.taskDetailsSummary}>
                           <div className={styles.taskDetailsSummaryTop}>
                             <div className={styles.taskDetailsSummaryHeading}>
-                              <div className={styles.taskDetailsSummaryTitle}>Step Task Detail</div>
+                              <div className={styles.taskDetailsSummaryTitle}>Batch Detail</div>
                               <div className={styles.taskDetailsSummarySubtitle}>Expand to edit step data.</div>
                             </div>
                             <button
                               type="button"
                               className={`${styles.taskButton} ${styles.taskButtonCollapse} ${styles.taskDetailsSummaryToggle}`}
                               onClick={() => setIsTaskStepDetailsExpanded(true)}
-                              title="Expand step task details"
-                              aria-label="Expand step task details"
+                              title="Expand batch details"
+                              aria-label="Expand batch details"
                             >
                               <svg className={styles.iconSmall} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                                 <path d="M3 6l5 5 5-5" />
@@ -1529,15 +1681,15 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
                       ) : (
                         <div className={styles.taskDetailsInlineHeader}>
                           <div>
-                            <div className={styles.taskDetailsKicker}>Step Task Detail</div>
+                            <div className={styles.taskDetailsKicker}>Batch Detail</div>
                             <div className={styles.taskDetailsSubtitle}>Edit step data.</div>
                           </div>
                           <button
                             type="button"
                             className={`${styles.taskButton} ${styles.taskButtonCollapse} ${styles.taskDetailsSummaryToggle}`}
                             onClick={() => setIsTaskStepDetailsExpanded(false)}
-                            title="Collapse step task details"
-                            aria-label="Collapse step task details"
+                            title="Collapse batch details"
+                            aria-label="Collapse batch details"
                           >
                             <svg className={styles.iconSmall} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                               <path d="M3 10l5-5 5 5" />
@@ -1572,7 +1724,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
                           <label
                             className={styles.taskStepEditorField}
                             title={(selectedStep.subprocess?.subTasks.length ?? 0) > 0
-                              ? "Complete is calculated from this Step Task subprocess. Update progress in its Subprocess Workspace."
+                              ? "Complete is calculated from this Batch subprocess. Update progress in its Subprocess Workspace."
                               : undefined}
                           >
                             <span>% Complete</span>
@@ -1585,7 +1737,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
                               onChange={e => setTaskStepCompleteEdit(Number(e.target.value) || 0)}
                               disabled={(selectedStep.subprocess?.subTasks.length ?? 0) > 0}
                               title={(selectedStep.subprocess?.subTasks.length ?? 0) > 0
-                                ? "Complete is calculated from this Step Task subprocess. Update progress in its Subprocess Workspace."
+                                ? "Complete is calculated from this Batch subprocess. Update progress in its Subprocess Workspace."
                                 : undefined}
                             />
                           </label>
@@ -1658,7 +1810,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
                     onSearchUsers={onSearchUsers}
                     visualLevel="taskStep"
                     headerKicker="SUBPROCESS WORKAREA"
-                    headerTitle="Step Task"
+                    headerTitle="Batch"
                     isCollapsed={!isTaskStepSubprocessExpanded}
                     onClose={() => setIsTaskStepSubprocessExpanded(prev => !prev)}
                   />

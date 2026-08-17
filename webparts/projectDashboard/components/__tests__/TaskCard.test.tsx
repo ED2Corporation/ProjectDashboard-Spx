@@ -258,7 +258,7 @@ describe('TaskCard', () => {
     }));
   });
 
-  it('persists generated Step Task lots immediately when Create Lots is clicked', async () => {
+  it('persists generated batches immediately when Create Batches is clicked', async () => {
     const onSave = jest.fn();
 
     render(
@@ -287,7 +287,7 @@ describe('TaskCard', () => {
       />
     );
 
-    await userEvent.click(screen.getByRole('button', { name: /Lots/ }));
+    await userEvent.click(screen.getByRole('button', { name: /^Recreate Batches$/ }));
 
     await waitFor(() => expect(onSave).toHaveBeenCalled());
     const [, payload] = onSave.mock.calls[0];
@@ -297,7 +297,7 @@ describe('TaskCard', () => {
     expect(jsonTable.taskSteps.enabled).toBe(true);
     expect(jsonTable.taskSteps.steps).toHaveLength(2);
     expect(jsonTable.taskSteps.steps[0]).toEqual(expect.objectContaining({
-      title: 'Review drawing - Step 1',
+      title: 'Batch 1',
       units: 30,
       wbs: '1.0.01',
     }));
@@ -352,7 +352,7 @@ describe('TaskCard', () => {
     expect(parsed.Complete).toBe(25);
   });
 
-  it('aggregates subprocess, Step Tasks, and parent task complete in cascade', async () => {
+  it('aggregates subprocess, batches, and parent task complete in cascade', async () => {
     const onSave = jest.fn();
 
     render(
@@ -434,7 +434,7 @@ describe('TaskCard', () => {
     expect(parsed.Complete).toBe(45);
   });
 
-  it('preserves recovered Step Task subprocess rows when parent fields change before save', async () => {
+  it('preserves recovered batch subprocess rows when parent fields change before save', async () => {
     const onSave = jest.fn();
 
     render(

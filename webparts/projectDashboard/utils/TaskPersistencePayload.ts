@@ -105,7 +105,7 @@ export const buildTaskSortOrderJsonTable = (sourceJsonTable: string | undefined,
 export const getTaskCompleteLockMessageFromJsonTable = (jsonTable?: string): string | undefined => {
   const taskSteps = getTaskSteps(jsonTable);
   if (taskSteps.enabled && taskSteps.steps.length > 0) {
-    return "Complete is calculated from Step Tasks. Update progress in Step Tasks.";
+    return "Complete is calculated from Batches. Update progress in Batches.";
   }
 
   const subprocess = getTaskSubprocess(jsonTable);

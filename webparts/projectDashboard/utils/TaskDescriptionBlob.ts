@@ -99,7 +99,7 @@ export const getTodayDateInputValue = (): string => {
  * Converts a Date or date string to YYYY-MM-DD using LOCAL time.
  * Avoids the UTC midnight timezone shift bug of toISOString().slice(0,10).
  */
-export const toLocaleDateInputValue = (value?: Date | string | null): string => {
+export const toLocaleDateInputValue = (value?: Date | string): string => {
   if (!value) return "";
   if (typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
   const date = value instanceof Date ? value : new Date(value);

@@ -1,7 +1,9 @@
 import * as React from "react";
 import { useState } from "react";
+import { IEvidenceEntry } from "../../../models/ITaskLogFields";
 import { compareWbs } from "../utils/ParseWBS";
 import { ITaskStepEntry } from "../utils/TaskDescriptionBlob";
+import EvidenceUploadButton from "./EvidenceUploadButton";
 import dashboardStyles from "./ProjectDashboard.module.scss";
 import styles from "./TaskCard.module.scss";
 
@@ -14,6 +16,15 @@ interface ITaskStepsTableProps {
   isTaskStepWorkspaceExpanded: boolean;
   getStepComplete: (step: ITaskStepEntry) => number;
   onMoveStep?: (stepId: string, direction: "first" | "up" | "down" | "last") => void;
+  onAddStepAfter?: (stepId: string) => void;
+  onRemoveStep?: (stepId: string) => void;
+  onCompleteStepAction?: (step: ITaskStepEntry) => void;
+  onSaveStepEvidenceEntries?: (stepId: string, entries: IEvidenceEntry[]) => Promise<void>;
+  onUploadEvidenceFile?: (
+    file: File,
+    taskTitle: string
+  ) => Promise<{ fileUrl: string; fileName: string }>;
+  currentUserDisplayName?: string;
   onToggleWorkspace: (step: ITaskStepEntry) => void;
   renderWorkspace: (step: ITaskStepEntry) => React.ReactNode;
 }
@@ -48,6 +59,12 @@ const TaskStepsTable: React.FC<ITaskStepsTableProps> = ({
   isTaskStepWorkspaceExpanded,
   getStepComplete,
   onMoveStep,
+  onAddStepAfter,
+  onRemoveStep,
+  onCompleteStepAction,
+  onSaveStepEvidenceEntries,
+  onUploadEvidenceFile,
+  currentUserDisplayName,
   onToggleWorkspace,
   renderWorkspace,
 }) => {
@@ -137,6 +154,13 @@ const TaskStepsTable: React.FC<ITaskStepsTableProps> = ({
               const visualIndex = steps.findIndex(entry => entry.id === step.id);
               const isFirstStep = visualIndex <= 0;
               const isLastStep = visualIndex < 0 || visualIndex >= steps.length - 1;
+              const isComplete = stepComplete >= 100;
+              const isCompleteLocked = (step.subprocess?.subTasks.length ?? 0) > 0 && !isComplete;
+              const completeActionTitle = isComplete
+                ? "Open quick update"
+                : isCompleteLocked
+                  ? "Complete is calculated from this Batch subprocess."
+                  : "Mark complete";
 
               return (
                 <React.Fragment key={step.id}>
@@ -149,7 +173,7 @@ const TaskStepsTable: React.FC<ITaskStepsTableProps> = ({
                         type="button"
                         className={styles.taskStepNameButton}
                         onClick={() => onToggleWorkspace(step)}
-                        title={isSelectedStep && isTaskStepWorkspaceExpanded ? "Collapse step task" : "Expand step task"}
+                        title={isSelectedStep && isTaskStepWorkspaceExpanded ? "Collapse batch" : "Expand batch"}
                       >
                         {`${step.title} (${step.units || 0} units)`}
                       </button>
@@ -160,6 +184,27 @@ const TaskStepsTable: React.FC<ITaskStepsTableProps> = ({
                     <td className={`${dashboardStyles.colActions} ${dashboardStyles.actionsFixed}`}>
                       {actionsExpanded ? (
                         <div className={dashboardStyles.actionsToolbar}>
+                          <button
+                            type="button"
+                            className={dashboardStyles.toolbarIconButton}
+                            onClick={(e) => { e.stopPropagation(); onAddStepAfter?.(step.id); }}
+                            title="Add Batch below"
+                            aria-label="Add Batch below"
+                            disabled={!onAddStepAfter}
+                          >
+                            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M3 8h10" /></svg>
+                          </button>
+                          <button
+                            type="button"
+                            className={dashboardStyles.toolbarIconButton}
+                            onClick={(e) => { e.stopPropagation(); onRemoveStep?.(step.id); }}
+                            title="Remove Batch"
+                            aria-label="Remove Batch"
+                            disabled={!onRemoveStep}
+                          >
+                            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M5 5h6M6 5v8h4V5M4 5h8M7 3h2" /></svg>
+                          </button>
+                          <span className={dashboardStyles.toolbarSeparator} />
                           {onMoveStep && (["first", "up", "down", "last"] as const).map(direction => {
                             const disabled =
                               (direction === "first" || direction === "up") ? isFirstStep : isLastStep;
@@ -181,40 +226,117 @@ const TaskStepsTable: React.FC<ITaskStepsTableProps> = ({
                             );
                           })}
                           <span className={dashboardStyles.toolbarSeparator} />
+                          {onUploadEvidenceFile && onSaveStepEvidenceEntries ? (
+                            <EvidenceUploadButton
+                              evidence={step.evidence ?? []}
+                              taskTitle={step.title || "Batch"}
+                              currentUser={currentUserDisplayName ?? ""}
+                              onUploadFile={onUploadEvidenceFile}
+                              onSave={(entries) => onSaveStepEvidenceEntries(step.id, entries)}
+                              isEvidenceOfCompletion={true}
+                              label={
+                                <svg viewBox="0 0 16 16" aria-hidden="true">
+                                  <path d="M8 10V3" />
+                                  <path d="M5 6l3-3 3 3" />
+                                  <path d="M3 13h10" />
+                                </svg>
+                              }
+                              className={`${dashboardStyles.toolbarIconButton} ${dashboardStyles.actionEvidenceUploadTrigger}`}
+                            />
+                          ) : (
+                            <button
+                              type="button"
+                              className={`${dashboardStyles.toolbarIconButton} ${dashboardStyles.actionEvidenceUploadTrigger}`}
+                              title="Upload Evidence of Completion"
+                              aria-label="Upload Evidence of Completion"
+                              disabled
+                            >
+                              <svg viewBox="0 0 16 16" aria-hidden="true">
+                                <path d="M8 10V3" />
+                                <path d="M5 6l3-3 3 3" />
+                                <path d="M3 13h10" />
+                              </svg>
+                            </button>
+                          )}
                           <button
                             type="button"
-                            className={dashboardStyles.toolbarIconButton}
-                            onClick={(e) => { e.stopPropagation(); onToggleWorkspace(step); }}
-                            title={isSelectedStep && isTaskStepWorkspaceExpanded ? "Collapse step workspace" : "Expand step workspace"}
-                            aria-label={isSelectedStep && isTaskStepWorkspaceExpanded ? "Collapse step workspace" : "Expand step workspace"}
+                            className={[
+                              dashboardStyles.toolbarIconButton,
+                              dashboardStyles.actionCompleteTrigger,
+                              isComplete ? dashboardStyles.actionCompleteTriggerDone : "",
+                            ].filter(Boolean).join(" ")}
+                            onClick={(e) => { e.stopPropagation(); onCompleteStepAction?.(step); }}
+                            title={completeActionTitle}
+                            aria-label={completeActionTitle}
+                            disabled={!onCompleteStepAction || isCompleteLocked}
                           >
-                            {isSelectedStep && isTaskStepWorkspaceExpanded ? (
+                            {isComplete ? (
                               <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                                <path d="M3 10l5-5 5 5" />
+                                <path d="M11.5 2.5l2 2-7.5 7.5H4v-2l7.5-7.5z" />
+                                <path d="M3 14h10" />
                               </svg>
                             ) : (
-                              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                                <path d="M3 6l5 5 5-5" />
+                              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                <path d="M3.5 8.5 6.5 11.5 12.5 4.5" />
                               </svg>
                             )}
                           </button>
                         </div>
                       ) : (
                         <div className={dashboardStyles.actionButtonsRow}>
+                          {onUploadEvidenceFile && onSaveStepEvidenceEntries ? (
+                            <EvidenceUploadButton
+                              evidence={step.evidence ?? []}
+                              taskTitle={step.title || "Batch"}
+                              currentUser={currentUserDisplayName ?? ""}
+                              onUploadFile={onUploadEvidenceFile}
+                              onSave={(entries) => onSaveStepEvidenceEntries(step.id, entries)}
+                              isEvidenceOfCompletion={true}
+                              label={
+                                <svg className={dashboardStyles.iconSmall} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                  <path d="M8 10V3" />
+                                  <path d="M5 6l3-3 3 3" />
+                                  <path d="M3 13h10" />
+                                </svg>
+                              }
+                              className={`${dashboardStyles.iconButton} ${dashboardStyles.actionEvidenceUploadTrigger}`}
+                            />
+                          ) : (
+                            <button
+                              type="button"
+                              className={`${dashboardStyles.iconButton} ${dashboardStyles.actionEvidenceUploadTrigger}`}
+                              title="Upload Evidence of Completion"
+                              aria-label="Upload Evidence of Completion"
+                              disabled
+                            >
+                              <svg className={dashboardStyles.iconSmall} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                <path d="M8 10V3" />
+                                <path d="M5 6l3-3 3 3" />
+                                <path d="M3 13h10" />
+                              </svg>
+                            </button>
+                          )}
                           <button
                             type="button"
-                            className={dashboardStyles.iconButton}
-                            onClick={(e) => { e.stopPropagation(); onToggleWorkspace(step); }}
-                            title={isSelectedStep && isTaskStepWorkspaceExpanded ? "Collapse step workspace" : "Expand step workspace"}
-                            aria-label={isSelectedStep && isTaskStepWorkspaceExpanded ? "Collapse step workspace" : "Expand step workspace"}
+                            className={[
+                              dashboardStyles.iconButton,
+                              dashboardStyles.actionAddTrigger,
+                              dashboardStyles.actionCompleteTrigger,
+                              isComplete ? dashboardStyles.actionCompleteTriggerDone : "",
+                            ].filter(Boolean).join(" ")}
+                            onClick={(e) => { e.stopPropagation(); onCompleteStepAction?.(step); }}
+                            title={completeActionTitle}
+                            aria-label={completeActionTitle}
+                            disabled={!onCompleteStepAction || isCompleteLocked}
                           >
-                            {isSelectedStep && isTaskStepWorkspaceExpanded ? (
-                              <svg className={dashboardStyles.iconSmall} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                                <path d="M3 10l5-5 5 5" />
+                            {isComplete ? (
+                              <svg className={dashboardStyles.iconSmall} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                <path d="M11.5 2.5l2 2-7.5 7.5H4v-2l7.5-7.5z" />
+                                <path d="M3 14h10" />
                               </svg>
                             ) : (
-                              <svg className={dashboardStyles.iconSmall} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                                <path d="M3 6l5 5 5-5" />
+                              <svg className={dashboardStyles.iconSmall} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                <path d="M3.5 8.5 6.5 11.5 12.5 4.5" />
                               </svg>
                             )}
                           </button>
@@ -236,7 +358,7 @@ const TaskStepsTable: React.FC<ITaskStepsTableProps> = ({
             {sortedSteps.length === 0 && (
               <tr>
                 <td colSpan={6} className={styles.taskStepsEmptyState}>
-                  No step tasks available.
+                  No batches available.
                 </td>
               </tr>
             )}
