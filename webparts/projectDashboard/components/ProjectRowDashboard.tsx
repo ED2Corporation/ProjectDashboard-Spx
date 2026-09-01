@@ -1,5 +1,5 @@
 import * as React from "react";
-import { useState, useMemo, useEffect, useCallback } from "react";
+import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { SPFI, spfi } from "@pnp/sp";
 import { SPFx } from "@pnp/sp/presets/all";
 import "@pnp/sp/lists";
@@ -12,6 +12,7 @@ import { IProjectCatalogItem } from "../../../models/IProjectService";
 import { ProjectService } from "../services/ProjectService";
 import { useProjectState } from "../hooks/useProjectState";
 import { GetBucketStatus } from "../utils/GetGateStatus";
+import { GroupByProject } from "../utils/GroupByProject";
 import { IProjectDashboardWebPartProps } from "../../../models";
 
 import GateProgressBar from "./GateProgressBar";
@@ -295,6 +296,25 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
     onStatusReady(localProject.Title, key);
     setStatusReported(true);
   }, [gates, localProject, onStatusReady, statusReported]);
+
+  // Sync executionStatus to ED2-Projects.ProjectDetails so PO-Inbounds can read it
+  const lastWrittenExecutionStatus = useRef<string | null>(null);
+  useEffect(() => {
+    if (gates.length === 0) return;
+    const overallPct = GroupByProject(gates).Complete;
+    const bucketStatus = GetBucketStatus(gates);
+    const status =
+      bucketStatus === 'green'  ? 'completed'  :
+      bucketStatus === 'red'    ? 'delayed'    :
+      bucketStatus === 'yellow' ? 'stalled'    :
+      'in-progress';
+    const writeKey = `${status}:${overallPct}`;
+    if (lastWrittenExecutionStatus.current === writeKey) return;
+    lastWrittenExecutionStatus.current = writeKey;
+    projectService.patchProjectDetails(localProject.Title, {
+      executionStatus: { status, overallPct, updatedAt: new Date().toISOString() },
+    }).catch(e => console.error('[ProjectRowDashboard] executionStatus sync:', e));
+  }, [gates, localProject.Title, projectService]);
 
   const handleGateClick = (gate: string): void => {
     const next = activeGate === gate ? null : gate;
