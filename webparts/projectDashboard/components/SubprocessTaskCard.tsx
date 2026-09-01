@@ -63,6 +63,8 @@ const SubprocessTaskCard: React.FC<ISubprocessTaskCardProps> = ({
   const [evidence, setEvidence] = useState<IEvidenceEntry[]>(subTask.evidence ?? []);
   const [approvals, setApprovals] = useState<IApprovalEntry[]>(subTask.approvals ?? []);
   const [columnFocus, setColumnFocus] = useState<SubprocessColumnFocus>("balanced");
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState("");
   const notesRef = useRef<INoteEntry[]>(subTask.notes ?? []);
   const evidenceRef = useRef<IEvidenceEntry[]>(subTask.evidence ?? []);
   const approvalsRef = useRef<IApprovalEntry[]>(subTask.approvals ?? []);
@@ -127,8 +129,16 @@ const SubprocessTaskCard: React.FC<ISubprocessTaskCardProps> = ({
   }
 
   const handleSave = async (): Promise<void> => {
-    await Promise.resolve(onSave(buildNextSubTask()));
-    onClose();
+    setIsSaving(true);
+    setSaveError("");
+    try {
+      await Promise.resolve(onSave(buildNextSubTask()));
+      onClose();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unable to save changes.";
+      setSaveError(message);
+      setIsSaving(false);
+    }
   };
 
   const handleToggleEvidenceOfCompletion = async (entry: IEvidenceEntry): Promise<void> => {
@@ -225,9 +235,18 @@ const SubprocessTaskCard: React.FC<ISubprocessTaskCardProps> = ({
               &gt;
             </button>
           </div>
-          <button type="button" className={styles.detailActionBtn} onClick={handleSave}>
-            Save
+          <button
+            type="button"
+            className={styles.detailActionBtn}
+            onClick={handleSave}
+            disabled={isSaving}
+            style={isSaving ? { background: "#a8a8a8", borderColor: "#a8a8a8", cursor: "not-allowed", opacity: 0.8 } : undefined}
+          >
+            {isSaving ? "Saving…" : "Save"}
           </button>
+          {saveError && (
+            <span style={{ fontSize: 9, color: "#b91c1c", marginLeft: 4 }} title={saveError}>⚠ Error</span>
+          )}
           <button type="button" className={styles.detailActionBtnSecondary} onClick={onClose}>
             Close
           </button>

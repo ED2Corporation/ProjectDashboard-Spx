@@ -19,6 +19,7 @@ import {
   ITaskStepEntry,
   ITaskStepsData,
   ITaskSubprocessData,
+  ISubprocessSubTask,
 } from "../utils/TaskDescriptionBlob";
 
 type TaskTab = 'notes' | 'evidence' | 'approvals';
@@ -105,6 +106,30 @@ const calculateFixedStepCount = (totalUnitsValue: number, unitsPerStepValue: num
 
 const clampPercentValue = (value: number): number =>
   Math.max(0, Math.min(100, Math.floor(Number.isFinite(value) ? value : 0)));
+
+const SHIP_NAME_PATTERN = /ship\s+product/i;
+const SHIP_UNITS_PATTERN = /(\d+)\s+units?/i;
+
+interface IShipDetectionAlert {
+  subtaskTitle: string;
+  units: number;
+}
+
+const detectShipCompletion = (
+  prev: ISubprocessSubTask[],
+  next: ISubprocessSubTask[]
+): IShipDetectionAlert | undefined => {
+  for (const nextTask of next) {
+    if (!SHIP_NAME_PATTERN.test(nextTask.task ?? "")) continue;
+    if ((nextTask.complete ?? 0) < 100) continue;
+    const prevTask = prev.find(p => p.id === nextTask.id);
+    if (prevTask && (prevTask.complete ?? 0) >= 100) continue; // already was 100%
+    const unitsMatch = SHIP_UNITS_PATTERN.exec(nextTask.task ?? "");
+    const units = unitsMatch ? parseInt(unitsMatch[1], 10) : 0;
+    return { subtaskTitle: nextTask.task ?? "Ship product", units };
+  }
+  return undefined;
+};
 const cloneSubprocessTemplateForStep = (
   template: ITaskSubprocessData,
   stepWbs: string
@@ -194,6 +219,9 @@ const aggregateWeightedComplete = (entries: Array<{ complete: number; weight: nu
     complete: clampPercentValue(entry.complete),
     weight: entry.weight > 0 ? entry.weight : 0,
   }));
+
+  // If every entry is 100%, return exactly 100 — avoids floating-point floor bug (99.999... → 99)
+  if (normalized.every(e => e.complete >= 100)) return 100;
 
   const totalWeight = normalized.reduce((sum, entry) => sum + entry.weight, 0);
   if (totalWeight <= 0) {
@@ -290,6 +318,9 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
   const [gate,            setGate]            = useState(task.Gate ?? "");
   const [gateEditEnabled, setGateEditEnabled] = useState(false);
   const [renameAllGateTasks, setRenameAllGateTasks] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [shipAlert, setShipAlert] = useState<IShipDetectionAlert | undefined>(undefined);
+  const shipAlertTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const [isRelease, setIsRelease] = useState(task.isRelease ?? false);
   const [releaseUnits, setReleaseUnits] = useState<number>(task.releaseUnits ?? getTaskReleaseUnits(task.jsonTable) ?? 0);
   const [taskTitle, setTaskTitle] = useState(task.Task ?? "");
@@ -586,6 +617,17 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
     return clampPercentValue(complete);
   };
 
+  const triggerShipAlert = (alert: IShipDetectionAlert): void => {
+    if (shipAlertTimerRef.current) clearTimeout(shipAlertTimerRef.current);
+    setIsRelease(true);
+    if (alert.units > 0) setReleaseUnits(alert.units);
+    setShipAlert(alert);
+    shipAlertTimerRef.current = setTimeout(() => {
+      setShipAlert(undefined);
+      shipAlertTimerRef.current = undefined;
+    }, 6000);
+  };
+
   const applyTaskStepsFromPieces = (piecesValue: number, enabled = true): ITaskStepsData => {
     const normalizedPieces = asPositiveInteger(piecesValue);
     const nextTaskSteps = normalizeTaskStepsAggregation(buildTaskStepsData("pieces", normalizedPieces, enabled));
@@ -820,7 +862,10 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
 
     setComplete(effectiveComplete); setFinish(effectiveFinish); latestJsonTableRef.current = jsonTable;
     reportJsonTableSize(jsonTableSize);
-    void queueTaskSave(payload).catch(error => { console.error("[TaskCard] Save failed", error); alert("Unable to save task changes. Refresh before continuing."); });
+    setIsSaving(true);
+    void queueTaskSave(payload)
+      .catch(error => { console.error("[TaskCard] Save failed", error); alert("Unable to save task changes. Refresh before continuing."); })
+      .finally(() => { setIsSaving(false); });
   };
 
   const handleSaveSubprocessOnly = async (nextSubprocess: ITaskSubprocessData): Promise<void> => {
@@ -1790,6 +1835,9 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
                     parentFinish={selectedStep.finish}
                     value={selectedStep.subprocess ?? { subTasks: [] }}
                     onChange={(nextValue) => {
+                      const prevSubTasks = selectedStep.subprocess?.subTasks ?? [];
+                      const alert = detectShipCompletion(prevSubTasks, nextValue.subTasks);
+                      if (alert) triggerShipAlert(alert);
                       const normalizedTaskSteps = normalizeTaskStepsAggregation({
                         ...taskSteps,
                         enabled: true,
@@ -1958,11 +2006,12 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
           {/* Completion warning */}
           <button
             type="button"
-            className={`${styles.taskButton} ${styles.taskButtonSave}`}
+            className={`${styles.taskButton} ${isSaving ? styles.taskButtonSaving : styles.taskButtonSave}`}
             onClick={handleSaveClick}
-            title="Save"
+            disabled={isSaving}
+            title={isSaving ? "Saving…" : "Save"}
           >
-            <span className={styles.taskButtonLabel}>Save</span>
+            <span className={styles.taskButtonLabel}>{isSaving ? "Saving…" : "Save"}</span>
           </button>
           <button
             type="button"
@@ -2257,6 +2306,24 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
         </div>
         )}
         </div>
+        {shipAlert && (
+          <div className={styles.shipAlert}>
+            <span className={styles.shipAlertIcon}>🚢</span>
+            <div className={styles.shipAlertBody}>
+              <strong>Shipping detectado</strong>
+              <span>
+                {`"${shipAlert.subtaskTitle}" marcada al 100% — SHIP activado`}
+                {shipAlert.units > 0 ? `, ${shipAlert.units} unidades registradas para invoicing.` : "."}
+              </span>
+            </div>
+            <button
+              type="button"
+              className={styles.shipAlertClose}
+              onClick={() => { setShipAlert(undefined); if (shipAlertTimerRef.current) clearTimeout(shipAlertTimerRef.current); }}
+              title="Cerrar"
+            >✕</button>
+          </div>
+        )}
         {hasTaskSteps && taskStepsPanel}
         {hasSubprocessWorkspace && !hasTaskSteps && (
           <SubprocessCard
@@ -2265,6 +2332,8 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
             parentFinish={finish}
             value={subprocess}
             onChange={(nextValue) => {
+              const alert = detectShipCompletion(subprocess.subTasks, nextValue.subTasks);
+              if (alert) triggerShipAlert(alert);
               setSubprocess(nextValue);
               setComplete(deriveTaskComplete(undefined, nextValue));
             }}

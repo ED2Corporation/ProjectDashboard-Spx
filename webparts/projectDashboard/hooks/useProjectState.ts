@@ -15,7 +15,7 @@ import { MessageLog } from '../utils/MessageLog';
 import { compareWbs, computeShiftedWbs, computeUnshiftedWbs, nextWbsAfterInsert, reorderWbsEntriesForMove } from '../utils/ParseWBS';
 import { ensureFolder, uploadEvidenceFile } from '../services/UploadService';
 import { StorageEndpoint } from '../utils/StorageVersionResolver';
-import { getTaskSortOrder, getTaskIsRelease, getTaskReleaseUnits } from '../utils/TaskDescriptionBlob';
+import { getTaskSortOrder, getTaskIsRelease, getTaskReleaseUnits, getTaskSubprocess, getTaskSteps } from '../utils/TaskDescriptionBlob';
 import { buildTaskSortOrderJsonTable } from '../utils/TaskPersistencePayload';
 
 // ─── Constants ──────────────────────────────────────────────────────────────
@@ -26,8 +26,35 @@ const REPOSITORY_URL = "ProjectsEvidence";
 const REPOSITORY_NAME_DEFAULT = "EvidenceRepository";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type AnyContext = BaseComponentContext & { spHttpClient: SPHttpClient; msGraphClientFactory: any };
+type AnyContext = BaseComponentContext & { spHttpClient: SPHttpClient; msGraphClientFactory: { getClient(version: string): Promise<MSGraphClientV3> } };
+
+/** Raw item as returned by SharePoint REST — all fields are strings/numbers from JSON */
+interface ISPRawItem {
+  Id?: number | string;
+  Gate?: string;
+  Task?: string;
+  Title?: string;
+  Complete?: number | string;
+  Start?: string;
+  Finish?: string;
+  ActualFinish?: string;
+  Description?: string;
+  jsonTable?: string;
+  JsonTable?: string;
+  Notes?: string;
+  Evidence?: string;
+  Approvals?: string;
+  EvidenceOfCompletion?: string;
+}
+
+/** Payload sent to update functions — extends ITaskListItem with persistence-only fields */
+interface ITaskUpdatePayload extends Omit<ITaskListItem, 'Start' | 'Finish' | 'ActualFinish'> {
+  Start?: string;
+  Finish?: string;
+  ActualFinish?: string;
+  renameGate?: boolean;
+  originalGate?: string;
+}
 
 export interface UseProjectStateConfig {
   context: AnyContext;
@@ -297,7 +324,7 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
       if (jsonTableFieldAvailableRef.current === null && includeJsonTable) setJsonTableFieldAvailable(true);
 
       const responseJson = await response.json();
-      const raw: any[] = Array.isArray(responseJson.value) ? responseJson.value : [];  // eslint-disable-line @typescript-eslint/no-explicit-any
+      const raw: ISPRawItem[] = Array.isArray(responseJson.value) ? responseJson.value : [];
       const loaded: ITaskListItem[] = raw.map(r => {
         // Extract task metadata strictly from jsonTable
         const jsonTable = r.jsonTable ?? r.JsonTable ?? undefined;
@@ -308,7 +335,7 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
           Id: String(r.Id),
           Gate: r.Gate ?? "",
           Task: r.Task ?? "",
-          Title: r.Title ?? undefined,
+          Title: r.Title ?? "",
           Complete: typeof r.Complete === "number" ? r.Complete : Number(r.Complete) || 0,
           Start: r.Start ? new Date(r.Start) : undefined,
           Finish: r.Finish ? new Date(r.Finish) : undefined,
@@ -532,7 +559,7 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
 
     if (!existing.length) return "1";
 
-    const titles = existing.map((e: any) => e.Title as string).filter(t => !!t); // eslint-disable-line @typescript-eslint/no-explicit-any
+    const titles = existing.map((e: { Title?: string }) => e.Title as string).filter(t => !!t);
     if (!titles.length) return "1";
 
     titles.sort(compareWbs);
@@ -550,7 +577,7 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
 
     const nextWbs = await _getNextWbsForGate(listTitle, gate);
 
-    const addResult: any = await sp.web.lists.getByTitle(listTitle).items.add(withAvailableTaskFields({ // eslint-disable-line @typescript-eslint/no-explicit-any
+    const addResult: { Id?: number } = await sp.web.lists.getByTitle(listTitle).items.add(withAvailableTaskFields({
       Gate: gate,
       Title: nextWbs,
       Task: "New task...",
@@ -562,7 +589,7 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
     const addedId = addResult.Id as number | undefined;
     if (!addedId) { setSelectedTask(makeEmptyTask()); return null; }
 
-    const r: any = await sp.web.lists.getByTitle(listTitle).items.getById(addedId)(); // eslint-disable-line @typescript-eslint/no-explicit-any
+    const r: ISPRawItem = await sp.web.lists.getByTitle(listTitle).items.getById(addedId)();
 
     const task: ITaskListItem = {
       Id: String(r.Id),
@@ -625,7 +652,7 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
       await sp.web.lists.getByTitle(listTitle).items.getById(Number(t.id)).update(withAvailableTaskFields({
         Title: t.newWbs,
         jsonTable: buildTaskSortOrderJsonTable(t.jsonTable, t.newSortOrder)
-      })); // eslint-disable-line @typescript-eslint/no-explicit-any
+      }));
     }
 
     const shiftedIds = new Set(toShift.map(t => t.id));
@@ -651,7 +678,7 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
     }
 
     // Create the new task at the freed WBS slot
-    const addResult: any = await sp.web.lists.getByTitle(listTitle).items.add(withAvailableTaskFields({ // eslint-disable-line @typescript-eslint/no-explicit-any
+    const addResult: { Id?: number } = await sp.web.lists.getByTitle(listTitle).items.add(withAvailableTaskFields({
       Gate: gate,
       Title: newWbs,
       Task: "New task...",
@@ -664,7 +691,7 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
     const addedId = addResult.Id as number | undefined;
     if (!addedId) { setSelectedTask(makeEmptyTask()); return null; }
 
-    const r: any = await sp.web.lists.getByTitle(listTitle).items.getById(addedId)(); // eslint-disable-line @typescript-eslint/no-explicit-any
+    const r: ISPRawItem = await sp.web.lists.getByTitle(listTitle).items.getById(addedId)();
 
     const newTask: ITaskListItem = {
       Id: String(r.Id),
@@ -700,9 +727,9 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
       }
       await onReset();
       return created;
-    } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
+    } catch (error: unknown) {
       console.error("[onNewTask] Error:", error);
-      MessageLog(`[onNewTask] Error: ${error.message}`, "error");
+      MessageLog(`[onNewTask] Error: ${(error as Error).message}`, "error");
       return null;
     }
   }, [config.isPlanner, _createPlannerTask, _createListTask, _insertTaskAfter, onReset]);
@@ -830,8 +857,8 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
       }
       await onReset();
       return nextTask;
-    } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
-      MessageLog(`[onDeleteTask] Error: ${error.message}`, "error");
+    } catch (error: unknown) {
+      MessageLog(`[onDeleteTask] Error: ${(error as Error).message}`, "error");
       return null;
     }
   }, [config.isPlanner, _deletePlannerTask, _deleteListTask, _deleteTaskAndShift, onReset]);
@@ -850,15 +877,15 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
 
   // ── Update task ────────────────────────────────────────────────────────────
   const _updateListTask = useCallback(async (
-    data: any, // eslint-disable-line @typescript-eslint/no-explicit-any
+    data: ITaskUpdatePayload,
     action: "quick-complete" | "full-update",
     completeSafe?: number
   ): Promise<void> => {
     const listTitle = config.sourceName;
     releaseDebugTaskIdRef.current = String(data.Id);
     const curr = completeSafe ?? data.Complete;
-    const actualFinishValue = curr === 100 ? new Date() : null;
-    const finishValue = curr === 100 && !data.Finish ? new Date() : data.Finish;
+    const actualFinishValue = curr === 100 ? new Date() : undefined;
+    const finishValue: Date | undefined = curr === 100 && !data.Finish ? new Date() : (data.Finish ? new Date(data.Finish) : undefined);
     const itemRef = sp.web.lists.getByTitle(listTitle).items.getById(Number(data.Id));
 
     if (action === "quick-complete") {
@@ -883,19 +910,19 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
       // Rename gate for all other tasks in the same gate
       if (data.renameGate && data.originalGate && data.Gate !== data.originalGate) {
         const list = sp.web.lists.getByTitle(listTitle);
-        const siblings: any[] = await list.items // eslint-disable-line @typescript-eslint/no-explicit-any
+        const siblings: { Id: number | string }[] = await list.items
           .select("Id")
           .filter(`Gate eq '${data.originalGate.replace(/'/g, "''")}'`)
           .top(5000)();
         await Promise.all(
           siblings
-            .filter((i: any) => String(i.Id) !== String(data.Id)) // eslint-disable-line @typescript-eslint/no-explicit-any
-            .map((i: any) => list.items.getById(i.Id).update({ Gate: data.Gate })) // eslint-disable-line @typescript-eslint/no-explicit-any
+            .filter((i: { Id: number | string }) => String(i.Id) !== String(data.Id))
+            .map((i: { Id: number | string }) => list.items.getById(Number(i.Id)).update({ Gate: data.Gate }))
         );
       }
     }
 
-    const r: any = await itemRef(); // eslint-disable-line @typescript-eslint/no-explicit-any
+    const r: ISPRawItem = await itemRef();
     const jsonTable = r.jsonTable ?? r.JsonTable ?? data.jsonTable ?? undefined;
     const taskIsRelease = getTaskIsRelease(jsonTable);
     const taskReleaseUnits = getTaskReleaseUnits(jsonTable);
@@ -907,7 +934,7 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
       Start: r.Start ? new Date(r.Start) : undefined,
       Finish: r.Finish ? new Date(r.Finish) : undefined,
       ActualFinish: r.ActualFinish ? new Date(r.ActualFinish) : undefined,
-      Title: r.Title ?? undefined,
+      Title: r.Title ?? "",
       Description: r.Description ?? data.Description ?? undefined,
       jsonTable,
       sortOrder: getTaskSortOrder(jsonTable),
@@ -932,6 +959,20 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
 
     // ── Auto-register release when task reaches 100% and isRelease is flagged ──
     if (taskIsRelease && task.Complete === 100 && config.projectName && taskReleaseUnits && taskReleaseUnits > 0) {
+      // Find the Ship subtask in subprocess or any step subprocess to build the note
+      const SHIP_PATTERN = /ship\s+product/i;
+      const directSubprocess = getTaskSubprocess(task.jsonTable);
+      const taskStepsData = getTaskSteps(task.jsonTable);
+      const stepSubTasks = (taskStepsData?.steps ?? []).reduce(
+        (acc, s) => acc.concat(s.subprocess?.subTasks ?? []),
+        [] as typeof directSubprocess.subTasks
+      );
+      const allSubTasks = [...(directSubprocess?.subTasks ?? []), ...stepSubTasks];
+      const shipSubTask = allSubTasks.find(st => SHIP_PATTERN.test(st.task ?? "") && (st.complete ?? 0) >= 100);
+      const releaseNote = shipSubTask
+        ? `Auto-generated: ${shipSubTask.wbs}  ${shipSubTask.task}`
+        : `Auto-generated: shipping task "${task.Task ?? task.Id}" completed at 100%.`;
+
       const release: IReleaseRecord = {
         id:         `release-task-${task.Id}`,   // stable — idempotent via upsertReleaseRecord
         date:       new Date().toISOString(),
@@ -939,6 +980,7 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
         approvedBy: context.pageContext?.user?.displayName ?? 'Unknown',
         taskId:     task.Id,
         taskTitle:  task.Task ?? task.Id,
+        notes:      releaseNote,
       };
       onRegisterRelease(release).catch(err =>
         console.error('[useProjectState] Auto-release registration failed', err)
@@ -947,13 +989,13 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
   }, [config.sourceName, config.projectName, context, sp, withAvailableTaskFields, onRegisterRelease, syncTasks, currentGate]);
 
   const _updatePlannerTask = useCallback(async (
-    data: any, // eslint-disable-line @typescript-eslint/no-explicit-any
+    data: ITaskUpdatePayload,
     action: "quick-complete" | "full-update",
     completeSafe?: number
   ): Promise<void> => {
     const graphClient: MSGraphClientV3 = await context.msGraphClientFactory.getClient("3");
     const plannerService = new PlannerService(graphClient);
-    const finishValue = completeSafe === 100 && !data.Finish ? new Date() : data.Finish;
+    const finishValue: string | undefined = completeSafe === 100 && !data.Finish ? new Date().toISOString() : data.Finish;
     if (action === "quick-complete") {
       await plannerService.updateTaskStatus({
         taskId: data.Id,
@@ -971,8 +1013,8 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
           Url: data.EvidenceOfCompletion?.Url,
           Description: data.EvidenceOfCompletion?.Description,
         },
-        Start: data.Start,
-        Finish: finishValue,
+        Start: data.Start ? new Date(data.Start) : undefined,
+        Finish: finishValue ? new Date(finishValue) : undefined,
       });
     }
   }, [context]);
@@ -984,7 +1026,7 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
   ): Promise<void> => {
     if (!payloadJson) return;
     try {
-      const data = JSON.parse(payloadJson) as any; // eslint-disable-line @typescript-eslint/no-explicit-any
+      const data = JSON.parse(payloadJson) as ITaskUpdatePayload;
       const completeSafe =
         typeof data.Complete === "number"
           ? data.Complete
@@ -1012,8 +1054,8 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
         await new Promise<void>(resolve => setTimeout(resolve, 650));
         await onReset();
       }
-    } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
-      MessageLog(`[onUpdateTask] Error: ${error.message}`, "error");
+    } catch (error: unknown) {
+      MessageLog(`[onUpdateTask] Error: ${(error as Error).message}`, "error");
       throw error;
     }
   }, [config.isPlanner, _updatePlannerTask, _updateListTask, onReset]);
@@ -1021,32 +1063,33 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
   // ── Create new project ────────────────────────────────────────────────────
   const _ensureTextField = useCallback(async (list: IList, name: string) => {
     const fields = await list.fields.select("InternalName")();
-    const exists = fields.some((f: any) => f.InternalName === name); // eslint-disable-line @typescript-eslint/no-explicit-any
+    const exists = fields.some((f: { InternalName: string }) => f.InternalName === name);
     if (!exists) await list.fields.addText(name);
   }, []);
 
   const _ensureNumberField = useCallback(async (list: IList, name: string) => {
     const fields = await list.fields.select("InternalName")();
-    const exists = fields.some((f: any) => f.InternalName === name); // eslint-disable-line @typescript-eslint/no-explicit-any
+    const exists = fields.some((f: { InternalName: string }) => f.InternalName === name);
     if (!exists) await list.fields.addNumber(name);
   }, []);
 
   const _ensureDateField = useCallback(async (list: IList, name: string) => {
     const fields = await list.fields.select("InternalName")();
-    const exists = fields.some((f: any) => f.InternalName === name); // eslint-disable-line @typescript-eslint/no-explicit-any
+    const exists = fields.some((f: { InternalName: string }) => f.InternalName === name);
     if (!exists) await list.fields.addDateTime(name);
   }, []);
 
   const _ensureMultilineField = useCallback(async (list: IList, name: string) => {
     const fields = await list.fields.select("InternalName")();
-    const exists = fields.some((f: any) => f.InternalName === name); // eslint-disable-line @typescript-eslint/no-explicit-any
+    const exists = fields.some((f: { InternalName: string }) => f.InternalName === name);
     if (!exists) await list.fields.addMultilineText(name);
   }, []);
 
   const _ensureDefaultViewFields = useCallback(async (list: IList, fieldInternalNames: string[]) => {
     const view = await list.defaultView;
     const viewFieldsResult = await view.fields.select("Items")();
-    const currentFields: string[] = (viewFieldsResult as any).Items?.results || (viewFieldsResult as any).Items || []; // eslint-disable-line @typescript-eslint/no-explicit-any
+    const viewFields = viewFieldsResult as { Items?: { results?: string[] } | string[] };
+    const currentFields: string[] = (Array.isArray(viewFields.Items) ? viewFields.Items : (viewFields.Items as { results?: string[] })?.results) || [];
     const current = new Set<string>(currentFields);
     const toAdd = fieldInternalNames.filter(f => !current.has(f));
     for (const field of toAdd) {
@@ -1088,7 +1131,7 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
     const today = new Date();
     const nextWbs = await _getNextWbsForGate(listTitle, gate || "Gate 1");
 
-    const addResult: any = await sp.web.lists.getByTitle(listTitle).items.add(withAvailableTaskFields({ // eslint-disable-line @typescript-eslint/no-explicit-any
+    const addResult: { Id?: number } = await sp.web.lists.getByTitle(listTitle).items.add(withAvailableTaskFields({
       Gate: gate || "Gate 1",
       Title: nextWbs,
       Task: (gate || "Gate 1") + ". Task",
@@ -1100,7 +1143,7 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
     const addedId = addResult.Id as number | undefined;
     if (!addedId) return;
 
-    const r: any = await sp.web.lists.getByTitle(listTitle).items.getById(addedId)(); // eslint-disable-line @typescript-eslint/no-explicit-any
+    const r: ISPRawItem = await sp.web.lists.getByTitle(listTitle).items.getById(addedId)();
 
     const task: ITaskListItem = {
       Id: String(r.Id),
@@ -1124,7 +1167,7 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
     const arrayBuffer = await file.arrayBuffer();
     const workbook = XLSX.read(arrayBuffer, { type: "array", cellDates: true, cellText: false });
     const sheet = workbook.Sheets[workbook.SheetNames[0]];
-    const rows: any[] = XLSX.utils.sheet_to_json(sheet, { defval: "", raw: false }); // eslint-disable-line @typescript-eslint/no-explicit-any
+    const rows: ISPRawItem[] = XLSX.utils.sheet_to_json(sheet, { defval: "", raw: false });
 
     if (!rows.length) { alert("Excel plan is empty."); return; }
 
@@ -1142,9 +1185,9 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
       const taskTitle = row.Task;
       if (!taskTitle) continue;
 
-      const toIso = (v: any): string | undefined => { // eslint-disable-line @typescript-eslint/no-explicit-any
+      const toIso = (v: unknown): string | undefined => {
         if (!v) return undefined;
-        const d = new Date(v);
+        const d = new Date(v as string | number | Date);
         return isNaN(d.getTime()) ? undefined : d.toISOString();
       };
 
@@ -1218,8 +1261,8 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
     try {
       try {
         await tryUpdate();
-      } catch (err: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
-        if (String(err?.message ?? err).includes("409")) {
+      } catch (err: unknown) {
+        if (String((err as Error)?.message ?? err).includes("409")) {
           console.warn("[useProjectState] Save conflict detected, retrying log field update", {
             listTitle,
             taskId,
@@ -1231,7 +1274,7 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
           throw err;
         }
       }
-    } catch (err: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
+    } catch (err: unknown) {
       console.error("[useProjectState] SharePoint update failed", {
         listTitle,
         taskId,
@@ -1239,11 +1282,11 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
         error: err,
       });
       // If the column does not exist, create it and retry once
-      if (logFieldsAvailableRef.current === false || String(err?.message ?? err).includes('does not exist')) {
+      if (logFieldsAvailableRef.current === false || String((err as Error)?.message ?? err).includes('does not exist')) {
         const list = sp.web.lists.getByTitle(listTitle);
         const existing = await list.fields.select('InternalName')();
         for (const f of ['Notes', 'Evidence', 'Approvals']) {
-          if (!existing.some((x: any) => x.InternalName === f)) { // eslint-disable-line @typescript-eslint/no-explicit-any
+          if (!existing.some((x: { InternalName: string }) => x.InternalName === f)) {
             await list.fields.addMultilineText(f);
           }
         }
@@ -1303,12 +1346,10 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
         .select('displayName,mail')
         .top(8)
         .get();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      return (response.value || []).map((u: any) => ({
+      return (response.value || []).map((u: { displayName?: string; mail?: string }) => ({
         displayName: u.displayName || u.mail || '',
         email: u.mail || ''
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      })).filter((u: any) => !!u.email);
+      })).filter((u: { displayName: string; email: string }) => !!u.email);
     } catch (err) {
       console.error('[onSearchUsers] Failed:', err);
       return [];
