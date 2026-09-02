@@ -774,6 +774,18 @@
   font-style: italic;
 }
 
+// Task has subprocess — dark green bold link
+.taskNameSubprocess {
+  color: #2e7d32;
+  font-weight: 600;
+}
+
+// Task has batches — strong blue bold link
+.taskNameBatches {
+  color: #185FA5;
+  font-weight: 700;
+}
+
 .taskWbs {
   color: $c-text-secondary;
   font-size: $f-xs;

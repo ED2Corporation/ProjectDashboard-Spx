@@ -51,14 +51,14 @@ const GateProgressBar: React.FC<GateProgressBarProps> = ({
             <div
               key={idx}
               onClick={() => onGateClick(gate.Gate)}
-              title={`${gate.Gate} — ${gate.Complete.toFixed(0)}% complete`}
+              title={`${gate.Gate} — ${Math.floor(gate.Complete)}% complete`}
               className={styles.gateSegment}
             >
               <div
                 className={`${styles.gateBar} ${isActive ? styles.gateBarActive : ""}`}
                 style={{ background: barColor, color: textColor }}
               >
-                {gate.Complete.toFixed(0)}%
+                {Math.floor(gate.Complete)}%
               </div>
               <span className={`${styles.gateLabel} ${isActive ? styles.gateLabelActive : ""}`}>
                 {gate.Gate}

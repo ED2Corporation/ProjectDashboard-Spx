@@ -12,9 +12,10 @@ export function GetGateStatus(
 {
   const today = new Date();
   const finishDate = finish ? new Date(finish) : null;
-  const actualFinishDate = actualFinish ? new Date(actualFinish) : null;
 
-  const isClosed = !!actualFinishDate || complete === 100;
+  // Green requires completion at 100% — ActualFinish alone is not sufficient
+  // (prevents stale ActualFinish from showing green after a manual rollback)
+  const isClosed = complete >= 100;
   if (isClosed) return "green";
 
   const isPastDue = !!finishDate && finishDate < today;

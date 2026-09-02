@@ -1,23 +1,23 @@
 
 require("./GateProgressBar.module.css");
 const styles = {
-  wrapper: 'wrapper_0aaf6afa',
-  row: 'row_0aaf6afa',
-  gateSegment: 'gateSegment_0aaf6afa',
-  gateBar: 'gateBar_0aaf6afa',
-  gateBarActive: 'gateBarActive_0aaf6afa',
-  gateLabel: 'gateLabel_0aaf6afa',
-  gateLabelActive: 'gateLabelActive_0aaf6afa',
-  overallWrapper: 'overallWrapper_0aaf6afa',
-  overallBar: 'overallBar_0aaf6afa',
-  overallBarActive: 'overallBarActive_0aaf6afa',
-  overallLabel: 'overallLabel_0aaf6afa',
-  overallLabelActive: 'overallLabelActive_0aaf6afa',
-  settingsWrapper: 'settingsWrapper_0aaf6afa',
-  settingsBtn: 'settingsBtn_0aaf6afa',
-  settingsBtnActive: 'settingsBtnActive_0aaf6afa',
-  settingsLabel: 'settingsLabel_0aaf6afa',
-  settingsLabelActive: 'settingsLabelActive_0aaf6afa'
+  wrapper: 'wrapper_736e4196',
+  row: 'row_736e4196',
+  gateSegment: 'gateSegment_736e4196',
+  gateBar: 'gateBar_736e4196',
+  gateBarActive: 'gateBarActive_736e4196',
+  gateLabel: 'gateLabel_736e4196',
+  gateLabelActive: 'gateLabelActive_736e4196',
+  overallWrapper: 'overallWrapper_736e4196',
+  overallBar: 'overallBar_736e4196',
+  overallBarActive: 'overallBarActive_736e4196',
+  overallLabel: 'overallLabel_736e4196',
+  overallLabelActive: 'overallLabelActive_736e4196',
+  settingsWrapper: 'settingsWrapper_736e4196',
+  settingsBtn: 'settingsBtn_736e4196',
+  settingsBtnActive: 'settingsBtnActive_736e4196',
+  settingsLabel: 'settingsLabel_736e4196',
+  settingsLabelActive: 'settingsLabelActive_736e4196'
 };
 
 export default styles;

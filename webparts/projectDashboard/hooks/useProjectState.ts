@@ -958,9 +958,12 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
     setSelectedTask(task);
 
     // ── Auto-register release when task reaches 100% and isRelease is flagged ──
-    if (taskIsRelease && task.Complete === 100 && config.projectName && taskReleaseUnits && taskReleaseUnits > 0) {
+    const SHIP_PATTERN = /ship\s+product/i;
+    const effectiveReleaseUnits = (taskReleaseUnits && taskReleaseUnits > 0)
+      ? taskReleaseUnits
+      : (config.projectUnits ?? 0);
+    if (taskIsRelease && task.Complete === 100 && config.projectName && effectiveReleaseUnits > 0) {
       // Find the Ship subtask in subprocess or any step subprocess to build the note
-      const SHIP_PATTERN = /ship\s+product/i;
       const directSubprocess = getTaskSubprocess(task.jsonTable);
       const taskStepsData = getTaskSteps(task.jsonTable);
       const stepSubTasks = (taskStepsData?.steps ?? []).reduce(
@@ -976,7 +979,7 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
       const release: IReleaseRecord = {
         id:         `release-task-${task.Id}`,   // stable — idempotent via upsertReleaseRecord
         date:       new Date().toISOString(),
-        units:      taskReleaseUnits,
+        units:      effectiveReleaseUnits,
         approvedBy: context.pageContext?.user?.displayName ?? 'Unknown',
         taskId:     task.Id,
         taskTitle:  task.Task ?? task.Id,
@@ -985,6 +988,27 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
       onRegisterRelease(release).catch(err =>
         console.error('[useProjectState] Auto-release registration failed', err)
       );
+    }
+
+    // ── Ship task name detection — task named "Ship product" reaching 100% without isRelease flag ──
+    // Handles WBS tasks (e.g. "5.5 - Ship product") completed via quick-complete, bypassing TaskCard UI.
+    if (!taskIsRelease && task.Complete === 100 && config.projectName && SHIP_PATTERN.test(task.Task ?? "")) {
+      const unitsMatch = /(\d+)\s+units?/i.exec(task.Task ?? "");
+      const units = unitsMatch ? parseInt(unitsMatch[1], 10) : (config.projectUnits ?? 0);
+      if (units > 0) {
+        const release: IReleaseRecord = {
+          id:         `release-task-${task.Id}`,
+          date:       new Date().toISOString(),
+          units,
+          approvedBy: context.pageContext?.user?.displayName ?? 'Unknown',
+          taskId:     task.Id,
+          taskTitle:  task.Task ?? task.Id,
+          notes:      `Auto-generated: ${task.Title}  ${task.Task}`,
+        };
+        onRegisterRelease(release).catch(err =>
+          console.error('[useProjectState] Auto-release registration failed (ship task)', err)
+        );
+      }
     }
   }, [config.sourceName, config.projectName, context, sp, withAvailableTaskFields, onRegisterRelease, syncTasks, currentGate]);
 

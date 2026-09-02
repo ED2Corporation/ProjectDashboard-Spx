@@ -5,7 +5,7 @@ import { IEvidenceEntry } from "../../../models/ITaskLogFields";
 import { GetDelay } from "../utils/GetDelay";
 import { GetFormatDate } from "../utils/GetFormatDate";
 import { compareWbs } from "../utils/ParseWBS";
-import { getTodayDateInputValue } from "../utils/TaskDescriptionBlob";
+import { getTodayDateInputValue, getTaskSubprocess, getTaskSteps } from "../utils/TaskDescriptionBlob";
 import { getTaskCompleteLockMessageFromJsonTable } from "../utils/TaskPersistencePayload";
 import EvidenceUploadButton from "./EvidenceUploadButton";
 import styles from "./ProjectDashboard.module.scss";
@@ -453,6 +453,13 @@ const ListTasks = ({
                           styles.taskName,
                           item.Id === selectedTaskId ? styles.taskNameActive : "",
                           (item.Task || "").startsWith("New task...") ? styles.taskNameNew : "",
+                          (() => {
+                            const steps = getTaskSteps(item.jsonTable);
+                            if (steps?.enabled && (steps.steps?.length ?? 0) > 0) return styles.taskNameBatches;
+                            const sub = getTaskSubprocess(item.jsonTable);
+                            if ((sub?.subTasks?.length ?? 0) > 0) return styles.taskNameSubprocess;
+                            return "";
+                          })(),
                         ].filter(Boolean).join(" ")}
                         onClick={(e) => { e.stopPropagation(); onSelectItem(item, "task", "list-edit"); }}
                       >{item.Task}</span>

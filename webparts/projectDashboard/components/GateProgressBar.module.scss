@@ -12,8 +12,8 @@
   display: flex;
   gap: 10px;
   width: 100%;
-  align-items: flex-end;
-  padding-top: $sp-2;   // absorbe el translateY(-2px) sin encimar el contenido de arriba
+  align-items: flex-start;
+  padding-top: $sp-2;   // absorbs the translateY(-2px) without overlapping content above
 }
 
 // ─── Gate segment ────────────────────────────────────────────────────────────

@@ -303,10 +303,11 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
     if (gates.length === 0) return;
     const overallPct = GroupByProject(gates).Complete;
     const bucketStatus = GetBucketStatus(gates);
+    const allGatesClosed = gates.every(g => g.Complete >= 100);
     const status =
-      bucketStatus === 'green'  ? 'completed'  :
-      bucketStatus === 'red'    ? 'delayed'    :
-      bucketStatus === 'yellow' ? 'stalled'    :
+      bucketStatus === 'green' && allGatesClosed ? 'completed'  :
+      bucketStatus === 'red'                      ? 'delayed'    :
+      bucketStatus === 'yellow'                   ? 'stalled'    :
       'in-progress';
     const writeKey = `${status}:${overallPct}`;
     if (lastWrittenExecutionStatus.current === writeKey) return;
