@@ -8,7 +8,7 @@ function gateWbsKey(gate: string): string {
   return m ? m[1] : gate;
 }
 
-// Función para agrupar
+// Groups tasks by gate, computing aggregate metrics (completion, delay, dates) per gate
 export function GroupByGate(tasks: ITaskListItem[]): IGateListItem[] {
   const sortedItems = [...tasks];
 

@@ -11,7 +11,7 @@ interface PieProps {
 }
 
 const PieChart: React.FC<PieProps> = ({ gates }) => {
-  // Datos para el gráfico
+  // Chart data
   // const getDelay = (delay: number, complete: number) => {
   //   //console.log("Styles:" + delay + "-" + complete);
   //   if (complete === 1) return "";
@@ -31,19 +31,19 @@ const PieChart: React.FC<PieProps> = ({ gates }) => {
     return "#CCCCFF80"; // Default Class
   };
   const data = {
-    //labels: ["Rojo", "Azul", "Amarillo", "Verde", "Púrpura"],
+    //labels: ["Red", "Blue", "Yellow", "Green", "Purple"],
     labels: gates.map((gate) => (gate.Title ?? gate.Gate).substring(0, 1)),
     datasets: [
       {
-        data: [20, 20, 20, 20, 20], // Valores
+        data: [20, 20, 20, 20, 20], // Equal-weight slices
         backgroundColor: gates.map((gate, index) =>
           getCardColor(gate.Delay, gate.Complete)
-        ), // Colores para cada segmento
+        ), // Fill color per segment
         hoverBackgroundColor: gates.map((gate, index) =>
           getCardBackground(gate.Delay, gate.Complete)
-        ), // Colores al hacer hover
-        borderColor: "#F5F5F5", // Color del borde (Whitesmoke)
-        borderWidth: 2, // Grosor del borde
+        ), // Hover color per segment
+        borderColor: "#F5F5F5", // Border color (Whitesmoke)
+        borderWidth: 2, // Border width
       },
     ],
   };
@@ -63,16 +63,16 @@ const PieChart: React.FC<PieProps> = ({ gates }) => {
   //   }
   // };
 
-  // Opciones de configuración del gráfico
+  // Chart options (currently unused — options passed inline below)
   // const options = {
   //   responsive: true,
   //   plugins: {
   //     legend: {
-  //       position: "right" as const, // Coloca la leyenda en la parte superior
+  //       position: "right" as const, // Legend position
   //     },
   //     title: {
   //       display: true,
-  //       text: "RF Cascade", // Título del gráfico
+  //       text: "RF Cascade", // Chart title
   //     },
   //   },
   // };
@@ -85,11 +85,11 @@ const PieChart: React.FC<PieProps> = ({ gates }) => {
           responsive: true,
           plugins: {
             legend: {
-              display: false, // Oculta la leyenda externa
+              display: false, // Hide external legend
             },
 
             datalabels: {
-              color: "darkblue", // Color del texto dentro del pie
+              color: "darkblue", // Label text color
               font: {
                 weight: "bold",
                 size: 14,
@@ -107,7 +107,7 @@ const PieChart: React.FC<PieProps> = ({ gates }) => {
                   const index = tooltipItem.dataIndex;
                   const value = Math.floor(gates[index].Complete * 100);
 
-                  // Personaliza el mensaje del tooltip
+                  // Customize tooltip message
                   return `${value}% | Delay: ${Math.floor(gates[index].Delay)}`;
                 },
                 title: function () {

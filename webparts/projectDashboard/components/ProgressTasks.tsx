@@ -23,7 +23,7 @@ const sortedTasks = tasks.slice().sort((a, b) => {
     if (taskA < taskB) return -1;
     if (taskA > taskB) return 1;
 
-    // Fallback por Title (WBS) si quieres mantener orden estable dentro del mismo Task
+    // Secondary sort by WBS numeric index for stable ordering within the same Task
     const ai = Number(a.Title);
     const bi = Number(b.Title);
     if (!isNaN(ai) && !isNaN(bi)) return ai - bi;

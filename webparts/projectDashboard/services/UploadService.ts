@@ -61,13 +61,13 @@ export async function uploadEvidenceFile(
     };
 
     try {
-        // Primer intento
+        // First attempt
         console.log(`DoUpload 1st Attempt...`);
         return await doUpload();
     } catch (error: unknown) {
         console.error("Error in initial uploadEvidenceFile:", error);
 
-        // Si es 404 por carpeta inexistente, crea el folder y reintenta
+        // If 404 due to missing folder, create it and retry
         const msg = error instanceof Error ? error.message : String(error);
         if (msg.includes("404") && msg.includes("DirectoryNotFoundException")) {
             await ensureFolder(spHttpClient, siteUrl, relativePath, folderPath, folderName, overrideBasePath);
@@ -131,23 +131,23 @@ export async function ensureFolder(
 
 export function buildRepoRelativeUrl(
     siteRelativePath: string, // this.context.pageContext.web.serverRelativeUrl
-    repositoryUrl: string,    // this._repositoryUrl, ej. "ProjectsEvidence/" o "/ProjectsEvidence/"
+    repositoryUrl: string,    // this._repositoryUrl, e.g. "ProjectsEvidence/" or "/ProjectsEvidence/"
     //repositoryName: string    // folderName, ej. "NewProject-Evidence"
 ): string {
-    const relativePath = siteRelativePath || "/";              // "/sites/ED2-Team" o "/"
-    const folderPath = repositoryUrl || "/ProjectsEvidence/";  // normaliza
+    const relativePath = siteRelativePath || "/";              // e.g. "/sites/ED2-Team" or "/"
+    const folderPath = repositoryUrl || "/ProjectsEvidence/";  // normalize
     //const folderName = repositoryName || "DefaultRepo";
 
     const isRootSite = relativePath === "/";
 
-    // normalizar componentes (sin dobles barras)
+    // Normalize path components (no double slashes)
     const cleanRelative = relativePath.replace(/\/+$/, "");        // "/sites/ED2-Team" o ""
     const cleanFolderPath = folderPath.replace(/^\/+/, "");        // "ProjectsEvidence/" o "Shared Documents/ProjectsEvidence/"
     //const cleanFolder = cleanFolderPath.replace(/\/+$/, "");       // "ProjectsEvidence"
 
     // Base path depending on root vs subsite
     const base = isRootSite
-        ? `/ED2 Repository Internal/Engineering/ProjectDashboard/${cleanFolderPath}/` // producción root
+        ? `/ED2 Repository Internal/Engineering/ProjectDashboard/${cleanFolderPath}/` // production root
         : `${cleanRelative}/Shared Documents/${cleanFolderPath}/`;                    // subsite (Teams)
 
     // final server-relative path for the project folder

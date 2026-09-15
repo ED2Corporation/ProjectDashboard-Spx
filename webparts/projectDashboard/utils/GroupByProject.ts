@@ -1,6 +1,6 @@
 import { IGateListItem } from "../../../models";
 
-// Función para agrupar
+// Groups gates into a single project-level summary (average completion, max delay, date range)
 export function GroupByProject(gates: IGateListItem[]): IGateListItem {
  
   let complete: number = 0;

@@ -1,11 +1,11 @@
 import React from "react";
 import { Pie } from "react-chartjs-2";
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, Title } from "chart.js";
-// Registrar componentes necesarios en ChartJS
+// Register required ChartJS components
 ChartJS.register(ArcElement, Tooltip, Legend, Title);
 
 const ProjectTempPie: React.FC = () => {
-  // Datos para el gráfico
+  // Chart data
   const data = {
     labels: [
       "1.Kick Off",
@@ -16,35 +16,35 @@ const ProjectTempPie: React.FC = () => {
     ],
     datasets: [
       {
-        data: [20, 20, 20, 20, 20], // Valores
+        data: [20, 20, 20, 20, 20], // Equal-weight slices
         backgroundColor: [
-          "#4CAF50", // Rojo
-          "#4CAF50", // Azul
-          "#4CAF50", // Amarillo
-          "#ffffff", // Verde
-          "#ffffff", // Púrpura
-        ], // Colores para cada segmento
+          "#4CAF50", // Completed
+          "#4CAF50", // Completed
+          "#4CAF50", // Completed
+          "#ffffff", // Pending
+          "#ffffff", // Pending
+        ], // Fill colors per segment
         hoverBackgroundColor: [
           "#4CAF50CC",
           "#4CAF50CC",
           "#4CAF50CC",
           "#4CAF50CC",
           "#4CAF50CC",
-        ], // Colores al hacer hover
+        ], // Hover colors per segment
       },
     ],
   };
 
-  // Opciones de configuración del gráfico
+  // Chart options
   const options = {
     responsive: true,
     plugins: {
       legend: {
-        position: "right" as const, // Coloca la leyenda en la parte superior
+        position: "right" as const, // Legend position
       },
       title: {
         display: true,
-        text: "% Complete", // Título del gráfico
+        text: "% Complete", // Chart title
       },
     },
   };

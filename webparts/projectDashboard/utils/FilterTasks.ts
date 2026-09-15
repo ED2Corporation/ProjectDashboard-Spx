@@ -1,7 +1,7 @@
 import { ITaskListItem } from "../../../models";
 import { GetDelay } from "./GetDelay";
 
-// Función para agrupar
+// Filters a task list by gate or grouper criteria
 export function FilterTasks(
   data: ITaskListItem[],
   grouper: string,

@@ -10,7 +10,7 @@ import {
   Legend,
 } from "chart.js";
 
-// Registro de los elementos requeridos en ChartJS
+// Register required ChartJS elements
 ChartJS.register(
   CategoryScale,
   LinearScale,
@@ -21,27 +21,27 @@ ChartJS.register(
 );
 
 const BarChart: React.FC = () => {
-  // Configuración de datos del gráfico
+  // Chart data configuration
   const data = {
     labels: ["January", "February", "March", "April", "May"],
     datasets: [
       {
         label: "Sales ($)",
         data: [12000, 15000, 18000, 20000, 22000],
-        backgroundColor: "rgba(75, 192, 192, 0.6)", // Color de las barras
-        borderColor: "rgba(75, 192, 192, 1)", // Borde de las barras
+        backgroundColor: "rgba(75, 192, 192, 0.6)", // Bar fill color
+        borderColor: "rgba(75, 192, 192, 1)", // Bar border color
         borderWidth: 1,
       },
     ],
   };
 
-  // Configuración de opciones del gráfico
+  // Chart options configuration
   const options = {
     responsive: true,
     plugins: {
       legend: {
-        display: true, // Mostrar la leyenda
-        position: "top" as const, // Posición de la leyenda
+        display: true, // Show legend
+        position: "top" as const, // Legend position
       },
       title: {
         display: true,
@@ -50,7 +50,7 @@ const BarChart: React.FC = () => {
     },
     scales: {
       y: {
-        beginAtZero: true, // Inicia el eje Y desde 0
+        beginAtZero: true, // Start Y axis at zero
       },
     },
   };

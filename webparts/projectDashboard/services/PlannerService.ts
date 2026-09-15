@@ -194,7 +194,7 @@ export class PlannerService {
     await this.graphClient
       .api(`/planner/tasks/${taskId}`)
       .header("If-Match", task["@odata.etag"])
-      .patch({ percentComplete }); // ← usa el valor del payload
+      .patch({ percentComplete }); // use the percentComplete from the payload
 
     if (!evidenceUrl) return;
 
@@ -277,7 +277,7 @@ export class PlannerService {
       return;
     }
 
-    // PATCH parcial: solo la nueva clave
+    // Partial PATCH: only the new reference key
     const patchBody = {
       references: {
         [encodedKey]: {
