@@ -129,6 +129,19 @@ const ProjectCatalogEditor: React.FC<ProjectCatalogEditorProps> = ({
     () => (project.releases ?? []).map(release => ({ ...release }))
   );
 
+  const [editableExecStatus, setEditableExecStatus] = useState<{ status: string; overallPct: number; updatedAt: string } | null>(() => {
+    const field = parseProjectDetailsFields(project.ProjectDetails).find(f => f.key === 'executionStatus');
+    if (!field) return null;
+    try {
+      const parsed = JSON.parse(field.value) as Record<string, unknown>;
+      return {
+        status:     String(parsed.status     ?? 'in-progress'),
+        overallPct: Number(parsed.overallPct ?? 0),
+        updatedAt:  String(parsed.updatedAt  ?? ''),
+      };
+    } catch { return null; }
+  });
+
   // Releases — read from project prop (resolved at catalog load time)
   const totalReleased = editableReleases.reduce((sum, r) => sum + (r.units ?? 0), 0);
   const expectedUnits = form.Units ?? 0;
@@ -198,6 +211,13 @@ const ProjectCatalogEditor: React.FC<ProjectCatalogEditorProps> = ({
           units: Number(release.units) || 0,
           notes: release.notes ?? "",
         }));
+        if (editableExecStatus) {
+          detailsObject.executionStatus = {
+            status:     editableExecStatus.status,
+            overallPct: Number(editableExecStatus.overallPct) || 0,
+            updatedAt:  editableExecStatus.updatedAt,
+          };
+        }
         normalizedProjectDetails = JSON.stringify(detailsObject);
       } catch {
         throw new Error("ProjectDetails contains an invalid JSON value.");
@@ -230,23 +250,37 @@ const ProjectCatalogEditor: React.FC<ProjectCatalogEditorProps> = ({
 
   return (
     <div className={styles.card}>
-      <div className={styles.title}>Project settings</div>
+      <div className={styles.titleRow}>
+        <div className={styles.titleGroup}>
+          <span className={styles.title}>Project settings</span>
+          {(form.ProjectNumber || form.ProjectId) && (
+            <span className={styles.titleMeta}>
+              {form.ProjectNumber ? `WO# ${form.ProjectNumber}` : ''}
+              {form.ProjectNumber && form.ProjectId ? ' · ' : ''}
+              {form.ProjectId ?? ''}
+            </span>
+          )}
+        </div>
+        <div className={styles.titleActions}>
+          {form.ProjectNumber && (
+            <span className={styles.prefillBadge}>Pre-filled from PO</span>
+          )}
+          <button
+            type="button"
+            className={`${styles.sensitiveBtn} ${allowTitleEdit ? styles.sensitiveBtnActive : ''}`}
+            onClick={() => setAllowTitleEdit(prev => !prev)}
+            title={allowTitleEdit ? 'Lock sensitive fields' : 'Unlock sensitive fields for editing'}
+          >
+            {allowTitleEdit ? '🔓' : '🔒'} {allowTitleEdit ? 'Sensitive unlocked' : 'Edit Sensitive Information'}
+          </button>
+        </div>
+      </div>
 
       <div className={styles.grid}>
 
-        {/* Title — full width */}
+        {/* Title — full width, sensitive lock */}
         <div className={`${styles.field} ${styles.fieldFull}`}>
-          <div className={styles.labelRow}>
-            <label className={styles.label} htmlFor="project-catalog-title">Project name (Title)</label>
-            <label className={styles.sensitiveToggle}>
-              <input
-                type="checkbox"
-                checked={allowTitleEdit}
-                onChange={e => setAllowTitleEdit(e.target.checked)}
-              />
-              Sensitive field
-            </label>
-          </div>
+          <label className={styles.label} htmlFor="project-catalog-title">Title (List name)</label>
           <input
             id="project-catalog-title"
             className={`${styles.input} ${!allowTitleEdit ? styles.inputLocked : ""}`}
@@ -255,9 +289,11 @@ const ProjectCatalogEditor: React.FC<ProjectCatalogEditorProps> = ({
             onChange={e => set("Title", e.target.value)}
             disabled={!allowTitleEdit || saving}
           />
-          <span className={styles.fieldHint}>
-            Title is the stable key used to resolve SharePoint List and Repo names. Edit only for manual correction.
-          </span>
+          {!allowTitleEdit && (
+            <span className={styles.fieldHint}>
+              Changing this breaks the SharePoint list reference. Click &ldquo;Edit Sensitive Information&rdquo; in the header to unlock.
+            </span>
+          )}
         </div>
 
         {/* Project number */}
@@ -333,130 +369,190 @@ const ProjectCatalogEditor: React.FC<ProjectCatalogEditorProps> = ({
           </div>
         </div>
 
-        {/* Project details */}
+        {/* ── ProjectDetails card ── */}
         <div className={`${styles.field} ${styles.fieldFull}`}>
-          <label className={styles.label}>ProjectDetails</label>
-          {projectDetailsFields.filter(field => field.key !== 'WorkOrder' && field.key !== 'releases').length > 0 ? (
-            <div className={styles.detailsGrid}>
-              {projectDetailsFields
-                .filter(field => field.key !== 'WorkOrder' && field.key !== 'releases')
-                .map(field => (
-                <div key={field.key} className={styles.detailsField}>
-                  <label
-                    className={styles.label}
-                    htmlFor={`project-detail-${field.key.replace(/[^a-zA-Z0-9_-]/g, '-')}`}
-                  >
-                    {field.key}
-                  </label>
-                  <input
-                    id={`project-detail-${field.key.replace(/[^a-zA-Z0-9_-]/g, '-')}`}
-                    className={styles.input}
-                    type="text"
-                    value={field.value}
-                    onChange={e => setProjectDetailsValue(field.key, e.target.value)}
-                    spellCheck={false}
-                  />
-                </div>
-              ))}
+          <div className={styles.jsonCard}>
+            <div className={styles.jsonCardHeader}>
+              <span className={styles.jsonCardLabel}>ProjectDetails</span>
+              <span className={styles.jsonCardType}>{'{ }'}</span>
             </div>
-          ) : (
-            <span className={styles.fieldHint}>
-              No ProjectDetails fields were found for this project.
-            </span>
-          )}
-        </div>
+            <div className={styles.jsonCardBody}>
 
-        {/* ── Release Balance ─────────────────────────────────────────── */}
-        <div className={`${styles.field} ${styles.fieldFull}`}>
-          <label className={styles.label}>Release Balance</label>
-          <div className={styles.releaseBalance}>
-            <div className={styles.releaseBalanceStat}>
-              <span className={styles.releaseBalanceValue}>{expectedUnits}</span>
-              <span className={styles.releaseBalanceCaption}>Expected</span>
-            </div>
-            <span className={styles.releaseBalanceSep}>−</span>
-            <div className={styles.releaseBalanceStat}>
-              <span className={styles.releaseBalanceValue}>{totalReleased}</span>
-              <span className={styles.releaseBalanceCaption}>Released</span>
-            </div>
-            <span className={styles.releaseBalanceSep}>=</span>
-            <div className={`${styles.releaseBalanceStat} ${remaining < 0 ? styles.releaseBalanceOver : remaining === 0 ? styles.releaseBalanceDone : ''}`}>
-              <span className={styles.releaseBalanceValue}>{remaining}</span>
-              <span className={styles.releaseBalanceCaption}>Remaining</span>
+              {/* Simple scalar fields */}
+              {projectDetailsFields.filter(f => f.key !== 'WorkOrder' && f.key !== 'releases' && f.key !== 'executionStatus').length > 0 ? (
+                <div className={styles.detailsGrid}>
+                  {projectDetailsFields
+                    .filter(f => f.key !== 'WorkOrder' && f.key !== 'releases' && f.key !== 'executionStatus')
+                    .map(field => (
+                      <div key={field.key} className={styles.detailsField}>
+                        <label
+                          className={styles.label}
+                          htmlFor={`project-detail-${field.key.replace(/[^a-zA-Z0-9_-]/g, '-')}`}
+                        >
+                          {field.key}
+                        </label>
+                        <input
+                          id={`project-detail-${field.key.replace(/[^a-zA-Z0-9_-]/g, '-')}`}
+                          className={styles.input}
+                          type="text"
+                          value={field.value}
+                          onChange={e => setProjectDetailsValue(field.key, e.target.value)}
+                          spellCheck={false}
+                          disabled={saving}
+                        />
+                      </div>
+                    ))}
+                </div>
+              ) : (
+                <span className={styles.fieldHint}>No scalar ProjectDetails fields found.</span>
+              )}
+
+              {/* ── executionStatus sub-card ── */}
+              {editableExecStatus && (
+                <div className={styles.jsonSubCard}>
+                  <div className={styles.jsonCardHeader}>
+                    <span className={styles.jsonCardLabel}>executionStatus</span>
+                    <span className={styles.jsonCardType}>{'{ }'}</span>
+                    <span className={styles.jsonCardHint}>Written by WO-Dashboard — edit only for emergency correction</span>
+                  </div>
+                  <div className={styles.jsonCardBody}>
+                    <div className={styles.detailsGrid}>
+                      <div className={styles.detailsField}>
+                        <label className={styles.label} htmlFor="exec-status-status">status</label>
+                        <select
+                          id="exec-status-status"
+                          className={styles.select}
+                          value={editableExecStatus.status}
+                          onChange={e => setEditableExecStatus(prev => prev && ({ ...prev, status: e.target.value }))}
+                          disabled={saving}
+                        >
+                          <option value="in-progress">in-progress</option>
+                          <option value="stalled">stalled</option>
+                          <option value="delayed">delayed</option>
+                          <option value="completed">completed</option>
+                        </select>
+                      </div>
+                      <div className={styles.detailsField}>
+                        <label className={styles.label} htmlFor="exec-status-pct">overallPct</label>
+                        <input
+                          id="exec-status-pct"
+                          className={styles.input}
+                          type="number"
+                          min={0}
+                          max={100}
+                          value={editableExecStatus.overallPct}
+                          onChange={e => setEditableExecStatus(prev => prev && ({ ...prev, overallPct: Number(e.target.value) }))}
+                          disabled={saving}
+                        />
+                      </div>
+                      <div className={styles.detailsField}>
+                        <label className={styles.label} htmlFor="exec-status-updated">updatedAt</label>
+                        <input
+                          id="exec-status-updated"
+                          className={styles.input}
+                          type="text"
+                          value={editableExecStatus.updatedAt}
+                          onChange={e => setEditableExecStatus(prev => prev && ({ ...prev, updatedAt: e.target.value }))}
+                          disabled={saving}
+                          placeholder="ISO timestamp"
+                          spellCheck={false}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* ── releases sub-card ── */}
+              <div className={styles.jsonSubCard}>
+                <div className={styles.jsonCardHeader}>
+                  <span className={styles.jsonCardLabel}>releases</span>
+                  <span className={styles.jsonCardType}>[ ]</span>
+                  <span className={styles.jsonCardCount}>{editableReleases.length}</span>
+                  <span className={styles.jsonCardBalance}>
+                    Expected {expectedUnits} · Released {totalReleased} ·{' '}
+                    <span style={{ color: remaining < 0 ? '#b42318' : remaining === 0 ? '#1a6b3a' : undefined }}>
+                      Remaining {remaining}
+                    </span>
+                  </span>
+                </div>
+                <div className={styles.jsonCardBody}>
+                  {editableReleases.length > 0 ? (
+                    <table className={styles.releaseTable}>
+                      <thead>
+                        <tr>
+                          <th className={`${styles.releaseTableDateHeader} ${styles.releaseTableCompactHeader}`}>Date</th>
+                          <th className={`${styles.releaseTableUnitsHeader} ${styles.releaseTableCompactHeader}`}>Units</th>
+                          <th className={styles.releaseTableTaskHeader}>Task</th>
+                          <th className={styles.releaseTableNotesHeader}>Notes</th>
+                          <th className={styles.releaseTableApprovedHeader}>Approved by</th>
+                          <th className={`${styles.releaseTableActionHeader} ${styles.releaseTableCompactHeader}`}>Remove</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {editableReleases.map(r => (
+                          <tr key={r.id}>
+                            <td className={`${styles.releaseTableDateCell} ${styles.releaseTableCompactCell}`}>
+                              <input
+                                className={`${styles.input} ${styles.releaseTableInput} ${styles.releaseTableDateInput}`}
+                                type="date"
+                                value={toDateInputValue(r.date)}
+                                onChange={e => setReleaseValue(r.id, "date", e.target.value)}
+                                disabled={saving}
+                              />
+                            </td>
+                            <td className={`${styles.releaseTableUnits} ${styles.releaseTableCompactCell}`}>
+                              <input
+                                className={`${styles.input} ${styles.releaseTableInput} ${styles.releaseTableUnitsInput}`}
+                                type="number"
+                                value={r.units}
+                                onChange={e => setReleaseValue(r.id, "units", e.target.value)}
+                                disabled={saving}
+                              />
+                            </td>
+                            <td className={styles.releaseTableTaskCell}>
+                              <input
+                                className={`${styles.input} ${styles.releaseTableInput}`}
+                                type="text"
+                                value={r.taskTitle ?? ""}
+                                onChange={e => setReleaseValue(r.id, "taskTitle", e.target.value)}
+                                disabled={saving}
+                              />
+                            </td>
+                            <td className={styles.releaseTableNotes}>
+                              <input
+                                className={`${styles.input} ${styles.releaseTableInput} ${styles.releaseTableNotesInput}`}
+                                type="text"
+                                value={r.notes ?? ""}
+                                onChange={e => setReleaseValue(r.id, "notes", e.target.value)}
+                                disabled={saving}
+                              />
+                            </td>
+                            <td className={styles.releaseTableApprovedCell}>{r.approvedBy}</td>
+                            <td className={`${styles.releaseTableActionCell} ${styles.releaseTableCompactCell}`}>
+                              <button
+                                type="button"
+                                className={styles.releaseTableRemoveButton}
+                                onClick={() => removeRelease(r.id)}
+                                disabled={saving}
+                                aria-label={`Remove release ${r.taskTitle}`}
+                                title="Remove release row"
+                              >
+                                ×
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  ) : (
+                    <p className={styles.releaseTableEmpty}>— No releases recorded —</p>
+                  )}
+                </div>
+              </div>
+
             </div>
           </div>
-
-          {editableReleases.length > 0 ? (
-            <table className={styles.releaseTable}>
-              <thead>
-                <tr>
-                  <th className={`${styles.releaseTableDateHeader} ${styles.releaseTableCompactHeader}`}>Date</th>
-                  <th className={`${styles.releaseTableUnitsHeader} ${styles.releaseTableCompactHeader}`}>Units</th>
-                  <th className={styles.releaseTableTaskHeader}>Task</th>
-                  <th className={styles.releaseTableNotesHeader}>Notes</th>
-                  <th className={styles.releaseTableApprovedHeader}>Approved by</th>
-                  <th className={`${styles.releaseTableActionHeader} ${styles.releaseTableCompactHeader}`}>Remove</th>
-                </tr>
-              </thead>
-              <tbody>
-                {editableReleases.map(r => (
-                  <tr key={r.id}>
-                    <td className={`${styles.releaseTableDateCell} ${styles.releaseTableCompactCell}`}>
-                      <input
-                        className={`${styles.input} ${styles.releaseTableInput} ${styles.releaseTableDateInput}`}
-                        type="date"
-                        value={toDateInputValue(r.date)}
-                        onChange={e => setReleaseValue(r.id, "date", e.target.value)}
-                        disabled={saving}
-                      />
-                    </td>
-                    <td className={`${styles.releaseTableUnits} ${styles.releaseTableCompactCell}`}>
-                      <input
-                        className={`${styles.input} ${styles.releaseTableInput} ${styles.releaseTableUnitsInput}`}
-                        type="number"
-                        value={r.units}
-                        onChange={e => setReleaseValue(r.id, "units", e.target.value)}
-                        disabled={saving}
-                      />
-                    </td>
-                    <td className={styles.releaseTableTaskCell}>
-                      <input
-                        className={`${styles.input} ${styles.releaseTableInput}`}
-                        type="text"
-                        value={r.taskTitle ?? ""}
-                        onChange={e => setReleaseValue(r.id, "taskTitle", e.target.value)}
-                        disabled={saving}
-                      />
-                    </td>
-                    <td className={styles.releaseTableNotes}>
-                      <input
-                        className={`${styles.input} ${styles.releaseTableInput} ${styles.releaseTableNotesInput}`}
-                        type="text"
-                        value={r.notes ?? ""}
-                        onChange={e => setReleaseValue(r.id, "notes", e.target.value)}
-                        disabled={saving}
-                      />
-                    </td>
-                    <td className={styles.releaseTableApprovedCell}>{r.approvedBy}</td>
-                    <td className={`${styles.releaseTableActionCell} ${styles.releaseTableCompactCell}`}>
-                      <button
-                        type="button"
-                        className={styles.releaseTableRemoveButton}
-                        onClick={() => removeRelease(r.id)}
-                        disabled={saving}
-                        aria-label={`Remove release ${r.taskTitle}`}
-                        title="Remove release row"
-                      >
-                        ×
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          ) : (
-            <p className={styles.releaseTableEmpty}>— No releases recorded —</p>
-          )}
         </div>
 
       </div>

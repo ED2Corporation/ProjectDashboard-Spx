@@ -1,5 +1,139 @@
 @import './styles/tokens';
 
+// ─── Header ───────────────────────────────────────────────────────────────────
+
+.titleRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: $sp-3;
+  margin-bottom: $sp-4;
+}
+
+.titleGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.titleMeta {
+  font-size: $f-xs;
+  color: $c-text-muted;
+  font-weight: 400;
+}
+
+.titleActions {
+  display: flex;
+  align-items: center;
+  gap: $sp-3;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.prefillBadge {
+  display: inline-flex;
+  align-items: center;
+  font-size: $f-xs;
+  font-weight: 600;
+  color: $c-ontime;
+  background: $c-ontime-bg;
+  border: 1px solid $c-ontime;
+  border-radius: 999px;
+  padding: 2px $sp-3;
+  white-space: nowrap;
+}
+
+.sensitiveBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: $sp-2;
+  font-size: $f-xs;
+  font-weight: 600;
+  color: $c-delayed;
+  background: $c-surface;
+  border: 1px solid $c-delayed;
+  border-radius: $r-sm;
+  padding: 3px $sp-3;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: $t-fast;
+
+  &:hover { opacity: 0.82; }
+}
+
+.sensitiveBtnActive {
+  color: $c-ontime;
+  background: $c-ontime-bg;
+  border-color: $c-ontime;
+}
+
+// ─── JSON hierarchy cards ─────────────────────────────────────────────────────
+
+.jsonCard {
+  border: 1px solid $c-border;
+  border-radius: $r-md;
+  overflow: hidden;
+}
+
+.jsonSubCard {
+  border: 1px solid $c-border-subtle;
+  border-radius: $r-sm;
+  overflow: hidden;
+  margin-top: $sp-3;
+}
+
+.jsonCardHeader {
+  display: flex;
+  align-items: center;
+  gap: $sp-2;
+  padding: $sp-2 $sp-3;
+  background: $c-surface-soft;
+  border-bottom: 1px solid $c-border-subtle;
+  flex-wrap: wrap;
+}
+
+.jsonCardLabel {
+  font-size: $f-xs;
+  font-weight: 700;
+  color: $c-text-secondary;
+  font-family: monospace;
+}
+
+.jsonCardType {
+  font-size: $f-xs;
+  color: $c-text-muted;
+  font-family: monospace;
+}
+
+.jsonCardCount {
+  font-size: $f-xs;
+  font-weight: 700;
+  color: $c-primary;
+  background: $c-primary-bg;
+  border-radius: 999px;
+  padding: 0 $sp-2;
+  min-width: 20px;
+  text-align: center;
+}
+
+.jsonCardHint {
+  font-size: $f-xs;
+  color: $c-text-muted;
+  font-style: italic;
+  margin-left: auto;
+}
+
+.jsonCardBalance {
+  font-size: $f-xs;
+  color: $c-text-muted;
+  margin-left: auto;
+}
+
+.jsonCardBody {
+  padding: $sp-3;
+}
+
 // ─── Card ─────────────────────────────────────────────────────────────────────
 
 .card {
