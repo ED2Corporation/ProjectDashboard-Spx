@@ -3,6 +3,7 @@ import { SPHttpClient } from "@microsoft/sp-http";
 import { IProjectService, IProjectCatalogItem } from "../../../models/IProjectService";
 
 import { SPFI, spfi } from "@pnp/sp";
+import { IList } from "@pnp/sp/lists";
 import { SPFx } from "@pnp/sp/presets/all";
 import { compareWbs } from "../utils/ParseWBS";
 import "@pnp/sp/webs";
@@ -643,6 +644,115 @@ export class ProjectService implements IProjectService {
         const updated = { ...current, releases: nextReleases };
         await this._catalogSp.web.lists.getByTitle(this._catalogListName)
             .items.getById(item.Id as number).update({ ProjectDetails: JSON.stringify(updated) });
+    }
+
+    /**
+     * Restores an archived project:
+     *  1. Fetches the archived JSON report from SP.
+     *  2. Re-creates the SP task list with the same schema as a new project.
+     *  3. Bulk-inserts all tasks from the archived snapshot.
+     *  4. Updates the catalog item: Status → Active, moves archivedReport to archivedHistory[].
+     */
+    public async unarchiveProject(
+        title: string,
+        listName: string,
+        jsonFileUrl: string,
+        onProgress?: (step: string) => void
+    ): Promise<void> {
+        // 1. Fetch archived JSON report
+        onProgress?.("Validating archive…");
+        const response = await fetch(jsonFileUrl, { credentials: "include" });
+        if (!response.ok) throw new Error(`Failed to fetch archived report (${response.status})`);
+        const report = await response.json() as { tasks?: Array<{ raw?: Record<string, unknown>; notes?: unknown[]; evidence?: unknown[]; approvals?: unknown[] }> };
+
+        // 2. Create/ensure the SP task list with the full project schema
+        onProgress?.("Creating task list…");
+        await this._ensureArchivedTaskList(listName);
+
+        // 3. Bulk-create tasks — allowlist matches exactly the columns created by _ensureArchivedTaskList
+        const ALLOWED_FIELDS = new Set([
+            "Title", "Gate", "Task", "Complete", "Start", "Finish",
+            "ActualFinish", "Description", "Notes", "Evidence", "Approvals", "jsonTable",
+        ]);
+        const tasks = report.tasks ?? [];
+        const list = this._sp.web.lists.getByTitle(listName);
+        for (let i = 0; i < tasks.length; i++) {
+            onProgress?.(`Populating list… (${i + 1} / ${tasks.length})`);
+            const task = tasks[i];
+            const raw = task.raw ?? {};
+            const payload: Record<string, unknown> = {};
+            for (const key of Object.keys(raw)) {
+                if (ALLOWED_FIELDS.has(key) && raw[key] !== undefined && raw[key] !== null) {
+                    payload[key] = raw[key];
+                }
+            }
+            // Prefer normalized arrays over raw strings (raw may contain HTML from RichText fields)
+            if (Array.isArray(task.notes))     payload["Notes"]     = JSON.stringify(task.notes);
+            if (Array.isArray(task.evidence))  payload["Evidence"]  = JSON.stringify(task.evidence);
+            if (Array.isArray(task.approvals)) payload["Approvals"] = JSON.stringify(task.approvals);
+            await list.items.add(payload);
+        }
+
+        // 4. Update catalog: Status → Active, move archivedReport to archivedHistory[]
+        onProgress?.("Updating catalog status…");
+        const found = await this._catalogSp.web.lists.getByTitle(this._catalogListName)
+            .items.select("Id", "ProjectDetails")
+            .filter(`Title eq '${title.replace(/'/g, "''")}'`).top(1)();
+        if (!found.length) throw new Error(`Catalog item not found: ${title}`);
+        const item = found[0] as any; // eslint-disable-line @typescript-eslint/no-explicit-any
+        const current: Record<string, unknown> = item.ProjectDetails ? JSON.parse(item.ProjectDetails) : {};
+
+        // Preserve archive history for audit trail
+        const history: unknown[] = Array.isArray(current.archivedHistory) ? current.archivedHistory : [];
+        if (current.archivedReport) history.push({ ...current.archivedReport as object, restoredAt: new Date().toISOString() });
+
+        const updated: Record<string, unknown> = { ...current, archivedHistory: history };
+        delete updated.archivedReport;
+        delete updated.fileArchivedJson;
+        delete updated.fileArchivedJsonName;
+
+        await this._catalogSp.web.lists.getByTitle(this._catalogListName)
+            .items.getById(item.Id as number)
+            .update({ ProjectDetails: JSON.stringify(updated), Status: "Active" });
+        onProgress?.("Done");
+    }
+
+    /** Creates the SP task list with the same schema used by new projects. */
+    private async _ensureArchivedTaskList(listName: string): Promise<void> {
+        const ensureResult = await this._sp.web.lists.ensure(listName, "Project tasks list", 100, true);
+        const list: IList = ensureResult.list;
+
+        // Fetch existing fields once to avoid redundant API calls
+        const existing = await list.fields.select("InternalName")();
+        const existingNames = new Set(existing.map((f: { InternalName: string }) => f.InternalName));
+
+        if (!existingNames.has("Gate"))         await list.fields.addText("Gate");
+        if (!existingNames.has("Task"))         await list.fields.addText("Task");
+        if (!existingNames.has("Complete"))     await list.fields.addNumber("Complete");
+        if (!existingNames.has("Start"))        await list.fields.addDateTime("Start");
+        if (!existingNames.has("Finish"))       await list.fields.addDateTime("Finish");
+        if (!existingNames.has("ActualFinish")) await list.fields.addDateTime("ActualFinish");
+        if (!existingNames.has("Description"))  await list.fields.addMultilineText("Description",  { RichText: false, AppendOnly: false });
+        if (!existingNames.has("Notes"))        await list.fields.addMultilineText("Notes",        { RichText: false, AppendOnly: false });
+        if (!existingNames.has("Evidence"))     await list.fields.addMultilineText("Evidence",     { RichText: false, AppendOnly: false });
+        if (!existingNames.has("Approvals"))    await list.fields.addMultilineText("Approvals",    { RichText: false, AppendOnly: false });
+        if (!existingNames.has("jsonTable"))    await list.fields.addMultilineText("jsonTable",    { RichText: false, AppendOnly: false });
+
+        // Add key fields to the default view so they are visible in the SP list UI
+        const view = await list.defaultView;
+        const viewFieldsResult = await view.fields.select("Items")();
+        const viewFields = viewFieldsResult as { Items?: { results?: string[] } | string[] };
+        const currentViewFields: string[] = (
+            Array.isArray(viewFields.Items)
+                ? viewFields.Items
+                : (viewFields.Items as { results?: string[] })?.results
+        ) ?? [];
+        const currentViewSet = new Set<string>(currentViewFields);
+        for (const field of ["Title", "Gate", "Task", "Complete", "Start", "Finish", "ActualFinish"]) {
+            if (!currentViewSet.has(field)) {
+                await view.fields.add(field);
+            }
+        }
     }
 
     public async addProjectToCatalog(item: IProjectCatalogItem): Promise<string> {

@@ -238,10 +238,12 @@ const ProjectsCatalogCard: React.FC<IProjectsCatalogCardProps> = ({ sp, catalogS
     const q = searchText.trim().toLowerCase();
     if (q) {
       base = base.filter(p =>
-        (p.PartNumber  ?? '').toLowerCase().includes(q) ||
-        (p.ProjectId   ?? '').toLowerCase().includes(q) ||
-        (p.ProjectNumber ?? '').toLowerCase().includes(q) ||
-        (p.Customer    ?? '').toLowerCase().includes(q)
+        (p.PartNumber       ?? '').toLowerCase().includes(q) ||
+        (p.ProjectId        ?? '').toLowerCase().includes(q) ||
+        (p.ProjectNumber    ?? '').toLowerCase().includes(q) ||
+        (p.Customer         ?? '').toLowerCase().includes(q) ||
+        (p.poNumberCustomer ?? '').toLowerCase().includes(q) ||
+        (p.poNumberED2      ?? '').toLowerCase().includes(q)
       );
     }
 
@@ -432,6 +434,10 @@ const ProjectsCatalogCard: React.FC<IProjectsCatalogCardProps> = ({ sp, catalogS
                 <ProjectRowArchived
                   key={proj.Title}
                   project={proj}
+                  context={context}
+                  sp={sp}
+                  catalogSp={catalogSp}
+                  onRestored={reload}
                 />
               ) : (
                 <ProjectRowDashboard

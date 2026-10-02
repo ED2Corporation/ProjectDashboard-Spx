@@ -187,6 +187,7 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
   // null = not yet probed; true = columns exist; false = columns absent in this list
   const logFieldsAvailableRef = useRef<boolean | null>(null);
   const jsonTableFieldAvailableRef = useRef<boolean | null>(null);
+  const descriptionFieldAvailableRef = useRef<boolean | null>(null);
   const releaseDebugTaskIdRef = useRef<string | null>(null);
 
   const setLogFieldsAvailable = useCallback((available: boolean): void => {
@@ -197,11 +198,17 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
     jsonTableFieldAvailableRef.current = available;
   }, []);
 
+  const setDescriptionFieldAvailable = useCallback((available: boolean): void => {
+    descriptionFieldAvailableRef.current = available;
+  }, []);
+
   const withAvailableTaskFields = useCallback((
     payload: Record<string, unknown>,
     options?: { includeJsonTableDefault?: boolean }
   ): Record<string, unknown> => {
     const nextPayload = { ...payload };
+
+    // Strip jsonTable when the column is absent (older lists / legacy schema)
     const payloadRequiresJsonTable =
       typeof nextPayload.jsonTable === "string" &&
       nextPayload.jsonTable.trim() !== "";
@@ -214,6 +221,14 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
         console.warn("[useProjectState] jsonTable omitted because the field is unavailable for this list.");
       }
       delete nextPayload.jsonTable;
+    }
+
+    // Strip Description when the column is absent (restored lists before schema fix)
+    if (
+      descriptionFieldAvailableRef.current === false &&
+      Object.prototype.hasOwnProperty.call(nextPayload, "Description")
+    ) {
+      delete nextPayload.Description;
     }
 
     return nextPayload;
@@ -242,24 +257,26 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
       const effectiveSiteUrl = config.storageEndpoint?.siteUrl ?? SITE_URL;
       const LOG_FIELD_NAMES = ['Notes', 'Evidence', 'Approvals'];
 
-      const buildSelect = (withLog: boolean, withJsonTable: boolean): string => {
+      const buildSelect = (withLog: boolean, withJsonTable: boolean, withDescription: boolean): string => {
         const baseFields = [
           'Id', 'Title', 'Gate', 'Task',
-          'Complete', 'Start', 'Finish', 'ActualFinish', 'Description',
+          'Complete', 'Start', 'Finish', 'ActualFinish',
+          ...(withDescription ? ['Description'] : []),
           ...(withJsonTable ? ['jsonTable'] : [])
         ];
         return withLog ? `${baseFields.join(',')},Notes,Evidence,Approvals` : baseFields.join(',');
       };
 
-      const fetchItems = (withLog: boolean, withJsonTable: boolean): Promise<SPHttpClientResponse> => {
-        const queryUrl = `${effectiveSiteUrl}${siteRelativePath}/_api/web/lists/getbytitle('${project.ListName}')/items?$select=${buildSelect(withLog, withJsonTable)}`;
+      const fetchItems = (withLog: boolean, withJsonTable: boolean, withDescription: boolean): Promise<SPHttpClientResponse> => {
+        const queryUrl = `${effectiveSiteUrl}${siteRelativePath}/_api/web/lists/getbytitle('${project.ListName}')/items?$select=${buildSelect(withLog, withJsonTable, withDescription)}`;
         return context.spHttpClient.get(queryUrl, SPHttpClient.configurations.v1);
       };
 
       // If we already know optional fields are absent, skip straight to reduced query.
       let tryWithLog = logFieldsAvailableRef.current !== false;
       let includeJsonTable = jsonTableFieldAvailableRef.current !== false;
-      let response = await fetchItems(tryWithLog, includeJsonTable);
+      let includeDescription = descriptionFieldAvailableRef.current !== false;
+      let response = await fetchItems(tryWithLog, includeJsonTable, includeDescription);
 
       // On 400, the issue is typically a missing field in $select, not bad row data.
       // SharePoint error messages are not stable, so fall back progressively even if
@@ -268,30 +285,37 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
         const errText = await response.text();
         const isLogFieldError = LOG_FIELD_NAMES.some(f => hasMissingFieldError(errText, f));
         const isJsonTableFieldError = hasMissingFieldError(errText, 'jsonTable');
-        const attempts: Array<{ withLog: boolean; withJsonTable: boolean }> = [];
+        const isDescriptionFieldError = hasMissingFieldError(errText, 'Description');
+        const attempts: Array<{ withLog: boolean; withJsonTable: boolean; withDescription: boolean }> = [];
 
+        if (isDescriptionFieldError && includeDescription) {
+          attempts.push({ withLog: tryWithLog, withJsonTable: includeJsonTable, withDescription: false });
+        }
         if (isLogFieldError && tryWithLog) {
-          attempts.push({ withLog: false, withJsonTable: includeJsonTable });
+          attempts.push({ withLog: false, withJsonTable: includeJsonTable, withDescription: includeDescription });
         }
         if (isJsonTableFieldError && includeJsonTable) {
-          attempts.push({ withLog: tryWithLog, withJsonTable: false });
+          attempts.push({ withLog: tryWithLog, withJsonTable: false, withDescription: includeDescription });
         }
 
         // Generic fallback sequence when SharePoint returns a 400 without a parsable field name.
         if (!attempts.length) {
-          if (tryWithLog) attempts.push({ withLog: false, withJsonTable: includeJsonTable });
-          if (includeJsonTable) attempts.push({ withLog: tryWithLog, withJsonTable: false });
-          if (tryWithLog && includeJsonTable) attempts.push({ withLog: false, withJsonTable: false });
+          if (includeDescription) attempts.push({ withLog: tryWithLog, withJsonTable: includeJsonTable, withDescription: false });
+          if (tryWithLog)         attempts.push({ withLog: false, withJsonTable: includeJsonTable, withDescription: includeDescription });
+          if (includeJsonTable)   attempts.push({ withLog: tryWithLog, withJsonTable: false, withDescription: includeDescription });
+          if (tryWithLog && includeJsonTable) attempts.push({ withLog: false, withJsonTable: false, withDescription: includeDescription });
         }
 
         let recovered = false;
         for (const attempt of attempts) {
           tryWithLog = attempt.withLog;
           includeJsonTable = attempt.withJsonTable;
-          if (!tryWithLog) setLogFieldsAvailable(false);
+          includeDescription = attempt.withDescription;
+          if (!tryWithLog)       setLogFieldsAvailable(false);
           if (!includeJsonTable) setJsonTableFieldAvailable(false);
+          if (!includeDescription) setDescriptionFieldAvailable(false);
 
-          response = await fetchItems(tryWithLog, includeJsonTable);
+          response = await fetchItems(tryWithLog, includeJsonTable, includeDescription);
           if (response.ok) {
             recovered = true;
             break;
@@ -319,9 +343,10 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
         return [];
       }
 
-      // Mark log fields as available if we didn't already know they were absent
+      // Mark optional fields as available if we didn't already know they were absent
       if (logFieldsAvailableRef.current === null) setLogFieldsAvailable(true);
       if (jsonTableFieldAvailableRef.current === null && includeJsonTable) setJsonTableFieldAvailable(true);
+      if (descriptionFieldAvailableRef.current === null && includeDescription) setDescriptionFieldAvailable(true);
 
       const responseJson = await response.json();
       const raw: ISPRawItem[] = Array.isArray(responseJson.value) ? responseJson.value : [];
@@ -361,7 +386,7 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
       setEnvironmentMessage(String(error));
       return [];
     }
-  }, [context, showLog, config.storageEndpoint?.siteRelPath, config.storageEndpoint?.siteUrl, setJsonTableFieldAvailable, setLogFieldsAvailable]);
+  }, [context, showLog, config.storageEndpoint?.siteRelPath, config.storageEndpoint?.siteUrl, setJsonTableFieldAvailable, setLogFieldsAvailable, setDescriptionFieldAvailable]);
 
   const _getGateListItems = useCallback(async (
     project: IProjectListItem,
@@ -888,38 +913,55 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
     const finishValue: Date | undefined = curr === 100 && !data.Finish ? new Date() : (data.Finish ? new Date(data.Finish) : undefined);
     const itemRef = sp.web.lists.getByTitle(listTitle).items.getById(Number(data.Id));
 
-    if (action === "quick-complete") {
-      await itemRef.update({
-        Task: data.Task,
-        Complete: curr,
-        Finish: finishValue,
-        ActualFinish: actualFinishValue,
-      });
-    } else {
-      await itemRef.update(withAvailableTaskFields({
-        Gate: data.Gate,
-        Task: data.Task,
-        Complete: curr,
-        Start: data.Start,
-        Finish: finishValue,
-        ActualFinish: actualFinishValue,
-        Description: data.Description,
-        jsonTable: data.jsonTable
-      }));
-
-      // Rename gate for all other tasks in the same gate
-      if (data.renameGate && data.originalGate && data.Gate !== data.originalGate) {
-        const list = sp.web.lists.getByTitle(listTitle);
-        const siblings: { Id: number | string }[] = await list.items
-          .select("Id")
-          .filter(`Gate eq '${data.originalGate.replace(/'/g, "''")}'`)
-          .top(5000)();
-        await Promise.all(
-          siblings
-            .filter((i: { Id: number | string }) => String(i.Id) !== String(data.Id))
-            .map((i: { Id: number | string }) => list.items.getById(Number(i.Id)).update({ Gate: data.Gate }))
-        );
+    const doUpdate = async (): Promise<void> => {
+      if (action === "quick-complete") {
+        await itemRef.update({
+          Task: data.Task,
+          Complete: curr,
+          Finish: finishValue,
+          ActualFinish: actualFinishValue,
+        });
+      } else {
+        await itemRef.update(withAvailableTaskFields({
+          Gate: data.Gate,
+          Task: data.Task,
+          Complete: curr,
+          Start: data.Start,
+          Finish: finishValue,
+          ActualFinish: actualFinishValue,
+          Description: data.Description,
+          jsonTable: data.jsonTable
+        }));
       }
+    };
+
+    // SP returns 409 "Save Conflict" when owshiddenversion is out of sync
+    // (can happen when two saves race, even with IF-MATCH: *).
+    // Retry once after a short delay — the second attempt always uses the latest server version.
+    try {
+      await doUpdate();
+    } catch (err: unknown) {
+      const msg = String((err as { message?: string })?.message ?? err);
+      if (msg.includes("409") || msg.toLowerCase().includes("save conflict")) {
+        await new Promise<void>(resolve => setTimeout(resolve, 800));
+        await doUpdate();
+      } else {
+        throw err;
+      }
+    }
+
+    // Rename gate for all other tasks in the same gate (full-update only)
+    if (action !== "quick-complete" && data.renameGate && data.originalGate && data.Gate !== data.originalGate) {
+      const list = sp.web.lists.getByTitle(listTitle);
+      const siblings: { Id: number | string }[] = await list.items
+        .select("Id")
+        .filter(`Gate eq '${data.originalGate.replace(/'/g, "''")}'`)
+        .top(5000)();
+      await Promise.all(
+        siblings
+          .filter((i: { Id: number | string }) => String(i.Id) !== String(data.Id))
+          .map((i: { Id: number | string }) => list.items.getById(Number(i.Id)).update({ Gate: data.Gate }))
+      );
     }
 
     const r: ISPRawItem = await itemRef();
@@ -1106,7 +1148,7 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
   const _ensureMultilineField = useCallback(async (list: IList, name: string) => {
     const fields = await list.fields.select("InternalName")();
     const exists = fields.some((f: { InternalName: string }) => f.InternalName === name);
-    if (!exists) await list.fields.addMultilineText(name);
+    if (!exists) await list.fields.addMultilineText(name, { RichText: false, AppendOnly: false });
   }, []);
 
   const _ensureDefaultViewFields = useCallback(async (list: IList, fieldInternalNames: string[]) => {
@@ -1311,7 +1353,7 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
         const existing = await list.fields.select('InternalName')();
         for (const f of ['Notes', 'Evidence', 'Approvals']) {
           if (!existing.some((x: { InternalName: string }) => x.InternalName === f)) {
-            await list.fields.addMultilineText(f);
+            await list.fields.addMultilineText(f, { RichText: false, AppendOnly: false });
           }
         }
         setLogFieldsAvailable(true);

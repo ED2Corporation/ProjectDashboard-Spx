@@ -1,6 +1,12 @@
 import * as React from "react";
 import { useEffect, useMemo, useState } from "react";
+import { SPFI, spfi } from "@pnp/sp";
+import { SPFx } from "@pnp/sp/presets/all";
+import { BaseComponentContext } from "@microsoft/sp-component-base";
+import { SPHttpClient } from "@microsoft/sp-http";
 import { IProjectCatalogItem } from "../../../models/IProjectService";
+import { ProjectService } from "../services/ProjectService";
+import { getProjectWebUrl, resolveStorageVersion, buildListName } from "../utils/StorageVersionResolver";
 import styles from "./ProjectRowDashboard.module.scss";
 
 interface ArchivedReportInfo {
@@ -76,8 +82,16 @@ const defaultReportSections: ArchivedReportSections = {
   notes: true,
 };
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AnyContext = BaseComponentContext & { spHttpClient: SPHttpClient; msGraphClientFactory: any };
+
 export interface ProjectRowArchivedProps {
   project: IProjectCatalogItem;
+  context?: AnyContext;
+  sp?: SPFI;
+  catalogSp?: SPFI;
+  /** Called after a successful restore so the parent can reload the catalog */
+  onRestored?: () => void;
 }
 
 const parseArchivedReport = (projectDetails?: string): ArchivedReportInfo | undefined => {
@@ -144,7 +158,7 @@ const resolveTaskEvidence = (task: ArchivedProjectReportTask): { url: string; la
   return undefined;
 };
 
-const ProjectRowArchived: React.FC<ProjectRowArchivedProps> = ({ project }) => {
+const ProjectRowArchived: React.FC<ProjectRowArchivedProps> = ({ project, context, sp, catalogSp, onRestored }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [reportView, setReportView] = useState<ArchivedReportView>("json");
   const [includedSections, setIncludedSections] = useState<ArchivedReportSections>(defaultReportSections);
@@ -152,7 +166,23 @@ const ProjectRowArchived: React.FC<ProjectRowArchivedProps> = ({ project }) => {
   const [reportJson, setReportJson] = useState<ArchivedProjectReportJson | undefined>(undefined);
   const [isLoadingReport, setIsLoadingReport] = useState(false);
   const [reportError, setReportError] = useState<string>("");
+  const [restoreStep, setRestoreStep] = useState<string>("");
+  const [restoreError, setRestoreError] = useState<string>("");
   const archivedReport = useMemo(() => parseArchivedReport(project.ProjectDetails), [project.ProjectDetails]);
+
+  const projectService = useMemo(() => {
+    if (!context || !sp || !catalogSp) return undefined;
+    const storageVersion = project.resolvedStorageVersion ?? resolveStorageVersion(project);
+    const fallbackWebUrl = context.pageContext.web.absoluteUrl;
+    const targetWebUrl = getProjectWebUrl(storageVersion, fallbackWebUrl);
+    const projectSp = storageVersion === "v2"
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ? spfi(targetWebUrl).using(SPFx(context as any))
+      : sp;
+    const listName = buildListName(project.Title ?? project.ProjectNumber ?? "");
+    return new ProjectService(projectSp, listName, catalogSp);
+  }, [context, sp, catalogSp, project]);
+
   const tasksByGate = useMemo(() => {
     const grouped: Array<{ gate: string; tasks: ArchivedProjectReportTask[] }> = [];
     const tasks = reportJson?.tasks ?? [];
@@ -177,6 +207,25 @@ const ProjectRowArchived: React.FC<ProjectRowArchivedProps> = ({ project }) => {
       ...prev,
       [section]: !prev[section],
     }));
+  };
+
+  const handleRestore = async (): Promise<void> => {
+    if (!projectService || !archivedReport?.jsonFileUrl) return;
+    setRestoreStep("Starting…");
+    setRestoreError("");
+    try {
+      const listName = buildListName(project.Title ?? project.ProjectNumber ?? "");
+      await projectService.unarchiveProject(
+        project.Title,
+        listName,
+        archivedReport.jsonFileUrl,
+        (step) => setRestoreStep(step)
+      );
+      onRestored?.();
+    } catch (e: unknown) {
+      setRestoreError((e as Error).message || "Failed to restore project.");
+      setRestoreStep("");
+    }
   };
 
   const buildPrintableReportHtml = (report: ArchivedProjectReportJson, sections: ArchivedReportSections): string => {
@@ -743,17 +792,35 @@ const ProjectRowArchived: React.FC<ProjectRowArchivedProps> = ({ project }) => {
     <div className={`${styles.card} ${styles.cardArchived} ${isOpen ? styles.cardActive : ""}`}>
       <div className={`${styles.header} ${isOpen ? styles.headerActive : ""}`} onClick={handleHeaderClick}>
         <div className={styles.projectInfo} style={{ cursor: "pointer" }}>
+          {/* Row 1 — Work Order Number + units */}
           <div className={styles.projectTitle}>
-            {project.PartNumber}
+            {project.ProjectNumber && <span className={styles.woTag}>WO# {project.ProjectNumber}</span>}
             {!!project.Units && (
               <span className={styles.unitsTag}> ({project.Units} units)</span>
             )}
           </div>
+          {/* Row 2 — PO Numbers (customer + ED2); fallback when neither is set */}
           <div className={styles.projectSubtitle}>
-            {project.WorkOrder && <><span className={styles.woTag}>PO# {project.WorkOrder}</span>{' '}</>}
-            {project.ProjectNumber}
+            {(project.poNumberCustomer || project.poNumberED2) ? (
+              <>
+                {project.poNumberCustomer && (
+                  <span className={styles.poTag}>Cust: {project.poNumberCustomer}</span>
+                )}
+                {project.poNumberCustomer && project.poNumberED2 && (
+                  <span className={styles.poSep}> · </span>
+                )}
+                {project.poNumberED2 && (
+                  <span className={styles.poTag}>ED2: {project.poNumberED2}</span>
+                )}
+              </>
+            ) : (
+              <span className={styles.poNotSettled}>PO not settled — sync PO Details</span>
+            )}
           </div>
-          <div className={styles.projectCustomer}>{project.Customer}</div>
+          {/* Row 3 — Part Number */}
+          <div className={styles.projectSubtitle}>
+            {project.PartNumber}
+          </div>
         </div>
 
         <div className={styles.archivedSummary}>
@@ -790,8 +857,8 @@ const ProjectRowArchived: React.FC<ProjectRowArchivedProps> = ({ project }) => {
           {archivedReport?.fileUrl || archivedReport?.jsonFileUrl ? (
             <>
               <div className={styles.archivedReportToolbar}>
-                <span>
-                  Archived project report
+                {/* Downloads card — groups JSON / PDF / HTML together */}
+                <div className={styles.downloadsGroup}>
                   {archivedReport.jsonFileUrl && (
                     <a
                       href={archivedReport.jsonFileUrl}
@@ -802,24 +869,38 @@ const ProjectRowArchived: React.FC<ProjectRowArchivedProps> = ({ project }) => {
                       Download JSON
                     </a>
                   )}
-                </span>
-                {archivedReport.jsonFileUrl && (
+                  {archivedReport.jsonFileUrl && (
+                    <button
+                      type="button"
+                      className={styles.archivedReportLink}
+                      onClick={handleDownloadPdf}
+                    >
+                      Download PDF
+                    </button>
+                  )}
+                  {archivedReport.jsonFileUrl && (
+                    <button
+                      type="button"
+                      className={styles.archivedReportLink}
+                      onClick={handleDownloadHtml}
+                    >
+                      Download HTML
+                    </button>
+                  )}
+                </div>
+                {/* Restore button — only shown when SP wiring is available */}
+                {projectService && archivedReport.jsonFileUrl && (
                   <button
                     type="button"
-                    className={styles.archivedReportLink}
-                    onClick={handleDownloadPdf}
+                    className={styles.restoreBtn}
+                    disabled={!!restoreStep}
+                    onClick={() => { void handleRestore(); }}
                   >
-                    Download PDF
+                    {restoreStep || "Restore Project"}
                   </button>
                 )}
-                {archivedReport.jsonFileUrl && (
-                  <button
-                    type="button"
-                    className={styles.archivedReportLink}
-                    onClick={handleDownloadHtml}
-                  >
-                    Download HTML
-                  </button>
+                {restoreError && (
+                  <span className={styles.noArchivedReport}>{restoreError}</span>
                 )}
               </div>
               {isLoadingReport ? (

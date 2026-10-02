@@ -103,6 +103,22 @@
   color: $c-text-subtle;
 }
 
+.poTag {
+  font-size: $f-sm;
+  color: $c-text-secondary;
+}
+
+.poSep {
+  font-size: $f-sm;
+  color: $c-text-muted;
+}
+
+.poNotSettled {
+  font-size: $f-sm;
+  color: $c-text-muted;
+  font-style: italic;
+}
+
 .noGates {
   font-size: $f-base;
   color: $c-text-muted;
@@ -348,6 +364,41 @@
     border-color: rgba($c-primary, 0.24);
     background: $c-primary-bg;
     text-decoration: none;
+  }
+}
+
+.downloadsGroup {
+  display: inline-flex;
+  align-items: center;
+  gap: $sp-2;
+  padding: 3px $sp-2;
+  border: 1px solid $c-border-subtle;
+  border-radius: $r-md;
+  background: $c-surface;
+}
+
+.restoreBtn {
+  display: inline-flex;
+  align-items: center;
+  padding: $sp-1 $sp-3;
+  border: 1px solid rgba($c-primary, 0.5);
+  border-radius: $r-pill;
+  background: $c-primary-bg;
+  color: $c-primary;
+  cursor: pointer;
+  font-family: $f-family;
+  font-size: $f-xs;
+  font-weight: 700;
+
+  &:hover:not(:disabled) {
+    background: $c-primary;
+    color: #fff;
+    border-color: $c-primary;
+  }
+
+  &:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
   }
 }
 

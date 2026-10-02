@@ -489,19 +489,38 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
       {/* ── Row header: project info (left) + gate bar (right) ───────── */}
       <div className={`${styles.header} ${activeGate !== null ? styles.headerActive : ""}`}>
         <div className={styles.projectInfo} onClick={handleOverallClick} style={{ cursor: "pointer" }}>
+          {/* Row 1 — Work Order Number + units */}
           <div className={styles.projectTitle}>
-            {storageVersion === 'v1' && (
-              <span className={styles.storageAlert} title="Legacy storage v1">⚠</span>
-            )}
-            {localProject.PartNumber}
-          </div>
-          <div className={styles.projectSubtitle}>
-            {localProject.ProjectNumber && <><span className={styles.woTag}>WO# {localProject.ProjectNumber}</span></>}
+            {localProject.ProjectNumber && <span className={styles.woTag}>WO# {localProject.ProjectNumber}</span>}
             {!!localProject.Units && (
               <span className={styles.unitsTag}> ({localProject.Units} units)</span>
             )}
           </div>
-          <div className={styles.projectCustomer}>{localProject.Customer}</div>
+          {/* Row 2 — PO Numbers (customer + ED2); fallback when neither is set */}
+          <div className={styles.projectSubtitle}>
+            {(localProject.poNumberCustomer || localProject.poNumberED2) ? (
+              <>
+                {localProject.poNumberCustomer && (
+                  <span className={styles.poTag}>Cust: {localProject.poNumberCustomer}</span>
+                )}
+                {localProject.poNumberCustomer && localProject.poNumberED2 && (
+                  <span className={styles.poSep}> · </span>
+                )}
+                {localProject.poNumberED2 && (
+                  <span className={styles.poTag}>ED2: {localProject.poNumberED2}</span>
+                )}
+              </>
+            ) : (
+              <span className={styles.poNotSettled}>PO not settled — sync PO Details</span>
+            )}
+          </div>
+          {/* Row 3 — Part Number + legacy storage alert */}
+          <div className={styles.projectSubtitle}>
+            {localProject.PartNumber}
+            {storageVersion === 'v1' && (
+              <span className={styles.storageAlert} title="Legacy storage v1"> ⚠</span>
+            )}
+          </div>
         </div>
 
         {gates.length > 0 ? (
