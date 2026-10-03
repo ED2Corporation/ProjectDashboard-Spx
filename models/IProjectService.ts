@@ -44,8 +44,8 @@ export interface IProjectCatalogItem {
     sortOrder?: number;
     /** Resolved at catalog load time from ProjectDetails.releases */
     releases?: IReleaseRecord[];
-    /** Resolved at catalog load time from ProjectDetails['PO-Number-Customer'] */
+    /** Resolved at catalog load time from ProjectDetails.poNumberCustomer */
     poNumberCustomer?: string;
-    /** Resolved at catalog load time from ProjectDetails['PO-Number-ED2'] */
+    /** Resolved at catalog load time from ProjectDetails.poNumberED2 */
     poNumberED2?: string;
 }

@@ -496,20 +496,10 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
               <span className={styles.unitsTag}> ({localProject.Units} units)</span>
             )}
           </div>
-          {/* Row 2 — PO Numbers (customer + ED2); fallback when neither is set */}
+          {/* Row 2 — Customer PO number; fallback when not set */}
           <div className={styles.projectSubtitle}>
-            {(localProject.poNumberCustomer || localProject.poNumberED2) ? (
-              <>
-                {localProject.poNumberCustomer && (
-                  <span className={styles.poTag}>Cust: {localProject.poNumberCustomer}</span>
-                )}
-                {localProject.poNumberCustomer && localProject.poNumberED2 && (
-                  <span className={styles.poSep}> · </span>
-                )}
-                {localProject.poNumberED2 && (
-                  <span className={styles.poTag}>ED2: {localProject.poNumberED2}</span>
-                )}
-              </>
+            {localProject.poNumberCustomer ? (
+              <span className={styles.poTag}>{localProject.poNumberCustomer}</span>
             ) : (
               <span className={styles.poNotSettled}>PO not settled — sync PO Details</span>
             )}

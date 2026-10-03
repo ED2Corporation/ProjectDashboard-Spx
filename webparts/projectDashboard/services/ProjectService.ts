@@ -687,9 +687,9 @@ export class ProjectService implements IProjectService {
                 }
             }
             // Prefer normalized arrays over raw strings (raw may contain HTML from RichText fields)
-            if (Array.isArray(task.notes))     payload["Notes"]     = JSON.stringify(task.notes);
-            if (Array.isArray(task.evidence))  payload["Evidence"]  = JSON.stringify(task.evidence);
-            if (Array.isArray(task.approvals)) payload["Approvals"] = JSON.stringify(task.approvals);
+            if (Array.isArray(task.notes))     payload.Notes     = JSON.stringify(task.notes);
+            if (Array.isArray(task.evidence))  payload.Evidence  = JSON.stringify(task.evidence);
+            if (Array.isArray(task.approvals)) payload.Approvals = JSON.stringify(task.approvals);
             await list.items.add(payload);
         }
 

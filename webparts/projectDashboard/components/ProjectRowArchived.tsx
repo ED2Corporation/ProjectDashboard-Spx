@@ -799,20 +799,10 @@ const ProjectRowArchived: React.FC<ProjectRowArchivedProps> = ({ project, contex
               <span className={styles.unitsTag}> ({project.Units} units)</span>
             )}
           </div>
-          {/* Row 2 — PO Numbers (customer + ED2); fallback when neither is set */}
+          {/* Row 2 — Customer PO number; fallback when not set */}
           <div className={styles.projectSubtitle}>
-            {(project.poNumberCustomer || project.poNumberED2) ? (
-              <>
-                {project.poNumberCustomer && (
-                  <span className={styles.poTag}>Cust: {project.poNumberCustomer}</span>
-                )}
-                {project.poNumberCustomer && project.poNumberED2 && (
-                  <span className={styles.poSep}> · </span>
-                )}
-                {project.poNumberED2 && (
-                  <span className={styles.poTag}>ED2: {project.poNumberED2}</span>
-                )}
-              </>
+            {project.poNumberCustomer ? (
+              <span className={styles.poTag}>{project.poNumberCustomer}</span>
             ) : (
               <span className={styles.poNotSettled}>PO not settled — sync PO Details</span>
             )}

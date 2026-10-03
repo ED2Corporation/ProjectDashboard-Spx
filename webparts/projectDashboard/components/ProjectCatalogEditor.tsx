@@ -253,12 +253,8 @@ const ProjectCatalogEditor: React.FC<ProjectCatalogEditorProps> = ({
       <div className={styles.titleRow}>
         <div className={styles.titleGroup}>
           <span className={styles.title}>Project settings</span>
-          {(form.ProjectNumber || form.ProjectId) && (
-            <span className={styles.titleMeta}>
-              {form.ProjectNumber ? `WO# ${form.ProjectNumber}` : ''}
-              {form.ProjectNumber && form.ProjectId ? ' · ' : ''}
-              {form.ProjectId ?? ''}
-            </span>
+          {form.ProjectNumber && (
+            <span className={styles.titleMeta}>WO# {form.ProjectNumber}</span>
           )}
         </div>
         <div className={styles.titleActions}>

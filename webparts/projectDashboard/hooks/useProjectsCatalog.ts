@@ -49,10 +49,10 @@ export function useProjectsCatalog(sp: SPFI): IProjectsCatalogState {
           const details = item.ProjectDetails ? JSON.parse(item.ProjectDetails) : {};
           item.sortOrder        = typeof details.sortOrder === 'number' ? details.sortOrder : undefined;
           item.releases         = Array.isArray(details.releases) ? details.releases : undefined;
-          item.poNumberCustomer = typeof details['PO-Number-Customer'] === 'string' && details['PO-Number-Customer'].trim()
-            ? details['PO-Number-Customer'].trim() : undefined;
-          item.poNumberED2      = typeof details['PO-Number-ED2'] === 'string' && details['PO-Number-ED2'].trim()
-            ? details['PO-Number-ED2'].trim() : undefined;
+          const rawPOC = details.poNumberCustomer;
+          const rawPOE = details.poNumberED2;
+          item.poNumberCustomer = typeof rawPOC === 'string' && rawPOC.trim() ? rawPOC.trim() : undefined;
+          item.poNumberED2      = typeof rawPOE === 'string' && rawPOE.trim() ? rawPOE.trim() : undefined;
         } catch {
           item.sortOrder        = undefined;
           item.releases         = undefined;

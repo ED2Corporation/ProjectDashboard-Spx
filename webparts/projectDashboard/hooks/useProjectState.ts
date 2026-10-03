@@ -1052,7 +1052,7 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
         );
       }
     }
-  }, [config.sourceName, config.projectName, context, sp, withAvailableTaskFields, onRegisterRelease, syncTasks, currentGate]);
+  }, [config.sourceName, config.projectName, config.projectUnits, context, sp, withAvailableTaskFields, onRegisterRelease, syncTasks, currentGate]);
 
   const _updatePlannerTask = useCallback(async (
     data: ITaskUpdatePayload,
