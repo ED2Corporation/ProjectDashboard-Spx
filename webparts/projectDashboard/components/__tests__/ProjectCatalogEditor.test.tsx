@@ -55,7 +55,7 @@ describe('ProjectCatalogEditor', () => {
     const titleInput = screen.getByDisplayValue(project.Title);
     expect(titleInput).toBeDisabled();
 
-    await userEvent.click(screen.getByLabelText(/Sensitive field/i));
+    await userEvent.click(screen.getByRole('button', { name: /Edit Sensitive Information/i }));
     expect(titleInput).toBeEnabled();
   });
 

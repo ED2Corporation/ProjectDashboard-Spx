@@ -34,7 +34,7 @@ export interface ProjectRowDashboardProps {
   sp: SPFI;
   catalogSp: SPFI;
   /** Called once gate data is ready so the parent can compute aggregate counts */
-  onStatusReady?: (projectId: string, statusKey: "ontime" | "stalled" | "delayed" | "archived") => void;
+  onStatusReady?: (projectId: string, statusKey: "ontime" | "stalled" | "delayed" | "completed" | "archived") => void;
   /** Called after a catalog item is saved — use to reload the parent catalog list */
   onCatalogItemSaved?: () => void;
   // ── Sort-order controls (visible when ProjectCatalogEditor is open) ──
@@ -283,15 +283,17 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
   // Report project status to parent once gates are loaded
   useEffect(() => {
     if (!onStatusReady || statusReported || gates.length === 0) return;
-    let key: "ontime" | "stalled" | "delayed" | "archived" = "ontime";
+    let key: "ontime" | "stalled" | "delayed" | "completed" | "archived" = "ontime";
     const s = localProject.Status?.toLowerCase();
     if (s === "archived" || s === "closed") {
       key = "archived";
     } else {
       const overall = GetBucketStatus(gates);
-      if (overall === "red")    key = "delayed";
-      else if (overall === "yellow") key = "stalled";
-      else key = "ontime";
+      const allGatesClosed = gates.every(g => g.Complete >= 100);
+      if (overall === "red")                       key = "delayed";
+      else if (overall === "yellow")               key = "stalled";
+      else if (overall === "green" && allGatesClosed) key = "completed";
+      else                                         key = "ontime";
     }
     onStatusReady(localProject.Title, key);
     setStatusReported(true);

@@ -13,7 +13,9 @@ jest.mock('../../utils/GetGateStatus', () => ({
 }));
 
 jest.mock('../../services/ProjectService', () => ({
-  ProjectService: jest.fn().mockImplementation(() => ({})),
+  ProjectService: jest.fn().mockImplementation(() => ({
+    patchProjectDetails: jest.fn().mockResolvedValue(undefined),
+  })),
 }));
 
 jest.mock('../GateProgressBar', () => (props: { onSettingsClick?: () => void }) => (

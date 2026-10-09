@@ -12,15 +12,15 @@ import { IProjectCatalogItem } from '../../../models/IProjectService';
 import { ProjectService } from '../services/ProjectService';
 import styles from './ProjectsCatalogCard.module.scss';
 
-type StatusFilter = 'all' | 'ontime' | 'stalled' | 'delayed' | 'archived' | 'hidden' | 'waiting-approval';
-type StatusKey = 'ontime' | 'stalled' | 'delayed' | 'archived' | 'waiting-approval';
+type StatusFilter = 'all' | 'ontime' | 'stalled' | 'delayed' | 'completed' | 'archived' | 'hidden' | 'waiting-approval';
+type StatusKey = 'ontime' | 'stalled' | 'delayed' | 'completed' | 'archived' | 'waiting-approval';
 type SortField = 'partNumber' | 'jobId';
 type SortDir   = 'asc' | 'desc';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyContext = BaseComponentContext & { spHttpClient: SPHttpClient; msGraphClientFactory: any };
 
-type BadgeVariant = StatusKey | 'hidden' | 'stalled';
+type BadgeVariant = StatusKey | 'hidden' | 'stalled'| 'completed';
 type CatalogStatus = 'open' | 'archived' | 'waiting-approval' | 'hidden';
 
 
@@ -67,11 +67,12 @@ const IconChevronDown: React.FC = () => (
 );
 
 const variantClass: Record<BadgeVariant, string> = {
-  ontime:            styles.badgeOntime,
-  stalled:           styles.badgeStalled,
-  delayed:           styles.badgeDelayed,
-  archived:          styles.badgeNeutral,
-  hidden:            styles.badgeNeutral,
+  ontime:             styles.badgeOntime,
+  stalled:            styles.badgeStalled,
+  delayed:            styles.badgeDelayed,
+  completed:          styles.badgeCompleted,
+  archived:           styles.badgeNeutral,
+  hidden:             styles.badgeNeutral,
   'waiting-approval': styles.badgeNeutral,
 };
 
@@ -136,7 +137,7 @@ const ProjectsCatalogCard: React.FC<IProjectsCatalogCardProps> = ({ sp, catalogS
 
   const catalogService = useMemo(() => new ProjectService(catalogSp), [catalogSp]);
 
-  const handleStatusReady = useCallback((projectId: string, key: "ontime" | "stalled" | "delayed" | "archived") => {
+  const handleStatusReady = useCallback((projectId: string, key: "ontime" | "stalled" | "delayed" | "completed" | "archived") => {
     setStatusMap((prev) => {
       if (prev[projectId] === key) return prev;
       return { ...prev, [projectId]: key };
@@ -208,17 +209,18 @@ const ProjectsCatalogCard: React.FC<IProjectsCatalogCardProps> = ({ sp, catalogS
   }, [projects]);
 
   const counts = useMemo(() => {
-    let onTime = 0, stalled = 0, delayed = 0;
+    let onTime = 0, stalled = 0, delayed = 0, completed = 0;
 
     for (const project of openProjects) {
       const key = getProjectStatusKey(project, statusMap);
-      if (key === 'delayed')      delayed++;
-      else if (key === 'stalled') stalled++;
-      else                        onTime++;
+      if (key === 'delayed')        delayed++;
+      else if (key === 'stalled')   stalled++;
+      else if (key === 'completed') completed++;
+      else                          onTime++;
     }
 
     return {
-      onTime, stalled, delayed,
+      onTime, stalled, delayed, completed,
       archived:        archivedProjects.length,
       waitingApproval: waitingApprovalProjects.length,
       hidden:          hiddenProjects.length,
@@ -336,25 +338,32 @@ const ProjectsCatalogCard: React.FC<IProjectsCatalogCardProps> = ({ sp, catalogS
       <div className={styles.aggregatorRow}>
         <div className={styles.aggregatorCard}>
           <AggregatorBadge
-            label="On Time"
+            label="On Track"
             count={counts.onTime}
             variant="ontime"
             active={statusFilter === 'ontime'}
             onClick={() => toggleFilter('ontime')}
           />
           <AggregatorBadge
-            label="Stalled"
+            label="Off Track"
             count={counts.stalled}
             variant="stalled"
             active={statusFilter === 'stalled'}
             onClick={() => toggleFilter('stalled')}
           />
           <AggregatorBadge
-            label="Delayed"
+            label="At Risk"
             count={counts.delayed}
             variant="delayed"
             active={statusFilter === 'delayed'}
             onClick={() => toggleFilter('delayed')}
+          />
+          <AggregatorBadge
+            label="Completed"
+            count={counts.completed}
+            variant="completed"
+            active={statusFilter === 'completed'}
+            onClick={() => toggleFilter('completed')}
           />
         </div>
         <div className={styles.aggregatorCard}>

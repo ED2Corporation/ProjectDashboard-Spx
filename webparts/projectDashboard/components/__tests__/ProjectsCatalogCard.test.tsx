@@ -13,7 +13,7 @@ jest.mock('../ProjectRowArchived', () => (props: { project: IProjectCatalogItem 
 
 jest.mock('../ProjectRowDashboard', () => (props: {
   project: IProjectCatalogItem;
-  onStatusReady?: (projectId: string, key: 'ontime' | 'stalled' | 'delayed' | 'archived') => void;
+  onStatusReady?: (projectId: string, key: 'ontime' | 'stalled' | 'delayed' | 'completed' | 'archived') => void;
 }) => {
   const ReactActual = jest.requireActual<typeof import('react')>('react');
 
@@ -79,14 +79,14 @@ describe('ProjectsCatalogCard', () => {
     render(<ProjectsCatalogCard sp={sp} catalogSp={catalogSp} context={context} />);
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: /Delayed/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /At Risk/i })).toBeInTheDocument();
     });
 
     expect(mockUseProjectsCatalog).toHaveBeenCalledWith(catalogSp);
     expect(screen.getByText('Work Orders')).toBeInTheDocument();
     expect(screen.getByText('(2)')).toBeInTheDocument();
-    expect(within(screen.getByRole('button', { name: /Delayed/i })).getByText('1')).toBeInTheDocument();
-    expect(within(screen.getByRole('button', { name: /On Time/i })).getByText('1')).toBeInTheDocument();
+    expect(within(screen.getByRole('button', { name: /At Risk/i })).getByText('1')).toBeInTheDocument();
+    expect(within(screen.getByRole('button', { name: /On Track/i })).getByText('1')).toBeInTheDocument();
     expect(screen.getByText('1003999-DELAY-PROJECT')).toBeInTheDocument();
   });
 

@@ -221,6 +221,20 @@
   }
 }
 
+.badgeCompleted {
+  color: $c-completed;
+
+  &:hover {
+    border-color: $c-completed;
+  }
+
+  &.badgeActive {
+    border: 2px solid $c-completed;
+    background: $c-completed-bg;
+    font-weight: 600;
+  }
+}
+
 // ─── Search + sort bar ────────────────────────────────────────────────────────
 
 .searchSortBar {
