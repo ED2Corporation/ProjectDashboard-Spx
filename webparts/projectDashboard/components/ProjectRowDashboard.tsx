@@ -17,6 +17,7 @@ import { IProjectDashboardWebPartProps } from "../../../models";
 
 import GateProgressBar from "./GateProgressBar";
 import ListTasks from "./ListTasks";
+import WOReportView from "./WOReportView";
 import TaskCard from "./TaskCard";
 import ProjectActionsBar from "./ProjectActionsBar";
 import ProjectCatalogEditor from "./ProjectCatalogEditor";
@@ -204,6 +205,8 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
   const [navTasks,           setNavTasks]           = useState<ITaskListItem[]>([]);
   const [statusReported,     setStatusReported]     = useState(false);
   const [showProjectActions, setShowProjectActions] = useState(false);
+  const [showReport,         setShowReport]         = useState(false);
+  const [isReportLoading,    setIsReportLoading]    = useState(false);
 
   const {
     tasks, gates, filteredTasks,
@@ -604,11 +607,17 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
             tasks={visibleTasks}
             isPlanner={false}
             heading={tasksHeading}
-            showDetails={true}
-            showGateSeparators={showAllTasks}
+            showDetails={!showReport}
+            showGateSeparators={showAllTasks && !showReport}
             onReload={() => {
               void onReset();
             }}
+            onReport={() => {
+              if (showReport) { setShowReport(false); return; }
+              setIsReportLoading(true);
+              setTimeout(() => { setShowReport(true); setIsReportLoading(false); }, 300);
+            }}
+            isReportLoading={isReportLoading}
             selectedTaskId={selectedTask?.Id}
             expandedContent={expandedTaskCard}
             creatingTaskId={creatingId ?? undefined}
@@ -682,6 +691,19 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
               : undefined}
             onMoveTask={handleMoveTask}
           />
+          {showReport && (
+            <WOReportView
+              tasks={tasks}
+              gates={gates}
+              project={localProject}
+              projectTitle={localProject.Title}
+              activeGate={activeGate === 'all' || activeGate === null ? undefined : activeGate}
+              onGateClick={(gate) => {
+                if (!gate || gate === 'all') handleGateClick('all');
+                else handleGateClick(gate);
+              }}
+            />
+          )}
         </div>
       )}
     </div>

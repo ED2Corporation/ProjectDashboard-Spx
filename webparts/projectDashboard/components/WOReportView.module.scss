@@ -1,0 +1,432 @@
+@import '~@fluentui/react/dist/sass/References.scss';
+@import './styles/tokens';
+
+// ─── Root ─────────────────────────────────────────────────────────────────────
+
+.report {
+  padding: $sp-4 0;
+  font-family: $f-family;
+}
+
+// ─── PDF button (inside badge bar) ───────────────────────────────────────────
+
+.pdfBtn {
+  flex: 0 0 auto;
+  padding: 3px 11px;
+  border: 1px solid $c-border-mid;
+  border-radius: 20px;
+  background: $c-surface;
+  font-size: $f-sm;
+  font-family: $f-family;
+  color: $c-text-secondary;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+
+  &:hover {
+    background: $c-primary;
+    color: #fff;
+    border-color: $c-primary;
+  }
+}
+
+// ─── Badge filter bar ─────────────────────────────────────────────────────────
+
+.badgeBar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: $sp-2;
+  margin-bottom: $sp-6;
+  padding: $sp-3 $sp-4;
+  background: $c-surface-soft;
+  border: 1px solid $c-border-subtle;
+  border-radius: 6px;
+}
+
+.badge {
+  padding: 3px 11px;
+  border: 1px solid $c-border;
+  border-radius: 20px;
+  background: $c-surface;
+  font-size: $f-sm;
+  font-family: $f-family;
+  color: $c-text-secondary;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+  &:hover { background: $c-surface-mid; }
+}
+
+.badgeActive {
+  background: $c-primary;
+  color: #fff;
+  border-color: $c-primary;
+  &:hover { background: $c-primary-hover; }
+}
+
+// Note-type badge colors (inactive state)
+.badgeNote_issue  { &.badgeActive { background: $c-delayed;   border-color: $c-delayed;   } }
+.badgeNote_fix    { &.badgeActive { background: $c-completed; border-color: $c-completed; } }
+.badgeNote_action { &.badgeActive { background: $c-stalled;   border-color: $c-stalled;   } }
+
+.badgeDivider {
+  width: 1px;
+  height: 18px;
+  background: $c-border;
+  margin: 0 $sp-1;
+  flex: 0 0 auto;
+}
+
+// ─── Summary sections ─────────────────────────────────────────────────────────
+
+.summaryHeader {
+  margin-bottom: $sp-6;
+  border: 1px solid $c-border;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.summaryHeaderBar {
+  display: flex;
+  align-items: center;
+  gap: $sp-5;
+  padding: $sp-3 $sp-5;
+  background: $c-primary;
+  color: #fff;
+  font-size: $f-md;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.summaryHeaderBody {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $sp-3 $sp-6;
+  padding: $sp-4 $sp-5;
+  background: $c-surface-soft;
+  font-size: $f-base;
+  color: $c-text;
+
+  strong { color: $c-text-secondary; font-weight: 600; }
+}
+
+.summarySection {
+  margin-bottom: $sp-6;
+}
+
+.summarySectionTitle {
+  font-size: $f-sm;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: $c-text-secondary;
+  margin-bottom: $sp-3;
+  padding-bottom: $sp-2;
+  border-bottom: 2px solid $c-border;
+}
+
+.summaryEmpty {
+  font-size: $f-base;
+  color: $c-text-subtle;
+  font-style: italic;
+}
+
+// Gate Log grid (2-column for multiple gates)
+.gateLogGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: $sp-4 $sp-6;
+}
+
+.gateLogBlock { min-width: 0; }
+
+.gateLogGateName {
+  font-size: $f-base;
+  font-weight: 700;
+  color: $c-text;
+  margin-bottom: $sp-2;
+}
+
+.gateLogList {
+  margin: 0;
+  padding-left: $sp-5;
+  display: flex;
+  flex-direction: column;
+  gap: $sp-1;
+}
+
+.gateLogItem {
+  font-size: $f-base;
+  color: $c-text;
+  line-height: 1.4;
+}
+
+// ─── Production Phases + LOT panels ──────────────────────────────────────────
+
+.panels {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: $sp-5;
+  margin-bottom: $sp-6;
+}
+
+.panelsTwoCols { grid-template-columns: 1fr 1fr; }
+
+.panel { min-width: 0; }
+
+.panelHeader {
+  font-size: $f-sm;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: $c-text-secondary;
+  margin-bottom: $sp-3;
+}
+
+.phaseTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: $f-base;
+
+  th {
+    padding: 5px 8px;
+    text-align: left;
+    font-weight: 600;
+    border-bottom: 2px solid $c-border;
+    color: $c-text-secondary;
+    font-size: $f-sm;
+    white-space: nowrap;
+  }
+
+  td {
+    padding: 5px 8px;
+    border-bottom: 1px solid $c-border-subtle;
+  }
+
+  tbody tr:hover { background: $c-table-hover; }
+}
+
+.rowActive { background: $c-table-active !important; }
+
+// ─── Status badges (Completed / In Progress / Not Started) ───────────────────
+
+.statusBadge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: $f-xs;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.statusCompleted  { color: $c-completed; background: $c-completed-bg; }
+.statusInProgress { color: $c-stalled;   background: $c-stalled-bg;   }
+.statusNotStarted { color: $c-text-subtle; background: $c-surface-mid; }
+
+// ─── Gate groups ──────────────────────────────────────────────────────────────
+
+.gateGroups { display: flex; flex-direction: column; gap: $sp-5; }
+
+.gateGroup {
+  border: 1px solid $c-border-subtle;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.gateGroupHeader {
+  display: flex;
+  align-items: center;
+  gap: $sp-4;
+  padding: $sp-3 $sp-5;
+  background: $c-surface-soft;
+  border-bottom: 1px solid $c-border-subtle;
+}
+
+.gateGroupName {
+  font-size: $f-base;
+  font-weight: 700;
+  color: $c-text;
+  flex: 0 0 auto;
+}
+
+.gateGroupMeta {
+  font-size: $f-sm;
+  color: $c-text-secondary;
+  flex: 0 0 auto;
+}
+
+.gateGroupBarWrap {
+  flex: 1;
+  height: 5px;
+  background: $c-surface-dark;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.gateGroupBar {
+  height: 100%;
+  background: $c-primary;
+  border-radius: 3px;
+  transition: width 0.3s;
+}
+
+// ─── Task rows ────────────────────────────────────────────────────────────────
+
+.taskRows { display: flex; flex-direction: column; }
+
+.taskRow {
+  display: flex;
+  align-items: stretch;
+  border-bottom: 1px solid $c-border-subtle;
+  min-height: 32px;
+
+  &:last-child { border-bottom: none; }
+  &:hover { background: $c-table-hover; }
+}
+
+.taskMeta {
+  display: flex;
+  align-items: center;
+  gap: $sp-3;
+  padding: $sp-2 $sp-5;
+  min-width: 260px;
+  flex: 0 0 260px;
+  border-right: 1px solid $c-border-subtle;
+}
+
+.colHdr {
+  font-size: $f-xs;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: $c-text-secondary;
+}
+
+.colHdrTask { flex: 1; }
+
+.taskWbs {
+  font-size: $f-sm;
+  color: $c-text-subtle;
+  min-width: 46px;
+  flex: 0 0 auto;
+}
+
+.taskName {
+  flex: 1;
+  font-size: $f-base;
+  color: $c-text;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.taskPct {
+  font-size: $f-sm;
+  color: $c-text-secondary;
+  flex: 0 0 auto;
+  min-width: 32px;
+  text-align: right;
+}
+
+// ─── Log area (1-3 dynamic columns) ──────────────────────────────────────────
+
+.taskLogArea {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+  align-items: start;
+}
+
+.logColHdr {
+  padding: $sp-2 $sp-4;
+  font-size: $f-xs;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: $c-text-secondary;
+  border-left: 1px solid $c-border-subtle;
+  align-self: center;
+}
+
+.logCol {
+  padding: $sp-2 $sp-4;
+  border-left: 1px solid $c-border-subtle;
+  display: flex;
+  flex-direction: column;
+  gap: $sp-2;
+  align-self: stretch;
+}
+
+.logEntry {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.logEntryText {
+  font-size: $f-base;
+  color: $c-text;
+  line-height: 1.4;
+}
+
+.logEntryMeta {
+  font-size: $f-xs;
+  color: $c-text-subtle;
+}
+
+.logEmpty {
+  color: $c-text-muted;
+  font-size: $f-sm;
+}
+
+.evidenceLink {
+  font-size: $f-base;
+  color: $c-primary;
+  text-decoration: none;
+  &:hover { text-decoration: underline; }
+}
+
+// ─── Pills (note badge / approval status) ────────────────────────────────────
+
+.pill {
+  display: inline-block;
+  padding: 1px 7px;
+  border-radius: 4px;
+  font-size: $f-xs;
+  font-weight: 700;
+  text-transform: capitalize;
+}
+
+.pillIssue  { color: $c-delayed;   background: $c-delayed-bg;   }
+.pillFix    { color: $c-completed; background: $c-completed-bg; }
+.pillAction { color: $c-stalled;   background: $c-stalled-bg;   }
+
+.approval_approved { color: $c-completed; background: $c-completed-bg; }
+.approval_rejected { color: $c-delayed;   background: $c-delayed-bg;   }
+.approval_pending  { color: $c-stalled;   background: $c-stalled-bg;   }
+
+// ─── Bitácora (Tasks OFF + note filters active) ───────────────────────────────
+
+.bitacora {
+  display: flex;
+  flex-direction: column;
+}
+
+.bitacoraEntry {
+  display: grid;
+  grid-template-columns: 90px 130px 64px 1fr;
+  align-items: start;
+  gap: $sp-3;
+  padding: $sp-2 $sp-5;
+  border-bottom: 1px solid $c-border-subtle;
+  font-size: $f-base;
+
+  &:last-child { border-bottom: none; }
+  &:hover { background: $c-table-hover; }
+}
+
+.bitacoraDate { color: $c-text-subtle; font-size: $f-sm; white-space: nowrap; }
+.bitacoraUser { color: $c-text-secondary; font-size: $f-sm; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bitacoraText { color: $c-text; line-height: 1.4; }

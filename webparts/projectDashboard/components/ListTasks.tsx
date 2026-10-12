@@ -23,6 +23,10 @@ interface ListGroupProps {
   deletingTaskId?: string;
   onSortedTasksChange?: (tasks: ITaskListItem[]) => void;
   onReload?: () => void;
+  /** Triggers the Report view; button shown when provided */
+  onReport?: () => void;
+  /** Shows a loading spinner on the Report button while the view is preparing */
+  isReportLoading?: boolean;
   onSave: (itemId: string, payload?: string) => void;
   /** Upload a file to evidence storage — enables the upload button in Complete mode */
   onUploadFile?: (file: File, taskTitle: string) => Promise<{ fileUrl: string; fileName: string }>;
@@ -67,6 +71,8 @@ const ListTasks = ({
   deletingTaskId,
   onSortedTasksChange,
   onReload,
+  onReport,
+  isReportLoading,
   onUploadFile,
   onSaveEvidence,
   currentUserDisplayName,
@@ -335,7 +341,17 @@ const ListTasks = ({
                 className={styles.taskSectionReloadBtn}
                 onClick={onReload}
               >
-                Reload Job
+                Reload Tasks
+              </button>
+            )}
+            {onReport && (
+              <button
+                type="button"
+                className={styles.taskSectionReloadBtn}
+                onClick={onReport}
+                disabled={isReportLoading}
+              >
+                {isReportLoading ? '…' : 'Report'}
               </button>
             )}
             <p className={styles.taskSectionHeading}>{heading}</p>

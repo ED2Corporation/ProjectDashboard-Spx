@@ -119,7 +119,7 @@ describe('ProjectRowDashboard', () => {
     expect(screen.getByTestId('ProjectCatalogEditor')).toBeInTheDocument();
   });
 
-  const baseStateWithTasks = (overrides?: Record<string, unknown>) => ({
+  const baseStateWithTasks = (overrides?: Record<string, unknown>): Record<string, unknown> => ({
     tasks: [{ Id: '1', Task: 'T1', Gate: 'Gate 1', Title: '001', Complete: 50, Start: '2026-01-01', Finish: '2026-06-01' }],
     gates: [{ Gate: 'Gate 1', Complete: 50, Start: '2026-01-01', Finish: '2026-06-01' }],
     filteredTasks: [],
