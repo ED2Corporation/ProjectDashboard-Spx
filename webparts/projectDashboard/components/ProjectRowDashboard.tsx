@@ -618,6 +618,7 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
               setTimeout(() => { setShowReport(true); setIsReportLoading(false); }, 300);
             }}
             isReportLoading={isReportLoading}
+            isReportActive={showReport}
             selectedTaskId={selectedTask?.Id}
             expandedContent={expandedTaskCard}
             creatingTaskId={creatingId ?? undefined}

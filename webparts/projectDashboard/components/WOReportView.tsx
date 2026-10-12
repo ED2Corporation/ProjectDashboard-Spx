@@ -242,19 +242,28 @@ const WOReportView: React.FC<WOReportViewProps> = ({ tasks, gates, activeGate, o
       {/* SUMMARY (always shown)                                           */}
       {/* ══════════════════════════════════════════════════════════════════ */}
 
-      {/* ── Section 1: Header ──────────────────────────────────────────── */}
+      {/* ── Section 1: Cover ───────────────────────────────────────────── */}
       {project && (
-        <div className={styles.summaryHeader}>
-          <div className={styles.summaryHeaderBar}>
-            {project.poNumberCustomer && <span>{project.poNumberCustomer}</span>}
-            {project.ProjectNumber && <span>WO-{project.ProjectNumber}</span>}
-            <span>WORK ORDER SUMMARY</span>
+        <div className={styles.reportCover}>
+          <div className={styles.coverLeft}>
+            <div className={styles.coverEyebrow}>Work Order Report</div>
+            <div className={styles.coverTitle}>{project.PartNumber || projectTitle}</div>
+            <div className={styles.coverMeta}>
+              {[project.Customer, project.ProjectNumber && `WO-${project.ProjectNumber}`, project.poNumberCustomer]
+                .filter(Boolean).join(' · ')}
+            </div>
+            <div className={styles.coverGrid}>
+              {project.PartNumber      && <div><span>Part #</span>{project.PartNumber}</div>}
+              {project.Customer        && <div><span>Customer</span>{project.Customer}</div>}
+              {project.Units           && <div><span>Quantity</span>{project.Units}</div>}
+              {project.ProjectNumber   && <div><span>WO #</span>{project.ProjectNumber}</div>}
+              {project.poNumberCustomer && <div><span>Customer PO</span>{project.poNumberCustomer}</div>}
+              {project.poNumberED2     && <div><span>ED2 PO</span>{project.poNumberED2}</div>}
+            </div>
           </div>
-          <div className={styles.summaryHeaderBody}>
-            {project.PartNumber  && <div><strong>Part Number:</strong> {project.PartNumber}</div>}
-            {project.Customer    && <div><strong>Customer:</strong> {project.Customer}</div>}
-            {project.Units       && <div><strong>Quantity:</strong> {project.Units}</div>}
-            {project.poNumberED2 && <div><strong>ED2 PO:</strong> {project.poNumberED2}</div>}
+          <div className={styles.coverRight}>
+            <div className={styles.coverStamp}>WO Report</div>
+            <div className={styles.coverDate}>{fmtDate(new Date())}</div>
           </div>
         </div>
       )}

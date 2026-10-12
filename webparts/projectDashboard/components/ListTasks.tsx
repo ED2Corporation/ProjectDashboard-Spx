@@ -27,6 +27,8 @@ interface ListGroupProps {
   onReport?: () => void;
   /** Shows a loading spinner on the Report button while the view is preparing */
   isReportLoading?: boolean;
+  /** When true the button label switches to "Workarea" (report is currently active) */
+  isReportActive?: boolean;
   onSave: (itemId: string, payload?: string) => void;
   /** Upload a file to evidence storage — enables the upload button in Complete mode */
   onUploadFile?: (file: File, taskTitle: string) => Promise<{ fileUrl: string; fileName: string }>;
@@ -73,6 +75,7 @@ const ListTasks = ({
   onReload,
   onReport,
   isReportLoading,
+  isReportActive,
   onUploadFile,
   onSaveEvidence,
   currentUserDisplayName,
@@ -326,13 +329,7 @@ const ListTasks = ({
 
   return (
     <>
-      {(showDetails
-        ? tasks.length
-        : tasks.filter(
-            (item) =>
-              Math.floor(item.Complete) < 100 &&
-              Math.floor(item.Complete) > 0
-          ).length) > 0 && (
+      {tasks.length > 0 && (
         <div>
           <div className={styles.taskSectionHeadingRow}>
             {onReload && (
@@ -351,11 +348,12 @@ const ListTasks = ({
                 onClick={onReport}
                 disabled={isReportLoading}
               >
-                {isReportLoading ? '…' : 'Report'}
+                {isReportLoading ? '…' : isReportActive ? 'Workarea' : 'Report'}
               </button>
             )}
             <p className={styles.taskSectionHeading}>{heading}</p>
           </div>
+          {showDetails && (
           <div className={`${styles.tableViewport} ${isShortListMode ? styles.tableViewportShort : ''}`}>
             <table className={`${styles.ed2Table} ${actionsExpanded ? styles.ed2TableActionsExpanded : ""}`}>
               <thead>
@@ -1048,6 +1046,7 @@ const ListTasks = ({
               </tbody>
             </table>
           </div>
+          )}
         </div>
       )}
     </>

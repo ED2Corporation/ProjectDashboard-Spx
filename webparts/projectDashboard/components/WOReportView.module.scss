@@ -77,50 +77,111 @@
   flex: 0 0 auto;
 }
 
-// ─── Summary sections ─────────────────────────────────────────────────────────
+// ─── Cover block ──────────────────────────────────────────────────────────────
 
-.summaryHeader {
-  margin-bottom: $sp-6;
+.reportCover {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 18px 20px;
+  margin-bottom: 20px;
+  background: $c-surface;
   border: 1px solid $c-border;
-  border-radius: 6px;
-  overflow: hidden;
+  border-left: 5px solid $c-primary;
+  border-radius: 8px;
+  box-shadow: $shadow-card;
 }
 
-.summaryHeaderBar {
-  display: flex;
-  align-items: center;
-  gap: $sp-5;
-  padding: $sp-3 $sp-5;
-  background: $c-primary;
-  color: #fff;
-  font-size: $f-md;
+.coverLeft { flex: 1; min-width: 0; }
+
+.coverEyebrow {
+  font-size: $f-xs;
   font-weight: 700;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
+  color: $c-text-muted;
+  margin-bottom: $sp-2;
 }
 
-.summaryHeaderBody {
-  display: flex;
-  flex-wrap: wrap;
-  gap: $sp-3 $sp-6;
-  padding: $sp-4 $sp-5;
-  background: $c-surface-soft;
-  font-size: $f-base;
+.coverTitle {
+  font-size: 20px;
+  font-weight: 700;
   color: $c-text;
-
-  strong { color: $c-text-secondary; font-weight: 600; }
+  margin: 0 0 $sp-2;
+  line-height: 1.2;
 }
+
+.coverMeta {
+  font-size: $f-sm;
+  color: $c-text-subtle;
+  margin-bottom: $sp-4;
+}
+
+.coverGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: $sp-2;
+  margin-top: $sp-4;
+
+  > div {
+    padding: $sp-2 $sp-4;
+    border: 1px solid $c-border-subtle;
+    border-radius: $r-sm;
+    background: $c-surface-soft;
+    font-size: $f-sm;
+    color: $c-text;
+
+    span {
+      display: block;
+      font-size: $f-xs;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: $c-text-muted;
+      margin-bottom: 2px;
+    }
+  }
+}
+
+.coverRight {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: $sp-3;
+  flex-shrink: 0;
+  padding-left: $sp-6;
+}
+
+.coverStamp {
+  display: inline-block;
+  padding: 4px 12px;
+  border: 2px solid $c-border-mid;
+  border-radius: $r-sm;
+  color: $c-text-subtle;
+  font-size: $f-sm;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  transform: rotate(-2deg);
+}
+
+.coverDate {
+  font-size: $f-xs;
+  color: $c-text-muted;
+}
+
+// ─── Section titles ───────────────────────────────────────────────────────────
 
 .summarySection {
   margin-bottom: $sp-6;
 }
 
 .summarySectionTitle {
-  font-size: $f-sm;
+  font-size: $f-xs;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.07em;
-  color: $c-text-secondary;
+  color: $c-text-subtle;
   margin-bottom: $sp-3;
   padding-bottom: $sp-2;
   border-bottom: 2px solid $c-border;
@@ -128,38 +189,51 @@
 
 .summaryEmpty {
   font-size: $f-base;
-  color: $c-text-subtle;
+  color: $c-text-muted;
   font-style: italic;
 }
 
-// Gate Log grid (2-column for multiple gates)
+// ─── General Update / Gate log ────────────────────────────────────────────────
+
 .gateLogGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  gap: $sp-4 $sp-6;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: $sp-4 $sp-5;
 }
 
-.gateLogBlock { min-width: 0; }
+.gateLogBlock {
+  min-width: 0;
+  padding: $sp-4;
+  background: $c-surface;
+  border: 1px solid $c-border-subtle;
+  border-left: 3px solid $c-primary;
+  border-radius: 0 $r-sm $r-sm 0;
+}
 
 .gateLogGateName {
-  font-size: $f-base;
+  font-size: $f-xs;
   font-weight: 700;
-  color: $c-text;
-  margin-bottom: $sp-2;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: $c-text-subtle;
+  margin-bottom: $sp-3;
 }
 
 .gateLogList {
   margin: 0;
-  padding-left: $sp-5;
+  padding: 0;
+  list-style: none;
   display: flex;
   flex-direction: column;
-  gap: $sp-1;
+  gap: $sp-2;
 }
 
 .gateLogItem {
   font-size: $f-base;
   color: $c-text;
-  line-height: 1.4;
+  line-height: 1.45;
+  padding-left: $sp-3;
+  border-left: 2px solid $c-border-subtle;
 }
 
 // ─── Production Phases + LOT panels ──────────────────────────────────────────
@@ -173,15 +247,24 @@
 
 .panelsTwoCols { grid-template-columns: 1fr 1fr; }
 
-.panel { min-width: 0; }
+.panel {
+  min-width: 0;
+  background: $c-surface;
+  border: 1px solid $c-border-subtle;
+  border-radius: $r-sm;
+  overflow: hidden;
+  box-shadow: $shadow-sm;
+}
 
 .panelHeader {
-  font-size: $f-sm;
+  padding: $sp-3 $sp-5;
+  font-size: $f-xs;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.07em;
-  color: $c-text-secondary;
-  margin-bottom: $sp-3;
+  color: $c-text-subtle;
+  background: $c-surface-soft;
+  border-bottom: 1px solid $c-border-subtle;
 }
 
 .phaseTable {
@@ -190,57 +273,67 @@
   font-size: $f-base;
 
   th {
-    padding: 5px 8px;
+    padding: 5px 10px;
     text-align: left;
-    font-weight: 600;
+    font-weight: 700;
     border-bottom: 2px solid $c-border;
-    color: $c-text-secondary;
-    font-size: $f-sm;
+    color: $c-text-muted;
+    font-size: $f-xs;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
     white-space: nowrap;
+    background: $c-surface-soft;
   }
 
   td {
-    padding: 5px 8px;
+    padding: 5px 10px;
     border-bottom: 1px solid $c-border-subtle;
+    color: $c-text-secondary;
+    vertical-align: middle;
   }
 
-  tbody tr:hover { background: $c-table-hover; }
+  tbody tr:nth-child(even) td { background: #fafbfd; }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover td { background: $c-table-hover; }
 }
 
-.rowActive { background: $c-table-active !important; }
+.rowActive td { background: $c-table-active !important; }
 
-// ─── Status badges (Completed / In Progress / Not Started) ───────────────────
+// ─── Status badges ────────────────────────────────────────────────────────────
 
 .statusBadge {
   display: inline-block;
   padding: 2px 8px;
-  border-radius: 4px;
+  border-radius: 999px;
   font-size: $f-xs;
   font-weight: 700;
   white-space: nowrap;
 }
 
 .statusCompleted  { color: $c-completed; background: $c-completed-bg; }
-.statusInProgress { color: $c-stalled;   background: $c-stalled-bg;   }
-.statusNotStarted { color: $c-text-subtle; background: $c-surface-mid; }
+.statusInProgress { color: $c-ontime;    background: $c-ontime-bg;    }
+.statusNotStarted { color: $c-text-subtle; background: $c-surface-dark; }
 
-// ─── Gate groups ──────────────────────────────────────────────────────────────
+// ─── Gate groups (Detailed section) ──────────────────────────────────────────
 
 .gateGroups { display: flex; flex-direction: column; gap: $sp-5; }
 
 .gateGroup {
+  background: $c-surface;
   border: 1px solid $c-border-subtle;
-  border-radius: 6px;
+  border-radius: $r-sm;
   overflow: hidden;
+  box-shadow: $shadow-sm;
 }
 
 .gateGroupHeader {
   display: flex;
   align-items: center;
   gap: $sp-4;
-  padding: $sp-3 $sp-5;
-  background: $c-surface-soft;
+  padding: $sp-3 $sp-5 $sp-3 $sp-4;
+  background: linear-gradient(90deg, #{$c-primary-bg} 0%, #{$c-surface} 100%);
   border-bottom: 1px solid $c-border-subtle;
+  border-left: 3px solid $c-primary;
 }
 
 .gateGroupName {
@@ -252,7 +345,7 @@
 
 .gateGroupMeta {
   font-size: $f-sm;
-  color: $c-text-secondary;
+  color: $c-text-subtle;
   flex: 0 0 auto;
 }
 
@@ -282,6 +375,7 @@
   min-height: 32px;
 
   &:last-child { border-bottom: none; }
+  &:nth-child(even) { background: #fafbfd; }
   &:hover { background: $c-table-hover; }
 }
 
@@ -300,14 +394,14 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: $c-text-secondary;
+  color: $c-text-muted;
 }
 
 .colHdrTask { flex: 1; }
 
 .taskWbs {
   font-size: $f-sm;
-  color: $c-text-subtle;
+  color: $c-text-muted;
   min-width: 46px;
   flex: 0 0 auto;
 }
@@ -324,7 +418,7 @@
 
 .taskPct {
   font-size: $f-sm;
-  color: $c-text-secondary;
+  color: $c-text-subtle;
   flex: 0 0 auto;
   min-width: 32px;
   text-align: right;
@@ -345,8 +439,9 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: $c-text-secondary;
+  color: $c-text-muted;
   border-left: 1px solid $c-border-subtle;
+  background: $c-surface-soft;
   align-self: center;
 }
 
@@ -360,6 +455,10 @@
 }
 
 .logEntry {
+  padding: $sp-2 $sp-3 $sp-2 $sp-4;
+  border-left: 2px solid $c-border-subtle;
+  border-radius: 0 $r-sm $r-sm 0;
+  background: $c-surface-soft;
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -373,12 +472,13 @@
 
 .logEntryMeta {
   font-size: $f-xs;
-  color: $c-text-subtle;
+  color: $c-text-muted;
 }
 
 .logEmpty {
   color: $c-text-muted;
   font-size: $f-sm;
+  font-style: italic;
 }
 
 .evidenceLink {
@@ -393,7 +493,7 @@
 .pill {
   display: inline-block;
   padding: 1px 7px;
-  border-radius: 4px;
+  border-radius: 999px;
   font-size: $f-xs;
   font-weight: 700;
   text-transform: capitalize;
@@ -407,7 +507,7 @@
 .approval_rejected { color: $c-delayed;   background: $c-delayed-bg;   }
 .approval_pending  { color: $c-stalled;   background: $c-stalled-bg;   }
 
-// ─── Bitácora (Tasks OFF + note filters active) ───────────────────────────────
+// ─── Bitácora ────────────────────────────────────────────────────────────────
 
 .bitacora {
   display: flex;
@@ -419,14 +519,23 @@
   grid-template-columns: 90px 130px 64px 1fr;
   align-items: start;
   gap: $sp-3;
-  padding: $sp-2 $sp-5;
+  padding: $sp-3 $sp-5;
   border-bottom: 1px solid $c-border-subtle;
   font-size: $f-base;
 
   &:last-child { border-bottom: none; }
+  &:nth-child(even) { background: #fafbfd; }
   &:hover { background: $c-table-hover; }
 }
 
-.bitacoraDate { color: $c-text-subtle; font-size: $f-sm; white-space: nowrap; }
-.bitacoraUser { color: $c-text-secondary; font-size: $f-sm; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.bitacoraText { color: $c-text; line-height: 1.4; }
+.bitacoraDate { color: $c-text-muted;    font-size: $f-sm; white-space: nowrap; }
+.bitacoraUser { color: $c-text-subtle;   font-size: $f-sm; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bitacoraText { color: $c-text;          line-height: 1.4; }
+
+// ─── Print ────────────────────────────────────────────────────────────────────
+
+@media print {
+  .reportCover { box-shadow: none; }
+  .panel       { box-shadow: none; }
+  .gateGroup   { box-shadow: none; }
+}
