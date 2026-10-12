@@ -11,7 +11,7 @@ import { ITaskListItem } from "../../../models";
 import { IProjectCatalogItem } from "../../../models/IProjectService";
 import { ProjectService } from "../services/ProjectService";
 import { useProjectState } from "../hooks/useProjectState";
-import { GetBucketStatus } from "../utils/GetGateStatus";
+import { GetBucketStatusFromTasks } from "../utils/GetGateStatus";
 import { GroupByProject } from "../utils/GroupByProject";
 import { IProjectDashboardWebPartProps } from "../../../models";
 
@@ -288,7 +288,7 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
     if (s === "archived" || s === "closed") {
       key = "archived";
     } else {
-      const overall = GetBucketStatus(gates);
+      const overall = GetBucketStatusFromTasks(tasks);
       const allGatesClosed = gates.every(g => g.Complete >= 100);
       if (overall === "red")                       key = "delayed";
       else if (overall === "yellow")               key = "stalled";
@@ -297,14 +297,14 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
     }
     onStatusReady(localProject.Title, key);
     setStatusReported(true);
-  }, [gates, localProject, onStatusReady, statusReported]);
+  }, [gates, tasks, localProject, onStatusReady, statusReported]);
 
   // Sync executionStatus to ED2-Projects.ProjectDetails so PO-Inbounds can read it
   const lastWrittenExecutionStatus = useRef<string | null>(null);
   useEffect(() => {
     if (gates.length === 0) return;
     const overallPct = GroupByProject(gates).Complete;
-    const bucketStatus = GetBucketStatus(gates);
+    const bucketStatus = GetBucketStatusFromTasks(tasks);
     const allGatesClosed = gates.every(g => g.Complete >= 100);
     const status =
       bucketStatus === 'green' && allGatesClosed ? 'completed'  :
@@ -317,7 +317,7 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
     projectService.patchProjectDetails(localProject.Title, {
       executionStatus: { status, overallPct, updatedAt: new Date().toISOString() },
     }).catch(e => console.error('[ProjectRowDashboard] executionStatus sync:', e));
-  }, [gates, localProject.Title, projectService]);
+  }, [gates, tasks, localProject.Title, projectService]);
 
   const handleGateClick = (gate: string): void => {
     const next = activeGate === gate ? null : gate;

@@ -2,14 +2,14 @@
  * @jest-environment jsdom
  */
 const mockUseProjectState = jest.fn();
-const mockGetBucketStatus = jest.fn();
+const mockGetBucketStatusFromTasks = jest.fn();
 
 jest.mock('../../hooks/useProjectState', () => ({
   useProjectState: (...args: unknown[]) => mockUseProjectState(...args),
 }));
 
 jest.mock('../../utils/GetGateStatus', () => ({
-  GetBucketStatus: (...args: unknown[]) => mockGetBucketStatus(...args),
+  GetBucketStatusFromTasks: (...args: unknown[]) => mockGetBucketStatusFromTasks(...args),
 }));
 
 jest.mock('../../services/ProjectService', () => ({
@@ -81,7 +81,7 @@ describe('ProjectRowDashboard', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    mockGetBucketStatus.mockReturnValue('green');
+    mockGetBucketStatusFromTasks.mockReturnValue('green');
   });
 
   it('keeps ProjectCatalogEditor reachable when the task list is missing', async () => {
@@ -94,6 +94,7 @@ describe('ProjectRowDashboard', () => {
       onSelectItem: jest.fn(),
       onNewTask: jest.fn(),
       onDeleteTask: jest.fn(),
+      onMoveTask: jest.fn(),
       onUpdateTask: jest.fn(),
       onUploadFile: jest.fn(),
       onSaveLogField: jest.fn(),
@@ -118,24 +119,29 @@ describe('ProjectRowDashboard', () => {
     expect(screen.getByTestId('ProjectCatalogEditor')).toBeInTheDocument();
   });
 
-  it('reports project status using Title as the stable key', async () => {
-    const onStatusReady = jest.fn();
+  const baseStateWithTasks = (overrides?: Record<string, unknown>) => ({
+    tasks: [{ Id: '1', Task: 'T1', Gate: 'Gate 1', Title: '001', Complete: 50, Start: '2026-01-01', Finish: '2026-06-01' }],
+    gates: [{ Gate: 'Gate 1', Complete: 50, Start: '2026-01-01', Finish: '2026-06-01' }],
+    filteredTasks: [],
+    onReset: jest.fn(),
+    onGateFilterChange: jest.fn(),
+    onSelectItem: jest.fn(),
+    onNewTask: jest.fn(),
+    onDeleteTask: jest.fn(),
+    onMoveTask: jest.fn(),
+    onUpdateTask: jest.fn(),
+    onUploadFile: jest.fn(),
+    onSaveLogField: jest.fn(),
+    onSendEmail: jest.fn(),
+    onSearchUsers: jest.fn(),
+    ...overrides,
+  });
 
-    mockUseProjectState.mockReturnValue({
-      tasks: [{ Id: '1', Task: 'T1', Gate: 'Gate 1', Title: '001' }],
-      gates: [{ Gate: 'Gate 1', Complete: 50 }],
-      filteredTasks: [{ Id: '1', Task: 'T1', Gate: 'Gate 1', Title: '001' }],
-      onReset: jest.fn(),
-      onGateFilterChange: jest.fn(),
-      onSelectItem: jest.fn(),
-      onNewTask: jest.fn(),
-      onDeleteTask: jest.fn(),
-      onUpdateTask: jest.fn(),
-      onUploadFile: jest.fn(),
-      onSaveLogField: jest.fn(),
-      onSendEmail: jest.fn(),
-      onSearchUsers: jest.fn(),
-    });
+  it('reports "ontime" when GetBucketStatusFromTasks returns green but not all gates closed', async () => {
+    const onStatusReady = jest.fn();
+    mockGetBucketStatusFromTasks.mockReturnValue('green');
+    // gate not fully closed (Complete: 50) → allGatesClosed = false → key = 'ontime'
+    mockUseProjectState.mockReturnValue(baseStateWithTasks());
 
     render(
       <ProjectRowDashboard
@@ -149,6 +155,69 @@ describe('ProjectRowDashboard', () => {
 
     await waitFor(() => {
       expect(onStatusReady).toHaveBeenCalledWith(project.Title, 'ontime');
+    });
+    expect(mockGetBucketStatusFromTasks).toHaveBeenCalled();
+  });
+
+  it('reports "completed" when all gates are closed and GetBucketStatusFromTasks returns green', async () => {
+    const onStatusReady = jest.fn();
+    mockGetBucketStatusFromTasks.mockReturnValue('green');
+    mockUseProjectState.mockReturnValue(baseStateWithTasks({
+      gates: [{ Gate: 'Gate 1', Complete: 100 }],
+    }));
+
+    render(
+      <ProjectRowDashboard
+        project={project}
+        context={context as never}
+        sp={createSp(true) as never}
+        catalogSp={createSp(true) as never}
+        onStatusReady={onStatusReady}
+      />
+    );
+
+    await waitFor(() => {
+      expect(onStatusReady).toHaveBeenCalledWith(project.Title, 'completed');
+    });
+  });
+
+  it('reports "stalled" (Off Track) when GetBucketStatusFromTasks returns yellow', async () => {
+    const onStatusReady = jest.fn();
+    mockGetBucketStatusFromTasks.mockReturnValue('yellow');
+    mockUseProjectState.mockReturnValue(baseStateWithTasks());
+
+    render(
+      <ProjectRowDashboard
+        project={project}
+        context={context as never}
+        sp={createSp(true) as never}
+        catalogSp={createSp(true) as never}
+        onStatusReady={onStatusReady}
+      />
+    );
+
+    await waitFor(() => {
+      expect(onStatusReady).toHaveBeenCalledWith(project.Title, 'stalled');
+    });
+  });
+
+  it('reports "delayed" (At Risk) when GetBucketStatusFromTasks returns red', async () => {
+    const onStatusReady = jest.fn();
+    mockGetBucketStatusFromTasks.mockReturnValue('red');
+    mockUseProjectState.mockReturnValue(baseStateWithTasks());
+
+    render(
+      <ProjectRowDashboard
+        project={project}
+        context={context as never}
+        sp={createSp(true) as never}
+        catalogSp={createSp(true) as never}
+        onStatusReady={onStatusReady}
+      />
+    );
+
+    await waitFor(() => {
+      expect(onStatusReady).toHaveBeenCalledWith(project.Title, 'delayed');
     });
   });
 });
