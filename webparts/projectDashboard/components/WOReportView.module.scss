@@ -77,14 +77,28 @@
   flex: 0 0 auto;
 }
 
+// ─── Summary 2×2 grid ─────────────────────────────────────────────────────────
+
+.summaryGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: $sp-5;
+  margin-bottom: $sp-6;
+}
+
+.quadrant {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
 // ─── Cover block ──────────────────────────────────────────────────────────────
 
 .reportCover {
   display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  padding: 18px 20px;
-  margin-bottom: 20px;
+  flex-direction: column;
+  padding: 16px 18px;
+  flex: 1;
   background: $c-surface;
   border: 1px solid $c-border;
   border-left: 5px solid $c-primary;
@@ -92,39 +106,36 @@
   box-shadow: $shadow-card;
 }
 
-.coverLeft { flex: 1; min-width: 0; }
-
 .coverEyebrow {
   font-size: $f-xs;
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: $c-text-muted;
-  margin-bottom: $sp-2;
+  margin-bottom: $sp-1;
 }
 
 .coverTitle {
-  font-size: 20px;
+  font-size: 18px;
   font-weight: 700;
   color: $c-text;
   margin: 0 0 $sp-2;
-  line-height: 1.2;
+  line-height: 1.25;
 }
 
 .coverMeta {
   font-size: $f-sm;
   color: $c-text-subtle;
-  margin-bottom: $sp-4;
+  margin-bottom: $sp-3;
 }
 
 .coverGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  grid-template-columns: 1fr 1fr;
   gap: $sp-2;
-  margin-top: $sp-4;
 
   > div {
-    padding: $sp-2 $sp-4;
+    padding: $sp-2 $sp-3;
     border: 1px solid $c-border-subtle;
     border-radius: $r-sm;
     background: $c-surface-soft;
@@ -143,26 +154,26 @@
   }
 }
 
-.coverRight {
+.coverFooter {
   display: flex;
-  flex-direction: column;
-  align-items: flex-end;
+  justify-content: flex-end;
+  align-items: center;
   gap: $sp-3;
-  flex-shrink: 0;
-  padding-left: $sp-6;
+  margin-top: auto;
+  padding-top: $sp-4;
 }
 
 .coverStamp {
   display: inline-block;
-  padding: 4px 12px;
+  padding: 3px 10px;
   border: 2px solid $c-border-mid;
   border-radius: $r-sm;
   color: $c-text-subtle;
-  font-size: $f-sm;
+  font-size: $f-xs;
   font-weight: 800;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
-  transform: rotate(-2deg);
+  transform: rotate(-1.5deg);
 }
 
 .coverDate {
@@ -196,9 +207,12 @@
 // ─── General Update / Gate log ────────────────────────────────────────────────
 
 .gateLogGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: $sp-4 $sp-5;
+  display: flex;
+  flex-direction: column;
+  gap: $sp-3;
+  padding: $sp-4 $sp-5;
+  overflow-y: auto;
+  flex: 1;
 }
 
 .gateLogBlock {
@@ -249,6 +263,9 @@
 
 .panel {
   min-width: 0;
+  flex: 1;                        // fill quadrant height
+  display: flex;
+  flex-direction: column;
   background: $c-surface;
   border: 1px solid $c-border-subtle;
   border-radius: $r-sm;
@@ -265,6 +282,14 @@
   color: $c-text-subtle;
   background: $c-surface-soft;
   border-bottom: 1px solid $c-border-subtle;
+  flex: 0 0 auto;
+}
+
+.panelEmpty {
+  padding: $sp-4 $sp-5;
+  font-size: $f-base;
+  color: $c-text-muted;
+  font-style: italic;
 }
 
 .phaseTable {
@@ -364,28 +389,54 @@
   transition: width 0.3s;
 }
 
-// ─── Task rows ────────────────────────────────────────────────────────────────
+// ─── Detailed section — global column header ─────────────────────────────────
+
+.detailedColHeader {
+  display: flex;
+  align-items: center;
+  background: $c-surface-soft;
+  border: 1px solid $c-border-subtle;
+  border-bottom: 2px solid $c-border;
+  border-radius: $r-sm $r-sm 0 0;
+  margin-bottom: 0;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+// ─── Task block (header bar + log row) ───────────────────────────────────────
 
 .taskRows { display: flex; flex-direction: column; }
 
-.taskRow {
-  display: flex;
-  align-items: stretch;
+.taskBlock {
   border-bottom: 1px solid $c-border-subtle;
-  min-height: 32px;
-
   &:last-child { border-bottom: none; }
-  &:nth-child(even) { background: #fafbfd; }
-  &:hover { background: $c-table-hover; }
+  &:nth-child(even) .taskHeader { background: #fafbfd; }
+  &:hover .taskHeader { background: $c-table-hover; }
 }
+
+.taskHeader {
+  display: flex;
+  align-items: center;
+  gap: $sp-2;
+  padding: $sp-1 $sp-4;
+  background: $c-surface-soft;
+  border-bottom: 1px solid $c-border-subtle;
+}
+
+.taskLogRow {
+  display: grid;
+}
+
+// ─── Shared task meta layout (used in header + global col header) ─────────────
 
 .taskMeta {
   display: flex;
   align-items: center;
-  gap: $sp-3;
-  padding: $sp-2 $sp-5;
-  min-width: 260px;
-  flex: 0 0 260px;
+  gap: $sp-2;
+  padding: $sp-1 $sp-4;
+  min-width: 220px;
+  flex: 0 0 220px;
   border-right: 1px solid $c-border-subtle;
 }
 
@@ -402,7 +453,7 @@
 .taskWbs {
   font-size: $f-sm;
   color: $c-text-muted;
-  min-width: 46px;
+  min-width: 40px;
   flex: 0 0 auto;
 }
 
@@ -420,7 +471,7 @@
   font-size: $f-sm;
   color: $c-text-subtle;
   flex: 0 0 auto;
-  min-width: 32px;
+  min-width: 28px;
   text-align: right;
 }
 
@@ -434,7 +485,7 @@
 }
 
 .logColHdr {
-  padding: $sp-2 $sp-4;
+  padding: $sp-1 $sp-3;
   font-size: $f-xs;
   font-weight: 700;
   text-transform: uppercase;
@@ -446,22 +497,22 @@
 }
 
 .logCol {
-  padding: $sp-2 $sp-4;
+  padding: $sp-2 $sp-3;
   border-left: 1px solid $c-border-subtle;
   display: flex;
   flex-direction: column;
-  gap: $sp-2;
+  gap: $sp-1;
   align-self: stretch;
 }
 
 .logEntry {
-  padding: $sp-2 $sp-3 $sp-2 $sp-4;
+  padding: $sp-1 $sp-2 $sp-1 $sp-3;
   border-left: 2px solid $c-border-subtle;
   border-radius: 0 $r-sm $r-sm 0;
   background: $c-surface-soft;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 1px;
 }
 
 .logEntryText {

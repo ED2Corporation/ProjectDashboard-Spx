@@ -176,9 +176,25 @@ const WOReportView: React.FC<WOReportViewProps> = ({ tasks, gates, activeGate, o
         <button
           type="button"
           className={`${styles.badge} ${isDetailed ? styles.badgeActive : ''}`}
-          onClick={() => setIsDetailed(p => !p)}
+          onClick={() => {
+            const next = !isDetailed;
+            setIsDetailed(next);
+            if (next) {
+              setShowTasks(true);
+              setShowAllTasks(false);
+              setNoteFilters(new Set<NoteBadge>(['issue', 'fix', 'action']));
+              setShowEvidence(true);
+              setShowApprovals(true);
+            } else {
+              setShowTasks(false);
+              setShowAllTasks(false);
+              setNoteFilters(new Set<NoteBadge>());
+              setShowEvidence(false);
+              setShowApprovals(false);
+            }
+          }}
         >
-          {isDetailed ? 'Detailed' : 'Summary'}
+          {isDetailed ? 'Summary' : 'Detailed'}
         </button>
         <span className={styles.badgeDivider} />
         {/* Task visibility */}
@@ -239,254 +255,258 @@ const WOReportView: React.FC<WOReportViewProps> = ({ tasks, gates, activeGate, o
       </div>
 
       {/* ══════════════════════════════════════════════════════════════════ */}
-      {/* SUMMARY (always shown)                                           */}
+      {/* SUMMARY — 2×2 grid                                               */}
       {/* ══════════════════════════════════════════════════════════════════ */}
+      <div className={styles.summaryGrid}>
 
-      {/* ── Section 1: Cover ───────────────────────────────────────────── */}
-      {project && (
-        <div className={styles.reportCover}>
-          <div className={styles.coverLeft}>
-            <div className={styles.coverEyebrow}>Work Order Report</div>
-            <div className={styles.coverTitle}>{project.PartNumber || projectTitle}</div>
-            <div className={styles.coverMeta}>
-              {[project.Customer, project.ProjectNumber && `WO-${project.ProjectNumber}`, project.poNumberCustomer]
-                .filter(Boolean).join(' · ')}
-            </div>
-            <div className={styles.coverGrid}>
-              {project.PartNumber      && <div><span>Part #</span>{project.PartNumber}</div>}
-              {project.Customer        && <div><span>Customer</span>{project.Customer}</div>}
-              {project.Units           && <div><span>Quantity</span>{project.Units}</div>}
-              {project.ProjectNumber   && <div><span>WO #</span>{project.ProjectNumber}</div>}
-              {project.poNumberCustomer && <div><span>Customer PO</span>{project.poNumberCustomer}</div>}
-              {project.poNumberED2     && <div><span>ED2 PO</span>{project.poNumberED2}</div>}
-            </div>
-          </div>
-          <div className={styles.coverRight}>
-            <div className={styles.coverStamp}>WO Report</div>
-            <div className={styles.coverDate}>{fmtDate(new Date())}</div>
-          </div>
-        </div>
-      )}
-
-      {/* ── Section 2: Gate Log (General Update — notes.action per gate) ── */}
-      <div className={styles.summarySection}>
-        <div className={styles.summarySectionTitle}>General Update</div>
-        <div className={styles.gateLogGrid}>
-          {visibleGates.map(gate => {
-            const actionNotes = getActionNotesForGate(gate.Gate);
-            if (actionNotes.length === 0) return null;
-            return (
-              <div key={gate.Gate} className={styles.gateLogBlock}>
-                <div className={styles.gateLogGateName}>{gate.Gate}</div>
-                <ul className={styles.gateLogList}>
-                  {actionNotes.map((n, i) => (
-                    <li key={i} className={styles.gateLogItem}>{n.note}</li>
-                  ))}
-                </ul>
+        {/* Row 1 Left — Cover */}
+        <div className={styles.quadrant}>
+          {project && (
+            <div className={styles.reportCover}>
+              <div className={styles.coverEyebrow}>Work Order Report</div>
+              <div className={styles.coverTitle}>{project.PartNumber || projectTitle}</div>
+              <div className={styles.coverMeta}>
+                {[project.Customer, project.ProjectNumber && `WO-${project.ProjectNumber}`, project.poNumberCustomer]
+                  .filter(Boolean).join(' · ')}
               </div>
-            );
-          })}
-          {visibleGates.every(g => getActionNotesForGate(g.Gate).length === 0) && (
-            <span className={styles.summaryEmpty}>No action notes recorded.</span>
+              <div className={styles.coverGrid}>
+                {project.Units            && <div><span>Quantity</span>{project.Units}</div>}
+                {project.ProjectNumber    && <div><span>WO #</span>{project.ProjectNumber}</div>}
+                {project.poNumberCustomer && <div><span>Customer PO</span>{project.poNumberCustomer}</div>}
+                {project.poNumberED2      && <div><span>ED2 PO</span>{project.poNumberED2}</div>}
+              </div>
+              <div className={styles.coverFooter}>
+                <div className={styles.coverDate}>{fmtDate(new Date())}</div>
+                <div className={styles.coverStamp}>WO Report</div>
+              </div>
+            </div>
           )}
         </div>
-      </div>
 
-      {/* ── Section 3 + 4: Production Phases + LOT Schedule ───────────── */}
-      <div className={`${styles.panels} ${releaseTasks.length > 0 ? styles.panelsTwoCols : ''}`}>
-
-        {/* Section 3 — Production Phases */}
-        <div className={styles.panel}>
-          <div className={styles.panelHeader}>Production Phases</div>
-          <table className={styles.phaseTable}>
-            <thead>
-              <tr><th>#</th><th>Phase</th><th>Status</th><th>Metric</th></tr>
-            </thead>
-            <tbody>
-              {gates.map((g, i) => {
-                const { label, cls } = gateStatusLabel(g.Complete);
+        {/* Row 1 Right — General Update (action notes per gate) */}
+        <div className={styles.quadrant}>
+          <div className={styles.panel}>
+            <div className={styles.panelHeader}>General Update</div>
+            <div className={styles.gateLogGrid}>
+              {visibleGates.map(gate => {
+                const actionNotes = getActionNotesForGate(gate.Gate);
+                if (actionNotes.length === 0) return null;
                 return (
-                  <tr key={g.Gate} className={activeGate === g.Gate ? styles.rowActive : ''}>
-                    <td>{i + 1}</td>
-                    <td>{g.Gate}</td>
-                    <td><span className={`${styles.statusBadge} ${cls}`}>{label}</span></td>
-                    <td>{Math.round(g.Complete)}%</td>
-                  </tr>
+                  <div key={gate.Gate} className={styles.gateLogBlock}>
+                    <div className={styles.gateLogGateName}>{gate.Gate}</div>
+                    <ul className={styles.gateLogList}>
+                      {actionNotes.map((n, i) => (
+                        <li key={i} className={styles.gateLogItem}>{n.note}</li>
+                      ))}
+                    </ul>
+                  </div>
                 );
               })}
-            </tbody>
-          </table>
+              {visibleGates.every(g => getActionNotesForGate(g.Gate).length === 0) && (
+                <span className={styles.summaryEmpty}>No action notes recorded.</span>
+              )}
+            </div>
+          </div>
         </div>
 
-        {/* Section 4 — LOT Schedule */}
-        {releaseTasks.length > 0 && (
+        {/* Row 2 Left — Production Phases */}
+        <div className={styles.quadrant}>
           <div className={styles.panel}>
-            <div className={styles.panelHeader}>LOT Schedule</div>
+            <div className={styles.panelHeader}>Production Phases</div>
             <table className={styles.phaseTable}>
               <thead>
-                <tr><th>LOT #</th><th>Shipment</th><th>Status</th><th>Target Date</th><th>Units</th></tr>
+                <tr><th>#</th><th>Phase</th><th>Status</th><th>%</th></tr>
               </thead>
               <tbody>
-                {releaseTasks.map((t, i) => {
-                  const { label, cls } = gateStatusLabel(t.Complete);
+                {gates.map((g, i) => {
+                  const { label, cls } = gateStatusLabel(g.Complete);
                   return (
-                    <tr key={t.Id}>
+                    <tr key={g.Gate} className={activeGate === g.Gate ? styles.rowActive : ''}>
                       <td>{i + 1}</td>
-                      <td>{t.Task}</td>
+                      <td>{g.Gate}</td>
                       <td><span className={`${styles.statusBadge} ${cls}`}>{label}</span></td>
-                      <td>{fmtDate(t.Finish)}</td>
-                      <td>{t.releaseUnits ?? '—'}</td>
+                      <td>{Math.round(g.Complete)}%</td>
                     </tr>
                   );
                 })}
               </tbody>
             </table>
           </div>
-        )}
+        </div>
+
+        {/* Row 2 Right — LOT Schedule */}
+        <div className={styles.quadrant}>
+          <div className={styles.panel}>
+            <div className={styles.panelHeader}>LOT Schedule</div>
+            {releaseTasks.length > 0 ? (
+              <table className={styles.phaseTable}>
+                <thead>
+                  <tr><th>#</th><th>Shipment</th><th>Status</th><th>Target</th><th>Units</th></tr>
+                </thead>
+                <tbody>
+                  {releaseTasks.map((t, i) => {
+                    const { label, cls } = gateStatusLabel(t.Complete);
+                    return (
+                      <tr key={t.Id}>
+                        <td>{i + 1}</td>
+                        <td>{t.Task}</td>
+                        <td><span className={`${styles.statusBadge} ${cls}`}>{label}</span></td>
+                        <td>{fmtDate(t.Finish)}</td>
+                        <td>{t.releaseUnits ?? '—'}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            ) : (
+              <div className={styles.panelEmpty}>No LOT releases defined.</div>
+            )}
+          </div>
+        </div>
+
       </div>
 
-      {/* ── Detailed section (appended when Detailed badge ON) ────────────── */}
+      {/* ── Detailed section ─────────────────────────────────────────────── */}
       {isDetailed && (showTasks || (!showTasks && hasNoteFilter)) && (
-        <div className={styles.gateGroups}>
-          {visibleGates.map(gate => {
-            const gateTasks  = tasksByGate[gate.Gate] ?? [];
-            const taskRows   = getTasksForGate(gate.Gate);
-            const bitacora   = !showTasks && hasNoteFilter ? getBitacoraForGate(gate.Gate) : [];
-
-            if (!showTasks && bitacora.length === 0) return null;
-            if (showTasks  && taskRows.length === 0  && !showAllTasks) return null;
-
-            return (
-              <div key={gate.Gate} className={styles.gateGroup}>
-                {/* Gate group header */}
-                <div className={styles.gateGroupHeader}>
-                  <span className={styles.gateGroupName}>{gate.Gate}</span>
-                  <span className={styles.gateGroupMeta}>
-                    {gateTasks.length} task{gateTasks.length !== 1 ? 's' : ''} · {Math.round(gate.Complete)}%
-                  </span>
-                  <div className={styles.gateGroupBarWrap}>
-                    <div className={styles.gateGroupBar} style={{ width: `${Math.min(gate.Complete, 100)}%` }} />
-                  </div>
-                </div>
-
-                {/* ── Task rows ──────────────────────────────────────────── */}
-                {showTasks && taskRows.length > 0 && (
-                  <div className={styles.taskRows}>
-                    {/* Column headers when log cols are active */}
-                    {logColCount > 0 && (
-                      <div className={styles.taskRow}>
-                        <div className={styles.taskMeta}>
-                          <span className={styles.colHdr}>WBS</span>
-                          <span className={`${styles.colHdr} ${styles.colHdrTask}`}>Task</span>
-                          <span className={styles.colHdr}>%</span>
-                        </div>
-                        <div
-                          className={styles.taskLogArea}
-                          style={{ gridTemplateColumns: `repeat(${logColCount}, 1fr)` }}
-                        >
-                          {hasNoteFilter  && <span className={styles.logColHdr}>Notes</span>}
-                          {showEvidence   && <span className={styles.logColHdr}>Evidence</span>}
-                          {showApprovals  && <span className={styles.logColHdr}>Approvals</span>}
-                        </div>
-                      </div>
-                    )}
-
-                    {taskRows.map(t => (
-                      <div key={t.Id} className={styles.taskRow}>
-                        <div className={styles.taskMeta}>
-                          <span className={styles.taskWbs}>{t.Title}</span>
-                          <span className={styles.taskName}>{t.Task}</span>
-                          <span className={styles.taskPct}>{Math.round(t.Complete)}%</span>
-                        </div>
-
-                        {logColCount > 0 && (
-                          <div
-                            className={styles.taskLogArea}
-                            style={{ gridTemplateColumns: `repeat(${logColCount}, 1fr)` }}
-                          >
-                            {/* Notes column */}
-                            {hasNoteFilter && (
-                              <div className={styles.logCol}>
-                                {(t.Notes ?? [])
-                                  .filter(n => n.badge && noteFilters.has(n.badge))
-                                  .map((note, i) => (
-                                    <div key={i} className={styles.logEntry}>
-                                      <span className={`${styles.pill} ${note.badge ? NOTE_BADGE_CLS[note.badge] : ''}`}>
-                                        {note.badge}
-                                      </span>
-                                      <span className={styles.logEntryText}>{note.note}</span>
-                                      <span className={styles.logEntryMeta}>{note.user} · {fmtDate(note.date)}</span>
-                                    </div>
-                                  ))
-                                }
-                              </div>
-                            )}
-
-                            {/* Evidence column */}
-                            {showEvidence && (
-                              <div className={styles.logCol}>
-                                {(t.Evidence ?? []).length === 0
-                                  ? <span className={styles.logEmpty}>—</span>
-                                  : (t.Evidence ?? []).map((e, i) => (
-                                    <div key={i} className={styles.logEntry}>
-                                      <a
-                                        href={e.fileUrl}
-                                        target="_blank"
-                                        rel="noreferrer"
-                                        className={styles.evidenceLink}
-                                      >
-                                        {e.fileName}
-                                      </a>
-                                      <span className={styles.logEntryMeta}>{e.user} · {fmtDate(e.date)}</span>
-                                    </div>
-                                  ))
-                                }
-                              </div>
-                            )}
-
-                            {/* Approvals column */}
-                            {showApprovals && (
-                              <div className={styles.logCol}>
-                                {(t.Approvals ?? []).length === 0
-                                  ? <span className={styles.logEmpty}>—</span>
-                                  : (t.Approvals ?? []).map((a, i) => (
-                                    <div key={i} className={styles.logEntry}>
-                                      <span className={`${styles.pill} ${styles[`approval_${a.status}`]}`}>
-                                        {a.status}
-                                      </span>
-                                      <span className={styles.logEntryText}>{a.user}</span>
-                                      <span className={styles.logEntryMeta}>{fmtDate(a.date)}</span>
-                                    </div>
-                                  ))
-                                }
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {/* ── Bitácora (Tasks OFF + note filters) ─────────────────── */}
-                {!showTasks && bitacora.length > 0 && (
-                  <div className={styles.bitacora}>
-                    {bitacora.map((note, i) => (
-                      <div key={i} className={styles.bitacoraEntry}>
-                        <span className={styles.bitacoraDate}>{fmtDate(note.date)}</span>
-                        <span className={styles.bitacoraUser}>{note.user}</span>
-                        <span className={`${styles.pill} ${note.badge ? NOTE_BADGE_CLS[note.badge] : ''}`}>
-                          {note.badge}
-                        </span>
-                        <span className={styles.bitacoraText}>{note.note}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
+        <>
+          {/* Single global column header — shown once above all gate groups */}
+          {showTasks && logColCount > 0 && (
+            <div className={styles.detailedColHeader}>
+              <div className={styles.taskMeta}>
+                <span className={styles.colHdr}>WBS</span>
+                <span className={`${styles.colHdr} ${styles.colHdrTask}`}>Task</span>
+                <span className={styles.colHdr}>%</span>
               </div>
-            );
-          })}
-        </div>
+              <div
+                className={styles.taskLogArea}
+                style={{ gridTemplateColumns: `repeat(${logColCount}, 1fr)` }}
+              >
+                {hasNoteFilter  && <span className={styles.logColHdr}>Notes</span>}
+                {showEvidence   && <span className={styles.logColHdr}>Evidence</span>}
+                {showApprovals  && <span className={styles.logColHdr}>Approvals</span>}
+              </div>
+            </div>
+          )}
+
+          <div className={styles.gateGroups}>
+            {visibleGates.map(gate => {
+              const gateTasks = tasksByGate[gate.Gate] ?? [];
+              const taskRows  = getTasksForGate(gate.Gate);
+              const bitacora  = !showTasks && hasNoteFilter ? getBitacoraForGate(gate.Gate) : [];
+
+              if (!showTasks && bitacora.length === 0) return null;
+              if (showTasks  && taskRows.length === 0 && !showAllTasks) return null;
+
+              return (
+                <div key={gate.Gate} className={styles.gateGroup}>
+                  {/* Gate group header */}
+                  <div className={styles.gateGroupHeader}>
+                    <span className={styles.gateGroupName}>{gate.Gate}</span>
+                    <span className={styles.gateGroupMeta}>
+                      {gateTasks.length} task{gateTasks.length !== 1 ? 's' : ''} · {Math.round(gate.Complete)}%
+                    </span>
+                    <div className={styles.gateGroupBarWrap}>
+                      <div className={styles.gateGroupBar} style={{ width: `${Math.min(gate.Complete, 100)}%` }} />
+                    </div>
+                  </div>
+
+                  {/* ── Task blocks: header bar + log row ────────────────── */}
+                  {showTasks && taskRows.length > 0 && (
+                    <div className={styles.taskRows}>
+                      {taskRows.map(t => (
+                        <div key={t.Id} className={styles.taskBlock}>
+                          {/* Task header bar */}
+                          <div className={styles.taskHeader}>
+                            <span className={styles.taskWbs}>{t.Title}</span>
+                            <span className={styles.taskName}>{t.Task}</span>
+                            <span className={styles.taskPct}>{Math.round(t.Complete)}%</span>
+                          </div>
+
+                          {/* Log content row */}
+                          {logColCount > 0 && (
+                            <div
+                              className={styles.taskLogRow}
+                              style={{ gridTemplateColumns: `repeat(${logColCount}, 1fr)` }}
+                            >
+                              {/* Notes column */}
+                              {hasNoteFilter && (
+                                <div className={styles.logCol}>
+                                  {(t.Notes ?? [])
+                                    .filter(n => n.badge && noteFilters.has(n.badge))
+                                    .map((note, i) => (
+                                      <div key={i} className={styles.logEntry}>
+                                        <span className={`${styles.pill} ${note.badge ? NOTE_BADGE_CLS[note.badge] : ''}`}>
+                                          {note.badge}
+                                        </span>
+                                        <span className={styles.logEntryText}>{note.note}</span>
+                                        <span className={styles.logEntryMeta}>{note.user} · {fmtDate(note.date)}</span>
+                                      </div>
+                                    ))
+                                  }
+                                </div>
+                              )}
+
+                              {/* Evidence column */}
+                              {showEvidence && (
+                                <div className={styles.logCol}>
+                                  {(t.Evidence ?? []).length === 0
+                                    ? <span className={styles.logEmpty}>—</span>
+                                    : (t.Evidence ?? []).map((e, i) => (
+                                      <div key={i} className={styles.logEntry}>
+                                        <a href={e.fileUrl} target="_blank" rel="noreferrer" className={styles.evidenceLink}>
+                                          {e.fileName}
+                                        </a>
+                                        <span className={styles.logEntryMeta}>{e.user} · {fmtDate(e.date)}</span>
+                                      </div>
+                                    ))
+                                  }
+                                </div>
+                              )}
+
+                              {/* Approvals column */}
+                              {showApprovals && (
+                                <div className={styles.logCol}>
+                                  {(t.Approvals ?? []).length === 0
+                                    ? <span className={styles.logEmpty}>—</span>
+                                    : (t.Approvals ?? []).map((a, i) => (
+                                      <div key={i} className={styles.logEntry}>
+                                        <span className={`${styles.pill} ${styles[`approval_${a.status}`]}`}>
+                                          {a.status}
+                                        </span>
+                                        <span className={styles.logEntryText}>{a.user}</span>
+                                        <span className={styles.logEntryMeta}>{fmtDate(a.date)}</span>
+                                      </div>
+                                    ))
+                                  }
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* ── Bitácora (Tasks OFF + note filters) ──────────────── */}
+                  {!showTasks && bitacora.length > 0 && (
+                    <div className={styles.bitacora}>
+                      {bitacora.map((note, i) => (
+                        <div key={i} className={styles.bitacoraEntry}>
+                          <span className={styles.bitacoraDate}>{fmtDate(note.date)}</span>
+                          <span className={styles.bitacoraUser}>{note.user}</span>
+                          <span className={`${styles.pill} ${note.badge ? NOTE_BADGE_CLS[note.badge] : ''}`}>
+                            {note.badge}
+                          </span>
+                          <span className={styles.bitacoraText}>{note.note}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </>
       )}
     </div>
   );
