@@ -8,6 +8,7 @@ import { useProjectsCatalog } from '../hooks/useProjectsCatalog';
 import ProjectRowDashboard from './ProjectRowDashboard';
 import ProjectRowArchived from './ProjectRowArchived';
 import UserManualPanel from './UserManualPanel';
+import SummaryModal from './SummaryModal';
 import { IProjectCatalogItem } from '../../../models/IProjectService';
 import { ProjectService } from '../services/ProjectService';
 import { ViewerKey } from '../utils/viewerUtils';
@@ -129,9 +130,11 @@ const ProjectsCatalogCard: React.FC<IProjectsCatalogCardProps> = ({ sp, catalogS
 
   const [isCollapsed, setIsCollapsed]   = useState(false);
   const [showManual, setShowManual]     = useState(false);
+  const [showSummary, setShowSummary]   = useState(false);
   const [viewer, setViewer]             = useState<ViewerKey>('executive');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [statusMap, setStatusMap]       = useState<Record<string, StatusKey>>({});
+  const [progressMap, setProgressMap]   = useState<Record<string, number>>({});
   const [searchText, setSearchText]     = useState('');
   const [sortField, setSortField]       = useState<SortField | null>(null);
   const [sortDir, setSortDir]           = useState<SortDir>('asc');
@@ -139,10 +142,14 @@ const ProjectsCatalogCard: React.FC<IProjectsCatalogCardProps> = ({ sp, catalogS
 
   const catalogService = useMemo(() => new ProjectService(catalogSp), [catalogSp]);
 
-  const handleStatusReady = useCallback((projectId: string, key: "ontime" | "stalled" | "delayed" | "completed" | "archived") => {
+  const handleStatusReady = useCallback((projectId: string, key: "ontime" | "stalled" | "delayed" | "completed" | "archived", overallPct: number) => {
     setStatusMap((prev) => {
       if (prev[projectId] === key) return prev;
       return { ...prev, [projectId]: key };
+    });
+    setProgressMap((prev) => {
+      if (prev[projectId] === overallPct) return prev;
+      return { ...prev, [projectId]: overallPct };
     });
   }, []);
 
@@ -291,6 +298,14 @@ const ProjectsCatalogCard: React.FC<IProjectsCatalogCardProps> = ({ sp, catalogS
           <span className={styles.headerCount}>({openProjects.length})</span>
         </span>
         <div className={styles.headerActions}>
+          <button
+            type="button"
+            onClick={e => { e.stopPropagation(); setShowSummary(true); }}
+            title="Executive summary across all work orders"
+            style={{ fontSize: 11, padding: '3px 14px', border: '1px solid #B8D4F0', borderRadius: 6,
+              background: '#F4F8FC', color: '#185FA5', fontWeight: 600, cursor: 'pointer', flexShrink: 0 }}>
+            Summary
+          </button>
           <div role="group" aria-label="Viewer"
             onClick={e => e.stopPropagation()}
             style={{ display: 'inline-flex', border: '1px solid #B8D4F0', borderRadius: 6, overflow: 'hidden', background: '#F4F8FC', flexShrink: 0 }}>
@@ -493,6 +508,14 @@ const ProjectsCatalogCard: React.FC<IProjectsCatalogCardProps> = ({ sp, catalogS
       )}
     </div>
     {showManual && <UserManualPanel onClose={() => setShowManual(false)} />}
+    {showSummary && (
+      <SummaryModal
+        projects={openProjects}
+        statusMap={statusMap}
+        progressMap={progressMap}
+        onClose={() => setShowSummary(false)}
+      />
+    )}
     </>
   );
 };

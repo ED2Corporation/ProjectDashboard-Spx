@@ -36,7 +36,7 @@ export interface ProjectRowDashboardProps {
   sp: SPFI;
   catalogSp: SPFI;
   /** Called once gate data is ready so the parent can compute aggregate counts */
-  onStatusReady?: (projectId: string, statusKey: "ontime" | "stalled" | "delayed" | "completed" | "archived") => void;
+  onStatusReady?: (projectId: string, statusKey: "ontime" | "stalled" | "delayed" | "completed" | "archived", overallPct: number) => void;
   /** Called after a catalog item is saved — use to reload the parent catalog list */
   onCatalogItemSaved?: () => void;
   /** App-level viewer selection — controls which tasks drive indicators and the task list. */
@@ -311,7 +311,7 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
       else if (overall === "green" && allDone) key = "completed";
       else                                  key = "ontime";
     }
-    onStatusReady(localProject.Title, key);
+    onStatusReady(localProject.Title, key, GroupByProject(gates).Complete);
     setStatusReported(true);
   }, [gates, tasks, execTasks, viewer, localProject, onStatusReady, statusReported]);
 

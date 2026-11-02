@@ -13,12 +13,12 @@ jest.mock('../ProjectRowArchived', () => (props: { project: IProjectCatalogItem 
 
 jest.mock('../ProjectRowDashboard', () => (props: {
   project: IProjectCatalogItem;
-  onStatusReady?: (projectId: string, key: 'ontime' | 'stalled' | 'delayed' | 'completed' | 'archived') => void;
+  onStatusReady?: (projectId: string, key: 'ontime' | 'stalled' | 'delayed' | 'completed' | 'archived', overallPct: number) => void;
 }) => {
   const ReactActual = jest.requireActual<typeof import('react')>('react');
 
   ReactActual.useEffect(() => {
-    props.onStatusReady?.(props.project.Title, props.project.Title.includes('DELAY') ? 'delayed' : 'ontime');
+    props.onStatusReady?.(props.project.Title, props.project.Title.includes('DELAY') ? 'delayed' : 'ontime', 50);
   }, [props]);
 
   return ReactActual.createElement('div', { 'data-testid': 'project-row' }, props.project.Title);
