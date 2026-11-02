@@ -265,6 +265,11 @@ export const getTaskIsRelease = (raw?: string): boolean => {
   return parsed.isRelease === true;
 };
 
+export const getTaskExecutiveTrack = (raw?: string): boolean => {
+  const parsed = parseTaskJsonTableObject(raw);
+  return parsed.executiveTrack === true;
+};
+
 export const getTaskReleaseUnits = (raw?: string): number | undefined => {
   const parsed = parseTaskJsonTableObject(raw);
   const units = asNumber(parsed.releaseUnits);
@@ -319,6 +324,7 @@ export const buildTaskJsonTable = (
     sortOrder?: number;
     isRelease?: boolean;
     releaseUnits?: number;
+    executiveTrack?: boolean;
     subprocess?: ITaskSubprocessData;
     clearSubprocess?: boolean;
     taskSteps?: ITaskStepsData;
@@ -342,6 +348,13 @@ export const buildTaskJsonTable = (
   } else {
     delete next.isRelease;
   }
+
+  if (options.executiveTrack === true) {
+    next.executiveTrack = true;
+  } else if (options.executiveTrack === false) {
+    delete next.executiveTrack;
+  }
+  // executiveTrack undefined → preserve existing stored value
 
   if (options.isRelease === true && typeof options.releaseUnits === "number" && Number.isFinite(options.releaseUnits) && options.releaseUnits > 0) {
     next.releaseUnits = options.releaseUnits;

@@ -10,6 +10,7 @@ import ProjectRowArchived from './ProjectRowArchived';
 import UserManualPanel from './UserManualPanel';
 import { IProjectCatalogItem } from '../../../models/IProjectService';
 import { ProjectService } from '../services/ProjectService';
+import { ViewerKey } from '../utils/viewerUtils';
 import styles from './ProjectsCatalogCard.module.scss';
 
 type StatusFilter = 'all' | 'ontime' | 'stalled' | 'delayed' | 'completed' | 'archived' | 'hidden' | 'waiting-approval';
@@ -128,6 +129,7 @@ const ProjectsCatalogCard: React.FC<IProjectsCatalogCardProps> = ({ sp, catalogS
 
   const [isCollapsed, setIsCollapsed]   = useState(false);
   const [showManual, setShowManual]     = useState(false);
+  const [viewer, setViewer]             = useState<ViewerKey>('executive');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [statusMap, setStatusMap]       = useState<Record<string, StatusKey>>({});
   const [searchText, setSearchText]     = useState('');
@@ -289,6 +291,24 @@ const ProjectsCatalogCard: React.FC<IProjectsCatalogCardProps> = ({ sp, catalogS
           <span className={styles.headerCount}>({openProjects.length})</span>
         </span>
         <div className={styles.headerActions}>
+          <div role="group" aria-label="Viewer"
+            onClick={e => e.stopPropagation()}
+            style={{ display: 'inline-flex', border: '1px solid #B8D4F0', borderRadius: 6, overflow: 'hidden', background: '#F4F8FC', flexShrink: 0 }}>
+            {(['executive', 'operations'] as ViewerKey[]).map(v => {
+              const active = v === viewer;
+              return (
+                <button key={v} type="button" aria-pressed={active}
+                  onClick={() => setViewer(v)}
+                  title={v === 'executive' ? 'Tasks marked for Executive View only' : 'All plan tasks'}
+                  style={{ fontSize: 11, padding: '3px 12px', border: 'none', cursor: active ? 'default' : 'pointer',
+                    fontWeight: active ? 700 : 500,
+                    background: active ? '#185FA5' : 'transparent',
+                    color: active ? '#FFFFFF' : '#185FA5' }}>
+                  {v === 'executive' ? 'Executive' : 'Operations'}
+                </button>
+              );
+            })}
+          </div>
           {solutionVersion && (
             <span className={styles.solutionVersion} title="Solution version">
               v{solutionVersion}
@@ -455,6 +475,7 @@ const ProjectsCatalogCard: React.FC<IProjectsCatalogCardProps> = ({ sp, catalogS
                   context={context}
                   sp={sp}
                   catalogSp={catalogSp}
+                  viewer={viewer}
                   onStatusReady={handleStatusReady}
                   onCatalogItemSaved={reload}
                   isMoveFirst={idx === 0}

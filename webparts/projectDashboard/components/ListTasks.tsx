@@ -9,6 +9,7 @@ import { getTodayDateInputValue, getTaskSubprocess, getTaskSteps } from "../util
 import { getTaskCompleteLockMessageFromJsonTable } from "../utils/TaskPersistencePayload";
 import EvidenceUploadButton from "./EvidenceUploadButton";
 import styles from "./ProjectDashboard.module.scss";
+import { ViewerKey } from "../utils/viewerUtils";
 
 interface ListGroupProps {
   tasks: ITaskListItem[];
@@ -29,6 +30,14 @@ interface ListGroupProps {
   isReportLoading?: boolean;
   /** When true the button label switches to "Workarea" (report is currently active) */
   isReportActive?: boolean;
+  /** Gear/Options button in the heading bar — shown when provided */
+  onSettingsClick?: () => void;
+  /** When true the Options button renders in its active/pressed state */
+  settingsActive?: boolean;
+  /** Active viewer — drives the Executive/Operations toggle in the heading bar. */
+  viewer?: ViewerKey;
+  /** Called when the user switches the viewer toggle. */
+  onSetViewer?: (v: ViewerKey) => void;
   onSave: (itemId: string, payload?: string) => void;
   /** Upload a file to evidence storage — enables the upload button in Complete mode */
   onUploadFile?: (file: File, taskTitle: string) => Promise<{ fileUrl: string; fileName: string }>;
@@ -76,6 +85,10 @@ const ListTasks = ({
   onReport,
   isReportLoading,
   isReportActive,
+  onSettingsClick,
+  settingsActive,
+  viewer,
+  onSetViewer,
   onUploadFile,
   onSaveEvidence,
   currentUserDisplayName,
@@ -352,6 +365,20 @@ const ListTasks = ({
               </button>
             )}
             <p className={styles.taskSectionHeading}>{heading}</p>
+            {onSettingsClick && (
+              <button
+                type="button"
+                className={`${styles.taskSectionReloadBtn} ${settingsActive ? styles.taskSectionReloadBtnActive : ''}`}
+                onClick={onSettingsClick}
+                title={settingsActive ? 'Hide project options' : 'Show project options'}
+                style={{ marginLeft: 'auto' }}
+              >
+                <svg width="11" height="11" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true" style={{ marginRight: 4, verticalAlign: 'middle' }}>
+                  <path d="M9.405 1.05c-.413-1.4-2.397-1.4-2.81 0l-.1.34a1.464 1.464 0 0 1-2.105.872l-.31-.17c-1.283-.698-2.686.705-1.987 1.987l.169.311c.446.82.023 1.841-.872 2.105l-.34.1c-1.4.413-1.4 2.397 0 2.81l.34.1a1.464 1.464 0 0 1 .872 2.105l-.17.31c-.698 1.283.705 2.686 1.987 1.987l.311-.169a1.464 1.464 0 0 1 2.105.872l.1.34c.413 1.4 2.397 1.4 2.81 0l.1-.34a1.464 1.464 0 0 1 2.105-.872l.31.17c1.283.698 2.686-.705 1.987-1.987l-.169-.311a1.464 1.464 0 0 1 .872-2.105l.34-.1c1.4-.413 1.4-2.397 0-2.81l-.34-.1a1.464 1.464 0 0 1-.872-2.105l.17-.31c.698-1.283-.705-2.686-1.987-1.987l-.311.169a1.464 1.464 0 0 1-2.105-.872l-.1-.34zM8 10.93a2.929 2.929 0 1 1 0-5.86 2.929 2.929 0 0 1 0 5.858z"/>
+                </svg>
+                Options
+              </button>
+            )}
           </div>
           {showDetails && (
           <div className={`${styles.tableViewport} ${isShortListMode ? styles.tableViewportShort : ''}`}>

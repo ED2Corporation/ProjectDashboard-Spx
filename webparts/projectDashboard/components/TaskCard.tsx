@@ -12,6 +12,7 @@ import { useQueuedTaskSave } from "../hooks/useQueuedTaskSave";
 import { buildTaskPersistencePayload, ITaskJsonTableSizeStatus } from "../utils/TaskPersistencePayload";
 import {
   getTaskReleaseUnits,
+  getTaskExecutiveTrack,
   getTaskSteps,
   getTaskSubprocess,
   getTodayDateInputValue,
@@ -323,6 +324,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
   const shipAlertTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const [isRelease, setIsRelease] = useState(task.isRelease ?? false);
   const [releaseUnits, setReleaseUnits] = useState<number>(task.releaseUnits ?? getTaskReleaseUnits(task.jsonTable) ?? 0);
+  const [executiveTrack, setExecutiveTrack] = useState(() => getTaskExecutiveTrack(task.jsonTable));
   const [taskTitle, setTaskTitle] = useState(task.Task ?? "");
   const [complete, setComplete] = useState<number>(task.Complete ?? 0);
   const [start, setStart] = useState<string>(toLocaleDateInputValue(task.Start));
@@ -684,6 +686,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
     setRenameAllGateTasks(true);
     setIsRelease(task.isRelease ?? false);
     setReleaseUnits(task.releaseUnits ?? getTaskReleaseUnits(task.jsonTable) ?? 0);
+    setExecutiveTrack(getTaskExecutiveTrack(task.jsonTable));
     setTaskTitle(task.Task ?? "");
     setComplete(task.Complete ?? 0);
     setStart(toLocaleDateInputValue(task.Start));
@@ -852,6 +855,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
       actualFinish,
       isRelease,
       releaseUnits,
+      executiveTrack,
       evidenceOfCompletion: effectiveEvidence,
       subprocess: hasSubprocessData ? subprocess : undefined,
       clearSubprocess: !hasSubprocessData,
@@ -890,6 +894,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
       actualFinish: aggregatedComplete === 100 ? (task.ActualFinish ?? new Date()) : undefined,
       isRelease,
       releaseUnits,
+      executiveTrack,
       evidenceOfCompletion,
       subprocess: hasSubprocessData ? nextSubprocess : undefined,
       clearSubprocess: !hasSubprocessData,
@@ -925,6 +930,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
       actualFinish: aggregatedComplete === 100 ? (task.ActualFinish ?? new Date()) : undefined,
       isRelease,
       releaseUnits,
+      executiveTrack,
       evidenceOfCompletion,
       subprocess: subprocess.subTasks.length > 0 ? subprocess : undefined,
       clearSubprocess: subprocess.subTasks.length <= 0,
@@ -2097,6 +2103,17 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
                   <span className={styles.gateEditThumb} />
                 </span>
                 <span className={styles.gateEditLabel}>Ship</span>
+              </label>
+              <label className={styles.gateEditToggle} title="Show this task in Executive View">
+                <input
+                  type="checkbox"
+                  checked={executiveTrack}
+                  onChange={e => setExecutiveTrack(e.target.checked)}
+                />
+                <span className={styles.gateEditTrack}>
+                  <span className={styles.gateEditThumb} />
+                </span>
+                <span className={styles.gateEditLabel}>Exec</span>
               </label>
             </div>
 

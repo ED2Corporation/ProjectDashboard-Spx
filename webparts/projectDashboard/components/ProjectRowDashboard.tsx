@@ -23,6 +23,7 @@ import ProjectActionsBar from "./ProjectActionsBar";
 import ProjectCatalogEditor from "./ProjectCatalogEditor";
 import styles from "./ProjectRowDashboard.module.scss";
 import { getTaskCompleteLockMessageFromJsonTable } from "../utils/TaskPersistencePayload";
+import { ViewerKey, filterTasksForViewer } from "../utils/viewerUtils";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -38,6 +39,8 @@ export interface ProjectRowDashboardProps {
   onStatusReady?: (projectId: string, statusKey: "ontime" | "stalled" | "delayed" | "completed" | "archived") => void;
   /** Called after a catalog item is saved — use to reload the parent catalog list */
   onCatalogItemSaved?: () => void;
+  /** App-level viewer selection — controls which tasks drive indicators and the task list. */
+  viewer?: ViewerKey;
   // ── Sort-order controls (visible when ProjectCatalogEditor is open) ──
   isMoveFirst?: boolean;
   isMoveLast?: boolean;
@@ -111,6 +114,7 @@ const SettingsIcon: React.FC = () => (
 
 const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
   project, context, sp, catalogSp, onStatusReady, onCatalogItemSaved,
+  viewer: viewerProp,
   isMoveFirst, isMoveLast, isReordering, onMoveFirst, onMoveUp, onMoveDown, onMoveLast,
 }) => {
   const [localProject, setLocalProject] = useState(project);
@@ -207,6 +211,7 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
   const [showProjectActions, setShowProjectActions] = useState(false);
   const [showReport,         setShowReport]         = useState(false);
   const [isReportLoading,    setIsReportLoading]    = useState(false);
+  const viewer = viewerProp ?? 'operations';
 
   const {
     tasks, gates, filteredTasks,
@@ -273,6 +278,8 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
   // Local copy of catalog fields — updated optimistically after a successful save
 
 
+  const execTasks = useMemo(() => filterTasksForViewer(tasks, viewer), [tasks, viewer]);
+
   // Minimal IProjectListItem shape required by ProjectActionsBar
   const projectListItem = useMemo(() => ({
     Id:             localProject.Title,
@@ -283,6 +290,9 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
     Link:           { Url: resolvedProjectListUrl, Description: localProject.Title },
   }), [localProject, listName, repoName, resolvedProjectListUrl]);
 
+  // Re-report when viewer switches
+  useEffect(() => { setStatusReported(false); }, [viewer]);
+
   // Report project status to parent once gates are loaded
   useEffect(() => {
     if (!onStatusReady || statusReported || gates.length === 0) return;
@@ -291,16 +301,19 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
     if (s === "archived" || s === "closed") {
       key = "archived";
     } else {
-      const overall = GetBucketStatusFromTasks(tasks);
-      const allGatesClosed = gates.every(g => g.Complete >= 100);
-      if (overall === "red")                       key = "delayed";
-      else if (overall === "yellow")               key = "stalled";
-      else if (overall === "green" && allGatesClosed) key = "completed";
-      else                                         key = "ontime";
+      const tasksForStatus = viewer === 'executive' ? execTasks : tasks;
+      const overall = GetBucketStatusFromTasks(tasksForStatus);
+      const allDone = viewer === 'executive'
+        ? (execTasks.length > 0 && execTasks.every(t => (t.Complete ?? 0) >= 100))
+        : gates.every(g => g.Complete >= 100);
+      if (overall === "red")                key = "delayed";
+      else if (overall === "yellow")        key = "stalled";
+      else if (overall === "green" && allDone) key = "completed";
+      else                                  key = "ontime";
     }
     onStatusReady(localProject.Title, key);
     setStatusReported(true);
-  }, [gates, tasks, localProject, onStatusReady, statusReported]);
+  }, [gates, tasks, execTasks, viewer, localProject, onStatusReady, statusReported]);
 
   // Sync executionStatus to ED2-Projects.ProjectDetails so PO-Inbounds can read it
   const lastWrittenExecutionStatus = useRef<string | null>(null);
@@ -356,7 +369,8 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
   };
 
   const showAllTasks = activeGate === "all";
-  const visibleTasks = showAllTasks ? tasks : filteredTasks;
+  const baseVisible  = showAllTasks ? tasks : filteredTasks;
+  const visibleTasks = viewer === 'executive' ? filterTasksForViewer(baseVisible, 'executive') : baseVisible;
   const tasksHeading = showAllTasks
     ? "All Tasks"
     : filteredTasks[0]?.Gate || activeGate || "";
@@ -522,11 +536,10 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
           <GateProgressBar
             gates={gates}
             tasks={tasks}
+            execTasks={viewer === 'executive' ? execTasks : undefined}
             activeGate={activeGate ?? undefined}
             onGateClick={handleGateClick}
             onOverallClick={handleOverallClick}
-            onSettingsClick={() => setShowProjectActions(prev => !prev)}
-            settingsActive={showProjectActions}
           />
         ) : (
           <div className={styles.noGatesRow}>
@@ -619,6 +632,8 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
             }}
             isReportLoading={isReportLoading}
             isReportActive={showReport}
+            onSettingsClick={() => setShowProjectActions(prev => !prev)}
+            settingsActive={showProjectActions}
             selectedTaskId={selectedTask?.Id}
             expandedContent={expandedTaskCard}
             creatingTaskId={creatingId ?? undefined}

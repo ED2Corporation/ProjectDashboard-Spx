@@ -127,8 +127,6 @@ export default class ProjectDashboard extends React.Component<
                   activeGate={activeGate}
                   onGateClick={this.handleGateClick}
                   onOverallClick={this.handleOverallClick}
-                  onSettingsClick={() => this.setState(prev => ({ showProjectActions: !prev.showProjectActions }))}
-                  settingsActive={showProjectActions}
                 />
               </div>
             )}

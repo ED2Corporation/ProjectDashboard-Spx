@@ -496,6 +496,12 @@
   }
 }
 
+.taskSectionReloadBtnActive {
+  background: $c-primary-bg !important;
+  color: $c-primary !important;
+  border-color: $c-primary !important;
+}
+
 // ─── ed2Table (used by ListTasks.tsx) ─────────────────────────────────────
 
 .actionsFixed { width: 72px; }
