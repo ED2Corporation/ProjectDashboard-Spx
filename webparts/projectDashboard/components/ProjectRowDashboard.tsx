@@ -11,7 +11,7 @@ import { ITaskListItem } from "../../../models";
 import { IProjectCatalogItem } from "../../../models/IProjectService";
 import { ProjectService } from "../services/ProjectService";
 import { useProjectState } from "../hooks/useProjectState";
-import { GetBucketStatusFromTasks } from "../utils/GetGateStatus";
+import { GetBucketStatusFromTasks, getDeepGateStatusFromTasks } from "../utils/GetGateStatus";
 import { GroupByProject } from "../utils/GroupByProject";
 import { IProjectDashboardWebPartProps } from "../../../models";
 
@@ -207,10 +207,11 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
   const [creatingId,         setCreatingId]         = useState<string | null>(null);
   const [deletingId,         setDeletingId]         = useState<string | null>(null);
   const [navTasks,           setNavTasks]           = useState<ITaskListItem[]>([]);
-  const [statusReported,     setStatusReported]     = useState(false);
   const [showProjectActions, setShowProjectActions] = useState(false);
+  const lastStatusReportRef = useRef<string | null>(null);
   const [showReport,         setShowReport]         = useState(false);
   const [isReportLoading,    setIsReportLoading]    = useState(false);
+  const [reportPrintFn,      setReportPrintFn]      = useState<(() => void) | null>(null);
   const viewer = viewerProp ?? 'operations';
 
   const {
@@ -290,19 +291,16 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
     Link:           { Url: resolvedProjectListUrl, Description: localProject.Title },
   }), [localProject, listName, repoName, resolvedProjectListUrl]);
 
-  // Re-report when viewer switches
-  useEffect(() => { setStatusReported(false); }, [viewer]);
-
-  // Report project status to parent once gates are loaded
+  // Report project status to parent whenever viewer or task data changes
   useEffect(() => {
-    if (!onStatusReady || statusReported || gates.length === 0) return;
+    if (!onStatusReady || gates.length === 0) return;
     let key: "ontime" | "stalled" | "delayed" | "completed" | "archived" = "ontime";
     const s = localProject.Status?.toLowerCase();
     if (s === "archived" || s === "closed") {
       key = "archived";
     } else {
       const tasksForStatus = viewer === 'executive' ? execTasks : tasks;
-      const overall = GetBucketStatusFromTasks(tasksForStatus);
+      const overall = getDeepGateStatusFromTasks(tasksForStatus);
       const allDone = viewer === 'executive'
         ? (execTasks.length > 0 && execTasks.every(t => (t.Complete ?? 0) >= 100))
         : gates.every(g => g.Complete >= 100);
@@ -311,9 +309,12 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
       else if (overall === "green" && allDone) key = "completed";
       else                                  key = "ontime";
     }
-    onStatusReady(localProject.Title, key, GroupByProject(gates).Complete);
-    setStatusReported(true);
-  }, [gates, tasks, execTasks, viewer, localProject, onStatusReady, statusReported]);
+    const overallPct = GroupByProject(gates).Complete;
+    const reportKey = `${viewer}:${key}:${overallPct}`;
+    if (lastStatusReportRef.current === reportKey) return;
+    lastStatusReportRef.current = reportKey;
+    onStatusReady(localProject.Title, key, overallPct);
+  }, [gates, tasks, execTasks, viewer, localProject, onStatusReady]);
 
   // Sync executionStatus to ED2-Projects.ProjectDetails so PO-Inbounds can read it
   const lastWrittenExecutionStatus = useRef<string | null>(null);
@@ -632,6 +633,7 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
             }}
             isReportLoading={isReportLoading}
             isReportActive={showReport}
+            onPrint={showReport && reportPrintFn ? reportPrintFn : undefined}
             onSettingsClick={() => setShowProjectActions(prev => !prev)}
             settingsActive={showProjectActions}
             selectedTaskId={selectedTask?.Id}
@@ -718,6 +720,7 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
                 if (!gate || gate === 'all') handleGateClick('all');
                 else handleGateClick(gate);
               }}
+              onPrintReady={fn => setReportPrintFn(() => fn)}
             />
           )}
         </div>

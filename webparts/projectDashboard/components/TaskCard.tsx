@@ -98,12 +98,6 @@ const asPositiveInteger = (value: number): number => {
 };
 
 const DEFAULT_TASK_STEP_PIECES = 30;
-const calculateFixedStepCount = (totalUnitsValue: number, unitsPerStepValue: number): number => {
-  const totalUnits = asPositiveInteger(totalUnitsValue);
-  const unitsPerStep = asPositiveInteger(unitsPerStepValue);
-  if (totalUnits <= 0 || unitsPerStep <= 0) return 0;
-  return Math.ceil(totalUnits / unitsPerStep);
-};
 
 const clampPercentValue = (value: number): number =>
   Math.max(0, Math.min(100, Math.floor(Number.isFinite(value) ? value : 0)));
@@ -363,19 +357,20 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
   const [subprocess, setSubprocess] = useState<ITaskSubprocessData>(initialSubprocess);
   const [showTaskSteps, setShowTaskSteps] = useState(initialTaskSteps.enabled || initialTaskSteps.steps.length > 0);
   const [isTaskStepsSectionExpanded, setIsTaskStepsSectionExpanded] = useState(initialTaskSteps.enabled || initialTaskSteps.steps.length > 0);
-  const [isTaskStepsConfigExpanded, setIsTaskStepsConfigExpanded] = useState(!initialTaskSteps.enabled || initialTaskSteps.steps.length <= 0);
+  const [isTaskStepsConfigExpanded, setIsTaskStepsConfigExpanded] = useState(true);
   const [taskSteps, setTaskSteps] = useState<ITaskStepsData>(initialTaskSteps);
-  const initialTaskStepsPieces = initialTaskSteps.unitsPerStep > 0 ? initialTaskSteps.unitsPerStep : DEFAULT_TASK_STEP_PIECES;
-  const initialTaskStepsLots = initialTaskSteps.stepCount > 0
-    ? initialTaskSteps.stepCount
-    : calculateFixedStepCount(projectUnits ?? 0, initialTaskStepsPieces);
+  const initialBatchReleaseDefault = (task.releaseUnits ?? 0) > 0
+    ? (task.releaseUnits ?? 0)
+    : asPositiveInteger(projectUnits ?? 0);
+  // batchRemaining: derived each render — no state needed
+  const batchRemaining = Math.max(0, initialBatchReleaseDefault - taskSteps.steps.reduce((s, step) => s + Math.max(0, step.units || 0), 0));
+  // Default pieces = remaining; lots = 1 (always reset when panel opens — see useEffect below)
+  const initialTaskStepsPieces = DEFAULT_TASK_STEP_PIECES;
+  const initialTaskStepsLots = 1;
   const [taskStepsPieces, setTaskStepsPieces] = useState<number>(initialTaskStepsPieces);
   const [taskStepsLots, setTaskStepsLots] = useState<number>(initialTaskStepsLots);
   const [taskStepsMode, setTaskStepsMode] = useState<TaskStepsMode>(initialTaskSteps.mode === 'weekday' ? 'weekday' : 'fixed');
   const [taskStepsWeekdays, setTaskStepsWeekdays] = useState<number[]>(initialTaskSteps.weekdays && initialTaskSteps.weekdays.length > 0 ? initialTaskSteps.weekdays : [1]);
-  const [taskStepsSource, setTaskStepsSource] = useState<TaskStepsSource>(
-    initialTaskSteps.stepCount > 0 && initialTaskSteps.unitsPerStep <= 0 ? "lots" : "pieces"
-  );
   const [isTaskStepsProcessing, setIsTaskStepsProcessing] = useState(false);
   const [selectedTaskStepId, setSelectedTaskStepId] = useState<string | undefined>(undefined);
   const [isTaskStepWorkspaceExpanded, setIsTaskStepWorkspaceExpanded] = useState(false);
@@ -395,6 +390,10 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
   const latestJsonTableRef = useRef<string | undefined>(task.jsonTable);
   const skipNextCompleteEffectRef = useRef(false);
   const skipNextTaskStepsRecalcRef = useRef(true);
+  // Reliable template store — immune to stale closures on batch operations
+  const batchSubprocessTemplateRef = useRef<ITaskSubprocessData | null>(
+    initialTaskSteps.subprocessTemplate?.subTasks.length ? initialTaskSteps.subprocessTemplate : null
+  );
   const hasTaskSteps = taskSteps.enabled && taskSteps.steps.length > 0;
   const totalProjectUnits = asPositiveInteger(projectUnits ?? 0);
   const hasSubprocessWorkspace = showSubprocess || subprocess.subTasks.length > 0 || hasTaskSteps;
@@ -416,8 +415,16 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
     });
   };
 
-  const buildTaskStepsData = (source: TaskStepsSource, rawValue: number, enabled = true): ITaskStepsData => {
-    const totalUnits = asPositiveInteger(projectUnits ?? 0);
+  const buildTaskStepsData = (source: TaskStepsSource, rawValue: number, enabled = true, overrideUnitsPerStep?: number): ITaskStepsData => {
+    const totalUnits = batchRemaining;
+    const effectiveBatchTemplate =
+      batchSubprocessTemplateRef.current?.subTasks.length ? batchSubprocessTemplateRef.current :
+      taskSteps.subprocessTemplate?.subTasks.length ? taskSteps.subprocessTemplate :
+      subprocess;
+    if (effectiveBatchTemplate.subTasks.length > 0 && !batchSubprocessTemplateRef.current?.subTasks.length) {
+      batchSubprocessTemplateRef.current = effectiveBatchTemplate;
+    }
+    const storedTemplate = effectiveBatchTemplate.subTasks.length > 0 ? effectiveBatchTemplate : undefined;
     if (totalUnits <= 0) {
       return {
         enabled,
@@ -427,6 +434,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
         mode: 'fixed',
         weekdays: taskStepsWeekdays,
         steps: [],
+        subprocessTemplate: storedTemplate,
       };
     }
 
@@ -444,6 +452,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
           mode: 'fixed',
           weekdays: taskStepsWeekdays,
           steps: [],
+          subprocessTemplate: storedTemplate,
         };
       }
       stepCount = Math.ceil(totalUnits / unitsPerStep);
@@ -458,9 +467,12 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
           mode: 'fixed',
           weekdays: taskStepsWeekdays,
           steps: [],
+          subprocessTemplate: storedTemplate,
         };
       }
-      unitsPerStep = Math.max(1, Math.floor(totalUnits / stepCount));
+      unitsPerStep = overrideUnitsPerStep
+        ? asPositiveInteger(overrideUnitsPerStep)
+        : Math.max(1, Math.floor(totalUnits / stepCount));
     }
 
     const dateRanges = getStepDateRanges(start, finish, stepCount);
@@ -473,11 +485,13 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
       const defaultUnits = source === "pieces"
         ? Math.min(unitsPerStep, remainingUnits)
         : Math.min(Math.max(1, Math.floor(totalUnits / stepCount)), remainingUnits);
-      const units = index === stepCount - 1 ? remainingUnits : defaultUnits;
+      const units = overrideUnitsPerStep
+        ? asPositiveInteger(overrideUnitsPerStep)
+        : (index === stepCount - 1 ? remainingUnits : defaultUnits);
       remainingUnits -= units;
       const stepWbs = `${baseWbs}.${String(index + 1).padStart(2, "0")}`;
-      const templateSubprocess = subprocess.subTasks.length > 0
-        ? cloneSubprocessTemplateForStep(subprocess, stepWbs)
+      const templateSubprocess = effectiveBatchTemplate.subTasks.length > 0
+        ? cloneSubprocessTemplateForStep(effectiveBatchTemplate, stepWbs)
         : createEmptySubprocess();
 
       return {
@@ -499,17 +513,26 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
 
     return {
       enabled,
-      totalUnits,
+      totalUnits: overrideUnitsPerStep ? stepCount * asPositiveInteger(overrideUnitsPerStep) : totalUnits,
       unitsPerStep,
       stepCount,
       mode: 'fixed',
       weekdays: taskStepsWeekdays,
       steps,
+      subprocessTemplate: storedTemplate,
     };
   };
 
   const buildTaskStepsDataFromWeekdays = (weekdays: number[], enabled = true): ITaskStepsData => {
-    const totalUnits = asPositiveInteger(projectUnits ?? 0);
+    const totalUnits = batchRemaining;
+    const effectiveBatchTemplate =
+      batchSubprocessTemplateRef.current?.subTasks.length ? batchSubprocessTemplateRef.current :
+      taskSteps.subprocessTemplate?.subTasks.length ? taskSteps.subprocessTemplate :
+      subprocess;
+    if (effectiveBatchTemplate.subTasks.length > 0 && !batchSubprocessTemplateRef.current?.subTasks.length) {
+      batchSubprocessTemplateRef.current = effectiveBatchTemplate;
+    }
+    const storedTemplate = effectiveBatchTemplate.subTasks.length > 0 ? effectiveBatchTemplate : undefined;
     const normalizedWeekdays = weekdays
       .map(value => Math.floor(value))
       .filter((value, index, array) => value >= 1 && value <= 6 && array.indexOf(value) === index)
@@ -524,6 +547,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
         mode: 'weekday',
         weekdays: normalizedWeekdays.length > 0 ? normalizedWeekdays : [1],
         steps: [],
+        subprocessTemplate: storedTemplate,
       };
     }
 
@@ -538,6 +562,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
         mode: 'weekday',
         weekdays: normalizedWeekdays,
         steps: [],
+        subprocessTemplate: storedTemplate,
       };
     }
 
@@ -551,8 +576,8 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
       const units = index === stepCount - 1 ? remainingUnits : Math.min(unitsPerStep, remainingUnits);
       remainingUnits -= units;
       const stepWbs = `${baseWbs}.${String(index + 1).padStart(2, "0")}`;
-      const templateSubprocess = subprocess.subTasks.length > 0
-        ? cloneSubprocessTemplateForStep(subprocess, stepWbs)
+      const templateSubprocess = effectiveBatchTemplate.subTasks.length > 0
+        ? cloneSubprocessTemplateForStep(effectiveBatchTemplate, stepWbs)
         : createEmptySubprocess();
 
       return {
@@ -580,6 +605,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
       mode: 'weekday',
       weekdays: normalizedWeekdays,
       steps,
+      subprocessTemplate: storedTemplate,
     };
   };
   const aggregateSubprocessComplete = (subprocessValue: ITaskSubprocessData): number =>
@@ -630,25 +656,73 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
     }, 6000);
   };
 
-  const applyTaskStepsFromPieces = (piecesValue: number, enabled = true): ITaskStepsData => {
+
+  const applyTaskStepsFromBoth = (lotsValue: number, piecesValue: number, enabled = true): ITaskStepsData => {
+    const normalizedLots = asPositiveInteger(lotsValue);
     const normalizedPieces = asPositiveInteger(piecesValue);
-    const nextTaskSteps = normalizeTaskStepsAggregation(buildTaskStepsData("pieces", normalizedPieces, enabled));
+    const nextTaskSteps = normalizeTaskStepsAggregation(buildTaskStepsData("lots", normalizedLots, enabled, normalizedPieces));
     setTaskStepsMode("fixed");
-    setTaskStepsSource("pieces");
-    setTaskStepsPieces(normalizedPieces || DEFAULT_TASK_STEP_PIECES);
-    setTaskStepsLots(nextTaskSteps.stepCount);
     setTaskSteps(nextTaskSteps);
     setComplete(deriveTaskComplete(nextTaskSteps, undefined));
     return nextTaskSteps;
   };
 
-  const applyTaskStepsFromLots = (lotsValue: number, enabled = true): ITaskStepsData => {
+  const addTaskStepBatches = (lotsValue: number, piecesValue: number): ITaskStepsData => {
     const normalizedLots = asPositiveInteger(lotsValue);
-    const nextTaskSteps = normalizeTaskStepsAggregation(buildTaskStepsData("lots", normalizedLots, enabled));
-    setTaskStepsMode("fixed");
-    setTaskStepsSource("lots");
-    setTaskStepsLots(normalizedLots);
-    setTaskStepsPieces(nextTaskSteps.unitsPerStep);
+    const normalizedPieces = asPositiveInteger(piecesValue);
+    if (normalizedLots <= 0 || normalizedPieces <= 0) return taskSteps;
+
+    const effectiveBatchTemplate =
+      batchSubprocessTemplateRef.current?.subTasks.length ? batchSubprocessTemplateRef.current :
+      taskSteps.subprocessTemplate?.subTasks.length ? taskSteps.subprocessTemplate :
+      subprocess;
+    if (effectiveBatchTemplate.subTasks.length > 0 && !batchSubprocessTemplateRef.current?.subTasks.length) {
+      batchSubprocessTemplateRef.current = effectiveBatchTemplate;
+    }
+    const storedTemplate = effectiveBatchTemplate.subTasks.length > 0 ? effectiveBatchTemplate : (batchSubprocessTemplateRef.current ?? taskSteps.subprocessTemplate);
+
+    const existingSteps = taskSteps.steps;
+    const nextIndex = existingSteps.length;
+    const baseWbs = wbs || task.Title || "1";
+    const lastFinish = existingSteps[existingSteps.length - 1]?.finish || start;
+    const rangeStart = lastFinish || start;
+    const rangeEnd = finish || lastFinish;
+    const dateRanges = getStepDateRanges(rangeStart, rangeEnd, normalizedLots);
+
+    const newSteps = Array.from({ length: normalizedLots }, (_, index) => {
+      const stepWbs = `${baseWbs}.${String(nextIndex + index + 1).padStart(2, "0")}`;
+      const templateSubprocess = effectiveBatchTemplate.subTasks.length > 0
+        ? cloneSubprocessTemplateForStep(effectiveBatchTemplate, stepWbs)
+        : createEmptySubprocess();
+      return {
+        id: `step-${nextIndex + index + 1}-${Date.now()}`,
+        wbs: stepWbs,
+        sortOrder: nextIndex + index,
+        title: `Batch ${nextIndex + index + 1}`,
+        units: normalizedPieces,
+        complete: 0,
+        start: dateRanges[index]?.start ?? (rangeStart || start),
+        finish: dateRanges[index]?.finish ?? (rangeEnd || finish),
+        actualFinish: "",
+        notes: [],
+        evidence: [],
+        approvals: [],
+        subprocess: templateSubprocess,
+      };
+    });
+
+    const allSteps = [...existingSteps, ...newSteps];
+    const nextTaskSteps = normalizeTaskStepsAggregation({
+      enabled: true,
+      totalUnits: allSteps.reduce((sum, s) => sum + Math.max(0, s.units || 0), 0),
+      unitsPerStep: normalizedPieces,
+      stepCount: allSteps.length,
+      mode: 'fixed',
+      weekdays: taskStepsWeekdays,
+      steps: allSteps,
+      subprocessTemplate: storedTemplate,
+    });
+
     setTaskSteps(nextTaskSteps);
     setComplete(deriveTaskComplete(nextTaskSteps, undefined));
     return nextTaskSteps;
@@ -663,7 +737,6 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
     const nextTaskSteps = normalizeTaskStepsAggregation(buildTaskStepsDataFromWeekdays(nextWeekdays, enabled));
     setTaskStepsMode("weekday");
     setTaskStepsWeekdays(nextWeekdays);
-    setTaskStepsSource("lots");
     setTaskStepsLots(nextTaskSteps.stepCount);
     setTaskStepsPieces(nextTaskSteps.unitsPerStep);
     setTaskSteps(nextTaskSteps);
@@ -711,17 +784,9 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
     setSubprocess(nextSubprocess);
     setShowTaskSteps(nextTaskSteps.enabled || nextTaskSteps.steps.length > 0);
     setIsTaskStepsSectionExpanded(nextTaskSteps.enabled || nextTaskSteps.steps.length > 0);
-    setIsTaskStepsConfigExpanded(!nextTaskSteps.enabled || nextTaskSteps.steps.length <= 0);
     setTaskSteps(nextTaskSteps);
-    const nextTaskStepsPieces = nextTaskSteps.unitsPerStep > 0 ? nextTaskSteps.unitsPerStep : DEFAULT_TASK_STEP_PIECES;
-    const nextTaskStepsLots = nextTaskSteps.stepCount > 0
-      ? nextTaskSteps.stepCount
-      : calculateFixedStepCount(projectUnits ?? 0, nextTaskStepsPieces);
-    setTaskStepsPieces(nextTaskStepsPieces);
-    setTaskStepsLots(nextTaskStepsLots);
     setTaskStepsMode(nextTaskSteps.mode === "weekday" ? "weekday" : "fixed");
     setTaskStepsWeekdays(nextTaskSteps.weekdays && nextTaskSteps.weekdays.length > 0 ? nextTaskSteps.weekdays : [1]);
-    setTaskStepsSource(nextTaskSteps.stepCount > 0 && nextTaskSteps.unitsPerStep <= 0 ? "lots" : "pieces");
     setSelectedTaskStepId(current => (isSameTask && current && nextTaskSteps.steps.some(step => step.id === current) ? current : undefined));
     setIsTaskStepWorkspaceExpanded(current => isSameTask && current);
     if (!isSameTask) {
@@ -733,6 +798,9 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
     if (!isSameTask) {
       setColumnFocus('balanced');
       setBodyCollapsed(nextHasSubprocessWorkspace);
+      batchSubprocessTemplateRef.current = nextTaskSteps.subprocessTemplate?.subTasks.length
+        ? nextTaskSteps.subprocessTemplate
+        : null;
     }
     previousCompleteRef.current = task.Complete ?? 0;
     previousTaskIdRef.current = task.Id;
@@ -746,32 +814,35 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
 
     if (!taskSteps.enabled) return;
     if (hasTaskStepPreservedData(taskSteps)) return;
-
+    // Only recalculate existing batches when task date/title changes, not when config inputs change
     if (taskStepsMode === "weekday") {
       setTaskSteps(buildTaskStepsDataFromWeekdays(taskStepsWeekdays, true));
-      return;
-    }
-
-    if (taskStepsSource === "lots" && taskStepsLots > 0) {
-      setTaskSteps(buildTaskStepsData("lots", taskStepsLots, true));
       return;
     }
 
     if (taskStepsPieces > 0) {
       setTaskSteps(buildTaskStepsData("pieces", taskStepsPieces, true));
     }
-  }, [projectUnits, start, finish, wbs, taskTitle, taskStepsMode, taskStepsWeekdays, taskStepsLots, taskStepsPieces]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [projectUnits, start, finish, wbs, taskTitle]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Reset config inputs whenever the batches panel becomes visible or task reloads after save
+  useEffect(() => {
+    if (!showTaskSteps) return;
+    const savedSteps = getTaskSteps(task.jsonTable).steps;
+    const existingTotal = savedSteps.reduce((s, step) => s + Math.max(0, step.units || 0), 0);
+    const releaseDefault = asPositiveInteger(task.releaseUnits ?? 0) > 0
+      ? asPositiveInteger(task.releaseUnits ?? 0)
+      : asPositiveInteger(projectUnits ?? 0);
+    const remaining = Math.max(0, releaseDefault - existingTotal);
+    setTaskStepsPieces(remaining > 0 ? remaining : DEFAULT_TASK_STEP_PIECES);
+    setTaskStepsLots(1);
+  }, [showTaskSteps, task]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (taskSteps.enabled) return;
-
-    if (taskStepsMode === "weekday") {
-      setTaskStepsLots(getTaskStepWeekdayDates(start, finish, taskStepsWeekdays).length);
-      return;
-    }
-
-    setTaskStepsLots(calculateFixedStepCount(projectUnits ?? 0, taskStepsPieces));
-  }, [projectUnits, start, finish, taskSteps.enabled, taskStepsMode, taskStepsPieces, taskStepsWeekdays]);
+    if (taskStepsMode !== "weekday") return;
+    setTaskStepsLots(getTaskStepWeekdayDates(start, finish, taskStepsWeekdays).length);
+  }, [start, finish, taskSteps.enabled, taskStepsMode, taskStepsWeekdays]);
 
   useEffect(() => {
     if (!taskSteps.steps.length) {
@@ -824,7 +895,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
 
     const derivedTaskSteps = taskSteps.enabled
       ? normalizeTaskStepsAggregation(taskSteps)
-      : createEmptyTaskSteps();
+      : { ...createEmptyTaskSteps(), subprocessTemplate: taskSteps.subprocessTemplate };
     const derivedSubprocess = subprocess;
     const effectiveComplete = overrides?.complete ?? deriveTaskComplete(derivedTaskSteps, derivedSubprocess);
     const effectiveEvidence = overrides && Object.prototype.hasOwnProperty.call(overrides, 'evidenceOfCompletion')
@@ -839,6 +910,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
     const sourceJsonTable = latestJsonTableRef.current ?? task.jsonTable;
     const nextTaskSteps = derivedTaskSteps;
     const hasTaskStepsData = nextTaskSteps.enabled && nextTaskSteps.steps.length > 0;
+    const hasTemplate = !!nextTaskSteps.subprocessTemplate?.subTasks.length;
     const hasSubprocessData = subprocess.subTasks.length > 0;
     const { payload, jsonTable, jsonTableSize } = buildTaskPersistencePayload({
       task,
@@ -859,8 +931,8 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
       evidenceOfCompletion: effectiveEvidence,
       subprocess: hasSubprocessData ? subprocess : undefined,
       clearSubprocess: !hasSubprocessData,
-      taskSteps: hasTaskStepsData ? nextTaskSteps : undefined,
-      clearTaskSteps: !hasTaskStepsData,
+      taskSteps: (hasTaskStepsData || hasTemplate) ? nextTaskSteps : undefined,
+      clearTaskSteps: !hasTaskStepsData && !hasTemplate,
       ...(gateChanged && { originalGate: task.Gate, renameGate: renameAllGateTasks }),
     });
 
@@ -876,8 +948,11 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
     const hasSubprocessData = nextSubprocess.subTasks.length > 0;
     const aggregatedComplete = hasSubprocessData ? aggregateSubprocessComplete(nextSubprocess) : 0;
     const aggregatedFinish = aggregatedComplete === 100 && !finish ? getTodayDateInputValue() : finish;
-    const currentTaskSteps = taskSteps.enabled ? normalizeTaskStepsAggregation(taskSteps) : createEmptyTaskSteps();
+    const currentTaskSteps = taskSteps.enabled
+      ? normalizeTaskStepsAggregation(taskSteps)
+      : { ...createEmptyTaskSteps(), subprocessTemplate: taskSteps.subprocessTemplate };
     const hasTaskStepsData = currentTaskSteps.enabled && currentTaskSteps.steps.length > 0;
+    const hasTemplate = !!currentTaskSteps.subprocessTemplate?.subTasks.length;
     const sourceJsonTable = latestJsonTableRef.current ?? task.jsonTable;
     const { payload, jsonTable, jsonTableSize } = buildTaskPersistencePayload({
       task,
@@ -898,8 +973,8 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
       evidenceOfCompletion,
       subprocess: hasSubprocessData ? nextSubprocess : undefined,
       clearSubprocess: !hasSubprocessData,
-      taskSteps: hasTaskStepsData ? currentTaskSteps : undefined,
-      clearTaskSteps: !hasTaskStepsData,
+      taskSteps: (hasTaskStepsData || hasTemplate) ? currentTaskSteps : undefined,
+      clearTaskSteps: !hasTaskStepsData && !hasTemplate,
       ...(gate !== task.Gate && { originalGate: task.Gate, renameGate: renameAllGateTasks }),
     });
 
@@ -909,12 +984,14 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
     await queueTaskSave(payload);
   };
 
-  const handleSaveTaskStepsOnly = async (nextTaskSteps: ITaskStepsData): Promise<void> => {
+  const handleSaveTaskStepsOnly = async (nextTaskSteps: ITaskStepsData, subprocessOverride?: ITaskSubprocessData): Promise<void> => {
     const normalizedTaskSteps = normalizeTaskStepsAggregation(nextTaskSteps);
     const hasTaskStepsData = normalizedTaskSteps.enabled && normalizedTaskSteps.steps.length > 0;
+    const hasTemplate = !!normalizedTaskSteps.subprocessTemplate?.subTasks.length;
     const aggregatedComplete = hasTaskStepsData ? aggregateTaskStepsComplete(normalizedTaskSteps) : 0;
     const aggregatedFinish = aggregatedComplete === 100 && !finish ? getTodayDateInputValue() : finish;
     const sourceJsonTable = latestJsonTableRef.current ?? task.jsonTable;
+    const effectiveSubprocess = subprocessOverride ?? subprocess;
     const { payload, jsonTable, jsonTableSize } = buildTaskPersistencePayload({
       task,
       sourceJsonTable,
@@ -932,10 +1009,10 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
       releaseUnits,
       executiveTrack,
       evidenceOfCompletion,
-      subprocess: subprocess.subTasks.length > 0 ? subprocess : undefined,
-      clearSubprocess: subprocess.subTasks.length <= 0,
-      taskSteps: hasTaskStepsData ? normalizedTaskSteps : undefined,
-      clearTaskSteps: !hasTaskStepsData,
+      subprocess: effectiveSubprocess.subTasks.length > 0 ? effectiveSubprocess : undefined,
+      clearSubprocess: effectiveSubprocess.subTasks.length <= 0,
+      taskSteps: (hasTaskStepsData || hasTemplate) ? normalizedTaskSteps : undefined,
+      clearTaskSteps: !hasTaskStepsData && !hasTemplate,
       ...(gate !== task.Gate && { originalGate: task.Gate, renameGate: renameAllGateTasks }),
     });
 
@@ -1333,56 +1410,18 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
       if (next) {
         setShowSubprocess(true);
         setIsTaskStepsSectionExpanded(true);
-        setIsTaskStepsConfigExpanded(true);
         setBodyCollapsed(false);
       }
       return next;
     });
   };
 
-  const handleRegenerateTaskSteps = (source: TaskStepsSource, rawValue: number, enabled = true): void => {
-    if (taskSteps.steps.length > 0 && hasTaskStepPreservedData(taskSteps)) {
-      const normalizedValue = asPositiveInteger(rawValue);
-      if (source === "lots") {
-        setTaskStepsSource("lots");
-        setTaskStepsLots(normalizedValue);
-        setTaskStepsPieces(
-          totalProjectUnits > 0 && normalizedValue > 0
-            ? Math.max(1, Math.floor(totalProjectUnits / normalizedValue))
-            : 0
-        );
-        return;
-      }
-
-      setTaskStepsSource("pieces");
-      setTaskStepsPieces(normalizedValue || DEFAULT_TASK_STEP_PIECES);
-      setTaskStepsLots(calculateFixedStepCount(totalProjectUnits, normalizedValue));
-      return;
-    }
-
-    if (source === "lots") {
-      applyTaskStepsFromLots(rawValue, enabled);
-      return;
-    }
-
-    applyTaskStepsFromPieces(rawValue, enabled);
-  };
 
   const handleTaskStepsModeChange = (nextMode: TaskStepsMode): void => {
     setTaskStepsMode(nextMode);
-
     if (nextMode === "weekday") {
-      const nextWeekdays = taskStepsWeekdays.length > 0 ? taskStepsWeekdays : [1];
-      applyTaskStepsFromWeekdays(nextWeekdays, taskSteps.enabled);
-      return;
+      setTaskStepsWeekdays(prev => prev.length > 0 ? prev : [1]);
     }
-
-    if (taskStepsSource === "lots" && taskStepsLots > 0) {
-      applyTaskStepsFromLots(taskStepsLots, taskSteps.enabled);
-      return;
-    }
-
-    applyTaskStepsFromPieces(taskStepsPieces > 0 ? taskStepsPieces : DEFAULT_TASK_STEP_PIECES, taskSteps.enabled);
   };
 
   const handleToggleTaskStepWeekday = (weekday: number): void => {
@@ -1390,11 +1429,8 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
       ? taskStepsWeekdays.filter(value => value !== weekday)
       : [...taskStepsWeekdays, weekday].sort((a, b) => a - b);
 
-    if (nextWeekdays.length <= 0) {
-      return;
-    }
-
-    applyTaskStepsFromWeekdays(nextWeekdays, taskSteps.enabled);
+    if (nextWeekdays.length <= 0) return;
+    setTaskStepsWeekdays(nextWeekdays);
   };
 
   const handleCreateTaskStepsClick = (): void => {
@@ -1414,36 +1450,26 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
           }
         }
         nextTaskSteps = applyTaskStepsFromWeekdays(taskStepsWeekdays, true);
-      } else if (taskStepsSource === "lots" && taskStepsLots > 0) {
-        if (taskSteps.steps.length > 0 && hasTaskStepPreservedData(taskSteps)) {
-          const confirmed = window.confirm(
-            "Regenerating Batches will replace the current batch structure and reset batch progress. Continue?"
-          );
-          if (!confirmed) {
-            setIsTaskStepsProcessing(false);
-            return;
-          }
-        }
-        nextTaskSteps = applyTaskStepsFromLots(taskStepsLots, true);
       } else {
+        const lots = taskStepsLots > 0 ? taskStepsLots : 1;
+        const pieces = taskStepsPieces > 0 ? taskStepsPieces : DEFAULT_TASK_STEP_PIECES;
         if (taskSteps.steps.length > 0 && hasTaskStepPreservedData(taskSteps)) {
-          const confirmed = window.confirm(
-            "Regenerating Batches will replace the current batch structure and reset batch progress. Continue?"
-          );
-          if (!confirmed) {
-            setIsTaskStepsProcessing(false);
-            return;
-          }
+          nextTaskSteps = addTaskStepBatches(lots, pieces);
+        } else {
+          nextTaskSteps = applyTaskStepsFromBoth(lots, pieces, true);
         }
-        nextTaskSteps = applyTaskStepsFromPieces(taskStepsPieces > 0 ? taskStepsPieces : DEFAULT_TASK_STEP_PIECES, true);
       }
 
       setIsTaskStepsSectionExpanded(true);
-      setIsTaskStepsConfigExpanded(false);
       setSelectedTaskStepId(undefined);
       setIsTaskStepWorkspaceExpanded(false);
       setIsTaskStepDetailsExpanded(false);
       setIsTaskStepSubprocessExpanded(true);
+      // Reset config to new remaining so the next Add Batches shows fresh defaults
+      const newExistingTotal = nextTaskSteps.steps.reduce((s, step) => s + Math.max(0, step.units || 0), 0);
+      const newRemaining = Math.max(0, initialBatchReleaseDefault - newExistingTotal);
+      setTaskStepsPieces(newRemaining > 0 ? newRemaining : DEFAULT_TASK_STEP_PIECES);
+      setTaskStepsLots(1);
       void handleSaveTaskStepsOnly(nextTaskSteps)
         .catch(error => {
           console.error("[TaskCard] Batch save failed", error);
@@ -1545,37 +1571,6 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
             <div className={styles.taskStepsConfigActions}>
               <button
                 type="button"
-                className={`${styles.taskButton} ${styles.taskButtonSave}`}
-                onClick={handleCreateTaskStepsClick}
-                disabled={totalProjectUnits <= 0 || isTaskStepsProcessing}
-                title={taskSteps.enabled && taskSteps.steps.length > 0 ? "Recreate Batches" : "Create Batches"}
-              >
-                <span className={styles.taskButtonLabel}>
-                  {isTaskStepsProcessing ? "Processing..." : taskSteps.enabled && taskSteps.steps.length > 0 ? "Recreate Batches" : "Create Batches"}
-                </span>
-              </button>
-              {taskSteps.enabled && taskSteps.steps.length > 0 && (
-                <button
-                  type="button"
-                  className={`${styles.taskButton} ${styles.taskButtonSave}`}
-                  onClick={() => {
-                    setTaskSteps(createEmptyTaskSteps());
-                    setTaskStepsMode('fixed');
-                    setTaskStepsWeekdays([1]);
-                    setTaskStepsPieces(DEFAULT_TASK_STEP_PIECES);
-                    setTaskStepsLots(calculateFixedStepCount(projectUnits ?? 0, DEFAULT_TASK_STEP_PIECES));
-                    setSelectedTaskStepId(undefined);
-                    setIsTaskStepWorkspaceExpanded(false);
-                    setIsTaskStepDetailsExpanded(false);
-                    setIsTaskStepSubprocessExpanded(true);
-                    setIsTaskStepsConfigExpanded(true);
-                  }}
-                >
-                  <span className={styles.taskButtonLabel}>Clear Batches</span>
-                </button>
-              )}
-              <button
-                type="button"
                 className={`${styles.taskButton} ${styles.taskButtonCollapse}`}
                 onClick={() => setIsTaskStepsConfigExpanded(prev => !prev)}
                 title={isTaskStepsConfigExpanded ? "Collapse Batch Configuration" : "Expand Batch Configuration"}
@@ -1603,7 +1598,14 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
                 </label>
                 <label className={styles.taskStepsField}>
                   <span>Total Units</span>
-                  <input type="number" value={totalProjectUnits || ""} className={styles.inputSmall} disabled />
+                  <input
+                    type="number"
+                    min={1}
+                    value={batchRemaining}
+                    className={styles.inputSmall}
+                    readOnly
+                    title={releaseUnits > 0 ? `Default from task Release Units (${releaseUnits})` : `Default from WO Project Units (${totalProjectUnits})`}
+                  />
                 </label>
                 {taskStepsMode === "fixed" ? (
                   <>
@@ -1614,7 +1616,9 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
                         min={1}
                         value={taskStepsPieces || ""}
                         className={styles.inputSmall}
-                        onChange={e => handleRegenerateTaskSteps("pieces", Number(e.target.value) || 0, taskSteps.enabled)}
+                        onChange={e => {
+                          setTaskStepsPieces(Math.max(1, Number(e.target.value) || 1));
+                        }}
                       />
                     </label>
                     <label className={styles.taskStepsField}>
@@ -1624,7 +1628,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
                         min={1}
                         value={taskStepsLots || ""}
                         className={styles.inputSmall}
-                        onChange={e => handleRegenerateTaskSteps("lots", Number(e.target.value) || 0, taskSteps.enabled)}
+                        onChange={e => setTaskStepsLots(Math.max(1, Number(e.target.value) || 1))}
                       />
                     </label>
                   </>
@@ -1637,11 +1641,69 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
 
               </div>
 
-              {totalProjectUnits <= 0 && (
+              {batchRemaining <= 0 && initialBatchReleaseDefault <= 0 && (
                 <div className={styles.taskStepsHint}>
-                  Batches need project Units defined in ED2-Projects.
+                  Batches need units — set task Release Units or WO Project Units first.
                 </div>
               )}
+              <div className={styles.taskStepsConfigActions}>
+                {taskStepsMode === "fixed" && taskStepsLots > 0 && taskStepsPieces > 0 && (() => {
+                  const releaseUnits = initialBatchReleaseDefault;
+                  const existingTotal = taskSteps.steps.reduce((s, step) => s + Math.max(0, step.units || 0), 0);
+                  const newBatches = taskStepsLots * taskStepsPieces;
+                  const futureUnits = releaseUnits - existingTotal - newBatches;
+                  const futureClass = futureUnits > 0 ? styles.futureAmber : futureUnits < 0 ? styles.futureRed : styles.futureGray;
+                  return (
+                    <span
+                      className={styles.taskStepsRemaining}
+                      title={`Release ${releaseUnits} − Planned ${existingTotal} − New ${newBatches} = Future ${futureUnits}`}
+                    >
+                      {`Release (${releaseUnits}) − Planned (${existingTotal}) − New Batches (${newBatches}) = Future `}
+                      <span className={futureClass}>({futureUnits})</span>
+                    </span>
+                  );
+                })()}
+                <button
+                  type="button"
+                  className={`${styles.taskButton} ${styles.taskButtonSave}`}
+                  onClick={handleCreateTaskStepsClick}
+                  disabled={initialBatchReleaseDefault <= 0 || isTaskStepsProcessing}
+                  title={taskSteps.enabled && taskSteps.steps.length > 0 ? "Add Batches to existing" : "Create Batches"}
+                >
+                  <span className={styles.taskButtonLabel}>
+                    {isTaskStepsProcessing ? "Processing..." : taskSteps.enabled && taskSteps.steps.length > 0 ? "Add Batches" : "Create Batches"}
+                  </span>
+                </button>
+                {taskSteps.enabled && taskSteps.steps.length > 0 && (
+                  <button
+                    type="button"
+                    className={`${styles.taskButton} ${styles.taskButtonSave}`}
+                    onClick={async () => {
+                      const template = taskSteps.subprocessTemplate;
+                      const nextTaskSteps = { ...createEmptyTaskSteps(), subprocessTemplate: template };
+                      const nextSubprocess = template?.subTasks.length ? template : subprocess;
+                      const taskBaseUnits = (task.releaseUnits ?? 0) > 0
+                        ? (task.releaseUnits ?? 0)
+                        : asPositiveInteger(projectUnits ?? 0);
+                      const resetUnits = taskBaseUnits > 0 ? taskBaseUnits : DEFAULT_TASK_STEP_PIECES;
+                      setTaskSteps(nextTaskSteps);
+                      if (template?.subTasks.length) setSubprocess(nextSubprocess);
+                      setTaskStepsPieces(resetUnits);
+                      setTaskStepsLots(1);
+                      setTaskStepsMode('fixed');
+                      setTaskStepsWeekdays([1]);
+                      setSelectedTaskStepId(undefined);
+                      setIsTaskStepWorkspaceExpanded(false);
+                      setIsTaskStepDetailsExpanded(false);
+                      setIsTaskStepSubprocessExpanded(true);
+                      setShowTaskSteps(false);
+                      await handleSaveTaskStepsOnly(nextTaskSteps, nextSubprocess);
+                    }}
+                  >
+                    <span className={styles.taskButtonLabel}>Clear Batches</span>
+                  </button>
+                )}
+              </div>
             </>
           )}
         </div>
@@ -1865,6 +1927,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
                     visualLevel="taskStep"
                     headerKicker="SUBPROCESS WORKAREA"
                     headerTitle="Batch"
+                    subprocessTemplate={taskSteps.subprocessTemplate}
                     isCollapsed={!isTaskStepSubprocessExpanded}
                     onClose={() => setIsTaskStepSubprocessExpanded(prev => !prev)}
                   />
@@ -2081,12 +2144,27 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
               </div>
             )}
  
-            {/* Row 2: Task + Release toggle */}
+            {/* Row 2: Task + Exec toggle */}
             <div className={styles.formRow}>
               <label className={`${styles.field} ${styles.fieldFull}`}>
                 <span>Task</span>
                 <input type="text" value={taskTitle} onChange={e => setTaskTitle(e.target.value)} className={styles.inputSmall} />
               </label>
+              <label className={styles.gateEditToggle} title="Show this task in Executive View">
+                <input
+                  type="checkbox"
+                  checked={executiveTrack}
+                  onChange={e => setExecutiveTrack(e.target.checked)}
+                />
+                <span className={styles.gateEditTrack}>
+                  <span className={styles.gateEditThumb} />
+                </span>
+                <span className={styles.gateEditLabel}>Exec</span>
+              </label>
+            </div>
+
+            {/* Row 3: Ship toggle + Release Units (always visible) */}
+            <div className={styles.formRow}>
               <label className={styles.gateEditToggle}>
                 <input
                   type="checkbox"
@@ -2104,34 +2182,20 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
                 </span>
                 <span className={styles.gateEditLabel}>Ship</span>
               </label>
-              <label className={styles.gateEditToggle} title="Show this task in Executive View">
+              <label className={`${styles.field} ${styles.fieldHalf}`}>
+                <span>Release Units</span>
                 <input
-                  type="checkbox"
-                  checked={executiveTrack}
-                  onChange={e => setExecutiveTrack(e.target.checked)}
+                  type="number"
+                  min={0}
+                  step={1}
+                  value={releaseUnits}
+                  onChange={e => setReleaseUnits(Math.max(0, Number(e.target.value) || 0))}
+                  className={`${styles.inputSmall} ${styles.releaseUnitsInput}`}
+                  disabled={!isRelease}
+                  title={!isRelease ? "Enable Ship to set release units" : undefined}
                 />
-                <span className={styles.gateEditTrack}>
-                  <span className={styles.gateEditThumb} />
-                </span>
-                <span className={styles.gateEditLabel}>Exec</span>
               </label>
             </div>
-
-            {isRelease && (
-              <div className={styles.formRow}>
-                <label className={`${styles.field} ${styles.fieldHalf}`}>
-                  <span>Release Units</span>
-                  <input
-                    type="number"
-                    min={0}
-                    step={1}
-                    value={releaseUnits}
-                    onChange={e => setReleaseUnits(Math.max(0, Number(e.target.value) || 0))}
-                    className={`${styles.inputSmall} ${styles.releaseUnitsInput}`}
-                  />
-                </label>
-              </div>
-            )}
 
             {/* Row 3: % Complete | Duration + WBS (compact group) */}
             <div className={styles.formRow}>
@@ -2171,7 +2235,8 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
                   value={start && finish ? duration : ""}
                   onChange={e => handleDurationChange(Number(e.target.value) || 0)}
                   className={`${styles.inputFixed} ${styles.inputFixed50}`}
-                  disabled={!start}
+                  disabled={!start || subprocess.subTasks.length > 0}
+                  title={subprocess.subTasks.length > 0 ? "This task has subtasks — adjust dates through the subtask list" : undefined}
                 />
                 <span className={styles.fieldGroupLabel}>WBS</span>
                 <input
@@ -2199,6 +2264,8 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
                     setStart(v);
                   }}
                   className={styles.inputSmall}
+                  disabled={subprocess.subTasks.length > 0}
+                  title={subprocess.subTasks.length > 0 ? "This task has subtasks — adjust dates through the subtask list" : undefined}
                 />
               </label>
             </div>
@@ -2219,6 +2286,8 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
                     setFinish(v);
                   }}
                   className={styles.inputSmall}
+                  disabled={subprocess.subTasks.length > 0}
+                  title={subprocess.subTasks.length > 0 ? "This task has subtasks — adjust dates through the subtask list" : undefined}
                 />
               </label>
             </div>
@@ -2353,6 +2422,10 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
               if (alert) triggerShipAlert(alert);
               setSubprocess(nextValue);
               setComplete(deriveTaskComplete(undefined, nextValue));
+            }}
+            onUpdateParentDates={(newStart, newFinish) => {
+              setStart(newStart);
+              setFinish(newFinish);
             }}
             onSaveSubprocess={handleSaveSubprocessOnly}
             onClose={handleToggleSubprocess}

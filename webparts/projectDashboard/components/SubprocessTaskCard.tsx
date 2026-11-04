@@ -12,10 +12,14 @@ type SubprocessColumnFocus = "balanced" | "left" | "right";
 
 interface ISubprocessTaskCardProps {
   subTask: ISubprocessSubTask;
+  parentStart?: string;
+  parentFinish?: string;
+  onUpdateParentDates?: (newStart: string, newFinish: string) => void;
   currentUserEmail?: string;
   currentUserDisplayName?: string;
   onClose: () => void;
   onSave: (nextSubTask: ISubprocessSubTask) => void | Promise<void>;
+  onSaveImmediate?: (nextSubTask: ISubprocessSubTask) => void | Promise<void>;
   onUploadEvidenceFile?: (
     file: File,
     taskTitle: string
@@ -23,6 +27,11 @@ interface ISubprocessTaskCardProps {
   onSendEmail?: (to: string[], subject: string, body: string) => Promise<void>;
   onSearchUsers?: (query: string) => Promise<{ displayName: string; email: string }[]>;
 }
+
+const fmtD = (v: string): string => {
+  const p = v.split("-");
+  return p.length === 3 ? `${p[1]}/${p[2]}/${p[0]}` : v;
+};
 
 const toDateInputValue = (value?: string): string => toLocaleDateInputValue(value) || value || "";
 
@@ -44,10 +53,14 @@ const hasCompletionEvidence = (entries: IEvidenceEntry[]): boolean =>
 
 const SubprocessTaskCard: React.FC<ISubprocessTaskCardProps> = ({
   subTask,
+  parentStart,
+  parentFinish,
+  onUpdateParentDates,
   currentUserEmail,
   currentUserDisplayName,
   onClose,
   onSave,
+  onSaveImmediate,
   onUploadEvidenceFile,
   onSendEmail,
   onSearchUsers,
@@ -65,6 +78,7 @@ const SubprocessTaskCard: React.FC<ISubprocessTaskCardProps> = ({
   const [columnFocus, setColumnFocus] = useState<SubprocessColumnFocus>("balanced");
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
+  const [dateConflict, setDateConflict] = useState<{ pendingStart: string; pendingFinish: string } | null>(null);
   const notesRef = useRef<INoteEntry[]>(subTask.notes ?? []);
   const evidenceRef = useRef<IEvidenceEntry[]>(subTask.evidence ?? []);
   const approvalsRef = useRef<IApprovalEntry[]>(subTask.approvals ?? []);
@@ -95,7 +109,8 @@ const SubprocessTaskCard: React.FC<ISubprocessTaskCardProps> = ({
     const nextEntries = [...notesRef.current, entry];
     notesRef.current = nextEntries;
     setNotes(nextEntries);
-    await Promise.resolve(onSave(buildNextSubTask({ notes: nextEntries })));
+    const saveFn = onSaveImmediate ?? onSave;
+    await Promise.resolve(saveFn(buildNextSubTask({ notes: nextEntries })));
   };
 
   function buildNextSubTask(overrides?: {
@@ -178,7 +193,8 @@ const SubprocessTaskCard: React.FC<ISubprocessTaskCardProps> = ({
     const nextNotes = [...notesRef.current, auditNote];
     notesRef.current = nextNotes;
     setNotes(nextNotes);
-    await Promise.resolve(onSave(buildNextSubTask({ evidence: nextEntries, notes: nextNotes })));
+    const saveFn = onSaveImmediate ?? onSave;
+    await Promise.resolve(saveFn(buildNextSubTask({ evidence: nextEntries, notes: nextNotes })));
   };
 
   const buildApprovalEmail = (requestedBy: string): { subject: string; body: string } => ({
@@ -197,6 +213,32 @@ const SubprocessTaskCard: React.FC<ISubprocessTaskCardProps> = ({
   });
 
   const completionEvidenceMissing = complete === 100 && !hasCompletionEvidence(evidence);
+
+  const handleDateConflictUpdateParent = (): void => {
+    if (!dateConflict) return;
+    const { pendingStart, pendingFinish } = dateConflict;
+    setStart(pendingStart);
+    setFinish(pendingFinish);
+    const newParentStart = parentStart && pendingStart < parentStart ? pendingStart : (parentStart ?? pendingStart);
+    const newParentFinish = parentFinish && pendingFinish > parentFinish ? pendingFinish : (parentFinish ?? pendingFinish);
+    onUpdateParentDates?.(newParentStart, newParentFinish);
+    setDateConflict(null);
+  };
+
+  const handleDateConflictAdjustChild = (): void => {
+    if (!dateConflict) return;
+    const { pendingStart, pendingFinish } = dateConflict;
+    setStart(parentStart && pendingStart < parentStart ? parentStart : pendingStart);
+    setFinish(parentFinish && pendingFinish > parentFinish ? parentFinish : pendingFinish);
+    setDateConflict(null);
+  };
+
+  const handleDateConflictForce = (): void => {
+    if (!dateConflict) return;
+    setStart(dateConflict.pendingStart);
+    setFinish(dateConflict.pendingFinish);
+    setDateConflict(null);
+  };
 
   return (
     <div className={styles.detailCard} data-testid="subprocess-detail-card">
@@ -302,7 +344,14 @@ const SubprocessTaskCard: React.FC<ISubprocessTaskCardProps> = ({
               <input
                 type="date"
                 value={start}
-                onChange={(event) => setStart(event.target.value)}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  if (v && parentStart && v < parentStart) {
+                    setDateConflict({ pendingStart: v, pendingFinish: finish });
+                  } else {
+                    setStart(v);
+                  }
+                }}
                 className={styles.detailInput}
               />
             </label>
@@ -324,7 +373,14 @@ const SubprocessTaskCard: React.FC<ISubprocessTaskCardProps> = ({
               <input
                 type="date"
                 value={finish}
-                onChange={(event) => setFinish(event.target.value)}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  if (v && parentFinish && v > parentFinish) {
+                    setDateConflict({ pendingStart: start, pendingFinish: v });
+                  } else {
+                    setFinish(v);
+                  }
+                }}
                 className={styles.detailInput}
               />
             </label>
@@ -338,6 +394,26 @@ const SubprocessTaskCard: React.FC<ISubprocessTaskCardProps> = ({
               />
             </label>
           </div>
+
+          {dateConflict && parentStart && parentFinish && (() => {
+            const startConflict = dateConflict.pendingStart < parentStart;
+            const finishConflict = dateConflict.pendingFinish > parentFinish;
+            const msg = startConflict && finishConflict
+              ? `Start and finish extend beyond parent task range (${fmtD(parentStart)} – ${fmtD(parentFinish)}).`
+              : startConflict
+                ? `Start (${fmtD(dateConflict.pendingStart)}) is before parent start (${fmtD(parentStart)}).`
+                : `Finish (${fmtD(dateConflict.pendingFinish)}) is after parent finish (${fmtD(parentFinish)}).`;
+            return (
+              <div className={styles.dateConflict}>
+                <span className={styles.dateConflictMessage}>{msg} What should happen?</span>
+                <div className={styles.dateConflictActions}>
+                  <button type="button" className={styles.dateConflictBtn} onClick={handleDateConflictUpdateParent}>Update parent</button>
+                  <button type="button" className={styles.dateConflictBtn} onClick={handleDateConflictAdjustChild}>Adjust child</button>
+                  <button type="button" className={`${styles.dateConflictBtn} ${styles.dateConflictBtnDanger}`} onClick={handleDateConflictForce}>Force change</button>
+                </div>
+              </div>
+            );
+          })()}
 
           {completionEvidenceMissing && (
             <div className={styles.detailWarning}>
@@ -406,7 +482,8 @@ const SubprocessTaskCard: React.FC<ISubprocessTaskCardProps> = ({
                     setNotes(nextNotes);
                   }
 
-                  await Promise.resolve(onSave(buildNextSubTask({ evidence: entries, notes: nextNotes })));
+                  const saveFn2 = onSaveImmediate ?? onSave;
+                  await Promise.resolve(saveFn2(buildNextSubTask({ evidence: entries, notes: nextNotes })));
                 }}
                 onToggleEvidenceOfCompletion={handleToggleEvidenceOfCompletion}
                 onUploadFile={onUploadEvidenceFile}

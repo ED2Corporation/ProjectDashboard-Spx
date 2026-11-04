@@ -1048,6 +1048,18 @@ $c-step-tasks: #2f6f78;
   color: $c-text-subtle;
 }
 
+.taskStepsRemaining {
+  font-size: $f-xs;
+  font-weight: 600;
+  color: $c-text-subtle;
+  padding: 0 $sp-2;
+  white-space: nowrap;
+}
+
+.futureAmber { color: #f59e0b; font-weight: 700; }
+.futureRed   { color: #dc2626; font-weight: 700; }
+.futureGray  { color: $c-text-subtle; font-weight: 700; }
+
 .taskStepsSummary {
   display: flex;
   align-items: center;

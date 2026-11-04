@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
+import * as XLSX from "xlsx";
 import { SPFI } from "@pnp/sp";
 import { IList } from "@pnp/sp/lists";
 import { MSGraphClientV3, SPHttpClient, SPHttpClientResponse } from '@microsoft/sp-http';
@@ -1229,7 +1230,6 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
     file: File,
     defaultGate?: string
   ): Promise<void> => {
-    const XLSX = await import(/* webpackChunkName: "xlsx" */ "xlsx");
     const arrayBuffer = await file.arrayBuffer();
     const workbook = XLSX.read(arrayBuffer, { type: "array", cellDates: true, cellText: false });
     const sheet = workbook.Sheets[workbook.SheetNames[0]];

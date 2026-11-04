@@ -1,3 +1,4 @@
+import * as XLSX from "xlsx";
 import { ISubprocessSubTask } from "./TaskDescriptionBlob";
 
 interface IExcelSubprocessRow {
@@ -49,7 +50,6 @@ export const parseSubprocessExcelFile = async (
   parentStart: string,
   parentFinish: string
 ): Promise<ISubprocessSubTask[]> => {
-  const XLSX = await import(/* webpackChunkName: "xlsx" */ "xlsx");
   const arrayBuffer = await file.arrayBuffer();
   const workbook = XLSX.read(arrayBuffer, { type: "array", cellDates: true, cellText: false });
   const firstSheetName = workbook.SheetNames[0];

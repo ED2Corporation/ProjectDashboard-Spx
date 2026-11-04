@@ -17,6 +17,11 @@ interface ISubprocessListProps {
   movingSubTaskId?: string;
   detailSubTaskId?: string;
   detailCard?: React.ReactNode;
+  dirtySubTaskIds?: Set<string>;
+  originalSubTasks?: ISubprocessSubTask[];
+  parentStart?: string;
+  parentFinish?: string;
+  onUpdateParentDates?: (newStart: string, newFinish: string) => void;
   onSelect: (subTaskId: string) => void;
   onAddBelow: (subTaskId: string) => void;
   onRemove: (subTaskId: string) => void;
@@ -50,10 +55,11 @@ const toMs = (value?: string): number => {
   return isNaN(date.getTime()) ? 0 : date.getTime();
 };
 
-// Display YYYY-MM-DD as MM/DD/YYYY without Date object (avoids UTC timezone shift)
+// Display YYYY-MM-DD (or ISO string) as MM/DD/YYYY without Date object (avoids UTC timezone shift)
 const formatDateDisplay = (value?: string): string => {
   if (!value) return "";
-  const parts = value.split("-");
+  const dateOnly = value.includes("T") ? value.split("T")[0] : value;
+  const parts = dateOnly.split("-");
   if (parts.length !== 3) return value;
   const [y, m, d] = parts;
   return `${m}/${d}/${y}`;
@@ -69,6 +75,11 @@ const SubprocessList: React.FC<ISubprocessListProps> = ({
   movingSubTaskId,
   detailSubTaskId,
   detailCard,
+  dirtySubTaskIds,
+  originalSubTasks,
+  parentStart,
+  parentFinish,
+  onUpdateParentDates,
   onSelect,
   onAddBelow,
   onRemove,
@@ -88,6 +99,19 @@ const SubprocessList: React.FC<ISubprocessListProps> = ({
   const [editStart, setEditStart] = useState("");
   const [editFinish, setEditFinish] = useState("");
   const [actionsExpanded, setActionsExpanded] = useState<boolean>(false);
+  const [quickEditConflictItemId, setQuickEditConflictItemId] = useState<string | null>(null);
+
+  const buildDiffTitle = (item: ISubprocessSubTask): string => {
+    const orig = originalSubTasks?.find(st => st.id === item.id);
+    if (!orig) return "New subtask — pending save";
+    const fmtD = (v?: string): string => { const p = (v ?? "").split("-"); return p.length === 3 ? `${p[1]}/${p[2]}/${p[0]}` : (v || "—"); };
+    const diffs: string[] = [];
+    if (orig.task !== item.task) diffs.push(`Task: "${orig.task}" → "${item.task}"`);
+    if ((orig.complete ?? 0) !== (item.complete ?? 0)) diffs.push(`Complete: ${orig.complete ?? 0}% → ${item.complete ?? 0}%`);
+    if (orig.start !== item.start) diffs.push(`Start: ${fmtD(orig.start)} → ${fmtD(item.start)}`);
+    if (orig.finish !== item.finish) diffs.push(`Finish: ${fmtD(orig.finish)} → ${fmtD(item.finish)}`);
+    return diffs.length > 0 ? `Pending changes:\n${diffs.join("\n")}` : "Pending save";
+  };
 
   const handleColSort = (col: SortCol): void => {
     if (sortCol === col) {
@@ -130,16 +154,28 @@ const SubprocessList: React.FC<ISubprocessListProps> = ({
     ? subTasks.find(item => item.id === selectedSubTaskId)
     : undefined;
 
+  const checkDateConflict = (itemId: string, start: string, finish: string): void => {
+    const startOut = !!(start && parentStart && start < parentStart);
+    const finishOut = !!(finish && parentFinish && finish > parentFinish);
+    if (startOut || finishOut) {
+      setQuickEditConflictItemId(itemId);
+    } else {
+      setQuickEditConflictItemId(null);
+    }
+  };
+
   const startQuickEdit = (item: ISubprocessSubTask): void => {
     onSelect(item.id);
     setEditTaskTitle(item.task || "");
     setEditPercentComplete(item.complete || 0);
     setEditStart(toDateInputValue(item.start));
     setEditFinish(toDateInputValue(item.finish));
+    setQuickEditConflictItemId(null);
     onStartQuickEdit(item.id);
   };
 
-  const handleQuickSave = (item: ISubprocessSubTask): void => {
+  const handleQuickSave = (item: ISubprocessSubTask, skipConflictCheck?: boolean): void => {
+    if (!skipConflictCheck && quickEditConflictItemId === item.id) return;
     const complete = Math.max(0, Math.min(100, Math.floor(editPercentComplete || 0)));
     const finish = complete === 100 && !editFinish ? getTodayDateInputValue() : editFinish;
     const actualFinish =
@@ -154,6 +190,25 @@ const SubprocessList: React.FC<ISubprocessListProps> = ({
       finish,
       actualFinish,
     });
+  };
+
+  const handleQEConflictUpdateParent = (item: ISubprocessSubTask): void => {
+    const newParentStart = (parentStart && editStart < parentStart) ? editStart : (parentStart ?? editStart);
+    const newParentFinish = (parentFinish && editFinish > parentFinish) ? editFinish : (parentFinish ?? editFinish);
+    onUpdateParentDates?.(newParentStart, newParentFinish);
+    setQuickEditConflictItemId(null);
+    handleQuickSave(item, true);
+  };
+
+  const handleQEConflictAdjustChild = (): void => {
+    if (parentStart && editStart < parentStart) setEditStart(parentStart);
+    if (parentFinish && editFinish > parentFinish) setEditFinish(parentFinish);
+    setQuickEditConflictItemId(null);
+  };
+
+  const handleQEConflictForce = (item: ISubprocessSubTask): void => {
+    setQuickEditConflictItemId(null);
+    handleQuickSave(item, true);
   };
 
   const handleCompleteActionClick = (item: ISubprocessSubTask): void => {
@@ -262,6 +317,7 @@ const SubprocessList: React.FC<ISubprocessListProps> = ({
               const isEditing = editingSubTaskId === item.id;
               const visibleIndex = subTasks.findIndex(entry => entry.id === item.id);
               const moveDisabled = movingSubTaskId === item.id;
+              const isDirty = dirtySubTaskIds?.has(item.id) ?? false;
 
               return (
                 <React.Fragment key={item.id}>
@@ -269,7 +325,9 @@ const SubprocessList: React.FC<ISubprocessListProps> = ({
                     className={[
                       dashboardStyles.taskRowSubprocess,
                       item.id === selectedSubTaskId ? dashboardStyles.taskRowActive : "",
+                      isDirty ? styles.subtaskDirtyRow : "",
                     ].filter(Boolean).join(" ")}
+                    title={isDirty ? buildDiffTitle(item) : undefined}
                     onClick={() => onSelect(item.id)}
                   >
                   <td className={`${dashboardStyles.colWbs} ${styles.subtaskWbs}`}>{item.wbs}</td>
@@ -326,7 +384,11 @@ const SubprocessList: React.FC<ISubprocessListProps> = ({
                       <input
                         type="date"
                         value={editStart}
-                        onChange={(e) => setEditStart(e.target.value)}
+                        onChange={(e) => {
+                          const v = e.target.value;
+                          setEditStart(v);
+                          checkDateConflict(item.id, v, editFinish);
+                        }}
                         onClick={(e) => e.stopPropagation()}
                         className={dashboardStyles.inputSmall}
                       />
@@ -339,7 +401,11 @@ const SubprocessList: React.FC<ISubprocessListProps> = ({
                       <input
                         type="date"
                         value={editFinish}
-                        onChange={(e) => setEditFinish(e.target.value)}
+                        onChange={(e) => {
+                          const v = e.target.value;
+                          setEditFinish(v);
+                          checkDateConflict(item.id, editStart, v);
+                        }}
                         onClick={(e) => e.stopPropagation()}
                         className={dashboardStyles.inputSmall}
                       />
@@ -593,7 +659,10 @@ const SubprocessList: React.FC<ISubprocessListProps> = ({
                           type="button"
                           title="Cancel quick edit"
                           aria-label="Cancel quick edit"
-                          onClick={onCancelQuickEdit}
+                          onClick={() => {
+                            setQuickEditConflictItemId(null);
+                            onCancelQuickEdit();
+                          }}
                         >
                           <svg viewBox="0 0 16 16" aria-hidden="true">
                             <path d="M4 4 12 12M12 4 4 12" />
@@ -623,6 +692,29 @@ const SubprocessList: React.FC<ISubprocessListProps> = ({
           </tbody>
         </table>
       </div>
+      {(() => {
+        if (!quickEditConflictItemId) return null;
+        const conflictItem = sortedTasks.find(t => t.id === quickEditConflictItemId);
+        if (!conflictItem) return null;
+        return (
+          <div className={styles.dateConflict}>
+            <div className={styles.dateConflictMessage}>
+              Date is outside parent task range ({formatDateDisplay(parentStart)} – {formatDateDisplay(parentFinish)}).
+            </div>
+            <div className={styles.dateConflictActions}>
+              <button type="button" className={styles.dateConflictBtn} onClick={() => handleQEConflictUpdateParent(conflictItem)}>
+                Update parent range
+              </button>
+              <button type="button" className={styles.dateConflictBtn} onClick={handleQEConflictAdjustChild}>
+                Adjust to fit parent
+              </button>
+              <button type="button" className={`${styles.dateConflictBtn} ${styles.dateConflictBtnDanger}`} onClick={() => handleQEConflictForce(conflictItem)}>
+                Keep date
+              </button>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 };

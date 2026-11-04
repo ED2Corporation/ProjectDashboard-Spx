@@ -1,8 +1,9 @@
 import * as React from "react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { IEvidenceEntry, INoteEntry } from "../../../models/ITaskLogFields";
 import { ITaskSubprocessData, ISubprocessSubTask } from "../utils/TaskDescriptionBlob";
 import { parseSubprocessExcelFile } from "../utils/SubprocessImport";
+import { exportSubprocessToExcel } from "../utils/SubprocessExport";
 import SubprocessList from "./SubprocessList";
 import SubprocessTaskCard from "./SubprocessTaskCard";
 import styles from "./SubprocessCard.module.scss";
@@ -13,6 +14,7 @@ interface SubprocessCardProps {
   parentFinish: string;
   value: ITaskSubprocessData;
   onChange: (nextValue: ITaskSubprocessData) => void;
+  onUpdateParentDates?: (newStart: string, newFinish: string) => void;
   onSaveSubprocess?: (nextValue: ITaskSubprocessData) => void | Promise<void>;
   onClose?: () => void;
   currentUserEmail?: string;
@@ -33,6 +35,7 @@ interface SubprocessCardProps {
   headerKicker?: string;
   headerTitle?: string;
   visualLevel?: "task" | "taskStep";
+  subprocessTemplate?: ITaskSubprocessData;
 }
 
 type MoveDirection = "first" | "up" | "down" | "last";
@@ -89,6 +92,7 @@ const SubprocessCard: React.FC<SubprocessCardProps> = ({
   parentFinish,
   value,
   onChange,
+  onUpdateParentDates,
   onSaveSubprocess,
   onClose,
   currentUserEmail,
@@ -106,6 +110,7 @@ const SubprocessCard: React.FC<SubprocessCardProps> = ({
   headerKicker,
   headerTitle,
   visualLevel = "task",
+  subprocessTemplate,
 }) => {
   const [selectedSubTaskId, setSelectedSubTaskId] = useState<string | undefined>(undefined);
   const [editingSubTaskId, setEditingSubTaskId] = useState<string | undefined>(undefined);
@@ -114,8 +119,13 @@ const SubprocessCard: React.FC<SubprocessCardProps> = ({
   const [isImporting, setIsImporting] = useState(false);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [saveError, setSaveError] = useState<string>("");
+  const [dirtySubTaskIds, setDirtySubTaskIds] = useState<Set<string>>(new Set());
+  const [hasStructuralChanges, setHasStructuralChanges] = useState(false);
   const importInputRef = useRef<HTMLInputElement | null>(null);
   const saveStatusTimerRef = useRef<number | undefined>(undefined);
+  const subprocessOriginalRef = useRef<ITaskSubprocessData>({ ...value, subTasks: value.subTasks.map(st => ({ ...st })) });
+  const currentValueRef = useRef<ITaskSubprocessData>(value);
+  useEffect(() => { currentValueRef.current = value; }, [value]);
 
   const normalizedSubTasks = useMemo(
     () => normalizeSubTasks(parentWbs, value.subTasks),
@@ -201,10 +211,39 @@ const SubprocessCard: React.FC<SubprocessCardProps> = ({
     return nextValue;
   };
 
-  const saveSubTasks = (subTasks: ISubprocessSubTask[]): ITaskSubprocessData => {
-    const nextValue = commitSubTasks(subTasks);
-    void persistSubprocess(nextValue).catch(() => undefined);
-    return nextValue;
+  const pendingCount = dirtySubTaskIds.size + (hasStructuralChanges ? 1 : 0);
+
+  const markDirty = useCallback((changedIds: string[]): void => {
+    if (changedIds.length === 0) return;
+    setDirtySubTaskIds(prev => {
+      const next = new Set(prev);
+      changedIds.forEach(id => next.add(id));
+      return next;
+    });
+  }, []);
+
+  const deferSubTasks = (subTasks: ISubprocessSubTask[], changedIds: string[] = []): void => {
+    commitSubTasks(subTasks);
+    markDirty(changedIds);
+  };
+
+  const deferSubTasksStructural = (subTasks: ISubprocessSubTask[]): void => {
+    commitSubTasks(subTasks);
+    setHasStructuralChanges(true);
+  };
+
+  const persistAll = async (): Promise<void> => {
+    const snap = currentValueRef.current;
+    await persistSubprocess(snap);
+    subprocessOriginalRef.current = { ...snap, subTasks: snap.subTasks.map(st => ({ ...st })) };
+    setDirtySubTaskIds(new Set());
+    setHasStructuralChanges(false);
+  };
+
+  const discardAll = (): void => {
+    onChange(subprocessOriginalRef.current);
+    setDirtySubTaskIds(new Set());
+    setHasStructuralChanges(false);
   };
 
   const handleAddBelow = (subTaskId: string): void => {
@@ -213,7 +252,7 @@ const SubprocessCard: React.FC<SubprocessCardProps> = ({
     const insertIndex = currentIndex >= 0 ? currentIndex + 1 : base.length;
     const nextSubTask = createEmptySubTask(parentWbs, parentStart, parentFinish, insertIndex);
     base.splice(insertIndex, 0, nextSubTask);
-    saveSubTasks(base);
+    deferSubTasksStructural(base);
     setSelectedSubTaskId(nextSubTask.id);
     setEditingSubTaskId(nextSubTask.id);
   };
@@ -221,7 +260,7 @@ const SubprocessCard: React.FC<SubprocessCardProps> = ({
   const handleRemove = (subTaskId: string): void => {
     const currentIndex = normalizedSubTasks.findIndex(entry => entry.id === subTaskId);
     const next = normalizedSubTasks.filter(entry => entry.id !== subTaskId);
-    saveSubTasks(next);
+    deferSubTasksStructural(next);
 
     const fallback = next[currentIndex] || next[currentIndex - 1];
     setSelectedSubTaskId(fallback?.id);
@@ -242,7 +281,7 @@ const SubprocessCard: React.FC<SubprocessCardProps> = ({
     subTaskId: string,
     patch: Pick<ISubprocessSubTask, "task" | "duration" | "complete" | "start" | "finish" | "actualFinish">
   ): void => {
-    const nextValue = commitSubTasks(
+    deferSubTasks(
       normalizedSubTasks.map(entry =>
         entry.id === subTaskId
           ? {
@@ -252,10 +291,10 @@ const SubprocessCard: React.FC<SubprocessCardProps> = ({
               actualFinish: patch.complete === 100 ? patch.actualFinish : "",
             }
           : entry
-      )
+      ),
+      [subTaskId]
     );
     setEditingSubTaskId(undefined);
-    void persistSubprocess(nextValue).catch(() => undefined);
   };
 
   const handleMove = (subTaskId: string, direction: MoveDirection): void => {
@@ -287,7 +326,7 @@ const SubprocessCard: React.FC<SubprocessCardProps> = ({
     // move would be silently reverted to the original order.
     const reindexed = next.map((entry, index) => ({ ...entry, sortOrder: index }));
     setMovingSubTaskId(subTaskId);
-    saveSubTasks(reindexed);
+    deferSubTasksStructural(reindexed);
     setSelectedSubTaskId(subTaskId);
     window.setTimeout(() => setMovingSubTaskId(undefined), 0);
   };
@@ -326,17 +365,22 @@ const SubprocessCard: React.FC<SubprocessCardProps> = ({
   };
 
   const handleSaveDetail = (nextSubTask: ISubprocessSubTask): void => {
-    const nextValue = commitSubTasks(
+    deferSubTasks(
       normalizedSubTasks.map(entry => (
-        entry.id === nextSubTask.id
-          ? {
-              ...entry,
-              ...nextSubTask,
-            }
-          : entry
-      ))
+        entry.id === nextSubTask.id ? { ...entry, ...nextSubTask } : entry
+      )),
+      [nextSubTask.id]
     );
     setSelectedSubTaskId(nextSubTask.id);
+  };
+
+  const handleSaveDetailImmediate = (nextSubTask: ISubprocessSubTask): void => {
+    const nextValue = commitSubTasks(
+      normalizedSubTasks.map(entry => (
+        entry.id === nextSubTask.id ? { ...entry, ...nextSubTask } : entry
+      ))
+    );
+    subprocessOriginalRef.current = { ...nextValue, subTasks: nextValue.subTasks.map(st => ({ ...st })) };
     void persistSubprocess(nextValue).catch(() => undefined);
   };
 
@@ -399,12 +443,16 @@ const SubprocessCard: React.FC<SubprocessCardProps> = ({
   const detailCard = detailSubTask ? (
     <SubprocessTaskCard
       subTask={detailSubTask}
+      parentStart={parentStart}
+      parentFinish={parentFinish}
+      onUpdateParentDates={onUpdateParentDates}
       currentUserEmail={currentUserEmail}
       currentUserDisplayName={currentUserDisplayName}
       onUploadEvidenceFile={onUploadEvidenceFile}
       onSendEmail={onSendEmail}
       onSearchUsers={onSearchUsers}
       onSave={handleSaveDetail}
+      onSaveImmediate={handleSaveDetailImmediate}
       onClose={() => setDetailSubTaskId(undefined)}
     />
   ) : null;
@@ -420,7 +468,7 @@ const SubprocessCard: React.FC<SubprocessCardProps> = ({
       <div className={styles.header}>
         <div className={styles.headerText}>
           <div className={styles.kicker}>{headerKicker ?? "Subprocess Workspace"}</div>
-          <h3 className={styles.title}>{headerTitle ?? "Subprocess"}</h3>
+          <h3 className={styles.title}>{headerTitle ?? `Embedded in task ${parentWbs || "N/A"}`}</h3>
           {isCollapsed && (
             <div className={styles.headerSummary} aria-label="Subprocess summary">
               <span><strong>Subtasks</strong> {normalizedSubTasks.length}</span>
@@ -445,7 +493,49 @@ const SubprocessCard: React.FC<SubprocessCardProps> = ({
               {saveStatusText}
             </div>
           )}
+          {pendingCount > 0 && (
+            <>
+              <button
+                type="button"
+                className={styles.pendingSaveBtn}
+                onClick={() => { persistAll().catch(() => undefined); }}
+                disabled={saveStatus === "saving"}
+                title="Save all pending changes"
+              >
+                Save ({pendingCount})
+              </button>
+              <button
+                type="button"
+                className={styles.discardBtn}
+                onClick={discardAll}
+                disabled={saveStatus === "saving"}
+                title="Discard all pending changes"
+              >
+                Discard
+              </button>
+            </>
+          )}
           <div className={styles.contextActions}>
+            {!isCollapsed && value.subTasks.length > 0 && (
+              <button
+                type="button"
+                className={styles.contextActionBtn}
+                onClick={() => exportSubprocessToExcel(value.subTasks, `subtasks-${parentWbs || "subprocess"}`)}
+                title="Export current subtasks to Excel"
+              >
+                <span>Export Subtasks</span>
+              </button>
+            )}
+            {!isCollapsed && subprocessTemplate && subprocessTemplate.subTasks.length > 0 && (
+              <button
+                type="button"
+                className={styles.contextActionBtn}
+                onClick={() => exportSubprocessToExcel(subprocessTemplate.subTasks, `subprocess-template-${parentWbs || "task"}`)}
+                title="Export subprocess template to Excel"
+              >
+                <span>Export Template</span>
+              </button>
+            )}
             {!isCollapsed && (
               <>
                 <input
@@ -480,9 +570,6 @@ const SubprocessCard: React.FC<SubprocessCardProps> = ({
                 <span>Create Batches</span>
               </button>
             )}
-            {!isCollapsed && (
-              <div className={styles.contextChip}>Embedded in task {parentWbs || "N/A"}</div>
-            )}
             {onClose && (
               <button
                 type="button"
@@ -511,6 +598,11 @@ const SubprocessCard: React.FC<SubprocessCardProps> = ({
             movingSubTaskId={movingSubTaskId}
             detailSubTaskId={detailSubTaskId}
             detailCard={detailCard}
+            dirtySubTaskIds={dirtySubTaskIds}
+            originalSubTasks={subprocessOriginalRef.current.subTasks}
+            parentStart={parentStart}
+            parentFinish={parentFinish}
+            onUpdateParentDates={onUpdateParentDates}
             onSelect={setSelectedSubTaskId}
             onAddBelow={handleAddBelow}
             onRemove={handleRemove}
@@ -540,7 +632,7 @@ const SubprocessCard: React.FC<SubprocessCardProps> = ({
                 className={styles.addBtn}
                 onClick={() => {
                   const nextSubTask = createEmptySubTask(parentWbs, parentStart, parentFinish, normalizedSubTasks.length);
-                  saveSubTasks([...normalizedSubTasks, nextSubTask]);
+                  deferSubTasksStructural([...normalizedSubTasks, nextSubTask]);
                   setSelectedSubTaskId(nextSubTask.id);
                   setEditingSubTaskId(nextSubTask.id);
                 }}

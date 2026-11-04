@@ -43,6 +43,7 @@ export interface ITaskStepsData {
   mode?: "fixed" | "weekday";
   weekdays?: number[];
   steps: ITaskStepEntry[];
+  subprocessTemplate?: ITaskSubprocessData;
 }
 
 type TaskJsonTableObject = Record<string, unknown>;
@@ -307,6 +308,17 @@ export const getTaskSteps = (raw?: string): ITaskStepsData => {
     .sort((a, b) => a.sortOrder - b.sortOrder)
     .map((entry, index) => ({ ...entry, sortOrder: index }));
 
+  const templateRaw = isRecord(taskSteps.subprocessTemplate) ? taskSteps.subprocessTemplate : {};
+  const templateSubTasksRaw = Array.isArray(templateRaw.subTasks) ? templateRaw.subTasks : [];
+  const subprocessTemplate: ITaskSubprocessData | undefined = templateSubTasksRaw.length > 0
+    ? {
+        subTasks: templateSubTasksRaw
+          .map((entry, index) => normalizeSubTask(entry, index))
+          .sort((a, b) => a.sortOrder - b.sortOrder)
+          .map((entry, index) => ({ ...entry, sortOrder: index })),
+      }
+    : undefined;
+
   return {
     enabled: taskSteps.enabled === true || normalizedSteps.length > 0,
     totalUnits: totalUnits > 0 ? totalUnits : normalizedSteps.reduce((sum, entry) => sum + entry.units, 0),
@@ -315,6 +327,7 @@ export const getTaskSteps = (raw?: string): ITaskStepsData => {
     mode,
     weekdays: weekdays.length > 0 ? weekdays : [1],
     steps: normalizedSteps,
+    subprocessTemplate,
   };
 };
 
@@ -397,6 +410,16 @@ export const buildTaskJsonTable = (
           .sort((a, b) => a - b)
       : [];
 
+    const templateSubTasks = options.taskSteps.subprocessTemplate?.subTasks ?? [];
+    const normalizedTemplate = templateSubTasks.length > 0
+      ? {
+          subTasks: templateSubTasks
+            .map((entry, index) => normalizeSubTask(entry, index))
+            .sort((a, b) => a.sortOrder - b.sortOrder)
+            .map((entry, index) => ({ ...entry, sortOrder: index })),
+        }
+      : undefined;
+
     next.taskSteps = {
       enabled: options.taskSteps.enabled === true || normalizedSteps.length > 0,
       totalUnits: Math.max(0, Math.floor(asNumber(options.taskSteps.totalUnits))),
@@ -405,6 +428,7 @@ export const buildTaskJsonTable = (
       mode: taskStepMode,
       weekdays: taskStepMode === "weekday" ? (taskStepWeekdays.length > 0 ? taskStepWeekdays : [1]) : undefined,
       steps: normalizedSteps,
+      subprocessTemplate: normalizedTemplate,
     };
   }
 

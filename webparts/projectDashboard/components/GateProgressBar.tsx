@@ -1,6 +1,6 @@
 import * as React from "react";
 import { IGateListItem, ITaskListItem } from "../../../models";
-import { GetBucketStatusFromTasks, StatusToColor } from "../utils/GetGateStatus";
+import { getDeepGateStatusFromTasks, StatusToColor } from "../utils/GetGateStatus";
 import { GroupByProject } from "../utils/GroupByProject";
 import styles from "./GateProgressBar.module.scss";
 
@@ -33,7 +33,7 @@ const GateProgressBar: React.FC<GateProgressBarProps> = ({
         {/* ── Gate segments ─────────────────────────────────────────────── */}
         {gates.map((gate, idx) => {
           const gateTasks = indicatorTasks.filter(t => t.Gate === gate.Gate);
-          const status    = GetBucketStatusFromTasks(gateTasks);
+          const status    = getDeepGateStatusFromTasks(gateTasks);
           const barColor  = StatusToColor(status, true);
           const isActive  = activeGate === gate.Gate;
           const textColor = status === "white" ? "#444" : "#fff";

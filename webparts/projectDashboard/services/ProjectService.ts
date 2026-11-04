@@ -1,5 +1,6 @@
 import { BaseComponentContext } from "@microsoft/sp-component-base";
 import { SPHttpClient } from "@microsoft/sp-http";
+import * as XLSX from "xlsx";
 import { IProjectService, IProjectCatalogItem } from "../../../models/IProjectService";
 
 import { SPFI, spfi } from "@pnp/sp";
@@ -479,7 +480,6 @@ export class ProjectService implements IProjectService {
     }
 
     private async _importTasksFromExcel(listName: string, file: File, defaultGate?: string): Promise<void> {
-        const XLSX = await import(/* webpackChunkName: "xlsx" */ "xlsx");
         const arrayBuffer = await file.arrayBuffer();
         const workbook = XLSX.read(arrayBuffer, { type: "array", cellDates: true, cellText: false });
         const sheet = workbook.Sheets[workbook.SheetNames[0]];

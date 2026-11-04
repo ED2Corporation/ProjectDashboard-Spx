@@ -1,5 +1,6 @@
 import { IGateListItem, ITaskListItem } from "../../../models";
 import styles from "../components/ProjectDashboard.module.scss";
+import { getTaskSubprocess, getTaskSteps } from "./TaskDescriptionBlob";
 
 export type GateStatus = "grey" | "white" | "yellow" | "green" | "red";
 
@@ -105,6 +106,45 @@ export const getCardClass = (
     default:       return styles.white;
   }
 };
+
+// Merges two GateStatus values, returning the worse one (red > yellow > green > white > grey)
+function mergeStatus(a: GateStatus, b: GateStatus): GateStatus {
+  const rank: Record<GateStatus, number> = { red: 4, yellow: 3, green: 2, white: 1, grey: 0 };
+  return rank[a] >= rank[b] ? a : b;
+}
+
+/**
+ * Like GetBucketStatusFromTasks but also drills into each task's subprocess subtasks
+ * (both direct subprocess and step-level subprocess) to surface overdue subtasks.
+ * Call this wherever gate-indicator or project-level status colors are derived.
+ */
+export function getDeepGateStatusFromTasks(tasks: ITaskListItem[]): GateStatus {
+  if (!tasks || tasks.length === 0) return "white";
+  let worst: GateStatus = GetBucketStatusFromTasks(tasks);
+  if (worst === "red") return "red";
+
+  for (const task of tasks) {
+    if (!task.jsonTable) continue;
+
+    // Direct subprocess
+    const subData = getTaskSubprocess(task.jsonTable);
+    for (const st of subData.subTasks) {
+      worst = mergeStatus(worst, GetGateStatus(st.complete, st.start, st.finish, st.actualFinish));
+      if (worst === "red") return "red";
+    }
+
+    // Step-level subprocess
+    const stepsData = getTaskSteps(task.jsonTable);
+    for (const step of stepsData?.steps ?? []) {
+      for (const st of step.subprocess?.subTasks ?? []) {
+        worst = mergeStatus(worst, GetGateStatus(st.complete, st.start, st.finish, st.actualFinish));
+        if (worst === "red") return "red";
+      }
+    }
+  }
+
+  return worst;
+}
 
 export const getCardDelay = (
   complete: number,

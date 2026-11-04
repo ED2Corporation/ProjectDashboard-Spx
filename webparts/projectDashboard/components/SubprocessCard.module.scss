@@ -130,6 +130,42 @@
   color: #991b1b;
 }
 
+.pendingSaveBtn {
+  padding: 3px 12px;
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 999px;
+  border: 1px solid #d97706;
+  background: #fffbeb;
+  color: #92400e;
+  cursor: pointer;
+  white-space: nowrap;
+
+  &:hover { background: #fef3c7; border-color: #b45309; }
+  &:disabled { opacity: 0.6; cursor: not-allowed; }
+}
+
+.discardBtn {
+  padding: 3px 10px;
+  font-size: 11px;
+  font-weight: 500;
+  border-radius: 999px;
+  border: 1px solid #d1d5db;
+  background: transparent;
+  color: #6b7280;
+  cursor: pointer;
+
+  &:hover { background: #f3f4f6; }
+}
+
+.subtaskDirtyRow td {
+  background-color: rgba(245, 158, 11, 0.06);
+}
+
+.subtaskDirtyRow td:first-child {
+  box-shadow: inset 3px 0 0 #f59e0b;
+}
+
 .kicker {
   margin-bottom: $sp-1;
   font-size: 10px;
@@ -677,6 +713,50 @@
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
+}
+
+.dateConflict {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 12px;
+  margin: 4px 0;
+  background: #FFF7ED;
+  border: 1px solid #FED7AA;
+  border-radius: 6px;
+}
+
+.dateConflictMessage {
+  font-size: 11px;
+  font-weight: 500;
+  color: #9A3412;
+  line-height: 1.4;
+}
+
+.dateConflictActions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.dateConflictBtn {
+  padding: 3px 10px;
+  font-size: 10px;
+  font-weight: 600;
+  border-radius: 4px;
+  border: 1px solid #0f766e;
+  background: #fff;
+  color: #0f766e;
+  cursor: pointer;
+
+  &:hover { background: #f0fdfa; }
+}
+
+.dateConflictBtnDanger {
+  border-color: #d1d5db;
+  color: #6b7280;
+
+  &:hover { background: #f9fafb; }
 }
 
 .detailTabs {

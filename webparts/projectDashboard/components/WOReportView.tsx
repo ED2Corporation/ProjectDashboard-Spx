@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useState, useMemo, useRef, useCallback } from 'react';
+import { useMemo, useRef, useCallback } from 'react';
 import { ITaskListItem } from '../../../models/ITaskListItem';
 import { IGateListItem } from '../../../models/IGateListItem';
 import { IProjectCatalogItem } from '../../../models/IProjectService';
@@ -15,6 +15,7 @@ interface WOReportViewProps {
   onGateClick:  (gate: string | undefined) => void;
   project?:     IProjectCatalogItem;
   projectTitle?: string;
+  onPrintReady?: (fn: () => void) => void;
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -40,7 +41,7 @@ const NOTE_BADGE_CLS: Record<NoteBadge, string> = {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-const WOReportView: React.FC<WOReportViewProps> = ({ tasks, gates, activeGate, onGateClick, project, projectTitle }) => {
+const WOReportView: React.FC<WOReportViewProps> = ({ tasks, gates, activeGate, onGateClick, project, projectTitle, onPrintReady }) => {
 
   const reportRef = useRef<HTMLDivElement>(null);
 
@@ -86,29 +87,20 @@ const WOReportView: React.FC<WOReportViewProps> = ({ tasks, gates, activeGate, o
     el.removeAttribute('data-wo-report');
   }, [projectTitle]);
 
-  // ── Badge state (all inclusive toggles) ───────────────────────────────────
-  const [isDetailed,   setIsDetailed]   = useState(false);
-  const [showTasks,    setShowTasks]    = useState(false);
-  const [showAllTasks, setShowAllTasks] = useState(false);
-  const [noteFilters,  setNoteFilters]  = useState<Set<NoteBadge>>(new Set());
-  const [showEvidence, setShowEvidence] = useState(false);
-  const [showApprovals,setShowApprovals]= useState(false);
+  // Expose print function to parent so the PDF button can live in the header
+  React.useEffect(() => { onPrintReady?.(handlePrint); }, [handlePrint, onPrintReady]);
+
+  // ── Badge state (badge bar hidden — fixed defaults) ──────────────────────
+  const isDetailed    = false;
+  const showTasks     = false;
+  const showAllTasks  = false;
+  const noteFilters   = new Set<NoteBadge>();
+  const showEvidence  = false;
+  const showApprovals = false;
 
   const hasNoteFilter  = noteFilters.size > 0;
   const logColCount    = (hasNoteFilter ? 1 : 0) + (showEvidence ? 1 : 0) + (showApprovals ? 1 : 0);
   const hasAnyLogBadge = hasNoteFilter || showEvidence || showApprovals;
-
-  const toggleNote = (type: NoteBadge): void =>
-    setNoteFilters(prev => {
-      const n = new Set(prev);
-      if (n.has(type)) { n.delete(type); } else { n.add(type); }
-      return n;
-    });
-
-  const handleToggleTasks = (): void => {
-    if (showTasks) { setShowTasks(false); setShowAllTasks(false); }
-    else           { setShowTasks(true); }
-  };
 
   // ── Gate / task helpers ───────────────────────────────────────────────────
   const visibleGates = useMemo(
@@ -170,89 +162,6 @@ const WOReportView: React.FC<WOReportViewProps> = ({ tasks, gates, activeGate, o
   return (
     <div className={styles.report} ref={reportRef}>
 
-      {/* ── Badge filter bar ───────────────────────────────────────────────── */}
-      <div className={styles.badgeBar} data-no-print="true">
-        {/* Summary / Detailed toggle */}
-        <button
-          type="button"
-          className={`${styles.badge} ${isDetailed ? styles.badgeActive : ''}`}
-          onClick={() => {
-            const next = !isDetailed;
-            setIsDetailed(next);
-            if (next) {
-              setShowTasks(true);
-              setShowAllTasks(false);
-              setNoteFilters(new Set<NoteBadge>(['issue', 'fix', 'action']));
-              setShowEvidence(true);
-              setShowApprovals(true);
-            } else {
-              setShowTasks(false);
-              setShowAllTasks(false);
-              setNoteFilters(new Set<NoteBadge>());
-              setShowEvidence(false);
-              setShowApprovals(false);
-            }
-          }}
-        >
-          {isDetailed ? 'Summary' : 'Detailed'}
-        </button>
-        <span className={styles.badgeDivider} />
-        {/* Task visibility */}
-        <button
-          type="button"
-          className={`${styles.badge} ${showTasks ? styles.badgeActive : ''}`}
-          onClick={handleToggleTasks}
-        >
-          Tasks
-        </button>
-        {showTasks && (
-          <button
-            type="button"
-            className={`${styles.badge} ${showAllTasks ? styles.badgeActive : ''}`}
-            onClick={() => setShowAllTasks(p => !p)}
-          >
-            All Tasks
-          </button>
-        )}
-
-        <span className={styles.badgeDivider} />
-
-        {/* Note type filters */}
-        {(['issue', 'fix', 'action'] as NoteBadge[]).map(type => (
-          <button
-            key={type}
-            type="button"
-            className={`${styles.badge} ${noteFilters.has(type) ? styles.badgeActive : ''} ${styles[`badgeNote_${type}`]}`}
-            onClick={() => toggleNote(type)}
-          >
-            {type.charAt(0).toUpperCase() + type.slice(1)}
-          </button>
-        ))}
-
-        <span className={styles.badgeDivider} />
-
-        {/* Log columns */}
-        <button
-          type="button"
-          className={`${styles.badge} ${showEvidence ? styles.badgeActive : ''}`}
-          onClick={() => setShowEvidence(p => !p)}
-        >
-          Evidence
-        </button>
-        <button
-          type="button"
-          className={`${styles.badge} ${showApprovals ? styles.badgeActive : ''}`}
-          onClick={() => setShowApprovals(p => !p)}
-        >
-          Approvals
-        </button>
-
-        <span className={styles.badgeDivider} />
-
-        <button type="button" className={styles.pdfBtn} onClick={handlePrint}>
-          ↓ PDF
-        </button>
-      </div>
 
       {/* ══════════════════════════════════════════════════════════════════ */}
       {/* SUMMARY — 2×2 grid                                               */}
