@@ -4,215 +4,487 @@
 // ─── Root ─────────────────────────────────────────────────────────────────────
 
 .report {
-  padding: $sp-4 0;
+  padding: $sp-4 $sp-5 $sp-6;
   font-family: $f-family;
+  background: #fff;
+  color: $c-text;
 }
 
-// ─── PDF button (inside badge bar) ───────────────────────────────────────────
+// ─── Page Header ──────────────────────────────────────────────────────────────
 
-.pdfBtn {
-  flex: 0 0 auto;
-  padding: 3px 11px;
-  border: 1px solid $c-border-mid;
-  border-radius: 20px;
+.pageHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: $sp-4;
+  margin-bottom: $sp-3;
+  padding-bottom: $sp-3;
+  border-bottom: 1px solid $c-border-subtle;
+}
+
+.pageHeaderLeft {
+  flex: 1;
+  min-width: 0;
+}
+
+.pageHeaderRight {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: $sp-2;
+  flex-shrink: 0;
+}
+
+.pageTitle {
+  font-size: 28px;
+  font-weight: 700;
+  color: $c-text;
+  line-height: 1.2;
+  margin-bottom: 4px;
+}
+
+.pageLabel {
+  font-size: $f-sm;
+  color: $c-text-muted;
+}
+
+.notesBtnGroup {
+  display: flex;
+  gap: $sp-2;
+  flex-shrink: 0;
+}
+
+.addNotesBtn {
+  padding: 6px 14px;
+  border: 1px solid $c-primary;
+  border-radius: $r-sm;
   background: $c-surface;
+  color: $c-primary;
   font-size: $f-sm;
   font-family: $f-family;
-  color: $c-text-secondary;
+  font-weight: 600;
   cursor: pointer;
   white-space: nowrap;
-  transition: background 0.12s, color 0.12s, border-color 0.12s;
-
-  &:hover {
-    background: $c-primary;
-    color: #fff;
-    border-color: $c-primary;
-  }
+  &:hover { background: $c-primary-bg; }
 }
 
-// ─── Badge filter bar ─────────────────────────────────────────────────────────
-
-.badgeBar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: $sp-2;
-  margin-bottom: $sp-6;
-  padding: $sp-3 $sp-4;
-  background: $c-surface-soft;
-  border: 1px solid $c-border-subtle;
-  border-radius: 6px;
-}
-
-.badge {
-  padding: 3px 11px;
+.manageNotesBtn {
+  padding: 6px 14px;
   border: 1px solid $c-border;
-  border-radius: 20px;
+  border-radius: $r-sm;
   background: $c-surface;
+  color: $c-text-secondary;
   font-size: $f-sm;
   font-family: $f-family;
-  color: $c-text-secondary;
   cursor: pointer;
-  transition: background 0.12s, color 0.12s, border-color 0.12s;
+  white-space: nowrap;
   &:hover { background: $c-surface-mid; }
 }
 
-.badgeActive {
-  background: $c-primary;
-  color: #fff;
-  border-color: $c-primary;
-  &:hover { background: $c-primary-hover; }
+// ─── Report Date picker ───────────────────────────────────────────────────────
+
+.reportDateGroup {
+  display: flex;
+  align-items: baseline;
+  gap: $sp-2;
+  flex-shrink: 0;
+  position: relative;
 }
 
-// Note-type badge colors (inactive state)
-.badgeNote_issue  { &.badgeActive { background: $c-delayed;   border-color: $c-delayed;   } }
-.badgeNote_fix    { &.badgeActive { background: $c-completed; border-color: $c-completed; } }
-.badgeNote_action { &.badgeActive { background: $c-stalled;   border-color: $c-stalled;   } }
+.reportDateLabel {
+  font-size: 22px;
+  color: $c-text-secondary;
+  white-space: nowrap;
+  font-weight: 700;
+}
 
-.badgeDivider {
+.reportDateDisplay {
+  font-size: 22px;
+  color: $c-text;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.reportDateClickable {
+  cursor: pointer;
+  border-bottom: 2px dashed $c-text-muted;
+  &:hover { color: $c-primary; border-bottom-color: $c-primary; }
+}
+
+.reportDateInput {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
   width: 1px;
-  height: 18px;
-  background: $c-border;
-  margin: 0 $sp-1;
-  flex: 0 0 auto;
+  height: 1px;
+  overflow: hidden;
 }
 
-// ─── Summary 2×2 grid ─────────────────────────────────────────────────────────
+// ─── Identity Banner ──────────────────────────────────────────────────────────
 
-.summaryGrid {
+.identityBanner {
+  display: flex;
+  align-items: center;
+  gap: $sp-3;
+  padding: 9px 16px;
+  background: #0197D6;
+  border-radius: $r-sm;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  margin-bottom: $sp-5;
+}
+
+.bannerSep {
+  opacity: 0.55;
+  font-weight: 400;
+}
+
+// ─── Two-row body ─────────────────────────────────────────────────────────────
+
+.row1 {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: $sp-5;
-  margin-bottom: $sp-6;
+  grid-template-columns: 2fr 3fr;
+  gap: $sp-6;
+  align-items: start;
+  margin-bottom: $sp-5;
 }
 
-.quadrant {
+.row2 {
+  display: grid;
+  grid-template-columns: 2fr 3fr;
+  gap: $sp-6;
+  align-items: start;
+  margin-bottom: $sp-5;
+}
+
+.rowCell {
   min-width: 0;
   display: flex;
   flex-direction: column;
+  gap: $sp-3;
 }
 
-// ─── Cover block ──────────────────────────────────────────────────────────────
+// ─── PO Summary ───────────────────────────────────────────────────────────────
 
-.reportCover {
+.poSummary {
   display: flex;
   flex-direction: column;
-  padding: 16px 18px;
-  flex: 1;
-  background: $c-surface;
-  border: 1px solid $c-border;
-  border-left: 5px solid $c-primary;
-  border-radius: 8px;
-  box-shadow: $shadow-card;
+  gap: 3px;
 }
 
-.coverEyebrow {
-  font-size: $f-xs;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: $c-text-muted;
-  margin-bottom: $sp-1;
+.summaryRow {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: $f-base;
+  line-height: 1.6;
 }
 
-.coverTitle {
-  font-size: 18px;
+.summaryLabel {
   font-weight: 700;
   color: $c-text;
-  margin: 0 0 $sp-2;
-  line-height: 1.25;
+  flex-shrink: 0;
+  &::after { content: ':'; }
 }
 
-.coverMeta {
-  font-size: $f-sm;
-  color: $c-text-subtle;
-  margin-bottom: $sp-3;
+.summaryValue {
+  color: $c-text-secondary;
 }
 
-.coverGrid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: $sp-2;
-
-  > div {
-    padding: $sp-2 $sp-3;
-    border: 1px solid $c-border-subtle;
-    border-radius: $r-sm;
-    background: $c-surface-soft;
-    font-size: $f-sm;
-    color: $c-text;
-
-    span {
-      display: block;
-      font-size: $f-xs;
-      font-weight: 700;
-      letter-spacing: 0.05em;
-      text-transform: uppercase;
-      color: $c-text-muted;
-      margin-bottom: 2px;
-    }
-  }
+.summaryValueTbd {
+  color: $c-delayed;
+  font-weight: 600;
 }
 
-.coverFooter {
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  gap: $sp-3;
-  margin-top: auto;
-  padding-top: $sp-4;
-}
+// ─── Section Header ───────────────────────────────────────────────────────────
 
-.coverStamp {
-  display: inline-block;
-  padding: 3px 10px;
-  border: 2px solid $c-border-mid;
-  border-radius: $r-sm;
-  color: $c-text-subtle;
-  font-size: $f-xs;
-  font-weight: 800;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  transform: rotate(-1.5deg);
-}
-
-.coverDate {
-  font-size: $f-xs;
-  color: $c-text-muted;
-}
-
-// ─── Section titles ───────────────────────────────────────────────────────────
-
-.summarySection {
-  margin-bottom: $sp-6;
-}
-
-.summarySectionTitle {
+.sectionHeader {
   font-size: $f-xs;
   font-weight: 700;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  letter-spacing: 0.07em;
-  color: $c-text-subtle;
-  margin-bottom: $sp-3;
+  color: #0197D6;
   padding-bottom: $sp-2;
-  border-bottom: 2px solid $c-border;
+  border-bottom: 2px solid #0197D6;
 }
 
-.summaryEmpty {
+// ─── Phase / LOT table ────────────────────────────────────────────────────────
+
+.phaseTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: $f-base;
+
+  th {
+    padding: 5px 10px;
+    text-align: left;
+    font-weight: 700;
+    border-bottom: 2px solid $c-border;
+    color: $c-text;
+    font-size: $f-sm;
+    white-space: nowrap;
+    background: $c-surface-soft;
+  }
+
+  td {
+    padding: 5px 10px;
+    border-bottom: 1px solid $c-border-subtle;
+    color: $c-text-secondary;
+    vertical-align: middle;
+  }
+
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover td { background: $c-table-hover; }
+}
+
+.colNum    { width: 36px; text-align: center; }
+.colMetric { width: 90px; text-align: right; }
+
+.colLotNum   { width: 28px; text-align: center; }
+.colShipment { min-width: 120px; }
+.colLotUnits { width: 70px; text-align: right; white-space: nowrap; }
+
+.rowActive td { background: $c-table-active !important; }
+
+// ─── Status labels (text, not pill) ───────────────────────────────────────────
+
+.statusCompleted  { color: #2D9B57; font-weight: 600; }
+.statusInProgress { color: #0197D6; font-weight: 600; }
+.statusNotStarted { color: $c-text-muted; }
+
+// ─── Gate badge selector ──────────────────────────────────────────────────────
+
+.gateSelectorRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: $sp-2;
+}
+
+.gateBadge {
+  padding: 3px 10px;
+  border: 1px solid $c-border;
+  border-radius: 999px;
+  background: $c-surface;
+  color: $c-text-secondary;
+  font-size: $f-xs;
+  font-family: $f-family;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: border-color 0.1s, background 0.1s, color 0.1s;
+  &:hover { border-color: $c-primary; color: $c-primary; background: $c-primary-bg; }
+}
+
+.gateBadgeActive {
+  border-color: $c-primary;
+  background: $c-primary;
+  color: #fff;
+  &:hover { background: $c-primary-hover; border-color: $c-primary-hover; color: #fff; }
+}
+
+.inlineAddLabel {
+  font-size: $f-xs;
+  color: $c-text-muted;
+  margin-bottom: 2px;
+}
+
+// ─── Notes section ────────────────────────────────────────────────────────────
+
+.notesSection {
+  display: flex;
+  flex-direction: column;
+  gap: $sp-2;
+  margin-top: $sp-2;
+  &:first-child { margin-top: 0; }
+}
+
+.notesGroup {
+  display: flex;
+  flex-direction: column;
+  gap: $sp-1;
+  margin-top: $sp-3;
+  &:first-child { margin-top: 0; }
+}
+
+.notesSectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $sp-2;
+}
+
+.notesSectionTitle {
+  font-size: $f-base;
+  font-weight: 700;
+  color: $c-text;
+}
+
+.addNoteIconBtn {
+  background: none;
+  border: 1px solid $c-border;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 700;
+  color: $c-primary;
+  cursor: pointer;
+  flex-shrink: 0;
+  line-height: 1;
+  padding: 0;
+  &:hover { background: $c-primary-bg; border-color: $c-primary; }
+}
+
+.notesList {
+  margin: 0;
+  padding: 0 0 0 $sp-3;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  list-style: disc;
+}
+
+.notesItem {
+  font-size: $f-base;
+  color: $c-text-secondary;
+  line-height: 1.5;
+  &:hover .noteIconBar { opacity: 1; }
+}
+
+.noteRowWrap {
+  display: flex;
+  align-items: flex-start;
+  gap: $sp-2;
+}
+
+.noteTextClickable {
+  flex: 1;
+  min-width: 0;
+  line-height: 1.5;
+}
+
+.noteTextEditable {
+  cursor: pointer;
+  border-radius: 2px;
+  &:hover { background: $c-surface-soft; }
+}
+
+.noteIconBar {
+  display: flex;
+  gap: 2px;
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity 0.1s;
+}
+
+.iconArchiveBtn {
+  background: none;
+  border: none;
+  color: $c-text-muted;
+  font-size: 11px;
+  cursor: pointer;
+  padding: 1px 4px;
+  line-height: 1;
+  border-radius: $r-sm;
+  &:hover { color: $c-primary; background: $c-primary-bg; }
+}
+
+.iconDeleteBtn {
+  background: none;
+  border: none;
+  color: $c-text-muted;
+  font-size: 11px;
+  cursor: pointer;
+  padding: 1px 4px;
+  line-height: 1;
+  border-radius: $r-sm;
+  &:hover { color: $c-delayed; background: $c-delayed-bg; }
+}
+
+.inlineAddRow {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: $sp-1 0;
+}
+
+.inlineEditArea {
+  width: 100%;
+  font-family: $f-family;
+  font-size: $f-sm;
+  color: $c-text;
+  border: 1px solid $c-primary;
+  border-radius: $r-sm;
+  padding: $sp-2;
+  resize: vertical;
+  box-sizing: border-box;
+  &:focus { outline: none; box-shadow: 0 0 0 2px $c-primary-bg; }
+}
+
+.inlineEditActions {
+  display: flex;
+  gap: $sp-2;
+}
+
+.inlineSaveBtn {
+  padding: 3px 10px;
+  border: none;
+  border-radius: $r-sm;
+  background: $c-primary;
+  color: #fff;
+  font-size: $f-xs;
+  font-family: $f-family;
+  font-weight: 600;
+  cursor: pointer;
+  &:hover { opacity: 0.88; }
+}
+
+.inlineCancelBtn {
+  padding: 3px 10px;
+  border: 1px solid $c-border;
+  border-radius: $r-sm;
+  background: $c-surface;
+  color: $c-text-secondary;
+  font-size: $f-xs;
+  font-family: $f-family;
+  cursor: pointer;
+  &:hover { background: $c-surface-mid; }
+}
+
+.notesEmpty {
   font-size: $f-base;
   color: $c-text-muted;
   font-style: italic;
 }
 
-// ─── General Update / Gate log ────────────────────────────────────────────────
+.noteMeta {
+  display: block;
+  font-size: $f-xs;
+  color: $c-text-muted;
+  margin-top: 1px;
+}
 
-.gateLogGrid {
+.gateNoteHeader {
+  font-size: $f-base;
+  font-weight: 700;
+  color: $c-text;
+  margin-top: $sp-2;
+}
+
+// ─── Detailed gate log block (bottom extended section) ────────────────────────
+
+.detailedNotes {
+  margin-top: $sp-6;
   display: flex;
   flex-direction: column;
   gap: $sp-3;
-  padding: $sp-4 $sp-5;
-  overflow-y: auto;
-  flex: 1;
 }
 
 .gateLogBlock {
@@ -250,296 +522,7 @@
   border-left: 2px solid $c-border-subtle;
 }
 
-// ─── Production Phases + LOT panels ──────────────────────────────────────────
-
-.panels {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: $sp-5;
-  margin-bottom: $sp-6;
-}
-
-.panelsTwoCols { grid-template-columns: 1fr 1fr; }
-
-.panel {
-  min-width: 0;
-  flex: 1;                        // fill quadrant height
-  display: flex;
-  flex-direction: column;
-  background: $c-surface;
-  border: 1px solid $c-border-subtle;
-  border-radius: $r-sm;
-  overflow: hidden;
-  box-shadow: $shadow-sm;
-}
-
-.panelHeader {
-  padding: $sp-3 $sp-5;
-  font-size: $f-xs;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.07em;
-  color: $c-text-subtle;
-  background: $c-surface-soft;
-  border-bottom: 1px solid $c-border-subtle;
-  flex: 0 0 auto;
-}
-
-.panelEmpty {
-  padding: $sp-4 $sp-5;
-  font-size: $f-base;
-  color: $c-text-muted;
-  font-style: italic;
-}
-
-.phaseTable {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: $f-base;
-
-  th {
-    padding: 5px 10px;
-    text-align: left;
-    font-weight: 700;
-    border-bottom: 2px solid $c-border;
-    color: $c-text-muted;
-    font-size: $f-xs;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    white-space: nowrap;
-    background: $c-surface-soft;
-  }
-
-  td {
-    padding: 5px 10px;
-    border-bottom: 1px solid $c-border-subtle;
-    color: $c-text-secondary;
-    vertical-align: middle;
-  }
-
-  tbody tr:nth-child(even) td { background: #fafbfd; }
-  tbody tr:last-child td { border-bottom: none; }
-  tbody tr:hover td { background: $c-table-hover; }
-}
-
-.rowActive td { background: $c-table-active !important; }
-
-// ─── Status badges ────────────────────────────────────────────────────────────
-
-.statusBadge {
-  display: inline-block;
-  padding: 2px 8px;
-  border-radius: 999px;
-  font-size: $f-xs;
-  font-weight: 700;
-  white-space: nowrap;
-}
-
-.statusCompleted  { color: $c-completed; background: $c-completed-bg; }
-.statusInProgress { color: $c-ontime;    background: $c-ontime-bg;    }
-.statusNotStarted { color: $c-text-subtle; background: $c-surface-dark; }
-
-// ─── Gate groups (Detailed section) ──────────────────────────────────────────
-
-.gateGroups { display: flex; flex-direction: column; gap: $sp-5; }
-
-.gateGroup {
-  background: $c-surface;
-  border: 1px solid $c-border-subtle;
-  border-radius: $r-sm;
-  overflow: hidden;
-  box-shadow: $shadow-sm;
-}
-
-.gateGroupHeader {
-  display: flex;
-  align-items: center;
-  gap: $sp-4;
-  padding: $sp-3 $sp-5 $sp-3 $sp-4;
-  background: linear-gradient(90deg, #{$c-primary-bg} 0%, #{$c-surface} 100%);
-  border-bottom: 1px solid $c-border-subtle;
-  border-left: 3px solid $c-primary;
-}
-
-.gateGroupName {
-  font-size: $f-base;
-  font-weight: 700;
-  color: $c-text;
-  flex: 0 0 auto;
-}
-
-.gateGroupMeta {
-  font-size: $f-sm;
-  color: $c-text-subtle;
-  flex: 0 0 auto;
-}
-
-.gateGroupBarWrap {
-  flex: 1;
-  height: 5px;
-  background: $c-surface-dark;
-  border-radius: 3px;
-  overflow: hidden;
-}
-
-.gateGroupBar {
-  height: 100%;
-  background: $c-primary;
-  border-radius: 3px;
-  transition: width 0.3s;
-}
-
-// ─── Detailed section — global column header ─────────────────────────────────
-
-.detailedColHeader {
-  display: flex;
-  align-items: center;
-  background: $c-surface-soft;
-  border: 1px solid $c-border-subtle;
-  border-bottom: 2px solid $c-border;
-  border-radius: $r-sm $r-sm 0 0;
-  margin-bottom: 0;
-  position: sticky;
-  top: 0;
-  z-index: 1;
-}
-
-// ─── Task block (header bar + log row) ───────────────────────────────────────
-
-.taskRows { display: flex; flex-direction: column; }
-
-.taskBlock {
-  border-bottom: 1px solid $c-border-subtle;
-  &:last-child { border-bottom: none; }
-  &:nth-child(even) .taskHeader { background: #fafbfd; }
-  &:hover .taskHeader { background: $c-table-hover; }
-}
-
-.taskHeader {
-  display: flex;
-  align-items: center;
-  gap: $sp-2;
-  padding: $sp-1 $sp-4;
-  background: $c-surface-soft;
-  border-bottom: 1px solid $c-border-subtle;
-}
-
-.taskLogRow {
-  display: grid;
-}
-
-// ─── Shared task meta layout (used in header + global col header) ─────────────
-
-.taskMeta {
-  display: flex;
-  align-items: center;
-  gap: $sp-2;
-  padding: $sp-1 $sp-4;
-  min-width: 220px;
-  flex: 0 0 220px;
-  border-right: 1px solid $c-border-subtle;
-}
-
-.colHdr {
-  font-size: $f-xs;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: $c-text-muted;
-}
-
-.colHdrTask { flex: 1; }
-
-.taskWbs {
-  font-size: $f-sm;
-  color: $c-text-muted;
-  min-width: 40px;
-  flex: 0 0 auto;
-}
-
-.taskName {
-  flex: 1;
-  font-size: $f-base;
-  color: $c-text;
-  min-width: 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.taskPct {
-  font-size: $f-sm;
-  color: $c-text-subtle;
-  flex: 0 0 auto;
-  min-width: 28px;
-  text-align: right;
-}
-
-// ─── Log area (1-3 dynamic columns) ──────────────────────────────────────────
-
-.taskLogArea {
-  display: grid;
-  flex: 1;
-  min-width: 0;
-  align-items: start;
-}
-
-.logColHdr {
-  padding: $sp-1 $sp-3;
-  font-size: $f-xs;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: $c-text-muted;
-  border-left: 1px solid $c-border-subtle;
-  background: $c-surface-soft;
-  align-self: center;
-}
-
-.logCol {
-  padding: $sp-2 $sp-3;
-  border-left: 1px solid $c-border-subtle;
-  display: flex;
-  flex-direction: column;
-  gap: $sp-1;
-  align-self: stretch;
-}
-
-.logEntry {
-  padding: $sp-1 $sp-2 $sp-1 $sp-3;
-  border-left: 2px solid $c-border-subtle;
-  border-radius: 0 $r-sm $r-sm 0;
-  background: $c-surface-soft;
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-}
-
-.logEntryText {
-  font-size: $f-base;
-  color: $c-text;
-  line-height: 1.4;
-}
-
-.logEntryMeta {
-  font-size: $f-xs;
-  color: $c-text-muted;
-}
-
-.logEmpty {
-  color: $c-text-muted;
-  font-size: $f-sm;
-  font-style: italic;
-}
-
-.evidenceLink {
-  font-size: $f-base;
-  color: $c-primary;
-  text-decoration: none;
-  &:hover { text-decoration: underline; }
-}
-
-// ─── Pills (note badge / approval status) ────────────────────────────────────
+// ─── Pills (kept for backward compat — not rendered in new layout) ────────────
 
 .pill {
   display: inline-block;
@@ -554,39 +537,10 @@
 .pillFix    { color: $c-completed; background: $c-completed-bg; }
 .pillAction { color: $c-stalled;   background: $c-stalled-bg;   }
 
-.approval_approved { color: $c-completed; background: $c-completed-bg; }
-.approval_rejected { color: $c-delayed;   background: $c-delayed-bg;   }
-.approval_pending  { color: $c-stalled;   background: $c-stalled-bg;   }
-
-// ─── Bitácora ────────────────────────────────────────────────────────────────
-
-.bitacora {
-  display: flex;
-  flex-direction: column;
-}
-
-.bitacoraEntry {
-  display: grid;
-  grid-template-columns: 90px 130px 64px 1fr;
-  align-items: start;
-  gap: $sp-3;
-  padding: $sp-3 $sp-5;
-  border-bottom: 1px solid $c-border-subtle;
-  font-size: $f-base;
-
-  &:last-child { border-bottom: none; }
-  &:nth-child(even) { background: #fafbfd; }
-  &:hover { background: $c-table-hover; }
-}
-
-.bitacoraDate { color: $c-text-muted;    font-size: $f-sm; white-space: nowrap; }
-.bitacoraUser { color: $c-text-subtle;   font-size: $f-sm; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.bitacoraText { color: $c-text;          line-height: 1.4; }
-
 // ─── Print ────────────────────────────────────────────────────────────────────
 
 @media print {
-  .reportCover { box-shadow: none; }
-  .panel       { box-shadow: none; }
-  .gateGroup   { box-shadow: none; }
+  .report      { padding: 0; }
+  .phaseTable  { page-break-inside: avoid; }
+  .notesSection { page-break-inside: avoid; }
 }

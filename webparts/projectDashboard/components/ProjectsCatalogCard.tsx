@@ -491,6 +491,7 @@ const ProjectsCatalogCard: React.FC<IProjectsCatalogCardProps> = ({ sp, catalogS
                   sp={sp}
                   catalogSp={catalogSp}
                   viewer={viewer}
+                  onViewerChange={setViewer}
                   onStatusReady={handleStatusReady}
                   onCatalogItemSaved={reload}
                   isMoveFirst={idx === 0}

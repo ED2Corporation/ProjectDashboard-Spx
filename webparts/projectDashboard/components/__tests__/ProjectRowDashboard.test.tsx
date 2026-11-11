@@ -3,6 +3,7 @@
  */
 const mockUseProjectState = jest.fn();
 const mockGetBucketStatusFromTasks = jest.fn();
+const mockGetDeepGateStatusFromTasks = jest.fn();
 
 jest.mock('../../hooks/useProjectState', () => ({
   useProjectState: (...args: unknown[]) => mockUseProjectState(...args),
@@ -10,6 +11,7 @@ jest.mock('../../hooks/useProjectState', () => ({
 
 jest.mock('../../utils/GetGateStatus', () => ({
   GetBucketStatusFromTasks: (...args: unknown[]) => mockGetBucketStatusFromTasks(...args),
+  getDeepGateStatusFromTasks: (...args: unknown[]) => mockGetDeepGateStatusFromTasks(...args),
 }));
 
 jest.mock('../../services/ProjectService', () => ({
@@ -82,6 +84,7 @@ describe('ProjectRowDashboard', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockGetBucketStatusFromTasks.mockReturnValue('green');
+    mockGetDeepGateStatusFromTasks.mockReturnValue('green');
   });
 
   it('keeps ProjectCatalogEditor reachable when the task list is missing', async () => {
@@ -154,7 +157,7 @@ describe('ProjectRowDashboard', () => {
     );
 
     await waitFor(() => {
-      expect(onStatusReady).toHaveBeenCalledWith(project.Title, 'ontime');
+      expect(onStatusReady).toHaveBeenCalledWith(project.Title, 'ontime', expect.any(Number));
     });
     expect(mockGetBucketStatusFromTasks).toHaveBeenCalled();
   });
@@ -177,13 +180,13 @@ describe('ProjectRowDashboard', () => {
     );
 
     await waitFor(() => {
-      expect(onStatusReady).toHaveBeenCalledWith(project.Title, 'completed');
+      expect(onStatusReady).toHaveBeenCalledWith(project.Title, 'completed', expect.any(Number));
     });
   });
 
-  it('reports "stalled" (Off Track) when GetBucketStatusFromTasks returns yellow', async () => {
+  it('reports "stalled" (Off Track) when getDeepGateStatusFromTasks returns yellow', async () => {
     const onStatusReady = jest.fn();
-    mockGetBucketStatusFromTasks.mockReturnValue('yellow');
+    mockGetDeepGateStatusFromTasks.mockReturnValue('yellow');
     mockUseProjectState.mockReturnValue(baseStateWithTasks());
 
     render(
@@ -197,13 +200,13 @@ describe('ProjectRowDashboard', () => {
     );
 
     await waitFor(() => {
-      expect(onStatusReady).toHaveBeenCalledWith(project.Title, 'stalled');
+      expect(onStatusReady).toHaveBeenCalledWith(project.Title, 'stalled', expect.any(Number));
     });
   });
 
-  it('reports "delayed" (At Risk) when GetBucketStatusFromTasks returns red', async () => {
+  it('reports "delayed" (At Risk) when getDeepGateStatusFromTasks returns red', async () => {
     const onStatusReady = jest.fn();
-    mockGetBucketStatusFromTasks.mockReturnValue('red');
+    mockGetDeepGateStatusFromTasks.mockReturnValue('red');
     mockUseProjectState.mockReturnValue(baseStateWithTasks());
 
     render(
@@ -217,7 +220,7 @@ describe('ProjectRowDashboard', () => {
     );
 
     await waitFor(() => {
-      expect(onStatusReady).toHaveBeenCalledWith(project.Title, 'delayed');
+      expect(onStatusReady).toHaveBeenCalledWith(project.Title, 'delayed', expect.any(Number));
     });
   });
 });

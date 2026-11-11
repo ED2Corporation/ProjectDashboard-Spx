@@ -612,18 +612,58 @@ export class ProjectService implements IProjectService {
     }
 
     /**
+     * Read-transform-write on ProjectDetails with ETag-based optimistic concurrency.
+     * Retries up to `maxRetries` times on HTTP 412 (Precondition Failed), re-reading and
+     * re-applying the transform each time so array operations compose correctly with
+     * concurrent writes from other clients.
+     * Returns the final ProjectDetails object that was persisted.
+     */
+    public async patchProjectDetailsTransform(
+        title: string,
+        transform: (current: Record<string, unknown>) => Record<string, unknown>,
+        maxRetries = 3,
+    ): Promise<Record<string, unknown>> {
+        const listRef = this._catalogSp.web.lists.getByTitle(this._catalogListName);
+        const titleFilter = `Title eq '${title.replace(/'/g, "''")}'`;
+
+        for (let attempt = 0; attempt <= maxRetries; attempt++) {
+            const found = await listRef.items
+                .select('Id', 'ProjectDetails')
+                .filter(titleFilter)
+                .top(1)();
+            if (!found.length) throw new Error(`Catalog item not found: ${title}`);
+
+            const item = found[0] as any; // eslint-disable-line @typescript-eslint/no-explicit-any
+            const eTag: string = item['@odata.etag'] ?? '*';
+            const current: Record<string, unknown> = item.ProjectDetails
+                ? JSON.parse(item.ProjectDetails) : {};
+            const updated = transform(current);
+
+            try {
+                await listRef.items.getById(item.Id as number)
+                    .update({ ProjectDetails: JSON.stringify(updated) }, eTag);
+                return updated; // success — return persisted state
+            } catch (err: unknown) {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const status = (err as any)?.response?.status ?? (err as any)?.status;
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const msg = String((err as any)?.message ?? '');
+                const is412 = status === 412 || msg.includes('412')
+                    || msg.toLowerCase().includes('precondition');
+                if (attempt < maxRetries && is412) continue;
+                throw err;
+            }
+        }
+        throw new Error('patchProjectDetailsTransform: max retries exceeded');
+    }
+
+    /**
      * Merges `patch` into the ProjectDetails JSON blob of the catalog item identified by `title`.
      * Safe for partial updates — only the keys present in `patch` are overwritten.
+     * Uses ETag-based optimistic concurrency with automatic retry on conflict.
      */
     public async patchProjectDetails(title: string, patch: Record<string, unknown>): Promise<void> {
-        const found = await this._catalogSp.web.lists.getByTitle(this._catalogListName)
-            .items.select('Id', 'ProjectDetails').filter(`Title eq '${title.replace(/'/g, "''")}'`).top(1)();
-        if (!found.length) throw new Error(`Catalog item not found: ${title}`);
-        const item = found[0] as any; // eslint-disable-line @typescript-eslint/no-explicit-any
-        const current: Record<string, unknown> = item.ProjectDetails ? JSON.parse(item.ProjectDetails) : {};
-        const updated = { ...current, ...patch };
-        await this._catalogSp.web.lists.getByTitle(this._catalogListName)
-            .items.getById(item.Id as number).update({ ProjectDetails: JSON.stringify(updated) });
+        await this.patchProjectDetailsTransform(title, current => ({ ...current, ...patch }));
     }
 
     /**

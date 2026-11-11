@@ -287,18 +287,22 @@ describe('TaskCard', () => {
       />
     );
 
-    await userEvent.click(screen.getByRole('button', { name: /^Recreate Batches$/ }));
+    // Button label is "Create Batches" when no existing batches; two buttons share
+    // the name (SubprocessCard header + Batch Config form) — click the form button
+    const createButtons = screen.getAllByRole('button', { name: /^Create Batches$/ });
+    await userEvent.click(createButtons[createButtons.length - 1]);
 
     await waitFor(() => expect(onSave).toHaveBeenCalled());
     const [, payload] = onSave.mock.calls[0];
     const parsed = JSON.parse(payload);
     const jsonTable = JSON.parse(parsed.jsonTable);
 
+    // Default: Pieces = batchRemaining (60), Batches = 1 → creates 1 batch of 60 units
     expect(jsonTable.taskSteps.enabled).toBe(true);
-    expect(jsonTable.taskSteps.steps).toHaveLength(2);
+    expect(jsonTable.taskSteps.steps).toHaveLength(1);
     expect(jsonTable.taskSteps.steps[0]).toEqual(expect.objectContaining({
       title: 'Batch 1',
-      units: 30,
+      units: 60,
       wbs: '1.0.01',
     }));
   });

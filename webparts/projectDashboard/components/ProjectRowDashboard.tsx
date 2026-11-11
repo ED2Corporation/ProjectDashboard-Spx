@@ -41,6 +41,8 @@ export interface ProjectRowDashboardProps {
   onCatalogItemSaved?: () => void;
   /** App-level viewer selection — controls which tasks drive indicators and the task list. */
   viewer?: ViewerKey;
+  /** Called when the user wants to switch the viewer from within a row. */
+  onViewerChange?: (v: ViewerKey) => void;
   // ── Sort-order controls (visible when ProjectCatalogEditor is open) ──
   isMoveFirst?: boolean;
   isMoveLast?: boolean;
@@ -114,7 +116,7 @@ const SettingsIcon: React.FC = () => (
 
 const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
   project, context, sp, catalogSp, onStatusReady, onCatalogItemSaved,
-  viewer: viewerProp,
+  viewer: viewerProp, onViewerChange,
   isMoveFirst, isMoveLast, isReordering, onMoveFirst, onMoveUp, onMoveDown, onMoveLast,
 }) => {
   const [localProject, setLocalProject] = useState(project);
@@ -533,31 +535,48 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
           </div>
         </div>
 
-        {gates.length > 0 ? (
-          <GateProgressBar
-            gates={gates}
-            tasks={tasks}
-            execTasks={viewer === 'executive' ? execTasks : undefined}
-            activeGate={activeGate ?? undefined}
-            onGateClick={handleGateClick}
-            onOverallClick={handleOverallClick}
-          />
-        ) : (
-          <div className={styles.noGatesRow}>
-            <span className={styles.noGates}>
-              {tasks.length === 0 ? "No task list found — please verify the SharePoint list exists." : "No gates defined"}
-            </span>
-            <button
-              type="button"
-              className={`${styles.settingsFallbackBtn} ${showProjectActions ? styles.settingsFallbackBtnActive : ""}`}
-              onClick={() => setShowProjectActions(prev => !prev)}
-              title={showProjectActions ? "Hide project options" : "Show project options"}
-            >
-              <SettingsIcon />
-              <span>Options</span>
-            </button>
-          </div>
-        )}
+        <div className={styles.headerRight}>
+          {viewer === 'executive' && tasks.length > 0 && execTasks.length === 0 && (
+            <div className={styles.execNoTasksAlert}>
+              No tasks are enabled for Executive View — open a task and toggle the Executive Track flag to include it.
+              {onViewerChange && (
+                <button
+                  type="button"
+                  className={styles.execNoTasksSwitchBtn}
+                  onClick={() => onViewerChange('operations')}
+                >
+                  Switch to Operations view
+                </button>
+              )}
+            </div>
+          )}
+
+          {gates.length > 0 ? (
+            <GateProgressBar
+              gates={gates}
+              tasks={tasks}
+              execTasks={viewer === 'executive' ? execTasks : undefined}
+              activeGate={activeGate ?? undefined}
+              onGateClick={handleGateClick}
+              onOverallClick={handleOverallClick}
+            />
+          ) : (
+            <div className={styles.noGatesRow}>
+              <span className={styles.noGates}>
+                {tasks.length === 0 ? "No task list found — please verify the SharePoint list exists." : "No gates defined"}
+              </span>
+              <button
+                type="button"
+                className={`${styles.settingsFallbackBtn} ${showProjectActions ? styles.settingsFallbackBtnActive : ""}`}
+                onClick={() => setShowProjectActions(prev => !prev)}
+                title={showProjectActions ? "Hide project options" : "Show project options"}
+              >
+                <SettingsIcon />
+                <span>Options</span>
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* ── Project actions + settings editor — visible when gear is active ── */}
@@ -715,12 +734,65 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
               gates={gates}
               project={localProject}
               projectTitle={localProject.Title}
+              currentUser={context.pageContext.user.displayName || context.pageContext.user.email}
               activeGate={activeGate === 'all' || activeGate === null ? undefined : activeGate}
               onGateClick={(gate) => {
                 if (!gate || gate === 'all') handleGateClick('all');
                 else handleGateClick(gate);
               }}
               onPrintReady={fn => setReportPrintFn(() => fn)}
+              onSaveNote={async (note) => {
+                type N = import('../../../models/IReportNote').IReportNote;
+                const finalDetails = await projectService.patchProjectDetailsTransform(
+                  localProject.Title,
+                  current => {
+                    const existing = (current.reportNotes as N[] | undefined) ?? [];
+                    return { ...current, reportNotes: [...existing, note] };
+                  }
+                );
+                setLocalProject(prev => ({ ...prev, ProjectDetails: JSON.stringify(finalDetails) }));
+              }}
+              onUpdateNote={async (noteId, text) => {
+                type N = import('../../../models/IReportNote').IReportNote;
+                const finalDetails = await projectService.patchProjectDetailsTransform(
+                  localProject.Title,
+                  current => {
+                    const existing = (current.reportNotes as N[] | undefined) ?? [];
+                    return { ...current, reportNotes: existing.map(n => n.id === noteId ? { ...n, note: text } : n) };
+                  }
+                );
+                setLocalProject(prev => ({ ...prev, ProjectDetails: JSON.stringify(finalDetails) }));
+              }}
+              onDeleteNote={async (noteId) => {
+                type N = import('../../../models/IReportNote').IReportNote;
+                const finalDetails = await projectService.patchProjectDetailsTransform(
+                  localProject.Title,
+                  current => {
+                    const existing = (current.reportNotes as N[] | undefined) ?? [];
+                    return { ...current, reportNotes: existing.filter(n => n.id !== noteId) };
+                  }
+                );
+                setLocalProject(prev => ({ ...prev, ProjectDetails: JSON.stringify(finalDetails) }));
+              }}
+              onArchiveNotes={async (noteIds, archivedBy) => {
+                type N = import('../../../models/IReportNote').IReportNote;
+                const now = new Date().toISOString();
+                const finalDetails = await projectService.patchProjectDetailsTransform(
+                  localProject.Title,
+                  current => {
+                    const existing = (current.reportNotes as N[] | undefined) ?? [];
+                    return {
+                      ...current,
+                      reportNotes: existing.map(n =>
+                        noteIds.includes(n.id)
+                          ? { ...n, status: 'archived' as const, archivedAt: now, archivedBy }
+                          : n
+                      ),
+                    };
+                  }
+                );
+                setLocalProject(prev => ({ ...prev, ProjectDetails: JSON.stringify(finalDetails) }));
+              }}
             />
           )}
         </div>

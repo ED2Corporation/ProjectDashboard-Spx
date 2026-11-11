@@ -1,16 +1,26 @@
 import * as React from 'react';
 import { useEffect, useRef, useState, useCallback } from 'react';
 import styles from './UserManualPanel.module.scss';
+import { RELEASES, fmtReleaseDate, groupReleasesByMonth } from './userGuide/releases';
+
+// ─── Tab type ─────────────────────────────────────────────────────────────────
+
+type TabId = 'guide' | 'releases';
 
 // ─── Nav sections ─────────────────────────────────────────────────────────────
 
-const NAV_ITEMS = [
+const GUIDE_NAV = [
   { id: 's1', num: 1, label: 'Overview' },
   { id: 's2', num: 2, label: 'Header buttons' },
   { id: 's3', num: 3, label: 'Project statuses' },
   { id: 's4', num: 4, label: 'Search & sort' },
   { id: 's5', num: 5, label: 'Reading a row' },
   { id: 's6', num: 6, label: 'Typical workflow' },
+];
+
+const RELEASES_NAV = [
+  { id: 'r-latest',  label: 'Latest release'  },
+  { id: 'r-history', label: 'Release history' },
 ];
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
@@ -31,7 +41,10 @@ interface UserManualPanelProps {
 
 const UserManualPanel: React.FC<UserManualPanelProps> = ({ onClose }) => {
   const contentRef                    = useRef<HTMLDivElement>(null);
-  const [activeId, setActiveId]       = useState<string>('s1');
+  const [activeTab, setActiveTab]     = useState<TabId>('guide');
+  const [activeId,  setActiveId]      = useState<string>('s1');
+
+  const activeNav = activeTab === 'guide' ? GUIDE_NAV : RELEASES_NAV;
 
   // Close on Escape
   useEffect(() => {
@@ -40,22 +53,27 @@ const UserManualPanel: React.FC<UserManualPanelProps> = ({ onClose }) => {
     return () => document.removeEventListener('keydown', handler);
   }, [onClose]);
 
-  // Scroll-spy via scroll event
+  // Reset active item on tab switch
+  useEffect(() => {
+    setActiveId(activeTab === 'guide' ? 's1' : 'r-latest');
+    contentRef.current?.scrollTo({ top: 0 });
+  }, [activeTab]);
+
+  // Scroll-spy
   useEffect(() => {
     const root = contentRef.current;
     if (!root) return;
 
+    const nav = activeTab === 'guide' ? GUIDE_NAV : RELEASES_NAV;
+
     const onScroll = (): void => {
-      // Near bottom → always activate last section
       if (root.scrollTop + root.clientHeight >= root.scrollHeight - 8) {
-        setActiveId(NAV_ITEMS[NAV_ITEMS.length - 1].id);
+        setActiveId(nav[nav.length - 1].id);
         return;
       }
-
-      // Find the last section whose top is at or above 30% of the visible area
       const threshold = root.scrollTop + root.clientHeight * 0.30;
-      let current = NAV_ITEMS[0].id;
-      for (const { id } of NAV_ITEMS) {
+      let current = nav[0].id;
+      for (const { id } of nav) {
         const el = root.querySelector<HTMLElement>(`#${id}`);
         if (el && el.offsetTop <= threshold) current = id;
       }
@@ -63,14 +81,19 @@ const UserManualPanel: React.FC<UserManualPanelProps> = ({ onClose }) => {
     };
 
     root.addEventListener('scroll', onScroll, { passive: true });
-    onScroll(); // set initial state
+    onScroll();
     return () => root.removeEventListener('scroll', onScroll);
-  }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab]);
 
   const scrollTo = useCallback((id: string) => {
     const el = contentRef.current?.querySelector(`#${id}`);
     el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }, []);
+
+  // ── Release history grouped data ────────────────────────────────────────────
+  const [latestRelease, ...historyReleases] = RELEASES;
+  const historyGroups = groupReleasesByMonth(historyReleases);
 
   return (
     <div className={styles.overlay} onClick={onClose} role="dialog" aria-modal="true" aria-label="User Manual">
@@ -86,32 +109,51 @@ const UserManualPanel: React.FC<UserManualPanelProps> = ({ onClose }) => {
           </button>
         </div>
 
+        {/* ── Tab bar ─────────────────────────────────────────────────── */}
+        <div className={styles.tabBar}>
+          {(['guide', 'releases'] as TabId[]).map(tab => (
+            <button
+              key={tab}
+              type="button"
+              className={`${styles.tab} ${activeTab === tab ? styles.tabActive : ''}`}
+              onClick={() => setActiveTab(tab)}
+            >
+              {tab === 'guide' ? 'Guide' : 'Releases'}
+            </button>
+          ))}
+        </div>
+
         {/* ── Body ────────────────────────────────────────────────────── */}
         <div className={styles.body}>
 
           {/* Sidebar nav */}
           <nav className={styles.sidebar}>
-            <div className={styles.navGroupLabel}>Contents</div>
-            {NAV_ITEMS.map(({ id, num, label }) => (
-              <a
-                key={id}
-                className={`${styles.navLink} ${activeId === id ? styles.navActive : ''}`}
-                onClick={() => scrollTo(id)}
-                role="button"
-                tabIndex={0}
-                onKeyDown={e => e.key === 'Enter' && scrollTo(id)}
-              >
-                <span className={styles.navNum}>{num}</span>
-                {label}
-              </a>
-            ))}
+            <div className={styles.navGroupLabel}>
+              {activeTab === 'guide' ? 'Contents' : 'Releases'}
+            </div>
+            {activeNav.map(({ id, label }) => {
+              const guideEntry = activeTab === 'guide' ? GUIDE_NAV.find(n => n.id === id) : undefined;
+              return (
+                <a
+                  key={id}
+                  className={`${styles.navLink} ${activeId === id ? styles.navActive : ''}`}
+                  onClick={() => scrollTo(id)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={e => e.key === 'Enter' && scrollTo(id)}
+                >
+                  {guideEntry && <span className={styles.navNum}>{guideEntry.num}</span>}
+                  {label}
+                </a>
+              );
+            })}
             <div className={styles.sidebarFooter}>
-              Work Orders v1.0<br />ED2 Corp &copy; 2025
+              Work Orders v{RELEASES[0]?.version ?? '1.0'}<br />ED2 Corp &copy; 2026
             </div>
           </nav>
 
-          {/* Scrollable content */}
-          <div className={styles.content} ref={contentRef}>
+          {/* Scrollable content — Guide tab */}
+          {activeTab === 'guide' && <div className={styles.content} ref={contentRef}>
 
             {/* Hero */}
             <div className={styles.hero}>
@@ -331,10 +373,85 @@ const UserManualPanel: React.FC<UserManualPanelProps> = ({ onClose }) => {
             </div>
 
             <div className={styles.manualFooter}>
-              ED2 Corp &middot; Engineering Dashboard &middot; Work Orders User Manual v1.0 &middot; 2025
+              ED2 Corp &middot; Engineering Dashboard &middot; Work Orders User Manual v1.0 &middot; 2026
             </div>
 
-          </div>{/* /.content */}
+          </div>}
+
+          {/* ── Releases content (shown only when releases tab active) ── */}
+          {activeTab === 'releases' && (
+            <div className={styles.content} ref={contentRef}>
+
+              {/* Latest release ─────────────────────────────────────── */}
+              <h2 className={styles.releasesH2} id="r-latest">Latest release</h2>
+              {latestRelease ? (
+                <div className={styles.releaseCard}>
+                  <div className={styles.releaseHead}>
+                    <span className={styles.releaseVersion}>Version {latestRelease.version}</span>
+                    <span className={styles.releaseDate}>{fmtReleaseDate(latestRelease.date)}</span>
+                  </div>
+                  <ul className={styles.releaseList}>
+                    {latestRelease.items.map((item, i) => (
+                      <li key={i} className={styles.releaseItem}>
+                        <span className={styles.releaseArea}>{item.area}:</span> {item.text}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : (
+                <p>No releases registered.</p>
+              )}
+
+              {/* Release history ─────────────────────────────────────── */}
+              <h2 className={styles.releasesH2} id="r-history">Release history</h2>
+              {historyGroups.length === 0 ? (
+                <p style={{ fontSize: 12.5, color: '#888' }}>No earlier releases.</p>
+              ) : (
+                <details className={styles.fold}>
+                  <summary>Earlier releases ({historyReleases.length}) &mdash; by year and month</summary>
+                  <div className={styles.foldInner}>
+                    <p style={{ fontSize: 12, color: '#888', marginBottom: 10 }}>
+                      Each build is listed with the version that first carried the change.
+                    </p>
+                    {historyGroups.map(({ year, months }) => (
+                      <React.Fragment key={year}>
+                        <div className={styles.histYear}>{year}</div>
+                        {months.map(({ month, monthName, releases: mReleases }) => (
+                          <details key={month} className={styles.fold}>
+                            <summary>
+                              {monthName} {year} &middot; {mReleases.length} release{mReleases.length !== 1 ? 's' : ''}
+                            </summary>
+                            <div className={styles.foldInner}>
+                              {mReleases.map(r => (
+                                <div key={r.version} className={styles.releaseCard}>
+                                  <div className={styles.releaseHead}>
+                                    <span className={styles.releaseVersion}>Version {r.version}</span>
+                                    <span className={styles.releaseDate}>{fmtReleaseDate(r.date)}</span>
+                                  </div>
+                                  <ul className={styles.releaseList}>
+                                    {r.items.map((item, i) => (
+                                      <li key={i} className={styles.releaseItem}>
+                                        <span className={styles.releaseArea}>{item.area}:</span> {item.text}
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              ))}
+                            </div>
+                          </details>
+                        ))}
+                      </React.Fragment>
+                    ))}
+                  </div>
+                </details>
+              )}
+
+              <div className={styles.manualFooter}>
+                ED2 Corp &middot; Work Orders &middot; {RELEASES[0]?.version ?? ''} &middot; 2026
+              </div>
+            </div>
+          )}
+
         </div>{/* /.body */}
       </div>{/* /.panel */}
     </div>

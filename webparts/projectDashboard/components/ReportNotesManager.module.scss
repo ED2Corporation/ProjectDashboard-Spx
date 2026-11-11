@@ -1,0 +1,394 @@
+@import './styles/tokens';
+
+// ─── Overlay ──────────────────────────────────────────────────────────────────
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  z-index: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: $sp-6;
+}
+
+// ─── Panel ────────────────────────────────────────────────────────────────────
+
+.panel {
+  width: 540px;
+  max-height: 80vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  background: $c-surface;
+  border: 1px solid $c-border;
+  border-radius: 8px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
+}
+
+.panelHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: $sp-3 $sp-5;
+  border-bottom: 1px solid $c-border-subtle;
+  background: $c-surface-soft;
+  flex-shrink: 0;
+  border-radius: 8px 8px 0 0;
+}
+
+.panelTitle {
+  font-size: $f-base;
+  font-weight: 700;
+  color: $c-text;
+}
+
+.closeBtn {
+  background: none;
+  border: none;
+  color: $c-text-muted;
+  cursor: pointer;
+  font-size: 14px;
+  padding: 2px 4px;
+  line-height: 1;
+  &:hover { color: $c-text; }
+}
+
+.panelSubtitle {
+  padding: $sp-3 $sp-5 0;
+  font-size: $f-sm;
+  color: $c-text-subtle;
+  flex-shrink: 0;
+}
+
+.selectBar {
+  display: flex;
+  gap: $sp-3;
+  padding: $sp-2 $sp-5;
+  flex-shrink: 0;
+}
+
+.selectLink {
+  background: none;
+  border: none;
+  color: $c-primary;
+  font-size: $f-sm;
+  font-family: $f-family;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+  &:hover { color: $c-primary-hover; }
+  &:disabled { opacity: 0.5; cursor: default; }
+}
+
+// ─── Group list ───────────────────────────────────────────────────────────────
+
+.groupList {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 $sp-5 $sp-3;
+}
+
+.group {
+  margin-top: $sp-4;
+  &:first-child { margin-top: $sp-3; }
+}
+
+.groupHeader {
+  display: flex;
+  align-items: baseline;
+  gap: $sp-3;
+  margin-bottom: $sp-2;
+}
+
+.groupLabel {
+  font-size: $f-sm;
+  font-weight: 700;
+  color: $c-text;
+}
+
+.groupCount {
+  font-size: $f-xs;
+  color: $c-text-muted;
+}
+
+// ─── Active notes ─────────────────────────────────────────────────────────────
+
+.noteList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.noteRow {
+  display: flex;
+  align-items: flex-start;
+  gap: $sp-3;
+  padding: $sp-2 $sp-3;
+  border: 1px solid $c-border-subtle;
+  border-radius: $r-sm;
+  cursor: pointer;
+  transition: background 0.1s;
+  &:hover { background: $c-surface-soft; }
+  &:hover .noteActions { opacity: 1; }
+}
+
+.noteRowSelected {
+  background: $c-primary-bg;
+  border-color: $c-primary;
+  &:hover { background: $c-primary-bg; }
+}
+
+.noteCheckbox {
+  flex-shrink: 0;
+  margin-top: 3px;
+  cursor: pointer;
+  accent-color: $c-primary;
+  width: 15px;
+  height: 15px;
+}
+
+.noteContent {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+// ─── Inline note actions (edit / delete) ──────────────────────────────────────
+
+.noteActions {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity 0.1s;
+}
+
+.editBtn {
+  background: none;
+  border: none;
+  color: $c-primary;
+  font-size: 14px;
+  cursor: pointer;
+  padding: 2px 4px;
+  line-height: 1;
+  &:hover { color: $c-primary-hover; }
+  &:disabled { opacity: 0.4; cursor: default; }
+}
+
+.deleteBtn {
+  background: none;
+  border: none;
+  color: $c-text-muted;
+  font-size: 12px;
+  cursor: pointer;
+  padding: 2px 4px;
+  line-height: 1;
+  &:hover { color: $c-delayed; }
+  &:disabled { opacity: 0.4; cursor: default; }
+}
+
+// ─── Inline edit form ─────────────────────────────────────────────────────────
+
+.editRow {
+  display: flex;
+  flex-direction: column;
+  gap: $sp-2;
+  flex: 1;
+  cursor: default;
+}
+
+.editTextarea {
+  width: 100%;
+  font-family: $f-family;
+  font-size: $f-base;
+  color: $c-text;
+  border: 1px solid $c-primary;
+  border-radius: $r-sm;
+  padding: $sp-2;
+  resize: vertical;
+  box-sizing: border-box;
+  &:focus { outline: none; box-shadow: 0 0 0 2px $c-primary-bg; }
+}
+
+.editActions {
+  display: flex;
+  gap: $sp-2;
+}
+
+.saveEditBtn {
+  padding: 4px 12px;
+  border: none;
+  border-radius: $r-sm;
+  background: $c-primary;
+  color: #fff;
+  font-size: $f-sm;
+  font-family: $f-family;
+  font-weight: 600;
+  cursor: pointer;
+  &:hover { opacity: 0.88; }
+  &:disabled { opacity: 0.4; cursor: default; }
+}
+
+.cancelEditBtn {
+  padding: 4px 12px;
+  border: 1px solid $c-border;
+  border-radius: $r-sm;
+  background: $c-surface;
+  color: $c-text-secondary;
+  font-size: $f-sm;
+  font-family: $f-family;
+  cursor: pointer;
+  &:hover { background: $c-surface-mid; }
+  &:disabled { opacity: 0.4; cursor: default; }
+}
+
+.noteText {
+  font-size: $f-base;
+  color: $c-text;
+  line-height: 1.4;
+}
+
+.noteMeta {
+  font-size: $f-xs;
+  color: $c-text-muted;
+}
+
+.noActive {
+  font-size: $f-sm;
+  color: $c-text-muted;
+  font-style: italic;
+  padding: $sp-1 0;
+}
+
+// ─── History (archived notes) ─────────────────────────────────────────────────
+
+.historySection {
+  margin-top: $sp-2;
+}
+
+.historyToggle {
+  background: none;
+  border: none;
+  color: $c-text-subtle;
+  font-size: $f-xs;
+  font-family: $f-family;
+  cursor: pointer;
+  padding: $sp-1 0;
+  &:hover { color: $c-text; }
+}
+
+.historyList {
+  margin: $sp-1 0 0 $sp-4;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.historyRow {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: $sp-2 $sp-3;
+  border-left: 2px solid $c-border-subtle;
+}
+
+.historyText {
+  font-size: $f-sm;
+  color: $c-text-subtle;
+  line-height: 1.4;
+  text-decoration: line-through;
+  text-decoration-color: $c-text-muted;
+}
+
+.historyMeta {
+  font-size: $f-xs;
+  color: $c-text-muted;
+}
+
+// ─── Empty state ──────────────────────────────────────────────────────────────
+
+.emptyState {
+  padding: $sp-5 0;
+  font-size: $f-base;
+  color: $c-text-muted;
+  font-style: italic;
+  text-align: center;
+}
+
+// ─── Error ────────────────────────────────────────────────────────────────────
+
+.errorMsg {
+  margin: 0 $sp-5 $sp-2;
+  font-size: $f-sm;
+  color: $c-delayed;
+  padding: $sp-1 $sp-2;
+  background: $c-delayed-bg;
+  border-radius: $r-sm;
+  flex-shrink: 0;
+}
+
+// ─── Footer ───────────────────────────────────────────────────────────────────
+
+.panelFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $sp-3;
+  padding: $sp-3 $sp-5;
+  border-top: 1px solid $c-border-subtle;
+  background: $c-surface-soft;
+  flex-shrink: 0;
+  border-radius: 0 0 8px 8px;
+}
+
+.authorTag {
+  font-size: $f-xs;
+  color: $c-text-muted;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.footerActions {
+  display: flex;
+  gap: $sp-2;
+  flex-shrink: 0;
+}
+
+.cancelBtn {
+  padding: 5px 14px;
+  border: 1px solid $c-border;
+  border-radius: $r-sm;
+  background: $c-surface;
+  color: $c-text-secondary;
+  font-size: $f-sm;
+  font-family: $f-family;
+  cursor: pointer;
+  &:hover { background: $c-surface-mid; }
+  &:disabled { opacity: 0.5; cursor: default; }
+}
+
+.archiveBtn {
+  padding: 5px 16px;
+  border: none;
+  border-radius: $r-sm;
+  background: $c-stalled;
+  color: #fff;
+  font-size: $f-sm;
+  font-family: $f-family;
+  font-weight: 600;
+  cursor: pointer;
+  &:hover { opacity: 0.88; }
+  &:disabled { opacity: 0.4; cursor: default; }
+}

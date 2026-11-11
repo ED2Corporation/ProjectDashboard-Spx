@@ -1,0 +1,194 @@
+@import './styles/tokens';
+
+// ─── Overlay ──────────────────────────────────────────────────────────────────
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  z-index: 900;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+  padding: 60px $sp-6 $sp-6;
+}
+
+// ─── Panel ────────────────────────────────────────────────────────────────────
+
+.panel {
+  width: 380px;
+  max-height: calc(100vh - 120px);
+  overflow-y: auto;
+  background: $c-surface;
+  border: 1px solid $c-border;
+  border-radius: 8px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
+  display: flex;
+  flex-direction: column;
+}
+
+.panelHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: $sp-3 $sp-4;
+  border-bottom: 1px solid $c-border-subtle;
+  background: $c-surface-soft;
+  border-radius: 8px 8px 0 0;
+}
+
+.panelTitle {
+  font-size: $f-base;
+  font-weight: 700;
+  color: $c-text;
+}
+
+.closeBtn {
+  background: none;
+  border: none;
+  color: $c-text-muted;
+  cursor: pointer;
+  font-size: 14px;
+  padding: 2px 4px;
+  line-height: 1;
+  &:hover { color: $c-text; }
+}
+
+.panelBody {
+  padding: $sp-4;
+  display: flex;
+  flex-direction: column;
+  gap: $sp-3;
+}
+
+// ─── Fields ───────────────────────────────────────────────────────────────────
+
+.fieldLabel {
+  font-size: $f-sm;
+  font-weight: 700;
+  color: $c-text-secondary;
+  margin-bottom: -$sp-1;
+}
+
+.sectionGroup {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $sp-2;
+}
+
+.sectionBtn {
+  padding: 4px 10px;
+  border: 1px solid $c-border;
+  border-radius: 20px;
+  background: $c-surface;
+  color: $c-text-secondary;
+  font-size: $f-sm;
+  cursor: pointer;
+  white-space: nowrap;
+  font-family: $f-family;
+  transition: background 0.1s, color 0.1s, border-color 0.1s;
+  &:hover { background: $c-surface-mid; }
+}
+
+.sectionBtnActive {
+  background: #0197D6;
+  color: #fff;
+  border-color: #0197D6;
+  &:hover { background: darken(#0197D6, 8%); }
+}
+
+.dateInput {
+  padding: $sp-2 $sp-3;
+  border: 1px solid $c-input-border;
+  border-radius: $r-sm;
+  font-size: $f-base;
+  font-family: $f-family;
+  color: $c-text;
+  background: $c-surface;
+  &:focus { outline: 2px solid $c-primary; outline-offset: 1px; }
+}
+
+.noteTextarea {
+  padding: $sp-2 $sp-3;
+  border: 1px solid $c-input-border;
+  border-radius: $r-sm;
+  font-size: $f-base;
+  font-family: $f-family;
+  color: $c-text;
+  background: $c-surface;
+  resize: vertical;
+  min-height: 80px;
+  &:focus { outline: 2px solid $c-primary; outline-offset: 1px; }
+  &::placeholder { color: $c-text-muted; }
+}
+
+.successMsg {
+  font-size: $f-sm;
+  color: $c-completed;
+  padding: $sp-1 $sp-2;
+  background: $c-completed-bg;
+  border-radius: $r-sm;
+}
+
+.errorMsg {
+  font-size: $f-sm;
+  color: $c-delayed;
+  padding: $sp-1 $sp-2;
+  background: $c-delayed-bg;
+  border-radius: $r-sm;
+}
+
+// ─── Footer ───────────────────────────────────────────────────────────────────
+
+.panelFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $sp-3;
+  margin-top: $sp-1;
+  padding-top: $sp-3;
+  border-top: 1px solid $c-border-subtle;
+}
+
+.authorTag {
+  font-size: $f-xs;
+  color: $c-text-muted;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.footerActions {
+  display: flex;
+  gap: $sp-2;
+  flex-shrink: 0;
+}
+
+.cancelBtn {
+  padding: 5px 14px;
+  border: 1px solid $c-border;
+  border-radius: $r-sm;
+  background: $c-surface;
+  color: $c-text-secondary;
+  font-size: $f-sm;
+  font-family: $f-family;
+  cursor: pointer;
+  &:hover { background: $c-surface-mid; }
+  &:disabled { opacity: 0.5; cursor: default; }
+}
+
+.saveBtn {
+  padding: 5px 16px;
+  border: none;
+  border-radius: $r-sm;
+  background: $c-primary;
+  color: #fff;
+  font-size: $f-sm;
+  font-family: $f-family;
+  font-weight: 600;
+  cursor: pointer;
+  &:hover { background: $c-primary-hover; }
+  &:disabled { opacity: 0.5; cursor: default; }
+}

@@ -125,6 +125,44 @@
   font-style: italic;
 }
 
+.headerRight {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: $sp-1;
+}
+
+.execNoTasksAlert {
+  font-size: $f-sm;
+  color: $c-stalled;
+  font-style: italic;
+  padding: $sp-1 $sp-2;
+  border-left: 3px solid $c-stalled;
+  background: $c-stalled-bg;
+  border-radius: $r-sm;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $sp-3;
+}
+
+.execNoTasksSwitchBtn {
+  flex-shrink: 0;
+  font-size: $f-sm;
+  font-style: normal;
+  color: $c-primary;
+  background: none;
+  border: 1px solid $c-primary;
+  border-radius: $r-sm;
+  padding: 2px $sp-2;
+  cursor: pointer;
+  white-space: nowrap;
+  &:hover {
+    background: $c-primary-bg;
+  }
+}
+
 .noGatesRow {
   flex: 1;
   display: flex;

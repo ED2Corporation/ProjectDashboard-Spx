@@ -5,3 +5,4 @@ export * from './ITaskListItem';
 export * from './IGateListItem';
 export * from './IProjectDashboardWebPartProps';
 export * from './ITaskLogFields';
+export * from './IReportNote';
