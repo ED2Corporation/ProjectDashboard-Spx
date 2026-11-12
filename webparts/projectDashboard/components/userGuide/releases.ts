@@ -22,6 +22,26 @@ export interface IRelease {
 
 export const RELEASES: IRelease[] = [
   {
+    version: '1.0.6.7',
+    date: '2026-11-11',
+    items: [
+      { area: 'Task List', text: 'Add Task now works correctly: the new task card opens immediately after creation for editing.' },
+      { area: 'Task List', text: 'Opening the Actions toolbar while in Executive View automatically switches to Operations View, ensuring newly created tasks are visible.' },
+      { area: 'WO Report', text: 'LOT Schedule: Total Units column width increased to prevent overflow; Shipment column is now fixed-width.' },
+    ],
+  },
+  {
+    version: '1.0.6.6',
+    date: '2026-11-11',
+    items: [
+      { area: 'WO Report', text: 'Report header now shows the full work week range (e.g. "Nov 9–13, 2026") instead of a single date; picking any day snaps automatically to the Monday of that week.' },
+      { area: 'WO Report', text: 'Timezone fix: dates no longer shift by one day for users in UTC-offset time zones (Tucson/MST).' },
+      { area: 'WO Report', text: 'Viewing a past week shows all notes recorded for that week (active + archived), not just the current week\'s active notes.' },
+      { area: 'WO Report', text: 'Archive Week button (🗂) archives all active notes for the current reporting week in one click.' },
+      { area: 'WO Report', text: 'History panel: browse past week notes by date range or free-text search; copy any past note into the current report with one click.' },
+    ],
+  },
+  {
     version: '1.0.6.5',
     date: '2026-11-10',
     items: [

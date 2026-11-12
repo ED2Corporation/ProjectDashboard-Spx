@@ -14,25 +14,25 @@
 
 .pageHeader {
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: $sp-4;
+  flex-direction: column;
   margin-bottom: $sp-3;
   padding-bottom: $sp-3;
   border-bottom: 1px solid $c-border-subtle;
+  gap: $sp-1;
 }
 
-.pageHeaderLeft {
-  flex: 1;
-  min-width: 0;
-}
-
-.pageHeaderRight {
+.pageHeaderRow1 {
   display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: $sp-2;
-  flex-shrink: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: $sp-4;
+}
+
+.pageHeaderRow2 {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $sp-4;
 }
 
 .pageTitle {
@@ -243,8 +243,8 @@
 .colMetric { width: 90px; text-align: right; }
 
 .colLotNum   { width: 28px; text-align: center; }
-.colShipment { min-width: 120px; }
-.colLotUnits { width: 70px; text-align: right; white-space: nowrap; }
+.colShipment { width: 130px; }
+.colLotUnits { width: 96px; text-align: right; white-space: nowrap; }
 
 .rowActive td { background: $c-table-active !important; }
 
@@ -536,6 +536,156 @@
 .pillIssue  { color: $c-delayed;   background: $c-delayed-bg;   }
 .pillFix    { color: $c-completed; background: $c-completed-bg; }
 .pillAction { color: $c-stalled;   background: $c-stalled-bg;   }
+
+// ─── Archive week button ──────────────────────────────────────────────────────
+
+.archiveWeekBtn {
+  background: none;
+  border: 1px solid $c-border;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  cursor: pointer;
+  flex-shrink: 0;
+  line-height: 1;
+  padding: 0;
+  &:hover { background: $c-surface-soft; border-color: $c-text-muted; }
+}
+
+// ─── History panel ────────────────────────────────────────────────────────────
+
+.historyPanel {
+  background: $c-surface-soft;
+  border: 1px solid $c-border-subtle;
+  border-radius: $r-sm;
+  padding: $sp-3 $sp-4;
+  margin-bottom: $sp-4;
+  display: flex;
+  flex-direction: column;
+  gap: $sp-3;
+}
+
+.historyToolbar {
+  display: flex;
+  align-items: center;
+  gap: $sp-3;
+}
+
+.historySearch {
+  flex: 1;
+  font-family: $f-family;
+  font-size: $f-sm;
+  border: 1px solid $c-border;
+  border-radius: $r-sm;
+  padding: 4px 10px;
+  background: $c-surface;
+  color: $c-text;
+  &:focus { outline: none; border-color: $c-primary; }
+}
+
+.historyWeekPicker {
+  display: flex;
+  align-items: center;
+  gap: $sp-2;
+  flex-shrink: 0;
+  position: relative;
+}
+
+.historyWeekDisplay {
+  font-size: $f-sm;
+  color: $c-text-secondary;
+  white-space: nowrap;
+}
+
+.historyWeekClickable {
+  cursor: pointer;
+  color: $c-primary;
+  border-bottom: 1px dashed $c-primary;
+  &:hover { opacity: 0.8; }
+}
+
+.historyClearBtn {
+  background: none;
+  border: none;
+  color: $c-text-muted;
+  font-size: 11px;
+  cursor: pointer;
+  padding: 1px 4px;
+  line-height: 1;
+  border-radius: $r-sm;
+  &:hover { color: $c-delayed; }
+}
+
+.historySectionLabel {
+  font-size: $f-xs;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: $c-text-subtle;
+  margin-bottom: $sp-2;
+}
+
+.historyWeekBlock {
+  margin-bottom: $sp-2;
+  &:last-child { margin-bottom: 0; }
+}
+
+.historyWeekTitle {
+  font-size: $f-sm;
+  font-weight: 600;
+  color: $c-text;
+  margin-bottom: $sp-1;
+}
+
+.historyNoteRow {
+  display: flex;
+  align-items: flex-start;
+  gap: $sp-2;
+  padding: 4px 0;
+  border-bottom: 1px solid $c-border-subtle;
+  &:last-child { border-bottom: none; }
+}
+
+.historyNoteSection {
+  flex-shrink: 0;
+  font-size: $f-xs;
+  font-weight: 600;
+  color: $c-primary;
+  min-width: 56px;
+  padding-top: 2px;
+  white-space: nowrap;
+}
+
+.historyNoteText {
+  flex: 1;
+  font-size: $f-sm;
+  color: $c-text-secondary;
+  line-height: 1.45;
+  min-width: 0;
+}
+
+.historyCopyBtn {
+  flex-shrink: 0;
+  background: none;
+  border: 1px solid $c-border;
+  border-radius: 50%;
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: $c-primary;
+  cursor: pointer;
+  line-height: 1;
+  padding: 0;
+  &:hover { background: $c-primary-bg; border-color: $c-primary; }
+}
 
 // ─── Print ────────────────────────────────────────────────────────────────────
 

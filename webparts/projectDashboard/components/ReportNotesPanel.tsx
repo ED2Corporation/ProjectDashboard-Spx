@@ -42,7 +42,6 @@ const ReportNotesPanel: React.FC<ReportNotesPanelProps> = ({ gates, currentUser,
         note:    noteText.trim(),
         user:    currentUser,
         date,
-        status:  'active',
       });
       setNoteText('');
       setError('');

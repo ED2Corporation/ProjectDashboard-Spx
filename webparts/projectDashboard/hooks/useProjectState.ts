@@ -603,7 +603,7 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
 
     const nextWbs = await _getNextWbsForGate(listTitle, gate);
 
-    const addResult: { Id?: number } = await sp.web.lists.getByTitle(listTitle).items.add(withAvailableTaskFields({
+    const addResult = await sp.web.lists.getByTitle(listTitle).items.add(withAvailableTaskFields({
       Gate: gate,
       Title: nextWbs,
       Task: "New task...",
@@ -612,7 +612,7 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
       Complete: 0
     }));
 
-    const addedId = addResult.Id as number | undefined;
+    const addedId = ((addResult as any)?.data?.Id ?? (addResult as any)?.Id) as number | undefined;
     if (!addedId) { setSelectedTask(makeEmptyTask()); return null; }
 
     const r: ISPRawItem = await sp.web.lists.getByTitle(listTitle).items.getById(addedId)();
@@ -704,7 +704,7 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
     }
 
     // Create the new task at the freed WBS slot
-    const addResult: { Id?: number } = await sp.web.lists.getByTitle(listTitle).items.add(withAvailableTaskFields({
+    const addResult = await sp.web.lists.getByTitle(listTitle).items.add(withAvailableTaskFields({
       Gate: gate,
       Title: newWbs,
       Task: "New task...",
@@ -714,7 +714,7 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
       jsonTable: buildTaskSortOrderJsonTable(undefined, insertSortOrder)
     }));
 
-    const addedId = addResult.Id as number | undefined;
+    const addedId = ((addResult as any)?.data?.Id ?? (addResult as any)?.Id) as number | undefined;
     if (!addedId) { setSelectedTask(makeEmptyTask()); return null; }
 
     const r: ISPRawItem = await sp.web.lists.getByTitle(listTitle).items.getById(addedId)();
@@ -1198,7 +1198,7 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
     const today = new Date();
     const nextWbs = await _getNextWbsForGate(listTitle, gate || "Gate 1");
 
-    const addResult: { Id?: number } = await sp.web.lists.getByTitle(listTitle).items.add(withAvailableTaskFields({
+    const addResult = await sp.web.lists.getByTitle(listTitle).items.add(withAvailableTaskFields({
       Gate: gate || "Gate 1",
       Title: nextWbs,
       Task: (gate || "Gate 1") + ". Task",
@@ -1207,7 +1207,7 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
       Complete: 0
     }));
 
-    const addedId = addResult.Id as number | undefined;
+    const addedId = ((addResult as any)?.data?.Id ?? (addResult as any)?.Id) as number | undefined;
     if (!addedId) return;
 
     const r: ISPRawItem = await sp.web.lists.getByTitle(listTitle).items.getById(addedId)();

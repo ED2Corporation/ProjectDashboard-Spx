@@ -686,7 +686,7 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
                   void (async () => {
                     try {
                       const newTask = await (onNewTask?.(item.Gate, item.Title || undefined) ?? Promise.resolve(null));
-                      if (newTask) { setSelectedTask(newTask); setShowCard(false); }
+                      if (newTask) { setSelectedTask(newTask); setShowCard(true); }
                     } finally {
                       setCreatingId(null);
                     }
@@ -727,6 +727,8 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
               ? async (taskId, entries) => { await onSaveLogField(taskId, 'Evidence', entries); }
               : undefined}
             onMoveTask={handleMoveTask}
+            viewer={viewer}
+            onSetViewer={onViewerChange}
           />
           {showReport && (
             <WOReportView
@@ -770,25 +772,6 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
                   current => {
                     const existing = (current.reportNotes as N[] | undefined) ?? [];
                     return { ...current, reportNotes: existing.filter(n => n.id !== noteId) };
-                  }
-                );
-                setLocalProject(prev => ({ ...prev, ProjectDetails: JSON.stringify(finalDetails) }));
-              }}
-              onArchiveNotes={async (noteIds, archivedBy) => {
-                type N = import('../../../models/IReportNote').IReportNote;
-                const now = new Date().toISOString();
-                const finalDetails = await projectService.patchProjectDetailsTransform(
-                  localProject.Title,
-                  current => {
-                    const existing = (current.reportNotes as N[] | undefined) ?? [];
-                    return {
-                      ...current,
-                      reportNotes: existing.map(n =>
-                        noteIds.includes(n.id)
-                          ? { ...n, status: 'archived' as const, archivedAt: now, archivedBy }
-                          : n
-                      ),
-                    };
                   }
                 );
                 setLocalProject(prev => ({ ...prev, ProjectDetails: JSON.stringify(finalDetails) }));

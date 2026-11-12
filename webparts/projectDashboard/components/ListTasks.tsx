@@ -449,7 +449,9 @@ const ListTasks = ({
                         className={`${styles.actionsToggle} ${actionsExpanded ? styles.actionsToggleOn : ""}`}
                         onClick={(e) => {
                           e.stopPropagation();
-                          setActionsExpanded(current => !current);
+                          const next = !actionsExpanded;
+                          setActionsExpanded(next);
+                          if (next) onSetViewer?.('operations');
                         }}
                         aria-pressed={actionsExpanded}
                         aria-label={actionsExpanded ? "Hide action toolbar" : "Show action toolbar"}

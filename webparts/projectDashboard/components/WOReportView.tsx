@@ -19,17 +19,52 @@ interface WOReportViewProps {
   projectTitle?:  string;
   currentUser?:   string;
   onPrintReady?:  (fn: () => void) => void;
-  onSaveNote?:    (note: IReportNote) => Promise<void>;
-  onUpdateNote?:  (noteId: string, text: string) => Promise<void>;
-  onDeleteNote?:  (noteId: string) => Promise<void>;
-  onArchiveNotes?: (noteIds: string[], archivedBy: string) => Promise<void>;
+  onSaveNote?:   (note: IReportNote) => Promise<void>;
+  onUpdateNote?: (noteId: string, text: string) => Promise<void>;
+  onDeleteNote?: (noteId: string) => Promise<void>;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
+function localDateStr(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${dd}`;
+}
+
+function parseLocalDate(ymd: string): Date {
+  const [y, mo, day] = ymd.split('-').map(Number);
+  return new Date(y, mo - 1, day);
+}
+
+// Snap any date string to the Monday of its ISO week (go back; Sunday → previous Mon)
+function snapToMonday(ymd: string): string {
+  const d = parseLocalDate(ymd);
+  const dow = d.getDay();
+  const diff = dow === 1 ? 0 : dow === 0 ? -6 : -(dow - 1);
+  if (diff === 0) return ymd;
+  d.setDate(d.getDate() + diff);
+  return localDateStr(d);
+}
+
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+function fmtWeekRange(mondayYmd: string): string {
+  const mon = parseLocalDate(mondayYmd);
+  const fri = new Date(mon); fri.setDate(fri.getDate() + 4);
+  if (mon.getMonth() === fri.getMonth()) {
+    return `${MONTHS[mon.getMonth()]} ${mon.getDate()}–${fri.getDate()}, ${fri.getFullYear()}`;
+  }
+  return `${MONTHS[mon.getMonth()]} ${mon.getDate()} – ${MONTHS[fri.getMonth()]} ${fri.getDate()}, ${fri.getFullYear()}`;
+}
+
 function fmtDate(d?: Date | string): string {
   if (!d) return '—';
-  const dt = typeof d === 'string' ? new Date(d) : d;
+  // Use parseLocalDate only for bare YYYY-MM-DD; full ISO timestamps parse normally
+  const dt = typeof d === 'string'
+    ? (d.length === 10 ? parseLocalDate(d) : new Date(d))
+    : d;
   if (isNaN(dt.getTime())) return '—';
   return `${dt.getMonth() + 1}/${String(dt.getDate()).padStart(2, '0')}/${dt.getFullYear()}`;
 }
@@ -46,22 +81,24 @@ function lotStatus(complete: number): { label: string; cls: string } {
   return                      { label: 'Scheduled',   cls: styles.statusNotStarted };
 }
 
+// Default to current/next Monday (next Mon if today > Mon; stay if today IS Mon; next Mon if Sun)
 function currentReportMonday(): string {
   const d = new Date();
-  const dow = d.getDay(); // 0=Sun, 1=Mon...
-  const daysToMon = dow === 1 ? 0 : dow === 0 ? 1 : (8 - dow);
-  d.setDate(d.getDate() + daysToMon);
-  return d.toISOString().slice(0, 10);
+  const dow = d.getDay();
+  const diff = dow === 1 ? 0 : dow === 0 ? 1 : (8 - dow);
+  d.setDate(d.getDate() + diff);
+  return localDateStr(d);
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
 const WOReportView: React.FC<WOReportViewProps> = ({
   tasks, gates, activeGate, onGateClick, project, projectTitle, currentUser, onPrintReady,
-  onSaveNote, onUpdateNote, onDeleteNote, onArchiveNotes,
+  onSaveNote, onUpdateNote, onDeleteNote,
 }) => {
-  const reportRef   = useRef<HTMLDivElement>(null);
-  const dateInputRef = useRef<HTMLInputElement>(null);
+  const reportRef      = useRef<HTMLDivElement>(null);
+  const dateInputRef   = useRef<HTMLInputElement>(null);
+  const historyDateRef = useRef<HTMLInputElement>(null);
 
   // ── Report date (defaults to current/next Monday) ─────────────────────────
   const [reportDate, setReportDate] = useState(currentReportMonday);
@@ -83,13 +120,16 @@ const WOReportView: React.FC<WOReportViewProps> = ({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [project?.ProjectDetails]);
 
-  const [editingNoteId,      setEditingNoteId]      = useState<string | null>(null);
-  const [editText,           setEditText]           = useState('');
-  const [addingSection,      setAddingSection]      = useState<string | null>(null);
-  const [addingText,         setAddingText]         = useState('');
+  const [editingNoteId,       setEditingNoteId]       = useState<string | null>(null);
+  const [editText,            setEditText]            = useState('');
+  const [addingSection,       setAddingSection]       = useState<string | null>(null);
+  const [addingText,          setAddingText]          = useState('');
   const [selectedGateForNote, setSelectedGateForNote] = useState<string | null>(null);
+  const [showHistory,         setShowHistory]         = useState(false);
+  const [historyWeek,         setHistoryWeek]         = useState<string>('');
+  const [historySearch,       setHistorySearch]       = useState('');
 
-  const canEdit = !!(onSaveNote || onUpdateNote || onDeleteNote || onArchiveNotes);
+  const canEdit = !!(onSaveNote || onUpdateNote || onDeleteNote);
 
   // ── PDF print ─────────────────────────────────────────────────────────────
   // Clone the report directly into <body> so display:none on siblings removes
@@ -101,7 +141,6 @@ const WOReportView: React.FC<WOReportViewProps> = ({
     const CLONE_ID  = 'wo-report-print-clone';
     const STYLE_ID  = 'wo-report-print-style';
 
-    // Build clone, strip editing controls
     const clone = el.cloneNode(true) as HTMLElement;
     clone.id = CLONE_ID;
     clone.querySelectorAll<HTMLElement>('[data-no-print]').forEach(n => n.remove());
@@ -154,32 +193,51 @@ const WOReportView: React.FC<WOReportViewProps> = ({
 
   const releaseTasks = useMemo(() => tasks.filter(t => t.isRelease), [tasks]);
 
-  const lotsWithCumulative = useMemo(() => {
-    let running = 0;
-    return releaseTasks.map(t => {
-      const delivered = t.Complete >= 100;
-      if (delivered) running += (t.releaseUnits ?? 0);
-      return { task: t, cumulative: delivered ? running : 0 };
-    });
-  }, [releaseTasks]);
 
   const needByDate = useMemo(() => {
     const last = [...gates].reverse().find(g => g.Finish);
     return last?.Finish;
   }, [gates]);
 
-  // Active report notes per section (sorted date desc)
+  // Notes for the selected report week — all notes anchored to that Monday.
   const activeNotesBySection = useMemo(() => {
     const map = new Map<string, IReportNote[]>();
     for (const n of localReportNotes) {
-      if (n.status !== 'active') continue;
+      if (n.date !== reportDate) continue;
       const arr = map.get(n.section) ?? [];
       arr.push(n);
       map.set(n.section, arr);
     }
-    map.forEach((arr, key) => map.set(key, arr.sort((a, b) => b.date.localeCompare(a.date))));
+    map.forEach((arr, key) => map.set(key, arr.sort((a, b) => b.createdAt.localeCompare(a.createdAt))));
     return map;
+  }, [localReportNotes, reportDate]);
+
+  // All notes from weeks before the current/next Monday
+  const pastNotes = useMemo(() => {
+    const thisMonday = currentReportMonday();
+    return localReportNotes.filter(n => n.date < thisMonday);
   }, [localReportNotes]);
+
+  // Last 2 weeks that actually have at least one note
+  const recentWeeks = useMemo(() => {
+    const mon = parseLocalDate(currentReportMonday());
+    const w1 = new Date(mon); w1.setDate(w1.getDate() - 7);
+    const w2 = new Date(mon); w2.setDate(w2.getDate() - 14);
+    return [localDateStr(w1), localDateStr(w2)].filter(w => pastNotes.some(n => n.date === w));
+  }, [pastNotes]);
+
+  // History panel: filtered notes
+  const historyNotes = useMemo(() => {
+    let filtered = pastNotes;
+    if (historyWeek) filtered = filtered.filter(n => n.date === historyWeek);
+    if (historySearch.trim()) {
+      const q = historySearch.toLowerCase();
+      filtered = filtered.filter(n =>
+        n.note.toLowerCase().includes(q) || n.section.toLowerCase().includes(q)
+      );
+    }
+    return filtered.sort((a, b) => b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt));
+  }, [pastNotes, historyWeek, historySearch]);
 
   const getActionNotesForGate = (gate: string): INoteEntry[] => {
     const all = tasksByGate[gate] ?? [];
@@ -247,7 +305,6 @@ const WOReportView: React.FC<WOReportViewProps> = ({
       user: currentUser ?? '',
       date: reportDate,
       createdAt: new Date().toISOString(),
-      status: 'active',
     };
     setLocalReportNotes(prev => [...prev, note]);
     cancelAdd();
@@ -259,13 +316,18 @@ const WOReportView: React.FC<WOReportViewProps> = ({
     if (onDeleteNote) await onDeleteNote(noteId);
   };
 
-  const handleArchiveSingleNote = async (noteId: string): Promise<void> => {
-    const now = new Date().toISOString();
-    const user = currentUser ?? '';
-    setLocalReportNotes(prev => prev.map(n =>
-      n.id === noteId ? { ...n, status: 'archived' as const, archivedAt: now, archivedBy: user } : n
-    ));
-    if (onArchiveNotes) await onArchiveNotes([noteId], user);
+  // Copy a past note into the current report week
+  const handleCopyNote = async (source: IReportNote): Promise<void> => {
+    const note: IReportNote = {
+      id: uid(),
+      section: source.section,
+      note: source.note,
+      user: currentUser ?? '',
+      date: reportDate,
+      createdAt: new Date().toISOString(),
+    };
+    setLocalReportNotes(prev => [...prev, note]);
+    if (onSaveNote) await onSaveNote(note);
   };
 
   // ── Per-note row renderer ─────────────────────────────────────────────────
@@ -297,14 +359,9 @@ const WOReportView: React.FC<WOReportViewProps> = ({
           className={`${styles.noteTextClickable}${canEdit ? ` ${styles.noteTextEditable}` : ''}`}
           onClick={canEdit ? () => startEdit(n) : undefined}
         >{n.note}</span>
-        {canEdit && (
+        {canEdit && onDeleteNote && (
           <div className={styles.noteIconBar} data-no-print>
-            {onArchiveNotes && (
-              <button type="button" className={styles.iconArchiveBtn} onClick={() => handleArchiveSingleNote(n.id)} title="Archive">⬇</button>
-            )}
-            {onDeleteNote && (
-              <button type="button" className={styles.iconDeleteBtn} onClick={() => handleDeleteNote(n.id)} title="Delete">✕</button>
-            )}
+            <button type="button" className={styles.iconDeleteBtn} onClick={() => handleDeleteNote(n.id)} title="Delete">✕</button>
           </div>
         )}
       </div>
@@ -317,15 +374,12 @@ const WOReportView: React.FC<WOReportViewProps> = ({
 
       {/* ── Page header ──────────────────────────────────────────────────── */}
       <div className={styles.pageHeader}>
-        <div className={styles.pageHeaderLeft}>
+
+        {/* Row 1: title + report date */}
+        <div className={styles.pageHeaderRow1}>
           <div className={styles.pageTitle}>
             Purchase Order: {project?.ProjectNumber ?? projectTitle}
           </div>
-          <div className={styles.pageLabel}>
-            Individual Purchase &amp; Work Order Detail Ledgers
-          </div>
-        </div>
-        <div className={styles.pageHeaderRight}>
           <div className={styles.reportDateGroup}>
             <span className={styles.reportDateLabel}>Report</span>
             <span
@@ -337,8 +391,8 @@ const WOReportView: React.FC<WOReportViewProps> = ({
                 if (typeof (inp as any).showPicker === 'function') (inp as any).showPicker();
                 else inp.click();
               } : undefined}
-              title={canEdit ? 'Click to change date' : undefined}
-            >{fmtDate(reportDate)}</span>
+              title={canEdit ? 'Click to change week' : undefined}
+            >{fmtWeekRange(reportDate)}</span>
             {canEdit && (
               <input
                 ref={dateInputRef}
@@ -346,10 +400,17 @@ const WOReportView: React.FC<WOReportViewProps> = ({
                 type="date"
                 className={styles.reportDateInput}
                 value={reportDate}
-                onChange={e => setReportDate(e.target.value)}
+                onChange={e => setReportDate(snapToMonday(e.target.value))}
                 data-no-print
               />
             )}
+          </div>
+        </div>
+
+        {/* Row 2: subtitle + gate badges */}
+        <div className={styles.pageHeaderRow2}>
+          <div className={styles.pageLabel}>
+            Individual Purchase &amp; Work Order Detail Ledgers
           </div>
           {canEdit && (
             <div className={styles.gateSelectorRow} data-no-print>
@@ -363,6 +424,12 @@ const WOReportView: React.FC<WOReportViewProps> = ({
               ))}
               <button
                 type="button"
+                className={`${styles.gateBadge} ${showHistory ? styles.gateBadgeActive : ''}`}
+                onClick={() => { setShowHistory(prev => !prev); setHistorySearch(''); setHistoryWeek(''); }}
+                title="Browse past week notes"
+              >History</button>
+              <button
+                type="button"
                 className={styles.addNoteIconBtn}
                 onClick={() => startAdd(selectedGateForNote ?? 'general')}
                 title={`Add note to ${selectedGateForNote ?? 'General Update'}`}
@@ -370,7 +437,93 @@ const WOReportView: React.FC<WOReportViewProps> = ({
             </div>
           )}
         </div>
+
       </div>
+
+      {/* ── History panel ────────────────────────────────────────────────── */}
+      {showHistory && (
+        <div className={styles.historyPanel} data-no-print>
+          <div className={styles.historyToolbar}>
+            <input
+              type="text"
+              className={styles.historySearch}
+              placeholder="Search past notes…"
+              value={historySearch}
+              onChange={e => setHistorySearch(e.target.value)}
+              autoFocus
+            />
+            <div className={styles.historyWeekPicker}>
+              {historyWeek ? (
+                <>
+                  <span className={styles.historyWeekDisplay}>{fmtWeekRange(historyWeek)}</span>
+                  <button type="button" className={styles.historyClearBtn} onClick={() => setHistoryWeek('')}>✕</button>
+                </>
+              ) : (
+                <span
+                  className={`${styles.historyWeekDisplay} ${styles.historyWeekClickable}`}
+                  onClick={() => {
+                    const inp = historyDateRef.current;
+                    if (!inp) return;
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    if (typeof (inp as any).showPicker === 'function') (inp as any).showPicker();
+                    else inp.click();
+                  }}
+                >Select week</span>
+              )}
+              <input
+                ref={historyDateRef}
+                type="date"
+                className={styles.reportDateInput}
+                value={historyWeek}
+                onChange={e => setHistoryWeek(snapToMonday(e.target.value))}
+              />
+            </div>
+          </div>
+
+          {/* Empty state: history open but no past notes at all */}
+          {!historyWeek && !historySearch.trim() && pastNotes.length === 0 && (
+            <span className={styles.notesEmpty}>No past notes recorded.</span>
+          )}
+
+          {/* Recent: last 2 weeks with notes (shown when no search/filter) */}
+          {!historyWeek && !historySearch.trim() && recentWeeks.length > 0 && (
+            <div>
+              <div className={styles.historySectionLabel}>Recent</div>
+              {recentWeeks.map(w => {
+                const wNotes = pastNotes.filter(n => n.date === w);
+                return (
+                  <div key={w} className={styles.historyWeekBlock}>
+                    <div className={styles.historyWeekTitle}>{fmtWeekRange(w)}</div>
+                    {wNotes.map(n => (
+                      <div key={n.id} className={styles.historyNoteRow}>
+                        <span className={styles.historyNoteSection}>{n.section === 'general' ? 'General' : n.section}</span>
+                        <span className={styles.historyNoteText}>{n.note}</span>
+                        <button type="button" className={styles.historyCopyBtn} onClick={() => handleCopyNote(n)} title="Add to current report">+</button>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Search / week filter results */}
+          {(historyWeek || historySearch.trim()) && (
+            <div>
+              {historyNotes.length === 0
+                ? <span className={styles.notesEmpty}>No notes found.</span>
+                : historyNotes.map(n => (
+                    <div key={n.id} className={styles.historyNoteRow}>
+                      <span className={styles.historyNoteSection}>{fmtWeekRange(n.date)} · {n.section === 'general' ? 'General' : n.section}</span>
+                      <span className={styles.historyNoteText}>{n.note}</span>
+                      <button type="button" className={styles.historyCopyBtn} onClick={() => handleCopyNote(n)} title="Add to current report">+</button>
+                    </div>
+                  ))
+              }
+            </div>
+          )}
+        </div>
+      )}
 
       {/* ── Row 1: PO Summary (left, with banner) + Project Notes (right) ── */}
       <div className={styles.row1}>
@@ -512,18 +665,16 @@ const WOReportView: React.FC<WOReportViewProps> = ({
                   </tr>
                 </thead>
                 <tbody>
-                  {lotsWithCumulative.map(({ task: t, cumulative }, i) => {
+                  {releaseTasks.map((t, i) => {
                     const { label, cls } = lotStatus(t.Complete);
                     return (
                       <tr key={t.Id}>
                         <td className={styles.colLotNum}>{i + 1}</td>
-                        <td>{t.Task}</td>
+                        <td>{t.releaseUnits != null ? `Ship ${t.releaseUnits} Units` : t.Task}</td>
                         <td><span className={cls}>{label}</span></td>
                         <td>{fmtDate(t.Finish)}</td>
                         <td className={styles.colLotUnits}>
-                          {t.Complete >= 100
-                            ? `${cumulative} of ${project?.Units ?? '—'}`
-                            : `0 of ${project?.Units ?? '—'}`}
+                          {`${t.releaseUnits ?? '—'} of ${project?.Units ?? '—'}`}
                         </td>
                       </tr>
                     );
