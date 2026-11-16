@@ -834,8 +834,8 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
       ? asPositiveInteger(task.releaseUnits ?? 0)
       : asPositiveInteger(projectUnits ?? 0);
     const remaining = Math.max(0, releaseDefault - existingTotal);
-    setTaskStepsPieces(remaining > 0 ? remaining : DEFAULT_TASK_STEP_PIECES);
-    setTaskStepsLots(1);
+    setTaskStepsPieces(remaining > 0 ? remaining : 0);
+    setTaskStepsLots(remaining > 0 ? 1 : 0);
   }, [showTaskSteps, task]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
@@ -2000,34 +2000,52 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
                     </svg>
                   </button>
                 </div>
-                <div className={styles.taskDetailsSummaryGrid}>
-                  <div className={styles.taskDetailsSummaryBlock}>
-                    <div className={styles.taskDetailsSummaryLabel}>WBS</div>
-                  </div>
-                  <div className={styles.taskDetailsSummaryBlock}>
-                    <div className={styles.taskDetailsSummaryLabel}>Gate / Task</div>
-                  </div>
-                  <div className={styles.taskDetailsSummaryBlock}>
-                    <div className={styles.taskDetailsSummaryLabel}>% Complete</div>
-                  </div>
-                  <div className={styles.taskDetailsSummaryBlock}>
-                    <div className={styles.taskDetailsSummaryLabel}>Calendar</div>
-                  </div>
-                </div>
-                <div className={styles.taskDetailsSummaryGrid}>
-                  <div className={styles.taskDetailsSummaryBlock}>
-                    <div className={styles.taskDetailsSummaryValue}>{wbs || "N/A"}</div>
-                  </div>
-                  <div className={styles.taskDetailsSummaryBlock}>
-                    <div className={styles.taskDetailsSummaryValue}>{`${gate || "N/A"} / ${taskTitle || "N/A"}`}</div>
-                  </div>
-                  <div className={styles.taskDetailsSummaryBlock}>
-                    <div className={styles.taskDetailsSummaryValue}>{`${complete}%`}</div>
-                  </div>
-                  <div className={styles.taskDetailsSummaryBlock}>
-                    <div className={styles.taskDetailsSummaryValue}>{`(${start || "N/A"} - ${finish || "N/A"})`}</div>
-                  </div>
-                </div>
+                {(() => {
+                  const isShipment = isRelease || (releaseUnits !== undefined && releaseUnits !== null && releaseUnits > 0);
+                  const gridCls = isShipment ? styles.taskDetailsSummaryGridShipment : styles.taskDetailsSummaryGrid;
+                  return (
+                    <>
+                      <div className={gridCls}>
+                        <div className={styles.taskDetailsSummaryBlock}>
+                          <div className={styles.taskDetailsSummaryLabel}>WBS</div>
+                        </div>
+                        {isShipment && (
+                          <div className={styles.taskDetailsSummaryBlock}>
+                            <div className={styles.taskDetailsSummaryLabel}>Units</div>
+                          </div>
+                        )}
+                        <div className={styles.taskDetailsSummaryBlock}>
+                          <div className={styles.taskDetailsSummaryLabel}>Gate / Task</div>
+                        </div>
+                        <div className={styles.taskDetailsSummaryBlock}>
+                          <div className={styles.taskDetailsSummaryLabel}>% Complete</div>
+                        </div>
+                        <div className={styles.taskDetailsSummaryBlock}>
+                          <div className={styles.taskDetailsSummaryLabel}>Calendar</div>
+                        </div>
+                      </div>
+                      <div className={gridCls}>
+                        <div className={styles.taskDetailsSummaryBlock}>
+                          <div className={styles.taskDetailsSummaryValue}>{wbs || "N/A"}</div>
+                        </div>
+                        {isShipment && (
+                          <div className={styles.taskDetailsSummaryBlock}>
+                            <div className={styles.taskDetailsSummaryValue}>{releaseUnits ?? 0}</div>
+                          </div>
+                        )}
+                        <div className={styles.taskDetailsSummaryBlock}>
+                          <div className={styles.taskDetailsSummaryValue}>{`${gate || "N/A"} / ${taskTitle || "N/A"}`}</div>
+                        </div>
+                        <div className={styles.taskDetailsSummaryBlock}>
+                          <div className={styles.taskDetailsSummaryValue}>{`${complete}%`}</div>
+                        </div>
+                        <div className={styles.taskDetailsSummaryBlock}>
+                          <div className={styles.taskDetailsSummaryValue}>{`(${start || "N/A"} - ${finish || "N/A"})`}</div>
+                        </div>
+                      </div>
+                    </>
+                  );
+                })()}
               </div>
             </>
           ) : (

@@ -160,6 +160,12 @@ $c-step-tasks: #2f6f78;
   gap: $sp-2;
   align-items: start;
 }
+.taskDetailsSummaryGridShipment {
+  display: grid;
+  grid-template-columns: minmax(70px, 0.5fr) minmax(60px, 0.4fr) minmax(180px, 1.6fr) minmax(80px, 0.5fr) minmax(150px, 1.0fr);
+  gap: $sp-2;
+  align-items: start;
+}
 
 // StepTask summary: Step Name wide, Units narrow
 .taskDetailsSummaryGridStepTask {

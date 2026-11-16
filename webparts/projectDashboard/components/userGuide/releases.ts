@@ -27,8 +27,9 @@ export const RELEASES: IRelease[] = [
     items: [
       { area: 'Task List', text: 'Add Task now works correctly: the new task card opens immediately after creation for editing.' },
       { area: 'Task List', text: 'Opening the Actions toolbar while in Executive View automatically switches to Operations View, ensuring newly created tasks are visible.' },
-      { area: 'WO Report', text: 'LOT Schedule: Total Units column width increased to prevent overflow; Shipment column is now fixed-width.' },
-      { area: 'WO Report', text: 'LOT Schedule drill-down: tasks with Step Task batches now show an expand button (▸/▾) to reveal individual batch rows — WBS, Units, Status, Target Date, and batch vs. LOT units.' },
+      { area: 'WO Report', text: 'LOT Schedule: Shipment column now shows units actually delivered (sum of completed batches); Total Units shows the planned quantity per LOT.' },
+      { area: 'WO Report', text: 'LOT Schedule drill-down: LOTs with Step Task batches show an expand button (▸ N) in the LOT # column to reveal individual batch rows — WBS, units, status, target date, and batch vs. LOT totals.' },
+      { area: 'Subprocess', text: 'Save button in Subprocess Workspace now shows inline status (Saving… / Saved / Save failed) instead of a separate badge, keeping the toolbar compact.' },
     ],
   },
   {
