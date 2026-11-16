@@ -277,6 +277,24 @@ export const getTaskReleaseUnits = (raw?: string): number | undefined => {
   return units > 0 ? units : undefined;
 };
 
+/** Returns the PO delivery lot metadata written by PO-Inbounds (read-only). */
+export const getTaskLot = (raw?: string): import('../../../models/IProjectService').IProjectDetailsLot | undefined => {
+  const parsed = parseTaskJsonTableObject(raw);
+  if (!isRecord(parsed.lot)) return undefined;
+  const lot = parsed.lot;
+  const lotNo = asNumber(lot.lotNo);
+  const units = asNumber(lot.units);
+  if (!lotNo) return undefined;
+  return {
+    lotNo,
+    rowNumber: asNumber(lot.rowNumber) ?? 0,
+    part: typeof lot.part === 'string' ? lot.part : '',
+    units,
+    eta: typeof lot.eta === 'string' ? lot.eta : '',
+    taskId: typeof lot.taskId === 'string' ? lot.taskId : undefined,
+  };
+};
+
 export const getTaskSubprocess = (raw?: string): ITaskSubprocessData => {
   const parsed = parseTaskJsonTableObject(raw);
   const subprocess = isRecord(parsed.subprocess) ? parsed.subprocess : {};

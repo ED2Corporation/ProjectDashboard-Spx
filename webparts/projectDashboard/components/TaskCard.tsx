@@ -648,7 +648,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
   const triggerShipAlert = (alert: IShipDetectionAlert): void => {
     if (shipAlertTimerRef.current) clearTimeout(shipAlertTimerRef.current);
     setIsRelease(true);
-    if (alert.units > 0) setReleaseUnits(alert.units);
+    if (alert.units > 0 && releaseUnits <= 0) setReleaseUnits(alert.units);
     setShipAlert(alert);
     shipAlertTimerRef.current = setTimeout(() => {
       setShipAlert(undefined);

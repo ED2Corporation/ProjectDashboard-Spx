@@ -1,4 +1,4 @@
-import { buildTaskJsonTable, getTaskReleaseUnits, getTaskSteps, getTaskSubprocess, getTodayDateInputValue, toLocaleDateInputValue } from '../TaskDescriptionBlob';
+import { buildTaskJsonTable, getTaskLot, getTaskReleaseUnits, getTaskSteps, getTaskSubprocess, getTodayDateInputValue, toLocaleDateInputValue } from '../TaskDescriptionBlob';
 
 describe('TaskDescriptionBlob subprocess support', () => {
   it('normalizes legacy subprocess entries and preserves embedded logs', () => {
@@ -377,5 +377,66 @@ describe('toLocaleDateInputValue', () => {
     const result = toLocaleDateInputValue(iso);
     expect(result).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     expect(result.startsWith('2026-06-1')).toBe(true);
+  });
+});
+
+describe('getTaskLot', () => {
+  it('returns lot metadata when present', () => {
+    const raw = JSON.stringify({
+      lot: { lotNo: 2, rowNumber: 2, part: 'ED2-0030', units: 30, eta: '2027-06-01', taskId: '42' },
+    });
+    const lot = getTaskLot(raw);
+    expect(lot).toEqual({ lotNo: 2, rowNumber: 2, part: 'ED2-0030', units: 30, eta: '2027-06-01', taskId: '42' });
+  });
+
+  it('returns undefined when lot is absent', () => {
+    expect(getTaskLot(JSON.stringify({ sortOrder: 1 }))).toBeUndefined();
+    expect(getTaskLot(undefined)).toBeUndefined();
+  });
+
+  it('returns undefined when lotNo is missing or zero', () => {
+    expect(getTaskLot(JSON.stringify({ lot: { units: 30 } }))).toBeUndefined();
+    expect(getTaskLot(JSON.stringify({ lot: { lotNo: 0, units: 30 } }))).toBeUndefined();
+  });
+});
+
+describe('buildTaskJsonTable preserves unknown keys (PO-Inbounds contract)', () => {
+  const lotPayload = { wo: 'ED2-0030', lotNo: 2, position: 2, rowNumber: 2, units: 30, eta: '2027-06-01' };
+  const depTypes = { '123': 'FF' };
+
+  it('preserves lot and depTypes through a subprocess update', () => {
+    const raw = JSON.stringify({
+      lot: lotPayload,
+      depTypes,
+      sortOrder: 3,
+      subprocess: { subTasks: [] },
+    });
+    const result = buildTaskJsonTable(raw, { subprocess: { subTasks: [] } })!;
+    const parsed = JSON.parse(result);
+    expect(parsed.lot).toEqual(lotPayload);
+    expect(parsed.depTypes).toEqual(depTypes);
+  });
+
+  it('preserves lot and depTypes through a taskSteps update', () => {
+    const raw = JSON.stringify({
+      lot: lotPayload,
+      depTypes,
+      sortOrder: 3,
+      taskSteps: { enabled: false, totalUnits: 0, unitsPerStep: 0, stepCount: 0, mode: 'fixed', weekdays: [], steps: [] },
+    });
+    const result = buildTaskJsonTable(raw, {
+      taskSteps: { enabled: true, totalUnits: 30, unitsPerStep: 10, stepCount: 3, mode: 'fixed', weekdays: [], steps: [] },
+    })!;
+    const parsed = JSON.parse(result);
+    expect(parsed.lot).toEqual(lotPayload);
+    expect(parsed.depTypes).toEqual(depTypes);
+  });
+
+  it('preserves lot and depTypes through a releaseUnits + isRelease update', () => {
+    const raw = JSON.stringify({ lot: lotPayload, depTypes, sortOrder: 3 });
+    const result = buildTaskJsonTable(raw, { isRelease: true, releaseUnits: 30 })!;
+    const parsed = JSON.parse(result);
+    expect(parsed.lot).toEqual(lotPayload);
+    expect(parsed.depTypes).toEqual(depTypes);
   });
 });

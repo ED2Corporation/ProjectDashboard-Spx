@@ -1,8 +1,29 @@
 
+// ─── Lot (PO delivery lot — owned by PO-Inbounds, read-only here) ─────────────
+
+export interface IProjectDetailsLot {
+  lotNo: number;
+  rowNumber: number;
+  part: string;
+  units: number;
+  eta: string;
+  taskId?: string;
+}
+
+// ─── Execution status (owned by WO-Dashboard) ─────────────────────────────────
+
+export type ExecutionStatusValue = 'in-progress' | 'completed' | 'stalled' | 'delayed';
+
+export interface IExecutionStatus {
+  status: ExecutionStatusValue;
+  overallPct: number;
+  updatedAt: string;
+}
+
 // ─── Release record ───────────────────────────────────────────────────────────
 
 export interface IReleaseRecord {
-  /** Stable UUID — used for idempotency when the same release task is saved again */
+  /** Stable id — idempotent upsert key; never change once written */
   id: string;
   date: string;
   units: number;
@@ -10,6 +31,12 @@ export interface IReleaseRecord {
   taskId: string;
   taskTitle: string;
   notes?: string;
+  /** WBS of the LOT task at the time of release — informative, ignored by PO-Inbounds */
+  wbs?: string;
+  /** PO delivery lot number — links this release to ED2-Projects.lots[].lotNo */
+  lotNo?: number;
+  /** Set by PO-Inbounds when the release has been invoiced — never written by WO-Dashboard */
+  isInvoiced?: boolean;
 }
 
 export interface IProjectService {

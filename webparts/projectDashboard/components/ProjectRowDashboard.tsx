@@ -226,6 +226,7 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
     sp:             projectSp,
     projectService,
     projectName:    localProject.Title,
+    projectNumber:  localProject.ProjectNumber ?? localProject.Title,
     sourceName:     listName,
     isPlanner:      false,
     showLog:        false,
@@ -333,10 +334,10 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
     const writeKey = `${status}:${overallPct}`;
     if (lastWrittenExecutionStatus.current === writeKey) return;
     lastWrittenExecutionStatus.current = writeKey;
-    projectService.patchProjectDetails(localProject.Title, {
+    projectService.patchProjectDetails(localProject.ProjectNumber ?? localProject.Title, {
       executionStatus: { status, overallPct, updatedAt: new Date().toISOString() },
     }).catch(e => console.error('[ProjectRowDashboard] executionStatus sync:', e));
-  }, [gates, tasks, localProject.Title, projectService]);
+  }, [gates, tasks, localProject.Title, localProject.ProjectNumber, projectService]);
 
   const handleGateClick = (gate: string): void => {
     const next = activeGate === gate ? null : gate;
@@ -746,7 +747,7 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
               onSaveNote={async (note) => {
                 type N = import('../../../models/IReportNote').IReportNote;
                 const finalDetails = await projectService.patchProjectDetailsTransform(
-                  localProject.Title,
+                  localProject.ProjectNumber ?? localProject.Title,
                   current => {
                     const existing = (current.reportNotes as N[] | undefined) ?? [];
                     return { ...current, reportNotes: [...existing, note] };
@@ -757,7 +758,7 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
               onUpdateNote={async (noteId, text) => {
                 type N = import('../../../models/IReportNote').IReportNote;
                 const finalDetails = await projectService.patchProjectDetailsTransform(
-                  localProject.Title,
+                  localProject.ProjectNumber ?? localProject.Title,
                   current => {
                     const existing = (current.reportNotes as N[] | undefined) ?? [];
                     return { ...current, reportNotes: existing.map(n => n.id === noteId ? { ...n, note: text } : n) };
@@ -768,7 +769,7 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
               onDeleteNote={async (noteId) => {
                 type N = import('../../../models/IReportNote').IReportNote;
                 const finalDetails = await projectService.patchProjectDetailsTransform(
-                  localProject.Title,
+                  localProject.ProjectNumber ?? localProject.Title,
                   current => {
                     const existing = (current.reportNotes as N[] | undefined) ?? [];
                     return { ...current, reportNotes: existing.filter(n => n.id !== noteId) };

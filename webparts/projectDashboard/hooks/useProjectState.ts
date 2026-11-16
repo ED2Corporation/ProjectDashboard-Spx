@@ -16,7 +16,7 @@ import { MessageLog } from '../utils/MessageLog';
 import { compareWbs, computeShiftedWbs, computeUnshiftedWbs, nextWbsAfterInsert, reorderWbsEntriesForMove } from '../utils/ParseWBS';
 import { ensureFolder, uploadEvidenceFile } from '../services/UploadService';
 import { StorageEndpoint } from '../utils/StorageVersionResolver';
-import { getTaskSortOrder, getTaskIsRelease, getTaskReleaseUnits, getTaskSubprocess, getTaskSteps } from '../utils/TaskDescriptionBlob';
+import { getTaskSortOrder, getTaskIsRelease, getTaskReleaseUnits, getTaskLot, getTaskSubprocess, getTaskSteps } from '../utils/TaskDescriptionBlob';
 import { buildTaskSortOrderJsonTable } from '../utils/TaskPersistencePayload';
 
 // ─── Constants ──────────────────────────────────────────────────────────────
@@ -63,6 +63,8 @@ export interface UseProjectStateConfig {
   projectService: ProjectService;
   // Properties (from WebPart property pane)
   projectName: string;
+  /** WO number (ProjectNumber column) — used as the stable lookup key in ED2-Projects */
+  projectNumber?: string;
   sourceName: string;
   isPlanner: boolean;
   showLog: boolean;
@@ -894,8 +896,9 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
   // ── Register a release record in ED2-Projects.ProjectDetails ───────────────
   const onRegisterRelease = useCallback(async (release: IReleaseRecord): Promise<void> => {
     if (!config.projectName) return;
+    const lookupKey = config.projectNumber ?? config.projectName;
     try {
-      await config.projectService.upsertReleaseRecord(config.projectName, release);
+      await config.projectService.upsertReleaseRecord(lookupKey, release);
       config.onReleaseRegistered?.(release);
     } catch (err) {
       console.error('[useProjectState] Failed to register release', err);
@@ -1004,9 +1007,11 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
 
     // ── Auto-register release when task reaches 100% and isRelease is flagged ──
     const SHIP_PATTERN = /ship\s+product/i;
+    const taskLot = getTaskLot(task.jsonTable);
+    // Fallback order: task.releaseUnits → lot.units → projectUnits (WO total — last resort)
     const effectiveReleaseUnits = (taskReleaseUnits && taskReleaseUnits > 0)
       ? taskReleaseUnits
-      : (config.projectUnits ?? 0);
+      : ((taskLot?.units && taskLot.units > 0) ? taskLot.units : (config.projectUnits ?? 0));
     if (taskIsRelease && task.Complete === 100 && config.projectName && effectiveReleaseUnits > 0) {
       // Find the Ship subtask in subprocess or any step subprocess to build the note
       const directSubprocess = getTaskSubprocess(task.jsonTable);
@@ -1021,6 +1026,13 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
         ? `Auto-generated: ${shipSubTask.wbs}  ${shipSubTask.task}`
         : `Auto-generated: shipping task "${task.Task ?? task.Id}" completed at 100%.`;
 
+      // Fix D: warn if this release would exceed the lot's planned units
+      if (taskLot && taskLot.units > 0 && effectiveReleaseUnits > taskLot.units) {
+        console.warn(
+          `[useProjectState] Over-release warning: task ${task.Id} releasing ${effectiveReleaseUnits} units but lot ${taskLot.lotNo} plans only ${taskLot.units}`
+        );
+      }
+
       const release: IReleaseRecord = {
         id:         `release-task-${task.Id}`,   // stable — idempotent via upsertReleaseRecord
         date:       new Date().toISOString(),
@@ -1029,6 +1041,8 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
         taskId:     task.Id,
         taskTitle:  task.Task ?? task.Id,
         notes:      releaseNote,
+        wbs:        task.Title ?? undefined,
+        lotNo:      taskLot?.lotNo,
       };
       onRegisterRelease(release).catch(err =>
         console.error('[useProjectState] Auto-release registration failed', err)
@@ -1039,7 +1053,7 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
     // Handles WBS tasks (e.g. "5.5 - Ship product") completed via quick-complete, bypassing TaskCard UI.
     if (!taskIsRelease && task.Complete === 100 && config.projectName && SHIP_PATTERN.test(task.Task ?? "")) {
       const unitsMatch = /(\d+)\s+units?/i.exec(task.Task ?? "");
-      const units = unitsMatch ? parseInt(unitsMatch[1], 10) : (config.projectUnits ?? 0);
+      const units = unitsMatch ? parseInt(unitsMatch[1], 10) : ((taskLot?.units ?? 0) > 0 ? taskLot!.units : (config.projectUnits ?? 0));
       if (units > 0) {
         const release: IReleaseRecord = {
           id:         `release-task-${task.Id}`,
@@ -1049,6 +1063,8 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
           taskId:     task.Id,
           taskTitle:  task.Task ?? task.Id,
           notes:      `Auto-generated: ${task.Title}  ${task.Task}`,
+          wbs:        task.Title ?? undefined,
+          lotNo:      taskLot?.lotNo,
         };
         onRegisterRelease(release).catch(err =>
           console.error('[useProjectState] Auto-release registration failed (ship task)', err)

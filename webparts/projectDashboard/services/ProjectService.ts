@@ -619,19 +619,19 @@ export class ProjectService implements IProjectService {
      * Returns the final ProjectDetails object that was persisted.
      */
     public async patchProjectDetailsTransform(
-        title: string,
+        projectNumber: string,
         transform: (current: Record<string, unknown>) => Record<string, unknown>,
         maxRetries = 3,
     ): Promise<Record<string, unknown>> {
         const listRef = this._catalogSp.web.lists.getByTitle(this._catalogListName);
-        const titleFilter = `Title eq '${title.replace(/'/g, "''")}'`;
+        const filter = `ProjectNumber eq '${projectNumber.replace(/'/g, "''")}'`;
 
         for (let attempt = 0; attempt <= maxRetries; attempt++) {
             const found = await listRef.items
                 .select('Id', 'ProjectDetails')
-                .filter(titleFilter)
+                .filter(filter)
                 .top(1)();
-            if (!found.length) throw new Error(`Catalog item not found: ${title}`);
+            if (!found.length) throw new Error(`Catalog item not found: ProjectNumber=${projectNumber}`);
 
             const item = found[0] as any; // eslint-disable-line @typescript-eslint/no-explicit-any
             const eTag: string = item['@odata.etag'] ?? '*';
@@ -662,28 +662,25 @@ export class ProjectService implements IProjectService {
      * Safe for partial updates — only the keys present in `patch` are overwritten.
      * Uses ETag-based optimistic concurrency with automatic retry on conflict.
      */
-    public async patchProjectDetails(title: string, patch: Record<string, unknown>): Promise<void> {
-        await this.patchProjectDetailsTransform(title, current => ({ ...current, ...patch }));
+    public async patchProjectDetails(projectNumber: string, patch: Record<string, unknown>): Promise<void> {
+        await this.patchProjectDetailsTransform(projectNumber, current => ({ ...current, ...patch }));
     }
 
     /**
      * Upserts a release record in ProjectDetails.releases[].
-     * If a record with the same `id` already exists it is replaced, otherwise appended.
+     * Merges into the existing record (preserves isInvoiced, lotNo and any PO-Inbounds fields).
+     * Uses ETag-based optimistic concurrency with automatic retry on conflict.
+     * Looks up by ProjectNumber — safe if PO-Inbounds renames the Title.
      */
-    public async upsertReleaseRecord(title: string, release: import('../../../models/IProjectService').IReleaseRecord): Promise<void> {
-        const found = await this._catalogSp.web.lists.getByTitle(this._catalogListName)
-            .items.select('Id', 'ProjectDetails').filter(`Title eq '${title.replace(/'/g, "''")}'`).top(1)();
-        if (!found.length) throw new Error(`Catalog item not found: ${title}`);
-        const item = found[0] as any; // eslint-disable-line @typescript-eslint/no-explicit-any
-        const current: Record<string, unknown> = item.ProjectDetails ? JSON.parse(item.ProjectDetails) : {};
-        const existing: import('../../../models/IProjectService').IReleaseRecord[] =
-            Array.isArray(current.releases) ? current.releases : [];
-        const nextReleases = existing.some(r => r.id === release.id)
-            ? existing.map(r => r.id === release.id ? release : r)
-            : [...existing, release];
-        const updated = { ...current, releases: nextReleases };
-        await this._catalogSp.web.lists.getByTitle(this._catalogListName)
-            .items.getById(item.Id as number).update({ ProjectDetails: JSON.stringify(updated) });
+    public async upsertReleaseRecord(projectNumber: string, release: import('../../../models/IProjectService').IReleaseRecord): Promise<void> {
+        await this.patchProjectDetailsTransform(projectNumber, current => {
+            const existing: import('../../../models/IProjectService').IReleaseRecord[] =
+                Array.isArray(current.releases) ? current.releases : [];
+            const nextReleases = existing.some(r => r.id === release.id)
+                ? existing.map(r => r.id === release.id ? { ...r, ...release } : r)
+                : [...existing, release];
+            return { ...current, releases: nextReleases };
+        });
     }
 
     /**
