@@ -242,9 +242,48 @@
 .colNum    { width: 36px; text-align: center; }
 .colMetric { width: 90px; text-align: right; }
 
-.colLotNum   { width: 28px; text-align: center; }
+.colLotNum   { width: 44px; text-align: center; }
 .colShipment { width: 130px; }
 .colLotUnits { width: 96px; text-align: right; white-space: nowrap; }
+
+.lotRowExpanded td { background: $c-surface-soft; }
+
+.lotExpandBtn {
+  display: inline-flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 28px;
+  padding: 2px 4px;
+  border: none;
+  border-radius: 4px;
+  background: $c-primary-bg;
+  color: $c-primary;
+  cursor: pointer;
+  line-height: 1;
+  gap: 3px;
+  &:hover { background: $c-primary-hover; color: #fff; }
+}
+.lotExpandArrow { font-size: 12px; line-height: 1; }
+.lotExpandNum   { font-size: 12px; font-weight: 600; line-height: 1; }
+
+.lotBatchRow {
+  td {
+    padding-top: 3px;
+    padding-bottom: 3px;
+    background: $c-surface-soft;
+    border-bottom: 1px solid $c-border-subtle;
+    color: $c-text-secondary;
+    font-size: $f-sm;
+  }
+  &:last-of-type td { border-bottom: 1px solid $c-border; }
+}
+
+.lotBatchCell {
+  padding-left: 8px !important;
+  font-style: italic;
+}
 
 .rowActive td { background: $c-table-active !important; }
 

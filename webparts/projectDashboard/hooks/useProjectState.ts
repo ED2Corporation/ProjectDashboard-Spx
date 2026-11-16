@@ -612,7 +612,8 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
       Complete: 0
     }));
 
-    const addedId = ((addResult as any)?.data?.Id ?? (addResult as any)?.Id) as number | undefined;
+    const addResult2 = addResult as { Id?: number; data?: { Id?: number } };
+    const addedId = (addResult2?.data?.Id ?? addResult2?.Id) as number | undefined;
     if (!addedId) { setSelectedTask(makeEmptyTask()); return null; }
 
     const r: ISPRawItem = await sp.web.lists.getByTitle(listTitle).items.getById(addedId)();
@@ -714,7 +715,8 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
       jsonTable: buildTaskSortOrderJsonTable(undefined, insertSortOrder)
     }));
 
-    const addedId = ((addResult as any)?.data?.Id ?? (addResult as any)?.Id) as number | undefined;
+    const addResult2 = addResult as { Id?: number; data?: { Id?: number } };
+    const addedId = (addResult2?.data?.Id ?? addResult2?.Id) as number | undefined;
     if (!addedId) { setSelectedTask(makeEmptyTask()); return null; }
 
     const r: ISPRawItem = await sp.web.lists.getByTitle(listTitle).items.getById(addedId)();
@@ -1207,7 +1209,8 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
       Complete: 0
     }));
 
-    const addedId = ((addResult as any)?.data?.Id ?? (addResult as any)?.Id) as number | undefined;
+    const addResult2 = addResult as { Id?: number; data?: { Id?: number } };
+    const addedId = (addResult2?.data?.Id ?? addResult2?.Id) as number | undefined;
     if (!addedId) return;
 
     const r: ISPRawItem = await sp.web.lists.getByTitle(listTitle).items.getById(addedId)();

@@ -5,6 +5,7 @@ import { IGateListItem } from '../../../models/IGateListItem';
 import { IProjectCatalogItem } from '../../../models/IProjectService';
 import { INoteEntry } from '../../../models/ITaskLogFields';
 import { IReportNote } from '../../../models/IReportNote';
+import { getTaskSteps } from '../utils/TaskDescriptionBlob';
 import { uid } from './ReportNotesPanel';
 import styles from './WOReportView.module.scss';
 
@@ -128,6 +129,7 @@ const WOReportView: React.FC<WOReportViewProps> = ({
   const [showHistory,         setShowHistory]         = useState(false);
   const [historyWeek,         setHistoryWeek]         = useState<string>('');
   const [historySearch,       setHistorySearch]       = useState('');
+  const [expandedLots,        setExpandedLots]        = useState<Set<string>>(new Set());
 
   const canEdit = !!(onSaveNote || onUpdateNote || onDeleteNote);
 
@@ -667,16 +669,62 @@ const WOReportView: React.FC<WOReportViewProps> = ({
                 <tbody>
                   {releaseTasks.map((t, i) => {
                     const { label, cls } = lotStatus(t.Complete);
+                    const steps = getTaskSteps(t.jsonTable).steps;
+                    const hasSteps = steps.length > 0;
+                    const deliveredUnits = hasSteps
+                      ? steps.filter(s => s.complete === 100).reduce((acc, s) => acc + (s.units ?? 0), 0)
+                      : (t.Complete === 100 ? (t.releaseUnits ?? 0) : 0);
+                    const isExpanded = expandedLots.has(t.Id);
+                    const toggleExpand = (): void => setExpandedLots(prev => {
+                      const next = new Set(prev);
+                      if (next.has(t.Id)) { next.delete(t.Id); } else { next.add(t.Id); }
+                      return next;
+                    });
                     return (
-                      <tr key={t.Id}>
-                        <td className={styles.colLotNum}>{i + 1}</td>
-                        <td>{t.releaseUnits != null ? `Ship ${t.releaseUnits} Units` : t.Task}</td>
-                        <td><span className={cls}>{label}</span></td>
-                        <td>{fmtDate(t.Finish)}</td>
-                        <td className={styles.colLotUnits}>
-                          {`${t.releaseUnits ?? '—'} of ${project?.Units ?? '—'}`}
-                        </td>
-                      </tr>
+                      <React.Fragment key={t.Id}>
+                        <tr className={isExpanded ? styles.lotRowExpanded : undefined}>
+                          <td className={styles.colLotNum}>
+                            {hasSteps ? (
+                              <button
+                                type="button"
+                                className={styles.lotExpandBtn}
+                                onClick={toggleExpand}
+                                aria-expanded={isExpanded}
+                                title={isExpanded ? 'Collapse batches' : 'Expand batches'}
+                              >
+                                <span className={styles.lotExpandArrow}>{isExpanded ? '▾' : '▸'}</span>
+                                <span className={styles.lotExpandNum}>{i + 1}</span>
+                              </button>
+                            ) : (i + 1)}
+                          </td>
+                          <td>
+                            {deliveredUnits}
+                          </td>
+                          <td><span className={cls}>{label}</span></td>
+                          <td>{fmtDate(t.Finish)}</td>
+                          <td className={styles.colLotUnits}>
+                            {`${t.releaseUnits ?? '—'} of ${project?.Units ?? '—'}`}
+                          </td>
+                        </tr>
+                        {hasSteps && isExpanded && steps.map((step, si) => {
+                          const { label: sLabel, cls: sCls } = lotStatus(step.complete);
+                          return (
+                            <tr key={step.id} className={styles.lotBatchRow}>
+                              <td className={`${styles.colLotNum} ${styles.lotBatchCell}`}>
+                                {step.wbs}
+                              </td>
+                              <td className={styles.lotBatchCell}>
+                                {`${step.units} units`}
+                              </td>
+                              <td><span className={sCls}>{sLabel}</span></td>
+                              <td>{fmtDate(step.finish)}</td>
+                              <td className={styles.colLotUnits}>
+                                {`${step.units} of ${t.releaseUnits ?? '—'}`}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </React.Fragment>
                     );
                   })}
                 </tbody>

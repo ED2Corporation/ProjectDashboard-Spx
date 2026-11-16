@@ -23,11 +23,12 @@ export interface IRelease {
 export const RELEASES: IRelease[] = [
   {
     version: '1.0.6.7',
-    date: '2026-11-11',
+    date: '2026-11-16',
     items: [
       { area: 'Task List', text: 'Add Task now works correctly: the new task card opens immediately after creation for editing.' },
       { area: 'Task List', text: 'Opening the Actions toolbar while in Executive View automatically switches to Operations View, ensuring newly created tasks are visible.' },
       { area: 'WO Report', text: 'LOT Schedule: Total Units column width increased to prevent overflow; Shipment column is now fixed-width.' },
+      { area: 'WO Report', text: 'LOT Schedule drill-down: tasks with Step Task batches now show an expand button (▸/▾) to reveal individual batch rows — WBS, Units, Status, Target Date, and batch vs. LOT units.' },
     ],
   },
   {

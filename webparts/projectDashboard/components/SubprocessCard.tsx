@@ -479,40 +479,33 @@ const SubprocessCard: React.FC<SubprocessCardProps> = ({
           )}
         </div>
         <div className={styles.headerMeta}>
-          {saveStatus !== "idle" && (
-            <div
-              className={[
-                styles.saveStatus,
-                saveStatus === "saving" ? styles.saveStatusSaving : "",
-                saveStatus === "saved" ? styles.saveStatusSaved : "",
-                saveStatus === "error" ? styles.saveStatusError : "",
-              ].filter(Boolean).join(" ")}
-              title={saveStatus === "error" ? saveError : saveStatusText}
-              aria-live="polite"
-            >
-              {saveStatusText}
-            </div>
-          )}
-          {pendingCount > 0 && (
+          {(pendingCount > 0 || saveStatus !== "idle") && (
             <>
               <button
                 type="button"
-                className={styles.pendingSaveBtn}
+                className={[
+                  styles.pendingSaveBtn,
+                  saveStatus === "saving" ? styles.saveStatusSaving : "",
+                  saveStatus === "saved" ? styles.saveStatusSaved : "",
+                  saveStatus === "error" ? styles.saveStatusError : "",
+                ].filter(Boolean).join(" ")}
                 onClick={() => { persistAll().catch(() => undefined); }}
-                disabled={saveStatus === "saving"}
-                title="Save all pending changes"
+                disabled={saveStatus === "saving" || saveStatus === "saved"}
+                title={saveStatus === "error" ? saveError : "Save all pending changes"}
+                aria-live="polite"
               >
-                Save ({pendingCount})
+                {saveStatusText || `Save (${pendingCount})`}
               </button>
-              <button
-                type="button"
-                className={styles.discardBtn}
-                onClick={discardAll}
-                disabled={saveStatus === "saving"}
-                title="Discard all pending changes"
-              >
-                Discard
-              </button>
+              {pendingCount > 0 && saveStatus !== "saving" && (
+                <button
+                  type="button"
+                  className={styles.discardBtn}
+                  onClick={discardAll}
+                  title="Discard all pending changes"
+                >
+                  Discard
+                </button>
+              )}
             </>
           )}
           <div className={styles.contextActions}>
