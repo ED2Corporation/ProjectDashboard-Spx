@@ -148,9 +148,9 @@ describe('TaskCard', () => {
     expect(parsed.Description).toBe(JSON.stringify({ isRelease: true, releaseUnits: 5 }));
   });
 
-  it('blocks save when a release task has invalid release units', async () => {
+  it('cancels save when user declines the Ship-with-no-units confirmation', async () => {
     const onSave = jest.fn();
-    const alertSpy = jest.spyOn(window, 'alert').mockImplementation(() => undefined);
+    const confirmSpy = jest.spyOn(window, 'confirm').mockReturnValue(false);
 
     render(
       <TaskCard
@@ -166,9 +166,36 @@ describe('TaskCard', () => {
     await userEvent.click(screen.getByRole('checkbox', { name: /Ship/i }));
     await clickTaskSave();
 
-    expect(alertSpy).toHaveBeenCalledWith('Release Units must be greater than 0 for a release task.');
+    expect(confirmSpy).toHaveBeenCalled();
     expect(onSave).not.toHaveBeenCalled();
-    alertSpy.mockRestore();
+    confirmSpy.mockRestore();
+  });
+
+  it('saves with Ship disabled when user confirms Ship-with-no-units dialog', async () => {
+    const onSave = jest.fn();
+    const confirmSpy = jest.spyOn(window, 'confirm').mockReturnValue(true);
+
+    render(
+      <TaskCard
+        task={{ ...task, Complete: 0, jsonTable: undefined }}
+        remainingReleaseUnits={0}
+        onDelete={jest.fn()}
+        onNew={jest.fn()}
+        onSave={onSave}
+        onClose={jest.fn()}
+      />
+    );
+
+    await userEvent.click(screen.getByRole('checkbox', { name: /Ship/i }));
+    await clickTaskSave();
+
+    expect(confirmSpy).toHaveBeenCalled();
+    expect(onSave).toHaveBeenCalled();
+    const [, payload] = onSave.mock.calls[0];
+    const parsed = JSON.parse(payload);
+    expect(parsed.isRelease).toBe(false);
+    expect(parsed.releaseUnits).toBe(0);
+    confirmSpy.mockRestore();
   });
 
   it('persists subprocess rows into jsonTable when saving the parent task', async () => {

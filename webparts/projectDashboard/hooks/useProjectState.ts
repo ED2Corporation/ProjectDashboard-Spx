@@ -1012,7 +1012,10 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
     const effectiveReleaseUnits = (taskReleaseUnits && taskReleaseUnits > 0)
       ? taskReleaseUnits
       : ((taskLot?.units && taskLot.units > 0) ? taskLot.units : (config.projectUnits ?? 0));
-    if (taskIsRelease && task.Complete === 100 && config.projectName && effectiveReleaseUnits > 0) {
+    const taskStepsDataForRelease = getTaskSteps(task.jsonTable);
+    const hasBatchLevelReleases = (taskStepsDataForRelease?.steps ?? []).some(s => s.isRelease === true);
+
+    if (taskIsRelease && !hasBatchLevelReleases && task.Complete === 100 && config.projectName && effectiveReleaseUnits > 0) {
       // Find the Ship subtask in subprocess or any step subprocess to build the note
       const directSubprocess = getTaskSubprocess(task.jsonTable);
       const taskStepsData = getTaskSteps(task.jsonTable);
@@ -1047,6 +1050,31 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
       onRegisterRelease(release).catch(err =>
         console.error('[useProjectState] Auto-release registration failed', err)
       );
+    }
+
+    // ── Batch-level release trigger — fires per step when step.isRelease=true and step.complete=100 ──
+    if (hasBatchLevelReleases && config.projectName) {
+      for (const step of (taskStepsDataForRelease?.steps ?? [])) {
+        if (step.isRelease === true && step.complete === 100) {
+          const stepReleaseUnits = step.releaseUnits ?? step.units;
+          if (stepReleaseUnits > 0) {
+            const stepRelease: IReleaseRecord = {
+              id:         `release-task-${task.Id}-step-${step.id}`,
+              date:       step.actualFinish ? new Date(step.actualFinish).toISOString() : new Date().toISOString(),
+              units:      stepReleaseUnits,
+              approvedBy: context.pageContext?.user?.displayName ?? 'Unknown',
+              taskId:     task.Id,
+              taskTitle:  `${task.Task ?? task.Id} / ${step.wbs}`,
+              notes:      `Auto-generated: batch ${step.wbs} shipped (${step.title})`,
+              wbs:        step.wbs,
+              lotNo:      taskLot?.lotNo,
+            };
+            onRegisterRelease(stepRelease).catch(err =>
+              console.error('[useProjectState] Auto-release (batch) registration failed', err)
+            );
+          }
+        }
+      }
     }
 
     // ── Ship task name detection — task named "Ship product" reaching 100% without isRelease flag ──

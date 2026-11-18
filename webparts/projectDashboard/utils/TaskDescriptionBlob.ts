@@ -29,6 +29,8 @@ export interface ITaskStepEntry {
   start: string;
   finish: string;
   actualFinish?: string;
+  isRelease?: boolean;
+  releaseUnits?: number;
   notes?: INoteEntry[];
   evidence?: IEvidenceEntry[];
   approvals?: IApprovalEntry[];
@@ -234,6 +236,10 @@ const normalizeTaskStep = (value: unknown, index: number): ITaskStepEntry => {
     start: asString(record.start),
     finish: getCompletionFinish(complete, finish),
     actualFinish: asString(record.actualFinish),
+    isRelease: record.isRelease === true ? true : undefined,
+    releaseUnits: record.isRelease === true && typeof record.releaseUnits === "number"
+      ? Math.max(0, Math.floor(record.releaseUnits))
+      : undefined,
     notes: normalizeNotes(record.notes),
     evidence: normalizeEvidence(record.evidence),
     approvals: normalizeApprovals(record.approvals),
@@ -264,6 +270,11 @@ export const getTaskSortOrder = (raw?: string): number | undefined => {
 export const getTaskIsRelease = (raw?: string): boolean => {
   const parsed = parseTaskJsonTableObject(raw);
   return parsed.isRelease === true;
+};
+
+export const getTaskReleaseDeclined = (raw?: string): boolean => {
+  const parsed = parseTaskJsonTableObject(raw);
+  return parsed.releaseDeclined === true;
 };
 
 export const getTaskExecutiveTrack = (raw?: string): boolean => {
@@ -355,6 +366,7 @@ export const buildTaskJsonTable = (
     sortOrder?: number;
     isRelease?: boolean;
     releaseUnits?: number;
+    releaseDeclined?: boolean;
     executiveTrack?: boolean;
     subprocess?: ITaskSubprocessData;
     clearSubprocess?: boolean;
@@ -376,8 +388,12 @@ export const buildTaskJsonTable = (
 
   if (options.isRelease === true) {
     next.isRelease = true;
+    delete next.releaseDeclined;
   } else {
     delete next.isRelease;
+    if (options.releaseDeclined === true) {
+      next.releaseDeclined = true;
+    }
   }
 
   if (options.executiveTrack === true) {

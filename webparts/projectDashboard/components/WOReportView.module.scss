@@ -285,6 +285,21 @@
   font-style: italic;
 }
 
+.lotBatchShipBadge {
+  margin-left: 4px;
+  font-size: $f-xs;
+  color: $c-primary;
+  vertical-align: middle;
+  opacity: 0.7;
+}
+
+.lotReleasedNote {
+  margin-left: 6px;
+  font-size: $f-xs;
+  color: $c-text-muted;
+  opacity: 0.75;
+}
+
 .rowActive td { background: $c-table-active !important; }
 
 // ─── Status labels (text, not pill) ───────────────────────────────────────────

@@ -5,7 +5,7 @@ import { IGateListItem } from '../../../models/IGateListItem';
 import { IProjectCatalogItem } from '../../../models/IProjectService';
 import { INoteEntry } from '../../../models/ITaskLogFields';
 import { IReportNote } from '../../../models/IReportNote';
-import { getTaskSteps } from '../utils/TaskDescriptionBlob';
+import { getTaskSteps, getTaskLot } from '../utils/TaskDescriptionBlob';
 import { uid } from './ReportNotesPanel';
 import styles from './WOReportView.module.scss';
 
@@ -193,7 +193,7 @@ const WOReportView: React.FC<WOReportViewProps> = ({
     return map;
   }, [tasks]);
 
-  const releaseTasks = useMemo(() => tasks.filter(t => t.isRelease), [tasks]);
+  const releaseTasks = useMemo(() => tasks.filter(t => t.isRelease || !!getTaskLot(t.jsonTable)), [tasks]);
 
 
   const needByDate = useMemo(() => {
@@ -660,10 +660,10 @@ const WOReportView: React.FC<WOReportViewProps> = ({
                 <thead>
                   <tr>
                     <th className={styles.colLotNum}>LOT #</th>
-                    <th className={styles.colShipment}>Shipment</th>
+                    <th className={styles.colShipment}>Shipped</th>
                     <th>Status</th>
-                    <th>Target Date</th>
-                    <th className={styles.colLotUnits}>Total Units</th>
+                    <th>ETA</th>
+                    <th className={styles.colLotUnits}>Contract</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -671,15 +671,33 @@ const WOReportView: React.FC<WOReportViewProps> = ({
                     const { label, cls } = lotStatus(t.Complete);
                     const steps = getTaskSteps(t.jsonTable).steps;
                     const hasSteps = steps.length > 0;
+                    // Task-level Ship is the master gate; batch-level isRelease is a precision override.
+                    // A step counts as shipped when: (a) step.isRelease=true, or (b) task.isRelease=true
+                    // — both require complete===100. Shipped units = step.releaseUnits ?? step.units.
+                    const getStepShipped = (s: (typeof steps)[0]): number | null => {
+                      if (s.complete !== 100) return null;
+                      if (s.isRelease === true) return s.releaseUnits ?? s.units ?? 0;
+                      if (t.isRelease) return s.units ?? 0;
+                      return null;
+                    };
                     const deliveredUnits = hasSteps
-                      ? steps.filter(s => s.complete === 100).reduce((acc, s) => acc + (s.units ?? 0), 0)
-                      : (t.Complete === 100 ? (t.releaseUnits ?? 0) : 0);
+                      ? steps.reduce((acc, s) => { const v = getStepShipped(s); return v !== null ? acc + v : acc; }, 0)
+                      : (t.Complete === 100 && t.isRelease ? (t.releaseUnits ?? 0) : 0);
                     const isExpanded = expandedLots.has(t.Id);
                     const toggleExpand = (): void => setExpandedLots(prev => {
                       const next = new Set(prev);
                       if (next.has(t.Id)) { next.delete(t.Id); } else { next.add(t.Id); }
                       return next;
                     });
+                    const taskLot = getTaskLot(t.jsonTable);
+                    const lotLabel = taskLot ? `L${taskLot.lotNo}` : `${i + 1}`;
+                    // contractUnits = PO commitment (lot.units); plannedUnits = operational plan (releaseUnits)
+                    const contractUnits = taskLot?.units;
+                    const plannedUnits = (t.releaseUnits && t.releaseUnits > 0) ? t.releaseUnits : contractUnits;
+                    const etaDate = taskLot?.eta ?? t.Finish;
+                    const lotReleased = (project?.releases ?? [])
+                      .filter(r => r.lotNo !== undefined && r.lotNo === taskLot?.lotNo)
+                      .reduce((s, r) => s + (r.units ?? 0), 0);
                     return (
                       <React.Fragment key={t.Id}>
                         <tr className={isExpanded ? styles.lotRowExpanded : undefined}>
@@ -693,33 +711,44 @@ const WOReportView: React.FC<WOReportViewProps> = ({
                                 title={isExpanded ? 'Collapse batches' : 'Expand batches'}
                               >
                                 <span className={styles.lotExpandArrow}>{isExpanded ? '▾' : '▸'}</span>
-                                <span className={styles.lotExpandNum}>{i + 1}</span>
+                                <span className={styles.lotExpandNum}>{lotLabel}</span>
                               </button>
-                            ) : (i + 1)}
+                            ) : lotLabel}
                           </td>
                           <td>
                             {deliveredUnits}
+                            {lotReleased > 0 && lotReleased !== deliveredUnits && (
+                              <span className={styles.lotReleasedNote}>{lotReleased} rec.</span>
+                            )}
                           </td>
                           <td><span className={cls}>{label}</span></td>
-                          <td>{fmtDate(t.Finish)}</td>
+                          <td>{fmtDate(etaDate)}</td>
                           <td className={styles.colLotUnits}>
-                            {`${t.releaseUnits ?? '—'} of ${project?.Units ?? '—'}`}
+                            {contractUnits !== undefined
+                              ? `${plannedUnits ?? '—'} of ${contractUnits}`
+                              : `— of —`}
                           </td>
                         </tr>
-                        {hasSteps && isExpanded && steps.map((step, si) => {
+                        {hasSteps && isExpanded && steps.map((step) => {
                           const { label: sLabel, cls: sCls } = lotStatus(step.complete);
+                          const shipped = getStepShipped(step);
                           return (
                             <tr key={step.id} className={styles.lotBatchRow}>
                               <td className={`${styles.colLotNum} ${styles.lotBatchCell}`}>
                                 {step.wbs}
+                                {step.isRelease && (
+                                  <span className={styles.lotBatchShipBadge} title="Ship enabled">▲</span>
+                                )}
                               </td>
                               <td className={styles.lotBatchCell}>
-                                {`${step.units} units`}
+                                {shipped !== null ? shipped : '—'}
                               </td>
                               <td><span className={sCls}>{sLabel}</span></td>
                               <td>{fmtDate(step.finish)}</td>
                               <td className={styles.colLotUnits}>
-                                {`${step.units} of ${t.releaseUnits ?? '—'}`}
+                                {shipped !== null
+                                  ? `${shipped} of ${step.units}`
+                                  : step.units}
                               </td>
                             </tr>
                           );

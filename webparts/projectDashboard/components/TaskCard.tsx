@@ -12,9 +12,11 @@ import { useQueuedTaskSave } from "../hooks/useQueuedTaskSave";
 import { buildTaskPersistencePayload, ITaskJsonTableSizeStatus } from "../utils/TaskPersistencePayload";
 import {
   getTaskReleaseUnits,
+  getTaskReleaseDeclined,
   getTaskExecutiveTrack,
   getTaskSteps,
   getTaskSubprocess,
+  getTaskLot,
   getTodayDateInputValue,
   toLocaleDateInputValue,
   ITaskStepEntry,
@@ -348,6 +350,8 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
   const [evidenceLog, setEvidenceLog] = useState<IEvidenceEntry[]>(task.Evidence ?? []);
   const initialTaskSteps = getTaskSteps(task.jsonTable);
   const rawInitialSubprocess = getTaskSubprocess(task.jsonTable);
+  const currentTaskLot = React.useMemo(() => getTaskLot(task.jsonTable), [task.jsonTable]);
+  const isReleaseDeclined = React.useMemo(() => getTaskReleaseDeclined(task.jsonTable), [task.jsonTable]);
   const initialHasSubprocessWorkspace =
     rawInitialSubprocess.subTasks.length > 0 ||
     initialTaskSteps.enabled ||
@@ -359,9 +363,10 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
   const [isTaskStepsSectionExpanded, setIsTaskStepsSectionExpanded] = useState(initialTaskSteps.enabled || initialTaskSteps.steps.length > 0);
   const [isTaskStepsConfigExpanded, setIsTaskStepsConfigExpanded] = useState(true);
   const [taskSteps, setTaskSteps] = useState<ITaskStepsData>(initialTaskSteps);
-  const initialBatchReleaseDefault = (task.releaseUnits ?? 0) > 0
-    ? (task.releaseUnits ?? 0)
-    : asPositiveInteger(projectUnits ?? 0);
+  const effectiveLotUnits = currentTaskLot?.units && currentTaskLot.units > 0 ? currentTaskLot.units : 0;
+  const initialBatchReleaseDefault = releaseUnits > 0
+    ? releaseUnits
+    : (effectiveLotUnits > 0 ? effectiveLotUnits : asPositiveInteger(projectUnits ?? 0));
   // batchRemaining: derived each render — no state needed
   const batchRemaining = Math.max(0, initialBatchReleaseDefault - taskSteps.steps.reduce((s, step) => s + Math.max(0, step.units || 0), 0));
   // Default pieces = remaining; lots = 1 (always reset when panel opens — see useEffect below)
@@ -382,6 +387,8 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
   const [taskStepStartEdit, setTaskStepStartEdit] = useState(initialTaskSteps.steps[0]?.start ?? "");
   const [taskStepFinishEdit, setTaskStepFinishEdit] = useState(initialTaskSteps.steps[0]?.finish ?? "");
   const [taskStepActualFinishEdit, setTaskStepActualFinishEdit] = useState(initialTaskSteps.steps[0]?.actualFinish ?? "");
+  const [taskStepIsReleaseEdit, setTaskStepIsReleaseEdit] = useState(initialTaskSteps.steps[0]?.isRelease ?? false);
+  const [taskStepReleaseUnitsEdit, setTaskStepReleaseUnitsEdit] = useState<number>(initialTaskSteps.steps[0]?.releaseUnits ?? initialTaskSteps.steps[0]?.units ?? 0);
   const [columnFocus, setColumnFocus] = useState<TaskCardColumnFocus>('balanced');
   const [bodyCollapsed, setBodyCollapsed] = useState(initialHasSubprocessWorkspace);
   const notesLogRef        = useRef<INoteEntry[]>(task.Notes ?? []);
@@ -757,8 +764,17 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
     setGate(task.Gate ?? "");
     setGateEditEnabled(false);
     setRenameAllGateTasks(true);
-    setIsRelease(task.isRelease ?? false);
-    setReleaseUnits(task.releaseUnits ?? getTaskReleaseUnits(task.jsonTable) ?? 0);
+    const initIsRelease = task.isRelease ?? false;
+    const initReleaseUnits = task.releaseUnits ?? getTaskReleaseUnits(task.jsonTable) ?? 0;
+    setIsRelease(initIsRelease);
+    // Auto-fill lot.units only when the user has not explicitly declined release for this LOT task.
+    // releaseDeclined is written to jsonTable on any save with Ship=OFF on a LOT task.
+    const isReleaseDeclined = getTaskReleaseDeclined(task.jsonTable);
+    if (!isReleaseDeclined && initReleaseUnits <= 0 && (currentTaskLot?.units ?? 0) > 0) {
+      setReleaseUnits(currentTaskLot!.units);
+    } else {
+      setReleaseUnits(initReleaseUnits);
+    }
     setExecutiveTrack(getTaskExecutiveTrack(task.jsonTable));
     setTaskTitle(task.Task ?? "");
     setComplete(task.Complete ?? 0);
@@ -804,7 +820,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
     }
     previousCompleteRef.current = task.Complete ?? 0;
     previousTaskIdRef.current = task.Id;
-  }, [projectUnits, task]);
+  }, [projectUnits, task, currentTaskLot]);
 
   useEffect(() => {
     if (skipNextTaskStepsRecalcRef.current) {
@@ -830,9 +846,10 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
     if (!showTaskSteps) return;
     const savedSteps = getTaskSteps(task.jsonTable).steps;
     const existingTotal = savedSteps.reduce((s, step) => s + Math.max(0, step.units || 0), 0);
-    const releaseDefault = asPositiveInteger(task.releaseUnits ?? 0) > 0
-      ? asPositiveInteger(task.releaseUnits ?? 0)
-      : asPositiveInteger(projectUnits ?? 0);
+    const lotFallback = currentTaskLot?.units && currentTaskLot.units > 0 ? currentTaskLot.units : 0;
+    const releaseDefault = releaseUnits > 0
+      ? releaseUnits
+      : (lotFallback > 0 ? lotFallback : asPositiveInteger(projectUnits ?? 0));
     const remaining = Math.max(0, releaseDefault - existingTotal);
     setTaskStepsPieces(remaining > 0 ? remaining : 0);
     setTaskStepsLots(remaining > 0 ? 1 : 0);
@@ -882,15 +899,22 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
     setTaskStepStartEdit(selectedStep.start);
     setTaskStepFinishEdit(selectedStep.finish);
     setTaskStepActualFinishEdit(selectedStep.actualFinish ?? "");
+    setTaskStepIsReleaseEdit(selectedStep.isRelease ?? false);
+    setTaskStepReleaseUnitsEdit(selectedStep.releaseUnits ?? selectedStep.units);
   }, [selectedTaskStepId, taskSteps.steps]);
 
   const handleSave = (overrides?: {
     complete?: number;
     evidenceOfCompletion?: ITaskListItem["EvidenceOfCompletion"];
   }): void => {
+    let effectiveIsRelease = isRelease;
     if (isRelease && releaseUnits <= 0) {
-      alert("Release Units must be greater than 0 for a release task.");
-      return;
+      const proceed = window.confirm(
+        "Release Units is not set while Ship is enabled. Save and disable Ship for this task?"
+      );
+      if (!proceed) return;
+      effectiveIsRelease = false;
+      setIsRelease(false);
     }
 
     const derivedTaskSteps = taskSteps.enabled
@@ -925,8 +949,9 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
       start,
       finish: effectiveFinish,
       actualFinish,
-      isRelease,
+      isRelease: effectiveIsRelease,
       releaseUnits,
+      releaseDeclined: !effectiveIsRelease && !!currentTaskLot ? true : undefined,
       executiveTrack,
       evidenceOfCompletion: effectiveEvidence,
       subprocess: hasSubprocessData ? subprocess : undefined,
@@ -1136,6 +1161,10 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
               start: taskStepStartEdit,
               finish: normalizedFinish,
               actualFinish: normalizedActualFinish,
+              isRelease: taskStepIsReleaseEdit ? true : undefined,
+              releaseUnits: taskStepIsReleaseEdit
+                ? Math.max(0, Math.floor(taskStepReleaseUnitsEdit || normalizedUnits))
+                : undefined,
             }
           : step
       )),
@@ -1767,7 +1796,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
                               <div className={styles.taskDetailsSummaryLabel}>Step Name</div>
                             </div>
                             <div className={styles.taskDetailsSummaryBlock}>
-                              <div className={styles.taskDetailsSummaryLabel}>Units</div>
+                              <div className={styles.taskDetailsSummaryLabel}>{selectedStep.isRelease ? 'Shipped / Planned' : 'Units'}</div>
                             </div>
                             <div className={styles.taskDetailsSummaryBlock}>
                               <div className={styles.taskDetailsSummaryLabel}>% Complete</div>
@@ -1781,7 +1810,11 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
                               <div className={styles.taskDetailsSummaryValue}>{selectedStep.title || "N/A"}</div>
                             </div>
                             <div className={styles.taskDetailsSummaryBlock}>
-                              <div className={styles.taskDetailsSummaryValue}>{selectedStep.units ?? 0}</div>
+                              <div className={styles.taskDetailsSummaryValue}>
+                                {selectedStep.isRelease
+                                  ? `${selectedStep.complete === 100 ? (selectedStep.releaseUnits ?? selectedStep.units) : 0} of ${selectedStep.units}`
+                                  : (selectedStep.units ?? 0)}
+                              </div>
                             </div>
                             <div className={styles.taskDetailsSummaryBlock}>
                               <div className={styles.taskDetailsSummaryValue}>{`${taskStepCompleteEdit}%`}</div>
@@ -1880,6 +1913,30 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
                               className={styles.inputSmall}
                               onChange={e => setTaskStepActualFinishEdit(e.target.value)}
                               disabled={taskStepCompleteEdit < 100}
+                            />
+                          </label>
+                          <label className={styles.taskStepEditorField}>
+                            <span>Ship</span>
+                            <input
+                              type="checkbox"
+                              checked={taskStepIsReleaseEdit}
+                              onChange={e => {
+                                setTaskStepIsReleaseEdit(e.target.checked);
+                                if (e.target.checked && taskStepReleaseUnitsEdit <= 0) {
+                                  setTaskStepReleaseUnitsEdit(taskStepUnitsEdit);
+                                }
+                              }}
+                            />
+                          </label>
+                          <label className={styles.taskStepEditorField}>
+                            <span>Ship Units</span>
+                            <input
+                              type="number"
+                              min={0}
+                              value={taskStepReleaseUnitsEdit}
+                              className={styles.inputSmall}
+                              onChange={e => setTaskStepReleaseUnitsEdit(Math.max(0, Number(e.target.value) || 0))}
+                              disabled={!taskStepIsReleaseEdit}
                             />
                           </label>
                           <div className={styles.taskStepEditorActions}>
@@ -2001,7 +2058,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
                   </button>
                 </div>
                 {(() => {
-                  const isShipment = isRelease || (releaseUnits !== undefined && releaseUnits !== null && releaseUnits > 0);
+                  const isShipment = isRelease || (releaseUnits !== undefined && releaseUnits !== null && releaseUnits > 0) || !!currentTaskLot;
                   const gridCls = isShipment ? styles.taskDetailsSummaryGridShipment : styles.taskDetailsSummaryGrid;
                   return (
                     <>
@@ -2011,7 +2068,9 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
                         </div>
                         {isShipment && (
                           <div className={styles.taskDetailsSummaryBlock}>
-                            <div className={styles.taskDetailsSummaryLabel}>Units</div>
+                            <div className={styles.taskDetailsSummaryLabel}>
+                              {(isRelease || taskSteps.steps.some(s => s.isRelease === true)) ? 'Shipped / Planned' : 'Units'}
+                            </div>
                           </div>
                         )}
                         <div className={styles.taskDetailsSummaryBlock}>
@@ -2030,7 +2089,24 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
                         </div>
                         {isShipment && (
                           <div className={styles.taskDetailsSummaryBlock}>
-                            <div className={styles.taskDetailsSummaryValue}>{releaseUnits ?? 0}</div>
+                            <div className={styles.taskDetailsSummaryValue}>
+                              {(() => {
+                                const plannedAmt = releaseUnits > 0 ? releaseUnits : (!isReleaseDeclined ? (currentTaskLot?.units ?? 0) : 0);
+                                const shipActive = isRelease || taskSteps.steps.some(s => s.isRelease === true);
+                                if (!shipActive) return plannedAmt;
+                                const releasedAmt = taskSteps.steps
+                                  .filter(s => s.complete === 100)
+                                  .reduce((acc, s) => {
+                                    if (s.isRelease === true) return acc + (s.releaseUnits ?? s.units ?? 0);
+                                    if (isRelease) return acc + (s.units ?? 0);
+                                    return acc;
+                                  }, 0);
+                                if (taskSteps.steps.length === 0) {
+                                  return `${complete === 100 ? releaseUnits : 0} of ${plannedAmt}`;
+                                }
+                                return `${releasedAmt} of ${plannedAmt}`;
+                              })()}
+                            </div>
                           </div>
                         )}
                         <div className={styles.taskDetailsSummaryBlock}>
@@ -2191,7 +2267,8 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
                     const checked = e.target.checked;
                     setIsRelease(checked);
                     if (checked && releaseUnits <= 0) {
-                      setReleaseUnits(Math.max(0, remainingReleaseUnits ?? 0));
+                      const lotUnits = currentTaskLot?.units;
+                      setReleaseUnits(lotUnits && lotUnits > 0 ? lotUnits : Math.max(0, remainingReleaseUnits ?? 0));
                     }
                   }}
                 />

@@ -22,6 +22,48 @@ export interface IRelease {
 
 export const RELEASES: IRelease[] = [
   {
+    version: '1.0.6.11',
+    date: '2026-11-18',
+    items: [
+      { area: 'Task Card', text: 'Batch Detail card now has a Ship toggle and Ship Units field — enabling Ship on a batch marks it as a delivery record and pre-fills Ship Units from the batch planned units.' },
+      { area: 'WO Report', text: 'LOT Schedule Shipped column now counts only batches with Ship enabled and completed (complete = 100%), using the actual Ship Units value instead of the planned units.' },
+      { area: 'WO Report', text: 'Batch rows in the LOT Schedule drill-down show a Ship indicator (▲) and display "N shipped" for completed Ship batches vs "N units" for planned ones.' },
+      { area: 'Data', text: 'Batch-level Ship saves a release record per batch (id: release-task-{taskId}-step-{stepId}), enabling per-batch traceability in invoicing. The LOT-level release is suppressed when any batch has Ship enabled to avoid double-counting.' },
+    ],
+  },
+  {
+    version: '1.0.6.10',
+    date: '2026-11-18',
+    items: [
+      { area: 'Task Card', text: 'Disabling Ship on a LOT task with units set now shows a confirmation prompt instead of blocking with an error — user confirms to save with Ship off, or cancels to review the configuration first.' },
+      { area: 'Task Card', text: 'Release Units no longer resets to the lot\'s committed quantity after saving with Ship disabled — the saved value (0) is now respected on reload, eliminating the restore loop.' },
+      { area: 'Task Card', text: 'LOT task auto-fill from lot.units now only applies to tasks that have never been saved by WO-Dashboard (truly pristine). Enabling Ship always auto-fills units from the lot commitment when units is not set.' },
+    ],
+  },
+  {
+    version: '1.0.6.9',
+    date: '2026-11-17',
+    items: [
+      { area: 'Task Card', text: 'LOT tasks created by PO-Inbounds now auto-initialize on open: the Ship toggle turns on and Release Units pre-fills with the lot\'s committed quantity (lot.units) — no manual setup required.' },
+      { area: 'Task Card', text: 'Enabling the Ship toggle on a LOT task now correctly fills Release Units with the lot\'s committed units (e.g. 80), not the WO total (e.g. 160).' },
+      { area: 'Task Card', text: 'Batch Configuration Release reference now uses the correct lot units as the ceiling — remaining units and default piece count reflect the lot commitment, not the full WO quantity.' },
+      { area: 'Task Card', text: 'LOT tasks pre-fill Release Units from the PO lot\'s committed quantity when first opened and Release Units is not yet set — the Ship toggle remains under user control and must be enabled manually to activate release tracking.' },
+      { area: 'Task Card', text: 'Batch Configuration button (Create Batches) works correctly again after a dependency loop fix; the batch panel no longer closes immediately upon opening.' },
+    ],
+  },
+  {
+    version: '1.0.6.8',
+    date: '2026-11-17',
+    items: [
+      { area: 'WO Report', text: 'LOT Schedule now shows LOT tasks created by PO-Inbounds (identified by jsonTable.lot) even before the isRelease toggle is set, connecting the plan directly to the PO delivery commitment.' },
+      { area: 'WO Report', text: 'LOT # column now shows the PO lot reference (L1, L2…) matching the PO-Inbounds lot number, instead of a sequential index.' },
+      { area: 'WO Report', text: 'ETA column now shows the contract delivery date from the PO lot (lot.eta), replacing the plan Finish date as the primary target.' },
+      { area: 'WO Report', text: 'Contract column replaces Total Units: shows the PO-committed units for this lot (lot.units) alongside the WO total — e.g. "650 of 1,290".' },
+      { area: 'WO Report', text: 'When recorded releases (from invoicing records) differ from delivered units, a small note shows the reconciliation delta next to the Shipped count.' },
+      { area: 'Task Card', text: 'Collapsed Task Details header now shows the Units field for any task linked to a PO lot (jsonTable.lot present), not only when the isRelease toggle is on; falls back to lot.units when releaseUnits is not set.' },
+    ],
+  },
+  {
     version: '1.0.6.7',
     date: '2026-11-16',
     items: [

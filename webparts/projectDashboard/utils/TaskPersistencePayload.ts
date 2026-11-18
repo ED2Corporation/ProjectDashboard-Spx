@@ -57,6 +57,7 @@ interface IBuildTaskPersistencePayloadOptions {
   description?: string;
   isRelease?: boolean;
   releaseUnits?: number;
+  releaseDeclined?: boolean;
   executiveTrack?: boolean;
   evidenceOfCompletion?: ITaskListItem["EvidenceOfCompletion"];
   originalGate?: string;
@@ -133,6 +134,7 @@ export const buildTaskPersistencePayload = ({
   description,
   isRelease,
   releaseUnits,
+  releaseDeclined,
   executiveTrack,
   evidenceOfCompletion,
   originalGate,
@@ -153,6 +155,7 @@ export const buildTaskPersistencePayload = ({
     sortOrder: getTaskSortOrder(effectiveSourceJsonTable),
     isRelease: effectiveIsRelease || undefined,
     releaseUnits: effectiveIsRelease ? effectiveReleaseUnits : undefined,
+    releaseDeclined,
     executiveTrack,
     subprocess,
     clearSubprocess,

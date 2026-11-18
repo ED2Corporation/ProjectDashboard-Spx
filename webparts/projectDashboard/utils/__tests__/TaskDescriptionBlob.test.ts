@@ -439,4 +439,21 @@ describe('buildTaskJsonTable preserves unknown keys (PO-Inbounds contract)', () 
     expect(parsed.lot).toEqual(lotPayload);
     expect(parsed.depTypes).toEqual(depTypes);
   });
+
+  it('preserves lot and depTypes when releaseDeclined is written (Ship OFF on LOT task)', () => {
+    const raw = JSON.stringify({ lot: lotPayload, depTypes, sortOrder: 3 });
+    const result = buildTaskJsonTable(raw, { releaseDeclined: true })!;
+    const parsed = JSON.parse(result);
+    expect(parsed.lot).toEqual(lotPayload);
+    expect(parsed.depTypes).toEqual(depTypes);
+    expect(parsed.releaseDeclined).toBe(true);
+  });
+
+  it('clears releaseDeclined when isRelease is set to true', () => {
+    const raw = JSON.stringify({ lot: lotPayload, releaseDeclined: true, sortOrder: 3 });
+    const result = buildTaskJsonTable(raw, { isRelease: true, releaseUnits: 30 })!;
+    const parsed = JSON.parse(result);
+    expect(parsed.lot).toEqual(lotPayload);
+    expect(parsed.releaseDeclined).toBeUndefined();
+  });
 });
