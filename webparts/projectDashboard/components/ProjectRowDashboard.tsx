@@ -515,9 +515,28 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
           {/* Row 1 — Work Order Number + units */}
           <div className={styles.projectTitle}>
             {localProject.ProjectNumber && <span className={styles.woTag}>WO# {localProject.ProjectNumber}</span>}
-            {!!localProject.Units && (
-              <span className={styles.unitsTag}> ({localProject.Units} units)</span>
-            )}
+            {!!localProject.Units && (() => {
+              let lotsTotal = 0;
+              try {
+                const pd = JSON.parse(localProject.ProjectDetails ?? '{}');
+                if (Array.isArray(pd.lots)) {
+                  lotsTotal = (pd.lots as Array<{units?: number}>).reduce((s, l) => s + (l.units ?? 0), 0);
+                }
+              } catch { /* ignore */ }
+              const mismatch = lotsTotal > 0 && lotsTotal !== localProject.Units;
+              return (
+                <span className={styles.unitsTag}>
+                  {mismatch ? (
+                    <span
+                      className={styles.unitsMismatch}
+                      title={`SP Units = ${localProject.Units}, but Σ lots = ${lotsTotal}. PO-Inbounds needs to sync.`}
+                    >
+                      {` (${localProject.Units} sync → ${lotsTotal})`}
+                    </span>
+                  ) : ` (${localProject.Units} units)`}
+                </span>
+              );
+            })()}
           </div>
           {/* Row 2 — Customer PO number; fallback when not set */}
           <div className={styles.projectSubtitle}>

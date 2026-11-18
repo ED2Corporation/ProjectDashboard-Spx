@@ -124,19 +124,20 @@
 
 .aggregatorRow {
   display: flex;
-  gap: $sp-4;
-  padding: $sp-4 $sp-6;
+  gap: $sp-3;
+  padding: $sp-3 $sp-5;
   background: $c-surface-mid;
   border-bottom: 1px solid $c-border-subtle;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  align-items: center;
 }
 
 .aggregatorCard {
   display: flex;
-  gap: $sp-3;
-  flex-wrap: wrap;
+  gap: $sp-2;
+  flex-wrap: nowrap;
   align-items: center;
-  padding: $sp-3;
+  padding: $sp-2 $sp-3;
   background: $c-surface;
   border: 1px solid $c-border-subtle;
   border-radius: $r-lg;
@@ -147,15 +148,16 @@
 .badge {
   display: flex;
   align-items: center;
-  gap: $sp-3;
-  padding: $sp-2 14px;
+  gap: $sp-2;
+  padding: $sp-1 10px;
   border-radius: $r-pill;
   border: 1px solid $c-border;
   background: $c-surface;
   cursor: pointer;
-  font-size: $f-md;
+  font-size: $f-sm;
   font-weight: 400;
   transition: $t-fast;
+  white-space: nowrap;
 }
 
 .badgeCount {

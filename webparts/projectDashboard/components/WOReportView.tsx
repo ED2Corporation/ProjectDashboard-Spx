@@ -67,7 +67,7 @@ function fmtDate(d?: Date | string): string {
     ? (d.length === 10 ? parseLocalDate(d) : new Date(d))
     : d;
   if (isNaN(dt.getTime())) return '—';
-  return `${dt.getMonth() + 1}/${String(dt.getDate()).padStart(2, '0')}/${dt.getFullYear()}`;
+  return `${dt.getMonth() + 1}/${dt.getDate()}/${String(dt.getFullYear()).slice(-2)}`;
 }
 
 function gateStatus(complete: number): { label: string; cls: string } {
@@ -195,11 +195,29 @@ const WOReportView: React.FC<WOReportViewProps> = ({
 
   const releaseTasks = useMemo(() => tasks.filter(t => t.isRelease || !!getTaskLot(t.jsonTable)), [tasks]);
 
+  const woLotsTotal = useMemo(() => {
+    try {
+      const pd = JSON.parse(project?.ProjectDetails ?? '{}');
+      if (Array.isArray(pd.lots)) {
+        return (pd.lots as Array<{units?: number}>).reduce((s, l) => s + (l.units ?? 0), 0);
+      }
+    } catch { /* ignore */ }
+    return project?.Units ?? 0;
+  }, [project]);
+
 
   const needByDate = useMemo(() => {
     const last = [...gates].reverse().find(g => g.Finish);
     return last?.Finish;
   }, [gates]);
+
+  const projectedDate = useMemo(() => {
+    let latest: Date | undefined;
+    for (const t of tasks) {
+      if (t.Finish && (!latest || t.Finish > latest)) latest = t.Finish;
+    }
+    return latest;
+  }, [tasks]);
 
   // Notes for the selected report week — all notes anchored to that Monday.
   const activeNotesBySection = useMemo(() => {
@@ -548,9 +566,43 @@ const WOReportView: React.FC<WOReportViewProps> = ({
             <div className={styles.poSummary}>
               {project.PartNumber && <div className={styles.summaryRow}><span className={styles.summaryLabel}>Part Number</span><span className={styles.summaryValue}>{project.PartNumber}</span></div>}
               {project.Customer   && <div className={styles.summaryRow}><span className={styles.summaryLabel}>Customer</span><span className={styles.summaryValue}>{project.Customer}</span></div>}
-              {project.Units      && <div className={styles.summaryRow}><span className={styles.summaryLabel}>Quantity</span><span className={styles.summaryValue}>{project.Units}</span></div>}
+              {project.Units && (() => {
+                let lotsTotal = 0;
+                try {
+                  const pd = JSON.parse(project.ProjectDetails ?? '{}');
+                  if (Array.isArray(pd.lots)) {
+                    lotsTotal = (pd.lots as Array<{units?: number}>).reduce((s, l) => s + (l.units ?? 0), 0);
+                  }
+                } catch { /* ignore */ }
+                const mismatch = lotsTotal > 0 && lotsTotal !== project.Units;
+                return (
+                  <div className={styles.summaryRow}>
+                    <span className={styles.summaryLabel}>Quantity</span>
+                    <span className={styles.summaryValue}>
+                      {project.Units}
+                      {mismatch && (
+                        <span
+                          className={styles.summaryValueMismatch}
+                          title={`SP Units = ${project.Units}, but Σ lots = ${lotsTotal}. PO-Inbounds needs to sync.`}
+                        >
+                          {` → ${lotsTotal} expected`}
+                        </span>
+                      )}
+                    </span>
+                  </div>
+                );
+              })()}
               <div className={styles.summaryRow}><span className={styles.summaryLabel}>Need by Date</span><span className={styles.summaryValue}>{fmtDate(needByDate)}</span></div>
-              <div className={styles.summaryRow}><span className={styles.summaryLabel}>Projected Date</span><span className={`${styles.summaryValue} ${styles.summaryValueTbd}`}>TBD</span></div>
+              <div className={styles.summaryRow}>
+                <span className={styles.summaryLabel}>Projected Date</span>
+                {projectedDate ? (
+                  <span className={`${styles.summaryValue} ${needByDate && projectedDate > needByDate ? styles.summaryValueLate : ''}`}>
+                    {fmtDate(projectedDate)}
+                  </span>
+                ) : (
+                  <span className={`${styles.summaryValue} ${styles.summaryValueTbd}`}>TBD</span>
+                )}
+              </div>
             </div>
           )}
         </div>
@@ -662,8 +714,9 @@ const WOReportView: React.FC<WOReportViewProps> = ({
                     <th className={styles.colLotNum}>LOT #</th>
                     <th className={styles.colShipment}>Shipped</th>
                     <th>Status</th>
+                    <th>Projected</th>
                     <th>ETA</th>
-                    <th className={styles.colLotUnits}>Contract</th>
+                    <th className={styles.colLotUnits}>Total Units</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -691,10 +744,15 @@ const WOReportView: React.FC<WOReportViewProps> = ({
                     });
                     const taskLot = getTaskLot(t.jsonTable);
                     const lotLabel = taskLot ? `L${taskLot.lotNo}` : `${i + 1}`;
-                    // contractUnits = PO commitment (lot.units); plannedUnits = operational plan (releaseUnits)
                     const contractUnits = taskLot?.units;
-                    const plannedUnits = (t.releaseUnits && t.releaseUnits > 0) ? t.releaseUnits : contractUnits;
                     const etaDate = taskLot?.eta ?? t.Finish;
+                    // Projected = latest finish among steps (or task.Finish if no steps)
+                    const lotProjectedStr = hasSteps
+                      ? steps.reduce((mx, s) => (!mx || s.finish > mx) ? s.finish : mx, '' as string) || undefined
+                      : (t.Finish instanceof Date ? t.Finish.toISOString().slice(0, 10) : t.Finish as string | undefined);
+                    const etaStr = typeof etaDate === 'string' ? etaDate
+                      : etaDate instanceof Date ? etaDate.toISOString().slice(0, 10) : undefined;
+                    const lotIsLate = !!lotProjectedStr && !!etaStr && lotProjectedStr > etaStr;
                     const lotReleased = (project?.releases ?? [])
                       .filter(r => r.lotNo !== undefined && r.lotNo === taskLot?.lotNo)
                       .reduce((s, r) => s + (r.units ?? 0), 0);
@@ -722,11 +780,12 @@ const WOReportView: React.FC<WOReportViewProps> = ({
                             )}
                           </td>
                           <td><span className={cls}>{label}</span></td>
+                          <td className={lotIsLate ? styles.dateLate : undefined}>{fmtDate(lotProjectedStr)}</td>
                           <td>{fmtDate(etaDate)}</td>
                           <td className={styles.colLotUnits}>
-                            {contractUnits !== undefined
-                              ? `${plannedUnits ?? '—'} of ${contractUnits}`
-                              : `— of —`}
+                            {contractUnits !== undefined && woLotsTotal > 0
+                              ? `${contractUnits} of ${woLotsTotal}`
+                              : (contractUnits ?? '—')}
                           </td>
                         </tr>
                         {hasSteps && isExpanded && steps.map((step) => {
@@ -744,10 +803,11 @@ const WOReportView: React.FC<WOReportViewProps> = ({
                                 {shipped !== null ? shipped : '—'}
                               </td>
                               <td><span className={sCls}>{sLabel}</span></td>
-                              <td>{fmtDate(step.finish)}</td>
+                              <td className={`${styles.lotBatchCell} ${etaStr && step.finish > etaStr ? styles.dateLate : ''}`}>{fmtDate(step.finish)}</td>
+                              <td className={styles.lotBatchCell}>{fmtDate(etaDate)}</td>
                               <td className={styles.colLotUnits}>
-                                {shipped !== null
-                                  ? `${shipped} of ${step.units}`
+                                {contractUnits !== undefined
+                                  ? `${step.units} of ${contractUnits}`
                                   : step.units}
                               </td>
                             </tr>
