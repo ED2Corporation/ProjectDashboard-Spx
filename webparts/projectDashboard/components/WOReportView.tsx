@@ -82,11 +82,11 @@ function lotStatus(complete: number): { label: string; cls: string } {
   return                      { label: 'Scheduled',   cls: styles.statusNotStarted };
 }
 
-// Default to current/next Monday (next Mon if today > Mon; stay if today IS Mon; next Mon if Sun)
+// Default to Monday of the current running week (Sunday → previous Monday)
 function currentReportMonday(): string {
   const d = new Date();
   const dow = d.getDay();
-  const diff = dow === 1 ? 0 : dow === 0 ? 1 : (8 - dow);
+  const diff = dow === 0 ? -6 : 1 - dow; // Sunday → back 6; else back to Monday
   d.setDate(d.getDate() + diff);
   return localDateStr(d);
 }
@@ -711,7 +711,7 @@ const WOReportView: React.FC<WOReportViewProps> = ({
               <table className={styles.phaseTable}>
                 <thead>
                   <tr>
-                    <th className={styles.colLotNum}>LOT #</th>
+                    <th className={styles.colLotNum}>Task</th>
                     <th className={styles.colShipment}>Shipped</th>
                     <th>Status</th>
                     <th>Projected</th>
@@ -743,7 +743,7 @@ const WOReportView: React.FC<WOReportViewProps> = ({
                       return next;
                     });
                     const taskLot = getTaskLot(t.jsonTable);
-                    const lotLabel = taskLot ? `L${taskLot.lotNo}` : `${i + 1}`;
+                    const lotLabel = t.Task ?? (taskLot ? `L${taskLot.lotNo}` : `${i + 1}`);
                     const contractUnits = taskLot?.units;
                     const etaDate = taskLot?.eta ?? t.Finish;
                     // Projected = latest finish among steps (or task.Finish if no steps)
