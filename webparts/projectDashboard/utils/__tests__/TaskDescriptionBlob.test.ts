@@ -456,3 +456,57 @@ describe('buildTaskJsonTable preserves unknown keys (PO-Inbounds contract)', () 
     expect(parsed.releaseDeclined).toBeUndefined();
   });
 });
+
+describe('TaskDescriptionBlob keeps PO-Inbounds plan data on save', () => {
+  const planSubTask = {
+    id: 'sp-1', wbs: '1.01', sortOrder: 0, task: 'Cut', complete: 0, start: '2026-11-02', finish: '2026-11-04',
+    deps: ['sp-0', '45:sp-9'], depTypes: { 'sp-0': 'SS' }, effortPerUnit: 2.5, crewSize: 3, calculatedDuration: 4,
+    productivityEstimate: { rate: 1 }, baseline: { start: '2026-11-01', finish: '2026-11-03', duration: 3 },
+    previous: { start: '2026-10-30', finish: '2026-11-02', duration: 3 }, executiveTrack: true,
+  };
+  const raw = JSON.stringify({
+    deps: ['12'], depTypes: { '12': 'FF' }, lot: { lotNo: 1, units: 40 }, taskSchedule: { baseline: { finish: '2026-11-10' } },
+    subprocess: { units: 40, crewSize: 2, items: [{ part: 'A' }], subTasks: [planSubTask] },
+    taskSteps: { enabled: true, totalUnits: 40, steps: [{ id: 'step-1', wbs: '1.B1', title: 'B1', units: 40, complete: 0, start: '', finish: '',
+      subprocess: { units: 40, subTasks: [planSubTask] } }] },
+  });
+  const planKeys = ['deps', 'depTypes', 'effortPerUnit', 'crewSize', 'calculatedDuration', 'productivityEstimate', 'baseline', 'previous', 'executiveTrack'];
+
+  it('keeps subprocess and subtask plan keys when the UI edits a subtask', () => {
+    // The UI works on the parsed value and may rebuild the subprocess as { subTasks } with bare subtasks.
+    const loaded = getTaskSubprocess(raw);
+    const edited = { subTasks: [{ id: 'sp-1', wbs: '1.01', sortOrder: 0, task: 'Cut', complete: 50, start: '2026-11-03', finish: '2026-11-05' }] };
+    const parsed = JSON.parse(buildTaskJsonTable(raw, { subprocess: edited }) as string);
+
+    expect(loaded.units).toBe(40);
+    expect(parsed.subprocess.units).toBe(40);
+    expect(parsed.subprocess.crewSize).toBe(2);
+    expect(parsed.subprocess.items).toEqual([{ part: 'A' }]);
+    planKeys.forEach(key => expect(parsed.subprocess.subTasks[0][key]).toEqual((planSubTask as Record<string, unknown>)[key]));
+    expect(parsed.subprocess.subTasks[0].complete).toBe(50);
+    expect(parsed.subprocess.subTasks[0].start).toBe('2026-11-03');
+    expect(parsed.deps).toEqual(['12']);
+    expect(parsed.depTypes).toEqual({ '12': 'FF' });
+    expect(parsed.lot).toEqual({ lotNo: 1, units: 40 });
+    expect(parsed.taskSchedule).toEqual({ baseline: { finish: '2026-11-10' } });
+  });
+
+  it('keeps plan keys inside taskSteps[i].subprocess', () => {
+    const steps = getTaskSteps(raw);
+    const edited = { ...steps, steps: steps.steps.map(s => ({ ...s, complete: 10, subprocess: { subTasks: [{ ...planSubTask, deps: undefined, complete: 10 }].map(({ deps, ...rest }) => rest) } })) };
+    const parsed = JSON.parse(buildTaskJsonTable(raw, { taskSteps: edited }) as string);
+    const step = parsed.taskSteps.steps[0];
+
+    expect(step.subprocess.units).toBe(40);
+    expect(step.subprocess.subTasks[0].deps).toEqual(planSubTask.deps);
+    expect(step.subprocess.subTasks[0].effortPerUnit).toBe(2.5);
+    expect(step.subprocess.subTasks[0].complete).toBe(10);
+    expect(step.complete).toBe(10);
+  });
+
+  it('does not bring back a subtask the user removed', () => {
+    const parsed = JSON.parse(buildTaskJsonTable(raw, { subprocess: { subTasks: [] } }) as string);
+    expect(parsed.subprocess.subTasks).toEqual([]);
+    expect(parsed.subprocess.units).toBe(40);
+  });
+});

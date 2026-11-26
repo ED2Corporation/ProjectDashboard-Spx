@@ -14,10 +14,19 @@ export interface ISubprocessSubTask {
   notes?: INoteEntry[];
   evidence?: IEvidenceEntry[];
   approvals?: IApprovalEntry[];
+  // ── Plan fields owned by PO-Inbounds (read-only here; preserved on every save) ──
+  deps?: string[];
+  depTypes?: Record<string, string>;
+  effortPerUnit?: number;
+  crewSize?: number;
+  baseline?: { start?: string; finish?: string; duration?: number };
 }
 
 export interface ITaskSubprocessData {
   subTasks: ISubprocessSubTask[];
+  // ── Plan fields owned by PO-Inbounds (read-only here; preserved on every save) ──
+  units?: number;
+  crewSize?: number;
 }
 
 export interface ITaskStepEntry {
@@ -182,11 +191,13 @@ const normalizeApprovals = (value: unknown): IApprovalEntry[] => {
   return entries;
 };
 
+/** Keeps every key of the stored record (PO-Inbounds plan data) and overrides only the fields WO-Dashboard owns. */
 const normalizeSubTask = (value: unknown, index: number): ISubprocessSubTask => {
   const record = isRecord(value) ? value : {};
   const complete = Math.max(0, Math.min(100, asNumber(record.complete)));
   const finish = asString(record.finish);
   return {
+    ...(record as Partial<ISubprocessSubTask>),
     id: asString(record.id) || `sp-${index + 1}`,
     wbs: asString(record.wbs),
     sortOrder: Math.max(0, Math.floor(asNumber(record.sortOrder) || index)),
@@ -211,6 +222,7 @@ const normalizeTaskStep = (value: unknown, index: number): ITaskStepEntry => {
   const complete = Math.max(0, Math.min(100, asNumber(record.complete)));
   const finish = asString(record.finish);
   return {
+    ...(record as Partial<ITaskStepEntry>),
     id: asString(record.id) || `step-${index + 1}`,
     wbs: asString(record.wbs),
     sortOrder: Math.max(0, Math.floor(asNumber(record.sortOrder) || index)),
@@ -228,6 +240,7 @@ const normalizeTaskStep = (value: unknown, index: number): ITaskStepEntry => {
     evidence: normalizeEvidence(record.evidence),
     approvals: normalizeApprovals(record.approvals),
     subprocess: {
+      ...(subprocess as Partial<ITaskSubprocessData>),
       subTasks: subTasksRaw
         .map((entry, subIndex) => normalizeSubTask(entry, subIndex))
         .sort((a, b) => a.sortOrder - b.sortOrder)
@@ -296,6 +309,7 @@ export const getTaskSubprocess = (raw?: string): ITaskSubprocessData => {
   const subTasksRaw = Array.isArray(subprocess.subTasks) ? subprocess.subTasks : [];
 
   return {
+    ...(subprocess as Partial<ITaskSubprocessData>),
     subTasks: subTasksRaw
       .map((entry, index) => normalizeSubTask(entry, index))
       .sort((a, b) => a.sortOrder - b.sortOrder)
@@ -341,6 +355,29 @@ export const getTaskSteps = (raw?: string): ITaskStepsData => {
     weekdays: weekdays.length > 0 ? weekdays : [1],
     steps: normalizedSteps,
     subprocessTemplate,
+  };
+};
+
+/** Stored records by id, so a save keeps the keys the UI never loaded (PO-Inbounds plan data). */
+const recordsById = (value: unknown): Map<string, Record<string, unknown>> => {
+  const map = new Map<string, Record<string, unknown>>();
+  if (isArray<unknown>(value)) {
+    value.forEach(entry => { if (isRecord(entry) && typeof entry.id === "string") map.set(entry.id, entry); });
+  }
+  return map;
+};
+
+/** Stored subprocess + edited subprocess: other keys of the subprocess and of each subtask survive. */
+const mergeSubprocess = (stored: unknown, edited: ITaskSubprocessData): ITaskSubprocessData => {
+  const storedRecord = isRecord(stored) ? stored : {};
+  const storedSubTasks = recordsById(storedRecord.subTasks);
+  return {
+    ...(storedRecord as Partial<ITaskSubprocessData>),
+    ...edited,
+    subTasks: edited.subTasks
+      .map((entry, index) => normalizeSubTask({ ...storedSubTasks.get(entry.id), ...entry }, index))
+      .sort((a, b) => a.sortOrder - b.sortOrder)
+      .map((entry, index) => ({ ...entry, sortOrder: index })),
   };
 };
 
@@ -396,24 +433,23 @@ export const buildTaskJsonTable = (
   if (options.clearSubprocess) {
     delete next.subprocess;
   } else if (options.subprocess) {
-    const normalizedSubTasks = options.subprocess.subTasks
-      .map((entry, index) => normalizeSubTask(entry, index))
-      .sort((a, b) => a.sortOrder - b.sortOrder)
-      .map((entry, index) => ({
-        ...entry,
-        sortOrder: index,
-      }));
-
-    next.subprocess = {
-      subTasks: normalizedSubTasks,
-    };
+    next.subprocess = mergeSubprocess(next.subprocess, options.subprocess);
   }
 
   if (options.clearTaskSteps) {
     delete next.taskSteps;
   } else if (options.taskSteps) {
+    const storedTaskSteps = isRecord(next.taskSteps) ? next.taskSteps : {};
+    const storedSteps = recordsById(storedTaskSteps.steps);
     const normalizedSteps = options.taskSteps.steps
-      .map((entry, index) => normalizeTaskStep(entry, index))
+      .map((entry, index) => {
+        const storedStep = storedSteps.get(entry.id);
+        return normalizeTaskStep({
+          ...storedStep,
+          ...entry,
+          subprocess: mergeSubprocess(storedStep?.subprocess, entry.subprocess ?? { subTasks: [] }),
+        }, index);
+      })
       .sort((a, b) => a.sortOrder - b.sortOrder)
       .map((entry, index) => ({
         ...entry,
@@ -429,16 +465,12 @@ export const buildTaskJsonTable = (
       : [];
 
     const templateSubTasks = options.taskSteps.subprocessTemplate?.subTasks ?? [];
-    const normalizedTemplate = templateSubTasks.length > 0
-      ? {
-          subTasks: templateSubTasks
-            .map((entry, index) => normalizeSubTask(entry, index))
-            .sort((a, b) => a.sortOrder - b.sortOrder)
-            .map((entry, index) => ({ ...entry, sortOrder: index })),
-        }
+    const normalizedTemplate = templateSubTasks.length > 0 && options.taskSteps.subprocessTemplate
+      ? mergeSubprocess(storedTaskSteps.subprocessTemplate, options.taskSteps.subprocessTemplate)
       : undefined;
 
     next.taskSteps = {
+      ...storedTaskSteps,
       enabled: options.taskSteps.enabled === true || normalizedSteps.length > 0,
       totalUnits: Math.max(0, Math.floor(asNumber(options.taskSteps.totalUnits))),
       unitsPerStep: Math.max(0, Math.floor(asNumber(options.taskSteps.unitsPerStep))),

@@ -8,6 +8,8 @@ export interface IProjectDetailsLot {
   units: number;
   eta: string;
   taskId?: string;
+  /** Planned units of the lot task (present when the lot is built in the plan) — PO-Inbounds */
+  builtUnits?: number;
 }
 
 // ─── Execution status (owned by WO-Dashboard) ─────────────────────────────────

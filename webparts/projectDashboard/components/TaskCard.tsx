@@ -11,7 +11,8 @@ import TaskStepsTable from "./TaskStepsTable";
 import DateConsistencyCard from "./DateConsistencyCard";
 import { checkParentSpan, shiftChildrenWithParent, shiftSpan, workingDaysBetween, IDateSpan } from "../utils/TaskDateConsistency";
 import { useQueuedTaskSave } from "../hooks/useQueuedTaskSave";
-import { buildTaskPersistencePayload, ITaskJsonTableSizeStatus } from "../utils/TaskPersistencePayload";
+import { buildTaskPersistencePayload, ITaskJsonTableSizeStatus, ITaskPersistencePayload } from "../utils/TaskPersistencePayload";
+import { checkTaskSave, confirmSaveWarnings, isSaveCancelled, SaveCancelledError } from "../utils/OperationalChecks";
 import {
   getTaskReleaseUnits,
   getTaskReleaseDeclined,
@@ -53,6 +54,8 @@ interface TaskCardProps {
   currentUserDisplayName?: string;
   projectInfo?: ITaskCardProjectInfo;
   projectUnits?: number;
+  /** All tasks of the project — resolves dependency tokens ("123", "123:sp-…") for the operational checks */
+  projectTasks?: ITaskListItem[];
   remainingReleaseUnits?: number;
   onSaveLogField?: (taskId: string, field: 'Notes' | 'Evidence' | 'Approvals', entries: unknown[]) => Promise<void>;
   onSendEmail?: (to: string[], subject: string, body: string) => Promise<void>;
@@ -132,10 +135,20 @@ const detectShipCompletion = (
 const cloneSubprocessTemplateForStep = (
   template: ITaskSubprocessData,
   stepWbs: string
-): ITaskSubprocessData => ({
+): ITaskSubprocessData => {
+  // New ids per batch; sibling deps ("sp-…") are re-pointed to the cloned ids so they keep resolving.
+  const stamp = Date.now();
+  const newIds = new Map(template.subTasks.map((subTask, index) => [subTask.id, `sp-step-${stamp}-${index + 1}`]));
+  const remap = (token: string): string => newIds.get(token) ?? token;
+  return {
   subTasks: template.subTasks.map((subTask, index) => ({
     ...subTask,
-    id: `sp-step-${Date.now()}-${index + 1}`,
+    ...(subTask.deps && { deps: subTask.deps.map(remap) }),
+    ...(subTask.depTypes && {
+      depTypes: Object.keys(subTask.depTypes).reduce<Record<string, string>>(
+        (acc, token) => ({ ...acc, [remap(token)]: subTask.depTypes![token] }), {}),
+    }),
+    id: newIds.get(subTask.id) ?? `sp-step-${stamp}-${index + 1}`,
     wbs: `${stepWbs}.${String(index + 1).padStart(2, "0")}`,
     sortOrder: index,
     complete: 0,
@@ -144,7 +157,8 @@ const cloneSubprocessTemplateForStep = (
     evidence: [],
     approvals: [],
   })),
-});
+  };
+};
 
 const formatTaskStepWbs = (parentWbs: string, index: number): string => {
   const prefix = parentWbs.trim();
@@ -310,7 +324,7 @@ const fmtDate = (v?: string): string => {
   return p.length === 3 ? `${p[1]}/${p[2]}/${p[0]}` : v;
 };
 
-const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDeleting, hasPrev, hasNext, onNavigate, isMoveFirst, isMoveLast, isMoving, onMoveFirst, onMoveUp, onMoveDown, onMoveLast, currentUserEmail, currentUserDisplayName, projectInfo, projectUnits, remainingReleaseUnits, onClose, onSave, onDelete, onNew, onUploadEvidenceFile, onSaveLogField, onSendEmail, onSearchUsers, onTaskCompleted }) => {
+const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDeleting, hasPrev, hasNext, onNavigate, isMoveFirst, isMoveLast, isMoving, onMoveFirst, onMoveUp, onMoveDown, onMoveLast, currentUserEmail, currentUserDisplayName, projectInfo, projectUnits, projectTasks, remainingReleaseUnits, onClose, onSave, onDelete, onNew, onUploadEvidenceFile, onSaveLogField, onSendEmail, onSearchUsers, onTaskCompleted }) => {
   const [activeTab, setActiveTab] = useState<TaskTab>('notes');
   const canManageApprovers = true; // All users can manage approvers
   const [wbs,             setWbs]             = useState(task.Title ?? "");
@@ -412,7 +426,15 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
       ? "Complete is calculated from subprocess tasks. Update progress in Subprocess Workspace."
       : undefined;
   const isTaskCompleteLocked = !!taskCompleteLockMessage;
-  const queueTaskSave = useQueuedTaskSave(task.Id, onSave);
+  const queueTaskSaveUnchecked = useQueuedTaskSave(task.Id, onSave);
+  /**
+   * Alert first, then save. Every save of this card ends here, so the operational checks (dependencies,
+   * dates, baseline, lot ETA, sizing) cover all progress paths. Cancel keeps the edits on screen, unsaved.
+   */
+  const queueTaskSave = (data: ITaskPersistencePayload): Promise<void> =>
+    confirmSaveWarnings(checkTaskSave(projectTasks ?? [task], task, data))
+      ? queueTaskSaveUnchecked(data)
+      : Promise.reject(new SaveCancelledError());
 
   // ── Save error (inline banner instead of blocking alert) ────────────────────
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -974,6 +996,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
     setIsSaving(true);
     void queueTaskSave(payload)
       .catch(error => {
+        if (isSaveCancelled(error)) return;
         console.error("[TaskCard] Save failed", error);
         const msg = String((error as { message?: string })?.message ?? error);
         const isConflict = msg.includes("409") || msg.toLowerCase().includes("save conflict") || msg.toLowerCase().includes("conflict");
@@ -1581,6 +1604,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
       setTaskStepsLots(1);
       void handleSaveTaskStepsOnly(nextTaskSteps)
         .catch(error => {
+          if (isSaveCancelled(error)) return;
           console.error("[TaskCard] Batch save failed", error);
           alert("Unable to save Batches. Refresh before continuing.");
         })

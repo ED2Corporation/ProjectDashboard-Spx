@@ -21,6 +21,9 @@ import WOReportView from "./WOReportView";
 import TaskCard from "./TaskCard";
 import ProjectActionsBar from "./ProjectActionsBar";
 import ProjectCatalogEditor from "./ProjectCatalogEditor";
+import ValidatePanel from "./ValidatePanel";
+import { checkTaskSave, confirmSaveWarnings, ITaskSaveChange, lotIssues, OpFix, validateProject } from "../utils/OperationalChecks";
+import { buildFixPayloads } from "../utils/OperationalFixes";
 import styles from "./ProjectRowDashboard.module.scss";
 import { getTaskCompleteLockMessageFromJsonTable } from "../utils/TaskPersistencePayload";
 import { ViewerKey, filterTasksForViewer } from "../utils/viewerUtils";
@@ -352,6 +355,34 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
     }
   };
 
+  // ── Operational validation (contract with PO-Inbounds) ──────────────────
+  // Alert first, then save: quick saves from the list ask before they persist; the Validate panel lists every
+  // issue of the project and only changes data when the user presses Apply / Apply all.
+  const [showValidate, setShowValidate] = useState(false);
+  const projectLotsInput = { units: localProject.Units, projectDetails: localProject.ProjectDetails, releases: localProject.releases };
+  const validationIssues = useMemo(
+    () => (showValidate ? validateProject(tasks, projectLotsInput) : []),
+    [showValidate, tasks, localProject.Units, localProject.ProjectDetails, localProject.releases] // eslint-disable-line react-hooks/exhaustive-deps
+  );
+  const handleApplyFixes = async (fixes: OpFix[]): Promise<void> => {
+    for (const payload of buildFixPayloads(tasks, fixes)) {
+      await onUpdateTask(payload.Id, "full-update", JSON.stringify(payload));
+    }
+  };
+  /** True when the save may go on: nothing to warn about, or the user chose to save anyway. */
+  const confirmTaskChange = (taskId: string, change: ITaskSaveChange): boolean => {
+    const task = tasks.find(t => t.Id === taskId);
+    return !task || confirmSaveWarnings(checkTaskSave(tasks, task, change));
+  };
+  const confirmQuickSave = (taskId: string, payloadJson?: string): boolean => {
+    if (!payloadJson) return true;
+    try {
+      return confirmTaskChange(taskId, JSON.parse(payloadJson) as ITaskSaveChange);
+    } catch {
+      return true;
+    }
+  };
+
   const handleTaskCompleted = (): void => {
     if (!selectedTask) return;
     const completeLockMessage = getTaskCompleteLockMessageFromJsonTable(selectedTask.jsonTable);
@@ -359,6 +390,7 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
       alert(completeLockMessage);
       return;
     }
+    if (!confirmTaskChange(selectedTask.Id, { Complete: 100 })) return;
 
     const payload = JSON.stringify({ ...selectedTask, Complete: 100, ActualFinish: new Date() });
     void onUpdateTask?.(selectedTask.Id, 'quick-complete', payload);
@@ -430,6 +462,7 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
         partNumber: localProject.PartNumber ?? localProject.Title ?? '',
       }}
       projectUnits={localProject.Units ?? 0}
+      projectTasks={tasks}
       remainingReleaseUnits={remainingReleaseUnits}
       onSaveLogField={onSaveLogField}
       onSendEmail={onSendEmail}
@@ -516,22 +549,16 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
           <div className={styles.projectTitle}>
             {localProject.ProjectNumber && <span className={styles.woTag}>WO# {localProject.ProjectNumber}</span>}
             {!!localProject.Units && (() => {
-              let lotsTotal = 0;
-              try {
-                const pd = JSON.parse(localProject.ProjectDetails ?? '{}');
-                if (Array.isArray(pd.lots)) {
-                  lotsTotal = (pd.lots as Array<{units?: number}>).reduce((s, l) => s + (l.units ?? 0), 0);
-                }
-              } catch { /* ignore */ }
-              const mismatch = lotsTotal > 0 && lotsTotal !== localProject.Units;
+              // Planned units of the lots (builtUnits, or contract units when not built) against the WO Units.
+              const mismatch = lotIssues(projectLotsInput).find(i => i.key === 'lots-total');
               return (
                 <span className={styles.unitsTag}>
                   {mismatch ? (
                     <span
                       className={styles.unitsMismatch}
-                      title={`SP Units = ${localProject.Units}, but Σ lots = ${lotsTotal}. PO-Inbounds needs to sync.`}
+                      title="Planned units of the lots differ from the WO Units (PO). Review the plan in PO-Inbounds."
                     >
-                      {` (${localProject.Units} sync → ${lotsTotal})`}
+                      {` (${mismatch.message})`}
                     </span>
                   ) : ` (${localProject.Units} units)`}
                 </span>
@@ -681,8 +708,18 @@ const ProjectRowDashboard: React.FC<ProjectRowDashboardProps> = ({
             deletingTaskId={deletingId ?? undefined}
             onSortedTasksChange={setNavTasks}
             onSave={(taskId, payloadJson) => {
+              if (!confirmQuickSave(taskId, payloadJson)) return;
               return onUpdateTask?.(taskId, "quick-complete", payloadJson);
             }}
+            onValidate={showReport ? undefined : () => setShowValidate(prev => !prev)}
+            validateActive={showValidate}
+            validatePanel={showValidate && !showReport ? (
+              <ValidatePanel
+                issues={validationIssues}
+                onApply={handleApplyFixes}
+                onClose={() => setShowValidate(false)}
+              />
+            ) : undefined}
             onSelectItem={(item, _group, mode) => {
               if (!item?.Task) return;
               switch (mode) {

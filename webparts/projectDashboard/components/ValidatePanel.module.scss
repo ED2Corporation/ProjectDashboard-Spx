@@ -1,0 +1,123 @@
+@import './styles/tokens';
+
+.panel {
+  margin: $sp-2 0;
+  border: 1px solid $c-stalled;
+  border-radius: $r-md;
+  background: $c-surface;
+  box-shadow: $shadow-card;
+  font-family: $f-family;
+  font-size: $f-base;
+  overflow: hidden;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: $sp-2;
+  padding: $sp-2 $sp-3;
+  background: $c-stalled-bg;
+  border-bottom: 1px solid $c-stalled;
+  color: $c-stalled;
+  font-weight: 700;
+}
+
+.headerTitle {
+  flex: 1;
+}
+
+.list {
+  max-height: 360px;
+  overflow-y: auto;
+}
+
+.row {
+  display: flex;
+  align-items: flex-start;
+  gap: $sp-2;
+  padding: $sp-2 $sp-3;
+  border-bottom: 1px solid $c-border-subtle;
+}
+
+.badge {
+  flex-shrink: 0;
+  padding: 1px $sp-1;
+  border-radius: $r-sm;
+  font-size: $f-xs;
+  font-weight: 700;
+}
+
+.badgeWarn {
+  background: $c-stalled-bg;
+  color: $c-stalled;
+}
+
+.badgeInfo {
+  background: $c-ontime-bg;
+  color: $c-ontime;
+}
+
+.wbs {
+  flex-shrink: 0;
+  min-width: 56px;
+  color: $c-ontime;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.message {
+  flex: 1;
+  color: $c-text;
+  line-height: 1.4;
+}
+
+.empty {
+  padding: $sp-3;
+  color: $c-completed;
+  text-align: center;
+}
+
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: $sp-2;
+  padding: $sp-2 $sp-3;
+  background: $c-stalled-bg;
+  border-top: 1px solid $c-stalled;
+}
+
+.footerNote {
+  flex: 1;
+  color: $c-stalled;
+  font-size: $f-sm;
+}
+
+.applyBtn,
+.secondaryBtn {
+  flex-shrink: 0;
+  padding: 2px $sp-3;
+  border-radius: $r-md;
+  font-size: $f-sm;
+  font-family: $f-family;
+  cursor: pointer;
+  white-space: nowrap;
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+}
+
+.applyBtn {
+  border: 1px solid $c-stalled;
+  background: $c-stalled;
+  color: $c-surface;
+  font-weight: 600;
+}
+
+.secondaryBtn {
+  border: 1px solid $c-stalled;
+  background: $c-surface;
+  color: $c-stalled;
+}
