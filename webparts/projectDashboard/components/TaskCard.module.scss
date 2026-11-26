@@ -339,6 +339,51 @@ $c-step-tasks: #2f6f78;
   padding: 0 $sp-2;
 }
 
+.saveErrorBanner {
+  display: flex;
+  align-items: center;
+  gap: $sp-2;
+  padding: $sp-2 $sp-3;
+  background: $c-stalled-bg;
+  border: 1px solid $c-stalled;
+  border-radius: $r-md;
+  font-size: $f-sm;
+  flex: 1;
+  min-width: 0;
+}
+
+.saveErrorMsg {
+  flex: 1;
+  color: $c-text;
+  min-width: 0;
+}
+
+.saveErrorRetry {
+  flex-shrink: 0;
+  padding: 2px $sp-3;
+  border: 1px solid $c-stalled;
+  border-radius: $r-md;
+  background: $c-surface;
+  font-size: $f-sm;
+  font-family: $f-family;
+  font-weight: 600;
+  color: $c-stalled;
+  cursor: pointer;
+  &:hover { background: $c-stalled-bg; }
+}
+
+.saveErrorDismiss {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  font-size: 12px;
+  color: $c-text-secondary;
+  cursor: pointer;
+  padding: 0 2px;
+  line-height: 1;
+  &:hover { color: $c-text; }
+}
+
 .taskButtonSaving {
   @extend .taskButtonSave;
   background: #a8a8a8;

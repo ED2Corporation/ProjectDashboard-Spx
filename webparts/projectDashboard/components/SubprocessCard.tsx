@@ -443,6 +443,8 @@ const SubprocessCard: React.FC<SubprocessCardProps> = ({
   const detailCard = detailSubTask ? (
     <SubprocessTaskCard
       subTask={detailSubTask}
+      siblingSubTasks={normalizedSubTasks}
+      parentLabel={visualLevel === "taskStep" ? "Batch" : "Task"}
       parentStart={parentStart}
       parentFinish={parentFinish}
       onUpdateParentDates={onUpdateParentDates}

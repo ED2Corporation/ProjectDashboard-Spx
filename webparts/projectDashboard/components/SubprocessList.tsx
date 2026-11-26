@@ -195,9 +195,10 @@ const SubprocessList: React.FC<ISubprocessListProps> = ({
   const handleQEConflictUpdateParent = (item: ISubprocessSubTask): void => {
     const newParentStart = (parentStart && editStart < parentStart) ? editStart : (parentStart ?? editStart);
     const newParentFinish = (parentFinish && editFinish > parentFinish) ? editFinish : (parentFinish ?? editFinish);
-    onUpdateParentDates?.(newParentStart, newParentFinish);
     setQuickEditConflictItemId(null);
+    // Save the subtask first so the parent update applies on top of it
     handleQuickSave(item, true);
+    onUpdateParentDates?.(newParentStart, newParentFinish);
   };
 
   const handleQEConflictAdjustChild = (): void => {

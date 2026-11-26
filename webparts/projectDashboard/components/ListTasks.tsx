@@ -6,6 +6,7 @@ import { GetDelay } from "../utils/GetDelay";
 import { GetFormatDate } from "../utils/GetFormatDate";
 import { compareWbs } from "../utils/ParseWBS";
 import { getTodayDateInputValue, getTaskSubprocess, getTaskSteps } from "../utils/TaskDescriptionBlob";
+import { toAppDate } from "../utils/DateUtils";
 import { getTaskCompleteLockMessageFromJsonTable } from "../utils/TaskPersistencePayload";
 import EvidenceUploadButton from "./EvidenceUploadButton";
 import styles from "./ProjectDashboard.module.scss";
@@ -117,15 +118,8 @@ const ListTasks = ({
   const [submenuDownKey, setSubmenuDownKey] = useState<string | null>(null);
 
   // Helper: Date/ISO/string -> YYYY-MM-DD
-  const toDateInputValue = (value?: string | Date | null): string => {
-    if (!value) return "";
-    const d = new Date(value);
-    if (isNaN(d.getTime())) return "";
-    const yyyy = d.getFullYear();
-    const mm = String(d.getMonth() + 1).padStart(2, "0");
-    const dd = String(d.getDate()).padStart(2, "0");
-    return `${yyyy}-${mm}-${dd}`;
-  };
+  // eslint-disable-next-line @rushstack/no-new-null
+  const toDateInputValue = (value?: string | Date | null): string => toAppDate(value ?? undefined);
 
   const toMs = (value?: string | Date | null): number => {
     if (!value) return 0;

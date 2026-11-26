@@ -1,4 +1,5 @@
 import { ApprovalStatus, ApproverRole, IApprovalEntry, IEvidenceEntry, INoteEntry, NoteBadge } from "../../../models";
+import { appToday, toAppDate } from "./DateUtils";
 
 export interface ISubprocessSubTask {
   id: string;
@@ -90,28 +91,11 @@ const asNumber = (value: unknown): number => {
   return 0;
 };
 
-export const getTodayDateInputValue = (): string => {
-  const today = new Date();
-  const year = today.getFullYear();
-  const month = String(today.getMonth() + 1).padStart(2, "0");
-  const day = String(today.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-};
+/** Today's date (YYYY-MM-DD) in the business time zone (Arizona). */
+export const getTodayDateInputValue = (): string => appToday();
 
-/**
- * Converts a Date or date string to YYYY-MM-DD using LOCAL time.
- * Avoids the UTC midnight timezone shift bug of toISOString().slice(0,10).
- */
-export const toLocaleDateInputValue = (value?: Date | string): string => {
-  if (!value) return "";
-  if (typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
-  const date = value instanceof Date ? value : new Date(value);
-  if (isNaN(date.getTime())) return "";
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-};
+/** Converts a Date or date string to YYYY-MM-DD in the business time zone (Arizona). */
+export const toLocaleDateInputValue = (value?: Date | string): string => toAppDate(value);
 
 const getCompletionFinish = (complete: number, finish: string): string =>
   complete >= 100 && !finish ? getTodayDateInputValue() : finish;

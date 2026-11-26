@@ -9,6 +9,42 @@ export const isDateOnly = (value?: string): value is string => {
     return /^\d{4}-\d{2}-\d{2}$/.test(value);
 };
 
+// ── Business calendar: the system operates on Arizona time (UTC−7, no DST) ──
+export const APP_TIME_ZONE = "America/Phoenix";
+
+const appDateFormatter = new Intl.DateTimeFormat("en-US", {
+    timeZone: APP_TIME_ZONE, year: "numeric", month: "2-digit", day: "2-digit",
+});
+
+const formatAppDate = (d: Date): string => {
+    const parts = appDateFormatter.formatToParts(d);
+    const get = (type: string): string => parts.find(p => p.type === type)?.value ?? "";
+    return `${get("year")}-${get("month")}-${get("day")}`;
+};
+
+/**
+ * Calendar date (YYYY-MM-DD) of a value, as seen in Arizona.
+ * Legacy values saved as exact UTC midnight were date-only picks, so their UTC date is kept.
+ */
+export const toAppDate = (value?: string | Date): string => {
+    if (!value) return "";
+    if (typeof value === "string" && isDateOnly(value)) return value;
+    const d = value instanceof Date ? value : new Date(value);
+    if (isNaN(d.getTime())) return "";
+    const isUtcMidnight = d.getUTCHours() === 0 && d.getUTCMinutes() === 0 && d.getUTCSeconds() === 0 && d.getUTCMilliseconds() === 0;
+    return isUtcMidnight ? d.toISOString().slice(0, 10) : formatAppDate(d);
+};
+
+/** Today's date (YYYY-MM-DD) in Arizona. */
+export const appToday = (): string => formatAppDate(new Date());
+
+/** Date-only pick → instant at noon Arizona (19:00Z), which stays on the same calendar day in every US time zone. */
+export const appDateToSp = (dateOnly: string): Date | undefined => {
+    if (!isDateOnly(dateOnly)) return undefined;
+    const [y, m, d] = dateOnly.split("-").map(n => parseInt(n, 10));
+    return new Date(Date.UTC(y, m - 1, d, 19, 0, 0, 0));
+};
+
 /**
  * Creates an ISO 8601 string at 00:00:00.000Z from a date-only "YYYY-MM-DD".
  * This does NOT use local timezone; it builds UTC explicitly.

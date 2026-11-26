@@ -8,6 +8,8 @@ import EvidenceLog from "./EvidenceLog";
 import ApprovalsLog from "./ApprovalsLog";
 import SubprocessCard from "./SubprocessCard";
 import TaskStepsTable from "./TaskStepsTable";
+import DateConsistencyCard from "./DateConsistencyCard";
+import { checkParentSpan, shiftChildrenWithParent, shiftSpan, workingDaysBetween, IDateSpan } from "../utils/TaskDateConsistency";
 import { useQueuedTaskSave } from "../hooks/useQueuedTaskSave";
 import { buildTaskPersistencePayload, ITaskJsonTableSizeStatus } from "../utils/TaskPersistencePayload";
 import {
@@ -411,6 +413,10 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
       : undefined;
   const isTaskCompleteLocked = !!taskCompleteLockMessage;
   const queueTaskSave = useQueuedTaskSave(task.Id, onSave);
+
+  // ── Save error (inline banner instead of blocking alert) ────────────────────
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const retrySaveRef = useRef<(() => void) | null>(null);
 
   const reportJsonTableSize = (jsonTableSize: ITaskJsonTableSizeStatus): void => {
     if (jsonTableSize.level === "ok") return;
@@ -963,9 +969,19 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
 
     setComplete(effectiveComplete); setFinish(effectiveFinish); latestJsonTableRef.current = jsonTable;
     reportJsonTableSize(jsonTableSize);
+    setSaveError(null);
+    retrySaveRef.current = () => handleSave(overrides);
     setIsSaving(true);
     void queueTaskSave(payload)
-      .catch(error => { console.error("[TaskCard] Save failed", error); alert("Unable to save task changes. Refresh before continuing."); })
+      .catch(error => {
+        console.error("[TaskCard] Save failed", error);
+        const msg = String((error as { message?: string })?.message ?? error);
+        const isConflict = msg.includes("409") || msg.toLowerCase().includes("save conflict") || msg.toLowerCase().includes("conflict");
+        setSaveError(isConflict
+          ? "Sync conflict with server. Your changes are preserved — click Retry to try again."
+          : "Unable to sync changes. Click Retry or refresh the page."
+        );
+      })
       .finally(() => { setIsSaving(false); });
   };
 
@@ -1064,6 +1080,70 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
     const normalizedTaskSteps = normalizeTaskStepsAggregation(nextTaskSteps);
     commitTaskSteps(normalizedTaskSteps);
     await handleSaveTaskStepsOnly(normalizedTaskSteps);
+  };
+
+  // ── Date span sync: task vs its batches + subprocess (derived, never blocks Save) ──
+  const taskSpanCheck = checkParentSpan(
+    { start, finish },
+    [...(taskSteps.enabled ? taskSteps.steps : []), ...subprocess.subTasks],
+  );
+
+  const applyTaskSpan = (): void => {
+    if (!taskSpanCheck) return;
+    setStart(taskSpanCheck.expected.start);
+    setFinish(taskSpanCheck.expected.finish);
+  };
+
+  // Shift is offered when the parent moved since its last save, or a child sits outside its span.
+  const canShiftChildren = (saved: IDateSpan, current: IDateSpan, outside: string[]): boolean =>
+    workingDaysBetween(saved.start, current.start) !== 0 || outside.length > 0;
+
+  const shiftStepSubprocess = (step: ITaskStepEntry, offset: number): ITaskStepEntry => step.subprocess
+    ? { ...step, subprocess: { subTasks: step.subprocess.subTasks.map(st => shiftSpan(st, offset)) } }
+    : step;
+
+  const taskSavedSpan: IDateSpan = { start: toLocaleDateInputValue(task.Start), finish: toLocaleDateInputValue(task.Finish) };
+
+  const shiftTaskChildren = (): void => {
+    const span = { start, finish };
+    const nextSubprocess = { subTasks: shiftChildrenWithParent(taskSavedSpan, span, subprocess.subTasks) };
+    if (taskSteps.enabled && taskSteps.steps.length > 0) {
+      const steps = shiftChildrenWithParent(taskSavedSpan, span, taskSteps.steps, shiftStepSubprocess);
+      setSubprocess(nextSubprocess);
+      void handleSaveTaskStepsOnly({ ...taskSteps, steps }, nextSubprocess);
+    } else {
+      void handleSaveSubprocessOnly(nextSubprocess);
+    }
+  };
+
+  // Batch dates follow its subtasks and the task follows its batches; persisted by the next subprocess/step save.
+  const updateStepSpanCascade = (stepId: string, span: IDateSpan): void => {
+    const withSpan = (s: ITaskStepEntry): ITaskStepEntry => s.id === stepId ? { ...s, start: span.start, finish: span.finish } : s;
+    // Functional update so it composes with a subtask change applied in the same event
+    setTaskSteps(prev => ({ ...prev, steps: prev.steps.map(withSpan) }));
+    if (selectedTaskStepId === stepId) {
+      setTaskStepStartEdit(span.start);
+      setTaskStepFinishEdit(span.finish);
+    }
+    const taskSpan = checkParentSpan({ start, finish }, [...taskSteps.steps.map(withSpan), ...subprocess.subTasks]);
+    if (taskSpan) {
+      setStart(taskSpan.expected.start);
+      setFinish(taskSpan.expected.finish);
+    }
+  };
+
+  const saveStepSpan = (step: ITaskStepEntry, span: IDateSpan, subTasks?: ISubprocessSubTask[]): void => {
+    setTaskStepStartEdit(span.start);
+    setTaskStepFinishEdit(span.finish);
+    void handleSaveTaskStepsOnly({
+      ...taskSteps,
+      steps: taskSteps.steps.map(s => s.id !== step.id ? s : {
+        ...s,
+        start: span.start,
+        finish: span.finish,
+        ...(subTasks && { subprocess: { subTasks } }),
+      }),
+    });
   };
 
   const handleSaveTaskStepEvidenceEntries = async (stepId: string, entries: IEvidenceEntry[]): Promise<void> => {
@@ -1939,6 +2019,23 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
                               disabled={!taskStepIsReleaseEdit}
                             />
                           </label>
+                          {(() => {
+                            const stepSubTasks = selectedStep.subprocess?.subTasks ?? [];
+                            const stepSpan = { start: taskStepStartEdit, finish: taskStepFinishEdit };
+                            const stepCheck = checkParentSpan(stepSpan, stepSubTasks);
+                            const stepSavedSpan = { start: selectedStep.start, finish: selectedStep.finish };
+                            return stepCheck && (
+                              <DateConsistencyCard
+                                check={stepCheck}
+                                parentLabel="Batch"
+                                childLabel="subtasks"
+                                onApplyParent={() => saveStepSpan(selectedStep, stepCheck.expected)}
+                                onShiftChildren={canShiftChildren(stepSavedSpan, stepSpan, stepCheck.childrenOutside)
+                                  ? () => saveStepSpan(selectedStep, stepSpan, shiftChildrenWithParent(stepSavedSpan, stepSpan, stepSubTasks))
+                                  : undefined}
+                              />
+                            );
+                          })()}
                           <div className={styles.taskStepEditorActions}>
                             <button
                               type="button"
@@ -1975,6 +2072,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
                       commitTaskSteps(normalizedTaskSteps);
                       setComplete(deriveTaskComplete(normalizedTaskSteps, undefined));
                     }}
+                    onUpdateParentDates={(newStart, newFinish) => updateStepSpanCascade(selectedStep.id, { start: newStart, finish: newFinish })}
                     onSaveSubprocess={(nextValue) => handleSaveTaskStepSubprocessOnly(selectedStep.id, nextValue)}
                     currentUserEmail={currentUserEmail}
                     currentUserDisplayName={currentUserDisplayName}
@@ -2165,6 +2263,24 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
               <span className={styles.taskButtonLabel}>&gt;</span>
             </button>
           </div>
+
+          {/* Save error banner */}
+          {saveError && (
+            <div className={styles.saveErrorBanner}>
+              <span className={styles.saveErrorMsg}>{saveError}</span>
+              <button
+                type="button"
+                className={styles.saveErrorRetry}
+                onClick={() => { setSaveError(null); retrySaveRef.current?.(); }}
+              >Retry</button>
+              <button
+                type="button"
+                className={styles.saveErrorDismiss}
+                onClick={() => setSaveError(null)}
+                title="Dismiss"
+              >✕</button>
+            </div>
+          )}
 
           {/* Completion warning */}
           <button
@@ -2386,6 +2502,16 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isPlanner, isCreating, isDele
                 />
               </label>
             </div>
+
+            {taskSpanCheck && (
+              <DateConsistencyCard
+                check={taskSpanCheck}
+                parentLabel="Task"
+                childLabel={taskSteps.enabled && taskSteps.steps.length > 0 ? "batches" : "subtasks"}
+                onApplyParent={applyTaskSpan}
+                onShiftChildren={canShiftChildren(taskSavedSpan, { start, finish }, taskSpanCheck.childrenOutside) ? shiftTaskChildren : undefined}
+              />
+            )}
 
             {/* Completion warning */}
             {complete === 100 && !hasCompletionEvidence && (

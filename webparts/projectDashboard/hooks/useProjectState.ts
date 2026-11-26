@@ -941,20 +941,28 @@ export function useProjectState(config: UseProjectStateConfig): UseProjectStateR
       }
     };
 
-    // SP returns 409 "Save Conflict" when owshiddenversion is out of sync
-    // (can happen when two saves race, even with IF-MATCH: *).
-    // Retry once after a short delay — the second attempt always uses the latest server version.
-    try {
-      await doUpdate();
-    } catch (err: unknown) {
-      const msg = String((err as { message?: string })?.message ?? err);
-      if (msg.includes("409") || msg.toLowerCase().includes("save conflict")) {
-        await new Promise<void>(resolve => setTimeout(resolve, 800));
+    // SP returns 409 "Save Conflict" when owshiddenversion is out of sync.
+    // Retry with exponential backoff; each attempt uses the same payload (last-write-wins
+    // is intentional — the user's edit is the source of truth for the fields we write).
+    const RETRY_DELAYS = [300, 800, 1500];
+    let lastErr: unknown;
+    for (let attempt = 0; attempt <= RETRY_DELAYS.length; attempt++) {
+      try {
         await doUpdate();
-      } else {
-        throw err;
+        lastErr = undefined;
+        break;
+      } catch (err: unknown) {
+        const msg = String((err as { message?: string })?.message ?? err);
+        const isConflict = msg.includes("409") || msg.toLowerCase().includes("save conflict");
+        if (isConflict && attempt < RETRY_DELAYS.length) {
+          await new Promise<void>(resolve => setTimeout(resolve, RETRY_DELAYS[attempt]));
+          lastErr = err;
+        } else {
+          throw err;
+        }
       }
     }
+    if (lastErr !== undefined) throw lastErr;
 
     // Rename gate for all other tasks in the same gate (full-update only)
     if (action !== "quick-complete" && data.renameGate && data.originalGate && data.Gate !== data.originalGate) {

@@ -5,6 +5,8 @@ import { getTodayDateInputValue, toLocaleDateInputValue, ISubprocessSubTask } fr
 import ApprovalsLog from "./ApprovalsLog";
 import EvidenceLog from "./EvidenceLog";
 import NotesLog from "./NotesLog";
+import DateConsistencyCard from "./DateConsistencyCard";
+import { checkParentSpan } from "../utils/TaskDateConsistency";
 import styles from "./SubprocessCard.module.scss";
 
 type SubprocessTaskTab = "notes" | "evidence" | "approvals";
@@ -12,6 +14,9 @@ type SubprocessColumnFocus = "balanced" | "left" | "right";
 
 interface ISubprocessTaskCardProps {
   subTask: ISubprocessSubTask;
+  /** All subtasks of the same parent, used to check the parent span stays in sync */
+  siblingSubTasks?: ISubprocessSubTask[];
+  parentLabel?: string;
   parentStart?: string;
   parentFinish?: string;
   onUpdateParentDates?: (newStart: string, newFinish: string) => void;
@@ -53,6 +58,8 @@ const hasCompletionEvidence = (entries: IEvidenceEntry[]): boolean =>
 
 const SubprocessTaskCard: React.FC<ISubprocessTaskCardProps> = ({
   subTask,
+  siblingSubTasks,
+  parentLabel = "Task",
   parentStart,
   parentFinish,
   onUpdateParentDates,
@@ -213,6 +220,14 @@ const SubprocessTaskCard: React.FC<ISubprocessTaskCardProps> = ({
   });
 
   const completionEvidenceMissing = complete === 100 && !hasCompletionEvidence(evidence);
+
+  // Parent span vs all siblings, using this subtask's edited dates
+  const spanCheck = siblingSubTasks && parentStart && parentFinish && onUpdateParentDates
+    ? checkParentSpan(
+        { start: parentStart, finish: parentFinish },
+        siblingSubTasks.map(st => st.id === subTask.id ? { ...st, start, finish } : st),
+      )
+    : undefined;
 
   const handleDateConflictUpdateParent = (): void => {
     if (!dateConflict) return;
@@ -414,6 +429,15 @@ const SubprocessTaskCard: React.FC<ISubprocessTaskCardProps> = ({
               </div>
             );
           })()}
+
+          {!dateConflict && spanCheck && onUpdateParentDates && (
+            <DateConsistencyCard
+              check={spanCheck}
+              parentLabel={parentLabel}
+              childLabel="subtasks"
+              onApplyParent={() => onUpdateParentDates(spanCheck.expected.start, spanCheck.expected.finish)}
+            />
+          )}
 
           {completionEvidenceMissing && (
             <div className={styles.detailWarning}>

@@ -364,19 +364,18 @@ describe('toLocaleDateInputValue', () => {
     expect(toLocaleDateInputValue('2026-13-01')).toBe('2026-13-01');
   });
 
-  it('converts a Date object to YYYY-MM-DD using local time', () => {
-    // In Jest (UTC environment) local and UTC match, so this verifies the format.
-    const d = new Date(2026, 5, 15); // June 15 2026 local midnight
-    expect(toLocaleDateInputValue(d)).toBe('2026-06-15');
+  it('converts a Date object to its Arizona calendar date, regardless of the browser time zone', () => {
+    expect(toLocaleDateInputValue(new Date('2026-06-15T19:00:00Z'))).toBe('2026-06-15'); // noon AZ
+    expect(toLocaleDateInputValue(new Date('2026-06-16T03:00:00Z'))).toBe('2026-06-15'); // 8pm AZ, still June 15
   });
 
-  it('converts an ISO datetime string with time component to YYYY-MM-DD', () => {
-    // A SharePoint Date field typically returns a full ISO string.
-    // In UTC test environment, UTC noon stays on the same date.
-    const iso = '2026-06-15T12:00:00Z';
-    const result = toLocaleDateInputValue(iso);
-    expect(result).toMatch(/^\d{4}-\d{2}-\d{2}$/);
-    expect(result.startsWith('2026-06-1')).toBe(true);
+  it('converts SharePoint ISO strings to the Arizona calendar date', () => {
+    expect(toLocaleDateInputValue('2026-06-15T07:00:00Z')).toBe('2026-06-15'); // date-only column, midnight AZ
+    expect(toLocaleDateInputValue('2026-06-15T12:00:00Z')).toBe('2026-06-15');
+  });
+
+  it('keeps legacy values saved at exact UTC midnight on their picked date', () => {
+    expect(toLocaleDateInputValue('2026-06-15T00:00:00Z')).toBe('2026-06-15');
   });
 });
 

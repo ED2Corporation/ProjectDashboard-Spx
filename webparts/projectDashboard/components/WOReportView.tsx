@@ -6,6 +6,7 @@ import { IProjectCatalogItem } from '../../../models/IProjectService';
 import { INoteEntry } from '../../../models/ITaskLogFields';
 import { IReportNote } from '../../../models/IReportNote';
 import { getTaskSteps, getTaskLot } from '../utils/TaskDescriptionBlob';
+import { appToday, toAppDate } from '../utils/DateUtils';
 import { uid } from './ReportNotesPanel';
 import styles from './WOReportView.module.scss';
 
@@ -61,13 +62,10 @@ function fmtWeekRange(mondayYmd: string): string {
 }
 
 function fmtDate(d?: Date | string): string {
-  if (!d) return '—';
-  // Use parseLocalDate only for bare YYYY-MM-DD; full ISO timestamps parse normally
-  const dt = typeof d === 'string'
-    ? (d.length === 10 ? parseLocalDate(d) : new Date(d))
-    : d;
-  if (isNaN(dt.getTime())) return '—';
-  return `${dt.getMonth() + 1}/${dt.getDate()}/${String(dt.getFullYear()).slice(-2)}`;
+  const ymd = toAppDate(d);
+  if (!ymd) return '—';
+  const [y, m, day] = ymd.split('-');
+  return `${Number(m)}/${Number(day)}/${y.slice(-2)}`;
 }
 
 function gateStatus(complete: number): { label: string; cls: string } {
@@ -84,7 +82,7 @@ function lotStatus(complete: number): { label: string; cls: string } {
 
 // Default to Monday of the current running week (Sunday → previous Monday)
 function currentReportMonday(): string {
-  const d = new Date();
+  const d = parseLocalDate(appToday());
   const dow = d.getDay();
   const diff = dow === 0 ? -6 : 1 - dow; // Sunday → back 6; else back to Monday
   d.setDate(d.getDate() + diff);
@@ -749,9 +747,8 @@ const WOReportView: React.FC<WOReportViewProps> = ({
                     // Projected = latest finish among steps (or task.Finish if no steps)
                     const lotProjectedStr = hasSteps
                       ? steps.reduce((mx, s) => (!mx || s.finish > mx) ? s.finish : mx, '' as string) || undefined
-                      : (t.Finish instanceof Date ? t.Finish.toISOString().slice(0, 10) : t.Finish as string | undefined);
-                    const etaStr = typeof etaDate === 'string' ? etaDate
-                      : etaDate instanceof Date ? etaDate.toISOString().slice(0, 10) : undefined;
+                      : (toAppDate(t.Finish) || undefined);
+                    const etaStr = toAppDate(etaDate) || undefined;
                     const lotIsLate = !!lotProjectedStr && !!etaStr && lotProjectedStr > etaStr;
                     const lotReleased = (project?.releases ?? [])
                       .filter(r => r.lotNo !== undefined && r.lotNo === taskLot?.lotNo)

@@ -8,6 +8,7 @@ import {
   ITaskStepsData,
   ITaskSubprocessData,
 } from "./TaskDescriptionBlob";
+import { appDateToSp, isDateOnly } from "./DateUtils";
 
 export const JSON_TABLE_SIZE_WARNING_THRESHOLD = 50000;
 export const JSON_TABLE_SIZE_CRITICAL_THRESHOLD = 90000;
@@ -70,7 +71,8 @@ interface IBuildTaskPersistencePayloadOptions {
 
 const toDate = (value?: Date | string): Date | undefined => {
   if (!value) return undefined;
-  return value instanceof Date ? value : new Date(value);
+  if (value instanceof Date) return value;
+  return isDateOnly(value) ? appDateToSp(value) : new Date(value);
 };
 
 const getCompletionFinishDate = (complete: number, finish?: Date): Date | undefined =>

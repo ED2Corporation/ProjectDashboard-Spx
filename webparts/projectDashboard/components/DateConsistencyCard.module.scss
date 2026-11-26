@@ -1,0 +1,59 @@
+@import './styles/tokens';
+
+.card {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: $sp-2 $sp-3;
+  grid-column: 1 / -1;
+  margin-top: $sp-3;
+  padding: $sp-2 $sp-3;
+  background: $c-stalled-bg;
+  border: 1px solid $c-stalled;
+  border-radius: $r-md;
+  font-size: $f-sm;
+  font-family: $f-family;
+}
+
+.message {
+  flex: 1 1 220px;
+  color: $c-text;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: $sp-2;
+}
+
+.applyBtn,
+.secondaryBtn {
+  padding: 2px $sp-3;
+  border-radius: $r-md;
+  font-size: $f-sm;
+  font-family: $f-family;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.applyBtn {
+  border: 1px solid $c-stalled;
+  background: $c-stalled;
+  color: $c-surface;
+  font-weight: 600;
+}
+
+.secondaryBtn {
+  border: 1px solid $c-stalled;
+  background: $c-surface;
+  color: $c-stalled;
+}
+
+.dismissBtn {
+  background: none;
+  border: none;
+  font-size: 12px;
+  color: $c-text-secondary;
+  cursor: pointer;
+  padding: 0 2px;
+}
