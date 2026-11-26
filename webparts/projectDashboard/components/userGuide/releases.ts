@@ -22,6 +22,21 @@ export interface IRelease {
 
 export const RELEASES: IRelease[] = [
   {
+    version: '1.0.6.16',
+    date: '2026-11-26',
+    items: [
+      { area: 'Task List', text: 'New Validate button (left of Options) checks the whole project: dependencies (FS / SS / FF / SF) from PO-Inbounds, task / batch dates against their children, baseline slip, lots finishing after their ETA, batch units against the planned units, and lots / releases against the PO. Each fixable issue has Apply; Apply all and Cancel are in the footer. Nothing changes until you press Apply.' },
+      { area: 'Task Card', text: 'Saves now warn before they persist: when a change starts or completes a task before its predecessor, breaks a dependency date, slips past the baseline, passes the lot ETA or unbalances the batch units, the warnings are listed first — OK saves anyway, Cancel keeps your edits on screen unsaved. Applies to the Task Card, batches, subprocess, Quick Edit and quick complete.' },
+      { area: 'Task Card', text: 'Date consistency: Task, Batch and Subprocess Detail show an inline card when the parent dates differ from its children (start = earliest child, finish = latest child), with Apply to adjust the parent or Shift to move the children by working days (Mon–Fri).' },
+      { area: 'Subprocess', text: 'Quick Edit "Update parent range" now updates the batch and cascades up to the task dates.' },
+      { area: 'Dates', text: 'All dates are read and written in Arizona time (America/Phoenix): a date no longer shows one day earlier depending on the browser time zone.' },
+      { area: 'WO Report', text: 'Opens on the current week; the LOT Schedule shows the task name (same as the task list) and the Shipped column is centered.' },
+      { area: 'Task List', text: 'Header units badge compares the planned units of the lots with the WO Units: "Planned x - PO y".' },
+      { area: 'Data', text: 'Saving a task no longer erases the plan data written by PO-Inbounds in the subprocess and batches (dependencies, link types, effort, crew, baselines). Batch subtasks cloned from the template keep their sibling dependencies.' },
+      { area: 'Data', text: 'Save conflicts (409) are retried automatically; if the save still fails, a banner with Retry keeps your changes.' },
+    ],
+  },
+  {
     version: '1.0.6.11',
     date: '2026-11-18',
     items: [
